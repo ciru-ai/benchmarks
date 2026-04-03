@@ -4,6 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks</title>
+  <meta name="description" content="AMD Ryzen AI Max+ 395 128GB local LLM benchmark dashboard for llama.cpp Vulkan on Strix Halo.">
+  <meta name="theme-color" content="#081019">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks">
+  <meta property="og:description" content="Local LLM benchmark dashboard for Strix Halo using llama.cpp Vulkan.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="ccglogo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks">
+  <meta name="twitter:description" content="Local LLM benchmark dashboard for Strix Halo using llama.cpp Vulkan.">
+  <meta name="twitter:image" content="ccglogo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="ccglogo.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="ccglogo.png">
+  <link rel="shortcut icon" href="ccglogo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="ccglogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -150,43 +166,12 @@
       font-family: "IBM Plex Mono", monospace;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
-      align-items: center;
-      padding: 18px 20px;
-      margin-bottom: 16px;
-      border-radius: var(--radius-xl);
-      background:
-        linear-gradient(180deg, rgba(9, 18, 29, 0.88), rgba(9, 18, 29, 0.72)),
-        radial-gradient(circle at 12% 10%, rgba(57, 208, 255, 0.11), transparent 24%),
-        radial-gradient(circle at 88% 12%, rgba(243, 177, 74, 0.08), transparent 20%);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-    }
-
-    .hero-copy h1 {
-      margin: 0;
-      font-size: clamp(2rem, 3vw, 3.1rem);
-      line-height: 0.96;
-      letter-spacing: -0.05em;
-      max-width: 14ch;
-    }
-
-    .hero-copy p {
-      margin: 10px 0 0;
-      max-width: 68ch;
-      color: var(--muted);
-      font-size: 0.98rem;
-      line-height: 1.65;
-    }
-
     .control-panel {
-      min-width: 320px;
-      padding: 16px;
-      border-radius: 20px;
-      background: rgba(7, 14, 24, 0.64);
+      min-width: 0;
+      margin: 0 0 14px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(7, 14, 24, 0.52);
       border: 1px solid var(--line);
     }
 
@@ -540,16 +525,7 @@
       white-space: nowrap;
     }
 
-    .footer {
-      color: var(--muted);
-      text-align: center;
-      font-size: 0.9rem;
-      line-height: 1.6;
-      padding: 6px 0 0;
-    }
-
     @media (max-width: 1180px) {
-      .hero,
       .dashboard,
       .double,
       .info-grid {
@@ -571,11 +547,6 @@
       }
 
       .topbar {
-        grid-template-columns: 1fr;
-      }
-
-      .hero,
-      .kpi-row {
         grid-template-columns: 1fr;
       }
 
@@ -615,20 +586,6 @@
       </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-copy">
-        <h1>AMD Ryzen AI Max+ 395 128GB local LLM benchmarks</h1>
-        <p>
-          llama.cpp Vulkan runs on host <span class="mono">ciru</span>, comparing model size, prompt throughput,
-          generation throughput, and memory use across 4096, 16384, 32768, and longer context checks where available.
-        </p>
-      </div>
-      <div class="control-panel">
-        <p class="label">Comparison context</p>
-        <div id="contextSwitch" class="segmented"></div>
-      </div>
-    </section>
-
     <section id="kpiRow" class="kpi-row"></section>
 
     <section class="dashboard">
@@ -638,6 +595,10 @@
             <h2>Size / Speed Frontier</h2>
             <p>Model size on x, generation speed on y, bubble area by VRAM. This is the main “what actually wins here?” chart.</p>
           </div>
+        </div>
+        <div class="control-panel">
+          <p class="label">Comparison context</p>
+          <div id="contextSwitch" class="segmented"></div>
         </div>
         <div id="frontierChart" class="chart chart-lg"></div>
       </article>
@@ -781,8 +742,6 @@
         </div>
       </div>
     </details>
-
-    <p class="footer">Static single-file dashboard. For local preview, use HTTP rather than opening straight from <span class="mono">file://</span>.</p>
   </div>
 
   <script>
