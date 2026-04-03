@@ -3,45 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crown Citadel Benchmarks</title>
+  <title>AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     :root {
-      --ink: #132033;
-      --muted: #58667a;
-      --paper: rgba(255, 252, 246, 0.88);
-      --paper-strong: rgba(255, 255, 255, 0.94);
-      --line: rgba(19, 32, 51, 0.1);
-      --gold: #ae7b2f;
-      --gold-soft: rgba(174, 123, 47, 0.12);
-      --navy: #203659;
-      --shadow: 0 18px 48px rgba(26, 38, 56, 0.12);
-      --radius-xl: 30px;
+      --bg: #081019;
+      --bg-2: #0d1724;
+      --panel: rgba(10, 19, 31, 0.86);
+      --panel-2: rgba(13, 24, 39, 0.94);
+      --line: rgba(139, 170, 204, 0.12);
+      --line-strong: rgba(139, 170, 204, 0.22);
+      --text: #edf5ff;
+      --muted: #8ea3bb;
+      --cyan: #39d0ff;
+      --teal: #21c7a8;
+      --amber: #f3b14a;
+      --rose: #ff6f91;
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
       --radius-lg: 22px;
       --radius-md: 16px;
-      --max-width: 1440px;
+      --max: 1540px;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
       margin: 0;
-      min-height: 100vh;
-      color: var(--ink);
+      color: var(--text);
       font-family: "Space Grotesk", system-ui, sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(226, 198, 142, 0.45), transparent 26%),
-        radial-gradient(circle at right 10% top 12%, rgba(83, 111, 153, 0.2), transparent 20%),
-        linear-gradient(180deg, #f7f2e9 0%, #eef2f5 44%, #edf0ea 100%);
+        radial-gradient(circle at top left, rgba(57, 208, 255, 0.14), transparent 24%),
+        radial-gradient(circle at top right, rgba(243, 177, 74, 0.08), transparent 22%),
+        linear-gradient(180deg, #071018 0%, #09131d 42%, #0c1621 100%);
     }
 
     body::before {
@@ -50,708 +49,757 @@
       inset: 0;
       pointer-events: none;
       background-image:
-        linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-      background-size: 32px 32px;
-      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 90%);
-      opacity: 0.35;
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.4;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 85%);
     }
 
-    a {
-      color: inherit;
-    }
-
-    .page-shell {
-      width: min(calc(100% - 40px), var(--max-width));
-      margin: 28px auto 56px;
-    }
-
-    .hero,
-    .panel {
-      background: var(--paper);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(22px);
-    }
-
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: 34px;
-      padding: 30px;
-      display: grid;
-      gap: 24px;
-    }
-
-    .hero::after {
+    body::after {
       content: "";
-      position: absolute;
-      right: -120px;
-      top: -80px;
-      width: 360px;
-      height: 360px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(174, 123, 47, 0.14), transparent 66%);
+      position: fixed;
+      inset: 0;
       pointer-events: none;
+      background-image: url("crowncitadeloutline.png");
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: min(92vw, 1440px);
+      opacity: 0.06;
+      filter: brightness(0) invert(1) contrast(1.08);
     }
 
-    .hero-top {
-      display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
-      gap: 24px;
-      align-items: stretch;
+    img {
+      display: block;
+      max-width: 100%;
     }
 
-    .hero-brand {
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 14px auto 26px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
       display: grid;
-      grid-template-columns: 172px minmax(0, 1fr);
-      gap: 24px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
       align-items: center;
-    }
-
-    .logo-frame {
-      padding: 20px;
-      border-radius: 28px;
-      background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(244, 234, 214, 0.9));
-      border: 1px solid rgba(174, 123, 47, 0.2);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        0 18px 40px rgba(174, 123, 47, 0.12);
-      min-height: 172px;
-      display: grid;
-      place-items: center;
-    }
-
-    .logo-frame img {
-      width: 100%;
-      height: auto;
-      object-fit: contain;
-      filter: drop-shadow(0 18px 26px rgba(28, 45, 70, 0.14));
-    }
-
-    .eyebrow {
-      margin: 0 0 10px;
-      color: var(--gold);
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-
-    h1,
-    h2,
-    h3 {
-      margin: 0;
-      line-height: 1.04;
-    }
-
-    h1 {
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: clamp(3rem, 4vw, 5rem);
-      font-weight: 600;
-      letter-spacing: -0.04em;
-      text-wrap: balance;
-    }
-
-    .lede {
-      max-width: 60ch;
-      margin: 14px 0 0;
-      color: var(--muted);
-      font-size: 1.02rem;
-      line-height: 1.7;
-    }
-
-    .chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 18px;
-    }
-
-    .chip,
-    .context-chip button {
-      border-radius: 999px;
-      border: 1px solid rgba(19, 32, 51, 0.08);
-      background: rgba(255, 255, 255, 0.8);
-      color: var(--ink);
-      padding: 9px 14px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-    }
-
-    .chip strong {
-      color: var(--navy);
-    }
-
-    .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .stat-card {
-      border-radius: var(--radius-lg);
-      padding: 18px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 243, 234, 0.94));
-      border: 1px solid rgba(19, 32, 51, 0.08);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
-    }
-
-    .stat-card .label {
-      margin: 0 0 8px;
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .stat-card .value {
-      margin: 0;
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: 2rem;
-      font-weight: 700;
-      line-height: 1;
-      color: var(--navy);
-    }
-
-    .stat-card .detail {
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-
-    .hero-bottom,
-    .insight-grid,
-    .chart-grid,
-    .spec-grid {
-      display: grid;
-      gap: 22px;
-      margin-top: 22px;
-    }
-
-    .hero-bottom {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .hero-band {
-      border-radius: var(--radius-lg);
-      padding: 18px 18px 16px;
-      background: linear-gradient(180deg, rgba(19, 32, 51, 0.92), rgba(33, 54, 89, 0.92));
-      color: #f4efe5;
-    }
-
-    .hero-band .mini-label {
-      margin: 0 0 8px;
-      color: rgba(244, 239, 229, 0.72);
-      font-size: 0.77rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .hero-band .mini-value {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .hero-band .mini-detail {
-      margin: 7px 0 0;
-      color: rgba(244, 239, 229, 0.8);
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-
-    .spec-grid,
-    .chart-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .insight-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .panel {
-      border-radius: var(--radius-xl);
-      padding: 24px;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
       margin-bottom: 16px;
     }
 
-    .panel h2 {
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: clamp(1.8rem, 2.1vw, 2.5rem);
-      font-weight: 600;
-      letter-spacing: -0.03em;
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
     }
 
-    .panel .subhead {
-      margin: 8px 0 0;
-      color: var(--muted);
-      line-height: 1.65;
+    .brand-copy {
+      min-width: 0;
     }
 
-    .spec-list,
-    .note-list {
+    .eyebrow {
       margin: 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 12px;
+      color: var(--cyan);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
     }
 
-    .spec-list li,
-    .note-list li {
-      padding-left: 16px;
-      position: relative;
-      color: var(--ink);
-      line-height: 1.6;
+    .title {
+      margin: 5px 0 0;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .spec-list li::before,
-    .note-list li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0.8em;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: linear-gradient(180deg, var(--gold), #d4b17a);
-      transform: translateY(-50%);
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.5;
+    }
+
+    .meta-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(13, 24, 39, 0.68);
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: 700;
+      backdrop-filter: blur(14px);
     }
 
     .mono {
       font-family: "IBM Plex Mono", monospace;
-      font-size: 0.93em;
     }
 
-    .insight-card {
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 248, 245, 0.92));
-      border: 1px solid rgba(19, 32, 51, 0.08);
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(9, 18, 29, 0.88), rgba(9, 18, 29, 0.72)),
+        radial-gradient(circle at 12% 10%, rgba(57, 208, 255, 0.11), transparent 24%),
+        radial-gradient(circle at 88% 12%, rgba(243, 177, 74, 0.08), transparent 20%);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
     }
 
-    .insight-card .kicker {
-      margin: 0 0 10px;
-      color: var(--gold);
-      font-size: 0.77rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .insight-card .headline {
+    .hero-copy h1 {
       margin: 0;
-      font-size: 1.16rem;
-      font-weight: 700;
-      line-height: 1.35;
+      font-size: clamp(2rem, 3vw, 3.1rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+      max-width: 14ch;
     }
 
-    .insight-card p:last-child {
-      margin-bottom: 0;
-    }
-
-    .insight-card p {
+    .hero-copy p {
+      margin: 10px 0 0;
+      max-width: 68ch;
       color: var(--muted);
+      font-size: 0.98rem;
       line-height: 1.65;
     }
 
-    .control-row {
+    .control-panel {
+      min-width: 320px;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(7, 14, 24, 0.64);
+      border: 1px solid var(--line);
+    }
+
+    .control-panel .label {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .segmented {
       display: flex;
-      flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
 
-    .context-chip button {
+    .segmented button {
       cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      border: 1px solid var(--line);
+      background: rgba(13, 24, 39, 0.78);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 13px;
       font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: 140ms ease;
     }
 
-    .context-chip button:hover,
-    .context-chip button:focus-visible {
-      transform: translateY(-1px);
-      border-color: rgba(174, 123, 47, 0.35);
+    .segmented button:hover,
+    .segmented button:focus-visible {
       outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(57, 208, 255, 0.32);
     }
 
-    .context-chip button.active {
-      background: linear-gradient(180deg, rgba(174, 123, 47, 0.18), rgba(174, 123, 47, 0.08));
-      border-color: rgba(174, 123, 47, 0.36);
-      color: var(--navy);
+    .segmented button.active {
+      background: linear-gradient(180deg, rgba(57, 208, 255, 0.18), rgba(57, 208, 255, 0.08));
+      border-color: rgba(57, 208, 255, 0.34);
+      color: #dff8ff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
-    .chart-panel {
-      padding-bottom: 18px;
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(10, 19, 31, 0.88);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi .k {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .kpi .v {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .kpi .d {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      position: relative;
+      padding: 18px;
+      border-radius: var(--radius-xl);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 25%);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 58ch;
     }
 
     .chart {
       width: 100%;
-      height: 410px;
-    }
-
-    .chart.tall {
-      height: 500px;
-    }
-
-    .chart-grid .wide {
+      height: 100%;
       min-height: 0;
+      position: relative;
+      z-index: 1;
     }
 
-    .small-note {
-      margin-top: 10px;
+    .chart-lg {
+      height: 560px;
+    }
+
+    .chart-md {
+      height: 360px;
+    }
+
+    .chart-sm {
+      height: 290px;
+    }
+
+    .fallback {
+      display: grid;
+      place-items: center;
+      min-height: 260px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px dashed var(--line-strong);
+      background: rgba(255, 255, 255, 0.02);
       color: var(--muted);
-      font-size: 0.9rem;
+      text-align: center;
       line-height: 1.55;
+    }
+
+    .mini-board {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mini-row {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+
+    .mini-row:first-child {
+      border-top: 0;
+      padding-top: 2px;
+    }
+
+    .mini-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .mini-label {
+      color: var(--cyan);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .mini-model {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .mini-meta {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .double {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    details.fold {
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(10, 19, 31, 0.82);
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    details.fold summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      font-weight: 700;
+    }
+
+    details.fold summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .fold-body {
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .info {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--line);
+    }
+
+    .info h3 {
+      margin: 0 0 10px;
+      font-size: 0.98rem;
+    }
+
+    .bullets {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+    }
+
+    .bullets li {
+      position: relative;
+      padding-left: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .bullets li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.73em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      transform: translateY(-50%);
     }
 
     .table-wrap {
       overflow: auto;
-      border-radius: 22px;
-      border: 1px solid rgba(19, 32, 51, 0.08);
-      background: rgba(255, 255, 255, 0.72);
+      margin-top: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.12);
     }
 
     table {
       width: 100%;
-      border-collapse: collapse;
       min-width: 980px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
     }
 
     thead th {
       position: sticky;
       top: 0;
       z-index: 1;
-      background: rgba(248, 243, 234, 0.98);
-      color: var(--navy);
-      text-align: left;
-      padding: 14px 16px;
-      font-size: 0.8rem;
+      background: rgba(13, 24, 39, 0.98);
+      color: #dff8ff;
+      font-size: 0.76rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.13em;
       text-transform: uppercase;
-      border-bottom: 1px solid rgba(19, 32, 51, 0.08);
-    }
-
-    tbody td {
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(19, 32, 51, 0.07);
-      vertical-align: top;
-      font-size: 0.94rem;
-      line-height: 1.45;
     }
 
     tbody tr:hover {
-      background: rgba(174, 123, 47, 0.045);
+      background: rgba(57, 208, 255, 0.04);
     }
 
-    .family-tag,
-    .status-tag {
+    .tag {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      border-radius: 999px;
       padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: #d7e9ff;
       font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
       white-space: nowrap;
     }
 
-    .family-tag {
-      color: var(--navy);
-      background: rgba(32, 54, 89, 0.08);
-    }
-
-    .status-tag.ok {
-      color: #155e51;
-      background: rgba(15, 118, 110, 0.12);
-    }
-
-    .status-tag.aborted {
-      color: #9a3412;
-      background: rgba(194, 65, 12, 0.12);
-    }
-
-    .footer-note {
-      margin-top: 20px;
-      padding: 0 10px;
+    .footer {
       color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.6;
       text-align: center;
-    }
-
-    .footer-note a {
-      color: var(--navy);
-      font-weight: 600;
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 0.16em;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      padding: 6px 0 0;
     }
 
     @media (max-width: 1180px) {
-      .hero-top,
-      .hero-bottom,
-      .spec-grid,
-      .insight-grid,
-      .chart-grid {
+      .hero,
+      .dashboard,
+      .double,
+      .info-grid {
         grid-template-columns: 1fr;
       }
 
-      .hero-brand {
-        grid-template-columns: 140px 1fr;
+      .kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .meta-strip {
+        justify-content: flex-start;
       }
     }
 
     @media (max-width: 760px) {
-      .page-shell {
-        width: min(calc(100% - 20px), var(--max-width));
-        margin-top: 10px;
+      .app {
+        width: min(calc(100% - 14px), var(--max));
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
       }
 
       .hero,
-      .panel {
-        border-radius: 26px;
-        padding: 18px;
-      }
-
-      .hero-brand {
+      .kpi-row {
         grid-template-columns: 1fr;
       }
 
-      .logo-frame {
-        max-width: 180px;
+      .control-panel {
+        min-width: 0;
       }
 
-      .hero-stats {
+      .kpi-row {
         grid-template-columns: 1fr;
       }
 
-      .chart,
-      .chart.tall {
-        height: 360px;
+      .chart-lg {
+        height: 440px;
       }
 
-      h1 {
-        font-size: 2.6rem;
+      .chart-md {
+        height: 320px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="page-shell">
-    <header class="hero">
-      <div class="hero-top">
-        <div class="hero-brand">
-          <div class="logo-frame">
-            <img src="crowncitadeloutline.png" alt="Crown Citadel logo">
-          </div>
-          <div>
-            <p class="eyebrow">Crown Citadel // Benchmark Deck</p>
-            <h1>Strix Halo Vulkan Benchmarks</h1>
-            <p class="lede">
-              A clean, data-dense snapshot of the current local LLM benchmark field on host
-              <span class="mono">ciru</span>: Gemma 4, Qwen coder baselines, Qwopus validation runs,
-              small-model speed lanes, and memory envelopes across the contexts that matter on this machine.
-            </p>
-            <div class="chip-row">
-              <span class="chip"><strong>Host</strong> ciru</span>
-              <span class="chip"><strong>Backend</strong> llama.cpp Vulkan</span>
-              <span class="chip"><strong>CPU</strong> Ryzen AI Max+ 395</span>
-              <span class="chip"><strong>Memory</strong> 128 GiB total, split 64/64</span>
-              <span class="chip"><strong>Kernel</strong> Linux 6.19.9</span>
-            </div>
-          </div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-copy">
+          <p class="eyebrow">Crown Citadel</p>
+          <div class="title">AMD Ryzen AI Max+ 395 128GB local LLM benchmarks</div>
+          <p class="subtitle">Host <span class="mono">ciru</span> • NixOS • Linux 6.19.9 • llama.cpp Vulkan • 16C / 32T • 64 / 64 split</p>
         </div>
-        <div class="hero-stats" id="heroStats"></div>
       </div>
-
-      <div class="hero-bottom" id="heroBands"></div>
+      <div class="meta-strip">
+        <span class="chip" id="latestRunChip">Latest</span>
+        <span class="chip">128 GiB UMA</span>
+        <span class="chip">llama.cpp Vulkan</span>
+        <span class="chip mono">-ngl 999 -fa 1</span>
+      </div>
     </header>
 
-    <section class="spec-grid">
-      <article class="panel">
-        <div class="panel-header">
-          <div>
-            <h2>System</h2>
-            <p class="subhead">The machine profile that matters for these benchmark runs.</p>
-          </div>
-        </div>
-        <ul class="spec-list">
-          <li><strong>AMD Ryzen AI Max+ 395</strong> with <strong>16 cores / 32 threads</strong>.</li>
-          <li><strong>AMD Radeon 8060S-class Strix Halo iGPU</strong> using unified memory.</li>
-          <li><strong>128 GiB total RAM</strong>, currently configured as a <strong>64/64 split</strong> for system and graphics use.</li>
-          <li>Benchmark tooling reports roughly <strong>62 GiB system RAM</strong>, <strong>64 GiB VRAM pool</strong>, and <strong>31.2 GiB GTT pool</strong>.</li>
-          <li><strong>NixOS</strong> on <strong>Linux 6.19.9</strong>; logs and models live under <span class="mono">/srv/llm/...</span>.</li>
-          <li><strong>No swap</strong>; peak RAM, VRAM, and GTT were sampled during each run.</li>
-        </ul>
-      </article>
-
-      <article class="panel">
-        <div class="panel-header">
-          <div>
-            <h2>Runtime</h2>
-            <p class="subhead">Shared benchmark settings so the model comparisons stay apples-to-apples.</p>
-          </div>
-        </div>
-        <ul class="spec-list">
-          <li><strong>Backend:</strong> <span class="mono">llama.cpp</span> with Vulkan via <span class="mono">llama-cpp-vulkan</span>.</li>
-          <li><strong>Pinned commit:</strong> <span class="mono">08f21453aec846867b39878500d725a05bd32683</span>.</li>
-          <li><strong>Primary wrapper:</strong> <span class="mono">machine-setup/bench-llama.sh</span>.</li>
-          <li><strong>Default flags:</strong> <span class="mono">-ngl 999 -fa 1 -n 128 -r 2 -o md</span>.</li>
-          <li><strong>Typical contexts:</strong> <span class="mono">4096</span>, <span class="mono">16384</span>, <span class="mono">32768</span>, with long-context checks up to <span class="mono">100000</span> and beyond.</li>
-          <li><strong>Memory guard:</strong> <span class="mono">llm-guard</span> reserves 8 GiB RAM, 2 GiB VRAM, and 4 GiB GTT.</li>
-        </ul>
-      </article>
-    </section>
-
-    <section class="insight-grid" id="insightGrid"></section>
-
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>Context Snapshot</h2>
-          <p class="subhead">Choose a prompt context to compare throughput and memory pressure across the active field.</p>
-        </div>
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>AMD Ryzen AI Max+ 395 128GB local LLM benchmarks</h1>
+        <p>
+          llama.cpp Vulkan runs on host <span class="mono">ciru</span>, comparing model size, prompt throughput,
+          generation throughput, and memory use across 4096, 16384, 32768, and longer context checks where available.
+        </p>
       </div>
-      <div class="control-row" id="contextFilters"></div>
-      <div class="chart-grid">
-        <div class="panel chart-panel">
-          <div class="panel-header">
-            <div>
-              <h2>Generation Leaderboard</h2>
-              <p class="subhead">Sorted by token generation speed at the selected context.</p>
-            </div>
-          </div>
-          <div id="leaderboardChart" class="chart tall"></div>
-        </div>
-
-        <div class="panel chart-panel">
-          <div class="panel-header">
-            <div>
-              <h2>Throughput Snapshot</h2>
-              <p class="subhead">Prompt speed on the x-axis, generation speed on the y-axis, bubble size by VRAM.</p>
-            </div>
-          </div>
-          <div id="snapshotChart" class="chart tall"></div>
-        </div>
+      <div class="control-panel">
+        <p class="label">Comparison context</p>
+        <div id="contextSwitch" class="segmented"></div>
       </div>
     </section>
 
-    <section class="chart-grid">
-      <article class="panel chart-panel wide">
-        <div class="panel-header">
+    <section id="kpiRow" class="kpi-row"></section>
+
+    <section class="dashboard">
+      <article class="panel">
+        <div class="panel-head">
           <div>
-            <h2>Prompt Processing Scaling</h2>
-            <p class="subhead">How prompt throughput falls as context increases. Missing points mean that context was not run.</p>
+            <h2>Size / Speed Frontier</h2>
+            <p>Model size on x, generation speed on y, bubble area by VRAM. This is the main “what actually wins here?” chart.</p>
           </div>
         </div>
-        <div id="ppChart" class="chart"></div>
+        <div id="frontierChart" class="chart chart-lg"></div>
       </article>
 
-      <article class="panel chart-panel wide">
-        <div class="panel-header">
-          <div>
-            <h2>Generation Stability</h2>
-            <p class="subhead">Token generation is flatter than prompt processing here, which makes the plateaus easy to spot.</p>
+      <aside class="stack">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Tier Winners</h2>
+              <p>Best generation speed at the active context, split by size tier so 4B and 80B-class are not treated like the same lane.</p>
+            </div>
           </div>
-        </div>
-        <div id="tgChart" class="chart"></div>
-      </article>
+          <div id="tierBoard" class="mini-board"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Speed / VRAM</h2>
+              <p>Output throughput normalized by VRAM use at the current context.</p>
+            </div>
+          </div>
+          <div id="efficiencyChart" class="chart chart-sm"></div>
+        </article>
+      </aside>
     </section>
 
-    <section class="chart-grid">
-      <article class="panel chart-panel wide">
-        <div class="panel-header">
+    <section class="double">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Context Retention</h2>
+            <p>Prompt-processing retention versus each model’s own 4096 baseline. Brighter is more stable as context grows.</p>
+          </div>
+        </div>
+        <div id="heatmapChart" class="chart chart-md"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
           <div>
             <h2>Memory Envelope</h2>
-            <p class="subhead">VRAM dominates the story for the larger coder and dense Gemma runs, while smaller models stay almost trivial.</p>
+            <p>VRAM, system RAM, and GTT at the active context, sorted by VRAM pressure.</p>
           </div>
         </div>
-        <div id="memoryChart" class="chart"></div>
+        <div id="memoryChart" class="chart chart-md"></div>
+      </article>
+    </section>
+
+    <section class="double">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Prompt vs Generate</h2>
+            <p>Raw throughput view at the active context. Symbol size tracks model size, not memory.</p>
+          </div>
+        </div>
+        <div id="throughputChart" class="chart chart-md"></div>
       </article>
 
       <article class="panel">
-        <div class="panel-header">
+        <div class="panel-head">
           <div>
-            <h2>Notes & Caveats</h2>
-            <p class="subhead">The details that matter when you read the charts.</p>
+            <h2>Scaling Curves</h2>
+            <p>Prompt-processing throughput across all tested contexts, one line per model family entry.</p>
           </div>
         </div>
-        <ul class="note-list">
-          <li>The <strong>Gemma 4</strong> runs on <strong>2026-04-02</strong> used a newer local Vulkan-enabled <span class="mono">llama.cpp</span> build because the older system build failed with <span class="mono">unknown model architecture: 'gemma4'</span>.</li>
-          <li>The dense <strong>Gemma 4 31B</strong> run was manually stopped at <span class="mono">32768</span> after more than ten minutes, so that data point is shown as aborted rather than compared numerically.</li>
-          <li>The page focuses on benchmark tables with saved manifests and per-context logs. Partial tuning checks and older hand-entered notes remain in the markdown history but are not mixed into the main comparison charts.</li>
-          <li>The most stable comparison lane on this machine remains <span class="mono">4096</span>, <span class="mono">16384</span>, and <span class="mono">32768</span>; long-context probes are included when they exist, but not every model was pushed that far.</li>
-          <li><strong>Qwen3-Coder-30B-A3B</strong> is the standout “large but still fast” coding-class result, while <strong>Gemma 4 E2B</strong> is the outright throughput winner in the newest wave.</li>
-        </ul>
-        <p class="small-note">
-          Source of truth is still the markdown log. This page just gives it a cleaner cockpit.
-        </p>
+        <div id="trendChart" class="chart chart-md"></div>
       </article>
     </section>
 
-    <section class="panel">
-      <div class="panel-header">
+    <details class="fold">
+      <summary>
         <div>
-          <h2>Complete Result Matrix</h2>
-          <p class="subhead">Every charted result point from the current benchmark history, with the aborted dense run kept visible for context.</p>
+          Setup and caveats
+          <div class="summary-meta">Machine details, runtime settings, and the benchmark notes that meaningfully affect interpretation.</div>
+        </div>
+        <div>+</div>
+      </summary>
+      <div class="fold-body">
+        <div class="info-grid">
+          <section class="info">
+            <h3>System</h3>
+            <ul class="bullets">
+              <li>Host <span class="mono">ciru</span>, NixOS, Linux 6.19.9</li>
+              <li>AMD Ryzen AI Max+ 395, 16 cores / 32 threads</li>
+              <li>AMD Radeon 8060S-class Strix Halo iGPU</li>
+              <li>128 GiB total RAM, currently split 64 / 64</li>
+              <li>Reported pools: 64 GiB VRAM, 31.2 GiB GTT, about 62 GiB system RAM</li>
+            </ul>
+          </section>
+          <section class="info">
+            <h3>Runtime</h3>
+            <ul class="bullets">
+              <li><span class="mono">llama.cpp</span> with Vulkan via <span class="mono">llama-cpp-vulkan</span></li>
+              <li>Pinned commit <span class="mono">08f21453aec846867b39878500d725a05bd32683</span></li>
+              <li>Common benchmark flags <span class="mono">-ngl 999 -fa 1 -n 128 -r 2 -o md</span></li>
+              <li>Guard reserves: 8 GiB RAM, 2 GiB VRAM, 4 GiB GTT</li>
+              <li>Typical contexts: 4096, 16384, 32768, with long checks to 100000+</li>
+            </ul>
+          </section>
+          <section class="info">
+            <h3>Important notes</h3>
+            <ul class="bullets">
+              <li>Gemma 4 required a newer local Vulkan-enabled build because the older system build lacked <span class="mono">gemma4</span> support.</li>
+              <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded from the charted active comparison points beyond measured contexts.</li>
+              <li>Qwen3-Coder-Next is plotted as 80B-class on the size axis to reflect the benchmark notes in this repo.</li>
+            </ul>
+          </section>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Model</th>
-              <th>Family</th>
-              <th>Context</th>
-              <th>PP t/s</th>
-              <th>TG t/s</th>
-              <th>Sys RAM</th>
-              <th>VRAM</th>
-              <th>GTT</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody"></tbody>
-        </table>
-      </div>
-    </section>
+    </details>
 
-    <p class="footer-note">
-      Built from <a href="./BENCHMARK_HISTORY.md">BENCHMARK_HISTORY.md</a> with Apache ECharts.
-      Serve the folder with a tiny HTTP server for the cleanest local preview.
-    </p>
+    <details class="fold">
+      <summary>
+        <div>
+          Raw result matrix
+          <div class="summary-meta">Every benchmark point used in the curated charts, including the larger long-context runs.</div>
+        </div>
+        <div>+</div>
+      </summary>
+      <div class="fold-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Model</th>
+                <th>Family</th>
+                <th>Size</th>
+                <th>Context</th>
+                <th>PP t/s</th>
+                <th>TG t/s</th>
+                <th>VRAM</th>
+                <th>RAM</th>
+                <th>GTT</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <p class="footer">Static single-file dashboard. For local preview, use HTTP rather than opening straight from <span class="mono">file://</span>.</p>
   </div>
 
   <script>
-    const benchmarkSeries = [
+    const SERIES = [
       {
         id: "gemma-e2b",
         name: "Gemma 4 E2B Q4_K_M",
         short: "Gemma E2B",
         family: "Gemma 4",
-        date: "2026-04-02",
-        color: "#0f766e",
-        note: "Current throughput leader",
+        color: "#21c7a8",
+        sizeB: 2,
+        sizeLabel: "2B",
+        tier: "Compact",
         runs: [
-          { context: 4096, pp: 3027.12, tg: 107.0, ram: 10.28, vram: 8.38, gtt: 3.89, status: "ok" },
-          { context: 16384, pp: 2363.87, tg: 107.07, ram: 10.44, vram: 8.49, gtt: 3.91, status: "ok" },
-          { context: 32768, pp: 1805.97, tg: 106.6, ram: 10.72, vram: 8.55, gtt: 3.94, status: "ok" }
+          { date: "2026-04-02", context: 4096, pp: 3027.12, tg: 107.0, ram: 10.28, vram: 8.38, gtt: 3.89 },
+          { date: "2026-04-02", context: 16384, pp: 2363.87, tg: 107.07, ram: 10.44, vram: 8.49, gtt: 3.91 },
+          { date: "2026-04-02", context: 32768, pp: 1805.97, tg: 106.6, ram: 10.72, vram: 8.55, gtt: 3.94 }
         ]
       },
       {
@@ -759,129 +807,14 @@
         name: "Gemma 4 E4B Q4_K_M",
         short: "Gemma E4B",
         family: "Gemma 4",
-        date: "2026-04-02",
-        color: "#0891b2",
-        note: "Mid-size Gemma lane",
+        color: "#39d0ff",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
         runs: [
-          { context: 4096, pp: 1734.97, tg: 56.74, ram: 10.65, vram: 10.27, gtt: 4.25, status: "ok" },
-          { context: 16384, pp: 1508.68, tg: 57.73, ram: 11.07, vram: 10.53, gtt: 4.27, status: "ok" },
-          { context: 32768, pp: 1276.91, tg: 57.25, ram: 10.65, vram: 10.7, gtt: 4.3, status: "ok" }
-        ]
-      },
-      {
-        id: "gemma-26b",
-        name: "Gemma 4 26B A4B Q4_K_M",
-        short: "Gemma 26B A4B",
-        family: "Gemma 4",
-        date: "2026-04-02",
-        color: "#b45309",
-        note: "Strong larger Gemma option",
-        runs: [
-          { context: 4096, pp: 1161.6, tg: 60.57, ram: 9.16, vram: 21.38, gtt: 2.66, status: "ok" },
-          { context: 16384, pp: 1016.14, tg: 60.57, ram: 8.96, vram: 21.6, gtt: 2.69, status: "ok" },
-          { context: 32768, pp: 853.77, tg: 60.74, ram: 9.04, vram: 21.99, gtt: 2.72, status: "ok" }
-        ]
-      },
-      {
-        id: "gemma-31b",
-        name: "Gemma 4 31B Dense Q4_K_M",
-        short: "Gemma 31B Dense",
-        family: "Gemma 4",
-        date: "2026-04-02",
-        color: "#9a3412",
-        note: "Technically runnable, not competitive",
-        runs: [
-          { context: 4096, pp: 233.88, tg: 10.69, ram: 9.45, vram: 24.87, gtt: 3.19, status: "ok" },
-          { context: 16384, pp: 202.89, tg: 10.69, ram: 9.53, vram: 25.86, gtt: 3.21, status: "ok" },
-          { context: 32768, pp: null, tg: null, ram: null, vram: null, gtt: null, status: "aborted" }
-        ]
-      },
-      {
-        id: "qwopus-q4",
-        name: "Qwopus3.5-27B-v3 Q4_K_M",
-        short: "Qwopus Q4",
-        family: "Qwopus 27B",
-        date: "2026-04-02",
-        color: "#1d4ed8",
-        note: "Cleaner than Q5 in follow-up evals",
-        runs: [
-          { context: 4096, pp: 305.26, tg: 12.86, ram: 6.88, vram: 15.76, gtt: 1.02, status: "ok" },
-          { context: 16384, pp: 267.0, tg: 12.85, ram: 6.92, vram: 16.81, gtt: 1.04, status: "ok" },
-          { context: 32768, pp: 211.45, tg: 12.86, ram: 6.96, vram: 17.51, gtt: 1.08, status: "ok" }
-        ]
-      },
-      {
-        id: "qwopus-q5",
-        name: "Qwopus3.5-27B-v3 Q5_K_M",
-        short: "Qwopus Q5",
-        family: "Qwopus 27B",
-        date: "2026-04-02",
-        color: "#4f46e5",
-        note: "Slightly heavier, not faster",
-        runs: [
-          { context: 4096, pp: 296.35, tg: 11.26, ram: 6.89, vram: 18.11, gtt: 1.02, status: "ok" },
-          { context: 16384, pp: 262.44, tg: 11.26, ram: 6.92, vram: 18.99, gtt: 1.04, status: "ok" },
-          { context: 32768, pp: 208.53, tg: 11.27, ram: 6.93, vram: 19.86, gtt: 1.08, status: "ok" }
-        ]
-      },
-      {
-        id: "qwen-next-q4",
-        name: "Qwen3-Coder-Next Q4_K_M Official",
-        short: "Qwen Next Q4",
-        family: "Qwen Coder Next",
-        date: "2026-03-31",
-        color: "#14532d",
-        note: "Official Q4 refresh winner",
-        runs: [
-          { context: 4096, pp: 608.49, tg: 55.77, ram: 3.73, vram: 45.54, gtt: 0.45, status: "ok" },
-          { context: 16384, pp: 574.03, tg: 55.8, ram: 3.74, vram: 45.85, gtt: 0.47, status: "ok" },
-          { context: 32768, pp: 527.51, tg: 55.6, ram: 3.86, vram: 46.19, gtt: 0.5, status: "ok" },
-          { context: 80000, pp: 412.62, tg: 55.77, ram: 3.92, vram: 47.35, gtt: 0.6, status: "ok" }
-        ]
-      },
-      {
-        id: "qwen-next-q5",
-        name: "Qwen3-Coder-Next Q5_K_M",
-        short: "Qwen Next Q5",
-        family: "Qwen Coder Next",
-        date: "2026-03-31",
-        color: "#65a30d",
-        note: "Still solid, but behind Q4",
-        runs: [
-          { context: 4096, pp: 576.82, tg: 51.21, ram: 3.74, vram: 53.23, gtt: 0.45, status: "ok" },
-          { context: 16384, pp: 550.93, tg: 51.18, ram: 3.79, vram: 53.54, gtt: 0.47, status: "ok" },
-          { context: 32768, pp: 511.88, tg: 51.39, ram: 3.8, vram: 53.89, gtt: 0.5, status: "ok" },
-          { context: 80000, pp: 404.03, tg: 51.18, ram: 3.9, vram: 55.05, gtt: 0.6, status: "ok" }
-        ]
-      },
-      {
-        id: "qwen-30b-a3b",
-        name: "Qwen3-Coder-30B-A3B-Instruct Q5_K_M",
-        short: "Qwen 30B A3B",
-        family: "Qwen Coder 30B",
-        date: "2026-03-30",
-        color: "#be123c",
-        note: "Best bigger coding-class balance",
-        runs: [
-          { context: 4096, pp: 973.97, tg: 79.82, ram: 4.01, vram: 21.29, gtt: 0.34, status: "ok" },
-          { context: 16384, pp: 576.85, tg: 80.46, ram: 4.09, vram: 22.43, gtt: 0.36, status: "ok" },
-          { context: 32768, pp: 352.39, tg: 80.43, ram: 4.1, vram: 23.91, gtt: 0.39, status: "ok" },
-          { context: 65536, pp: 163.29, tg: 80.11, ram: 4.15, vram: 26.91, gtt: 0.45, status: "ok" },
-          { context: 100000, pp: 74.41, tg: 80.41, ram: 4.23, vram: 30.09, gtt: 0.52, status: "ok" }
-        ]
-      },
-      {
-        id: "qwen35-9b",
-        name: "Qwen3.5-9B Q4_K_M",
-        short: "Qwen3.5 9B",
-        family: "Qwen 3.5 Small",
-        date: "2026-03-30",
-        color: "#7c3aed",
-        note: "Small-model prompt rocket",
-        runs: [
-          { context: 4096, pp: 969.44, tg: 37.21, ram: 4.94, vram: 5.99, gtt: 0.88, status: "ok" },
-          { context: 16384, pp: 854.99, tg: 38.52, ram: 5.0, vram: 6.37, gtt: 0.91, status: "ok" },
-          { context: 32768, pp: 704.8, tg: 37.24, ram: 4.82, vram: 6.87, gtt: 0.94, status: "ok" }
+          { date: "2026-04-02", context: 4096, pp: 1734.97, tg: 56.74, ram: 10.65, vram: 10.27, gtt: 4.25 },
+          { date: "2026-04-02", context: 16384, pp: 1508.68, tg: 57.73, ram: 11.07, vram: 10.53, gtt: 4.27 },
+          { date: "2026-04-02", context: 32768, pp: 1276.91, tg: 57.25, ram: 10.65, vram: 10.7, gtt: 4.3 }
         ]
       },
       {
@@ -889,377 +822,561 @@
         name: "Qwen3.5-4B Q4_K_M",
         short: "Qwen3.5 4B",
         family: "Qwen 3.5 Small",
-        date: "2026-03-30",
-        color: "#f59e0b",
-        note: "Fastest lightweight routing option",
+        color: "#f3b14a",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
         runs: [
-          { context: 4096, pp: 1782.74, tg: 61.32, ram: 4.35, vram: 3.9, gtt: 0.58, status: "ok" },
-          { context: 16384, pp: 1428.8, tg: 62.41, ram: 4.44, vram: 4.28, gtt: 0.61, status: "ok" },
-          { context: 32768, pp: 1064.36, tg: 60.97, ram: 4.49, vram: 4.78, gtt: 0.64, status: "ok" }
+          { date: "2026-03-30", context: 4096, pp: 1782.74, tg: 61.32, ram: 4.35, vram: 3.9, gtt: 0.58 },
+          { date: "2026-03-30", context: 16384, pp: 1428.8, tg: 62.41, ram: 4.44, vram: 4.28, gtt: 0.61 },
+          { date: "2026-03-30", context: 32768, pp: 1064.36, tg: 60.97, ram: 4.49, vram: 4.78, gtt: 0.64 }
         ]
       },
       {
         id: "hermes-8b",
         name: "Hermes 3 Llama 3.1 8B Q5_K_M",
-        short: "Hermes 3 8B",
-        family: "Hermes 8B",
-        date: "2026-03-30",
-        color: "#475569",
-        note: "Lightweight baseline, later outclassed",
+        short: "Hermes 8B",
+        family: "Hermes",
+        color: "#95a6be",
+        sizeB: 8,
+        sizeLabel: "8B",
+        tier: "Compact",
         runs: [
-          { context: 4096, pp: 945.35, tg: 38.63, ram: 4.31, vram: 6.34, gtt: 0.51, status: "ok" },
-          { context: 16384, pp: 564.73, tg: 38.29, ram: 4.32, vram: 7.84, gtt: 0.53, status: "ok" },
-          { context: 32768, pp: 292.48, tg: 38.53, ram: 4.34, vram: 9.84, gtt: 0.56, status: "ok" }
+          { date: "2026-03-30", context: 4096, pp: 945.35, tg: 38.63, ram: 4.31, vram: 6.34, gtt: 0.51 },
+          { date: "2026-03-30", context: 16384, pp: 564.73, tg: 38.29, ram: 4.32, vram: 7.84, gtt: 0.53 },
+          { date: "2026-03-30", context: 32768, pp: 292.48, tg: 38.53, ram: 4.34, vram: 9.84, gtt: 0.56 }
+        ]
+      },
+      {
+        id: "qwen35-9b",
+        name: "Qwen3.5-9B Q4_K_M",
+        short: "Qwen3.5 9B",
+        family: "Qwen 3.5 Small",
+        color: "#a66bff",
+        sizeB: 9,
+        sizeLabel: "9B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 969.44, tg: 37.21, ram: 4.94, vram: 5.99, gtt: 0.88 },
+          { date: "2026-03-30", context: 16384, pp: 854.99, tg: 38.52, ram: 5.0, vram: 6.37, gtt: 0.91 },
+          { date: "2026-03-30", context: 32768, pp: 704.8, tg: 37.24, ram: 4.82, vram: 6.87, gtt: 0.94 }
+        ]
+      },
+      {
+        id: "gemma-26b",
+        name: "Gemma 4 26B A4B Q4_K_M",
+        short: "Gemma 26B",
+        family: "Gemma 4",
+        color: "#ff8a3d",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 1161.6, tg: 60.57, ram: 9.16, vram: 21.38, gtt: 2.66 },
+          { date: "2026-04-02", context: 16384, pp: 1016.14, tg: 60.57, ram: 8.96, vram: 21.6, gtt: 2.69 },
+          { date: "2026-04-02", context: 32768, pp: 853.77, tg: 60.74, ram: 9.04, vram: 21.99, gtt: 2.72 }
+        ]
+      },
+      {
+        id: "qwopus-q4",
+        name: "Qwopus3.5-27B-v3 Q4_K_M",
+        short: "Qwopus Q4",
+        family: "Qwopus",
+        color: "#4a8dff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 305.26, tg: 12.86, ram: 6.88, vram: 15.76, gtt: 1.02 },
+          { date: "2026-04-02", context: 16384, pp: 267.0, tg: 12.85, ram: 6.92, vram: 16.81, gtt: 1.04 },
+          { date: "2026-04-02", context: 32768, pp: 211.45, tg: 12.86, ram: 6.96, vram: 17.51, gtt: 1.08 }
+        ]
+      },
+      {
+        id: "qwopus-q5",
+        name: "Qwopus3.5-27B-v3 Q5_K_M",
+        short: "Qwopus Q5",
+        family: "Qwopus",
+        color: "#7b63ff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 296.35, tg: 11.26, ram: 6.89, vram: 18.11, gtt: 1.02 },
+          { date: "2026-04-02", context: 16384, pp: 262.44, tg: 11.26, ram: 6.92, vram: 18.99, gtt: 1.04 },
+          { date: "2026-04-02", context: 32768, pp: 208.53, tg: 11.27, ram: 6.93, vram: 19.86, gtt: 1.08 }
+        ]
+      },
+      {
+        id: "qwen-30b",
+        name: "Qwen3-Coder-30B-A3B-Instruct Q5_K_M",
+        short: "Qwen 30B A3B",
+        family: "Qwen Coder",
+        color: "#ff6f91",
+        sizeB: 30,
+        sizeLabel: "30B",
+        tier: "Large",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 973.97, tg: 79.82, ram: 4.01, vram: 21.29, gtt: 0.34 },
+          { date: "2026-03-30", context: 16384, pp: 576.85, tg: 80.46, ram: 4.09, vram: 22.43, gtt: 0.36 },
+          { date: "2026-03-30", context: 32768, pp: 352.39, tg: 80.43, ram: 4.1, vram: 23.91, gtt: 0.39 },
+          { date: "2026-03-30", context: 65536, pp: 163.29, tg: 80.11, ram: 4.15, vram: 26.91, gtt: 0.45 },
+          { date: "2026-03-30", context: 100000, pp: 74.41, tg: 80.41, ram: 4.23, vram: 30.09, gtt: 0.52 }
+        ]
+      },
+      {
+        id: "gemma-31b",
+        name: "Gemma 4 31B Dense Q4_K_M",
+        short: "Gemma 31B Dense",
+        family: "Gemma 4",
+        color: "#c96a2c",
+        sizeB: 31,
+        sizeLabel: "31B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 233.88, tg: 10.69, ram: 9.45, vram: 24.87, gtt: 3.19 },
+          { date: "2026-04-02", context: 16384, pp: 202.89, tg: 10.69, ram: 9.53, vram: 25.86, gtt: 3.21 }
+        ]
+      },
+      {
+        id: "qwen-next-q4",
+        name: "Qwen3-Coder-Next Q4_K_M Official",
+        short: "Qwen Next Q4",
+        family: "Qwen Next",
+        color: "#36d17e",
+        sizeB: 80,
+        sizeLabel: "80B-class",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-03-31", context: 4096, pp: 608.49, tg: 55.77, ram: 3.73, vram: 45.54, gtt: 0.45 },
+          { date: "2026-03-31", context: 16384, pp: 574.03, tg: 55.8, ram: 3.74, vram: 45.85, gtt: 0.47 },
+          { date: "2026-03-31", context: 32768, pp: 527.51, tg: 55.6, ram: 3.86, vram: 46.19, gtt: 0.5 },
+          { date: "2026-03-31", context: 80000, pp: 412.62, tg: 55.77, ram: 3.92, vram: 47.35, gtt: 0.6 }
+        ]
+      },
+      {
+        id: "qwen-next-q5",
+        name: "Qwen3-Coder-Next Q5_K_M",
+        short: "Qwen Next Q5",
+        family: "Qwen Next",
+        color: "#9ddc3b",
+        sizeB: 80,
+        sizeLabel: "80B-class",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-03-31", context: 4096, pp: 576.82, tg: 51.21, ram: 3.74, vram: 53.23, gtt: 0.45 },
+          { date: "2026-03-31", context: 16384, pp: 550.93, tg: 51.18, ram: 3.79, vram: 53.54, gtt: 0.47 },
+          { date: "2026-03-31", context: 32768, pp: 511.88, tg: 51.39, ram: 3.8, vram: 53.89, gtt: 0.5 },
+          { date: "2026-03-31", context: 80000, pp: 404.03, tg: 51.18, ram: 3.9, vram: 55.05, gtt: 0.6 }
         ]
       }
     ];
 
-    const allRuns = benchmarkSeries.flatMap((series) =>
-      series.runs.map((run) => ({
-        ...run,
-        seriesId: series.id,
-        name: series.name,
-        short: series.short,
-        family: series.family,
-        date: series.date,
-        color: series.color,
-        note: series.note
-      }))
-    );
-
-    const measuredRuns = allRuns.filter((run) => run.status === "ok" && typeof run.pp === "number" && typeof run.tg === "number");
-    const contexts = [...new Set(allRuns.map((run) => run.context))].sort((a, b) => a - b);
-    const defaultContext = contexts.includes(16384) ? 16384 : contexts[0];
-    let activeContext = defaultContext;
+    const CONTEXTS = [...new Set(SERIES.flatMap((series) => series.runs.map((run) => run.context)))].sort((a, b) => a - b);
+    let activeContext = CONTEXTS.includes(16384) ? 16384 : CONTEXTS[0];
 
     const fmt = (value, digits = 2) => Number(value).toLocaleString(undefined, {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits
     });
+    const fmtSpeed = (value) => `${fmt(value, 2)} t/s`;
+    const fmtMem = (value) => `${fmt(value, 2)} GiB`;
+    const ctx = (value) => value.toLocaleString();
 
-    const fmtMemory = (value) => value == null ? "n/a" : `${fmt(value, value < 10 ? 2 : 2)} GiB`;
-    const fmtSpeed = (value) => value == null ? "n/a" : `${fmt(value, 2)} t/s`;
-    const contextLabel = (value) => value >= 1000 ? value.toLocaleString() : String(value);
+    function alpha(hex, opacity) {
+      const clean = hex.replace("#", "");
+      const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+      const int = parseInt(full, 16);
+      const r = (int >> 16) & 255;
+      const g = (int >> 8) & 255;
+      const b = int & 255;
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
 
-    const bestPP = measuredRuns.reduce((best, run) => run.pp > best.pp ? run : best, measuredRuns[0]);
-    const bestTG = measuredRuns.reduce((best, run) => run.tg > best.tg ? run : best, measuredRuns[0]);
-    const maxContext = Math.max(...measuredRuns.map((run) => run.context));
+    const allRuns = SERIES.flatMap((series) => series.runs.map((run) => ({
+      ...run,
+      id: series.id,
+      name: series.name,
+      short: series.short,
+      family: series.family,
+      color: series.color,
+      sizeB: series.sizeB,
+      sizeLabel: series.sizeLabel,
+      tier: series.tier,
+      maxContext: Math.max(...series.runs.map((entry) => entry.context))
+    })));
 
-    const latestDate = benchmarkSeries.reduce((latest, series) => series.date > latest ? series.date : latest, benchmarkSeries[0].date);
-    const latestWave = measuredRuns.filter((run) => run.date === latestDate);
-    const latestWaveBest = latestWave.reduce((best, run) => run.tg > best.tg ? run : best, latestWave[0]);
-    const smallModelLane = measuredRuns
-      .filter((run) => run.family === "Qwen 3.5 Small" && run.context === 16384)
-      .reduce((best, run) => run.tg > best.tg ? run : best);
-
-    const insightCards = [
-      {
-        kicker: "Latest wave",
-        headline: `${latestWaveBest.short} owns the April 2 sweep`,
-        body: `${fmtSpeed(latestWaveBest.tg)} TG at ${contextLabel(latestWaveBest.context)} with only ${fmtMemory(latestWaveBest.vram)} VRAM, while also setting the highest prompt rate in the current deck.`
-      },
-      {
-        kicker: "Coding balance",
-        headline: "Qwen 30B A3B is the big-model sweet spot",
-        body: `${fmtSpeed(80.46)} TG at ${contextLabel(16384)} while sitting around ${fmtMemory(22.43)} VRAM is the most compelling larger coding-class point on this host.`
-      },
-      {
-        kicker: "Lightweight lane",
-        headline: `${smallModelLane.short} is the easy fallback rocket`,
-        body: `${fmtSpeed(smallModelLane.tg)} TG and ${fmtSpeed(smallModelLane.pp)} PP at ${contextLabel(smallModelLane.context)} with just ${fmtMemory(smallModelLane.vram)} VRAM makes it ideal for ultra-light routing or utility work.`
-      },
-      {
-        kicker: "Caution",
-        headline: "Dense Gemma 31B is not worth the tradeoff here",
-        body: `The first two contexts only reached ${fmtSpeed(10.69)} TG and the ${contextLabel(32768)} pass was aborted, so the current Vulkan setup clearly prefers the sparse or smaller lanes.`
-      }
-    ];
-
-    const heroStats = [
-      {
-        label: "Top Prompt Speed",
-        value: fmt(bestPP.pp, 2),
-        suffix: "t/s",
-        detail: `${bestPP.short} at ${contextLabel(bestPP.context)} context`
-      },
-      {
-        label: "Top Generation Speed",
-        value: fmt(bestTG.tg, 2),
-        suffix: "t/s",
-        detail: `${bestTG.short} at ${contextLabel(bestTG.context)} context`
-      },
-      {
-        label: "Charted Models",
-        value: String(benchmarkSeries.length),
-        suffix: "",
-        detail: `${measuredRuns.length} measured result points`
-      },
-      {
-        label: "Longest Context",
-        value: contextLabel(maxContext),
-        suffix: "",
-        detail: "with saved long-context points"
-      }
-    ];
-
-    const heroBands = [
-      {
-        label: "Current machine profile",
-        value: "128 GiB UMA",
-        detail: "Configured 64/64 today, with benchmark tooling exposing a 64 GiB VRAM pool plus 31.2 GiB GTT."
-      },
-      {
-        label: "Comparison command",
-        value: "-ngl 999 -fa 1",
-        detail: "Shared benchmark family: llama-bench -n 128 -r 2 -o md."
-      },
-      {
-        label: "Most recent sweep",
-        value: latestDate,
-        detail: "Gemma 4 and Qwopus validation runs updated the current top of the board."
-      },
-      {
-        label: "Guard rails",
-        value: "llm-guard",
-        detail: "8 GiB RAM reserve, 2 GiB VRAM reserve, 4 GiB GTT reserve."
-      }
-    ];
-
-    const heroStatsRoot = document.getElementById("heroStats");
-    heroStatsRoot.innerHTML = heroStats.map((stat) => `
-      <article class="stat-card">
-        <p class="label">${stat.label}</p>
-        <p class="value">${stat.value}${stat.suffix ? ` <span style="font-size:0.55em">${stat.suffix}</span>` : ""}</p>
-        <p class="detail">${stat.detail}</p>
-      </article>
-    `).join("");
-
-    const heroBandsRoot = document.getElementById("heroBands");
-    heroBandsRoot.innerHTML = heroBands.map((band) => `
-      <article class="hero-band">
-        <p class="mini-label">${band.label}</p>
-        <p class="mini-value">${band.value}</p>
-        <p class="mini-detail">${band.detail}</p>
-      </article>
-    `).join("");
-
-    const insightRoot = document.getElementById("insightGrid");
-    insightRoot.innerHTML = insightCards.map((item) => `
-      <article class="insight-card">
-        <p class="kicker">${item.kicker}</p>
-        <p class="headline">${item.headline}</p>
-        <p>${item.body}</p>
-      </article>
-    `).join("");
+    document.getElementById("latestRunChip").textContent = `Latest ${allRuns.reduce((latest, run) => run.date > latest ? run.date : latest, allRuns[0].date)}`;
 
     const resultsBody = document.getElementById("resultsBody");
     resultsBody.innerHTML = allRuns
       .slice()
       .sort((a, b) => {
         if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-        if (a.name !== b.name) return a.name.localeCompare(b.name);
+        if (a.sizeB !== b.sizeB) return a.sizeB - b.sizeB;
         return a.context - b.context;
       })
       .map((run) => `
         <tr>
           <td>${run.date}</td>
-          <td>
-            <strong>${run.short}</strong><br>
-            <span style="color: var(--muted)">${run.note}</span>
-          </td>
-          <td><span class="family-tag">${run.family}</span></td>
-          <td class="mono">${contextLabel(run.context)}</td>
-          <td>${run.pp == null ? "aborted" : fmt(run.pp, 2)}</td>
-          <td>${run.tg == null ? "aborted" : fmt(run.tg, 2)}</td>
-          <td>${run.ram == null ? "n/a" : fmt(run.ram, 2)} GiB</td>
-          <td>${run.vram == null ? "n/a" : fmt(run.vram, 2)} GiB</td>
-          <td>${run.gtt == null ? "n/a" : fmt(run.gtt, 2)} GiB</td>
-          <td><span class="status-tag ${run.status}">${run.status === "ok" ? "measured" : "aborted"}</span></td>
+          <td><strong>${run.short}</strong></td>
+          <td><span class="tag">${run.family}</span></td>
+          <td>${run.sizeLabel}</td>
+          <td class="mono">${ctx(run.context)}</td>
+          <td>${fmt(run.pp, 2)}</td>
+          <td>${fmt(run.tg, 2)}</td>
+          <td>${fmt(run.vram, 2)} GiB</td>
+          <td>${fmt(run.ram, 2)} GiB</td>
+          <td>${fmt(run.gtt, 2)} GiB</td>
         </tr>
       `)
       .join("");
 
-    const contextFilters = document.getElementById("contextFilters");
-    contextFilters.innerHTML = contexts.map((context) => `
-      <span class="context-chip">
-        <button type="button" data-context="${context}" class="${context === activeContext ? "active" : ""}">
-          ctx ${contextLabel(context)}
-        </button>
-      </span>
+    const contextSwitch = document.getElementById("contextSwitch");
+    contextSwitch.innerHTML = CONTEXTS.map((value) => `
+      <button type="button" data-context="${value}" class="${value === activeContext ? "active" : ""}">
+        ${ctx(value)}
+      </button>
     `).join("");
 
-    contextFilters.addEventListener("click", (event) => {
+    contextSwitch.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-context]");
       if (!button) return;
       activeContext = Number(button.dataset.context);
-      [...contextFilters.querySelectorAll("button")].forEach((node) => {
+      [...contextSwitch.querySelectorAll("button")].forEach((node) => {
         node.classList.toggle("active", Number(node.dataset.context) === activeContext);
       });
-      renderContextCharts();
+      render();
     });
 
-    const leaderboardChart = echarts.init(document.getElementById("leaderboardChart"));
-    const snapshotChart = echarts.init(document.getElementById("snapshotChart"));
-    const ppChart = echarts.init(document.getElementById("ppChart"));
-    const tgChart = echarts.init(document.getElementById("tgChart"));
-    const memoryChart = echarts.init(document.getElementById("memoryChart"));
-
-    const textStyle = {
-      fontFamily: "Space Grotesk, sans-serif",
-      color: "#132033"
-    };
-
     function runsAtContext(context) {
-      return measuredRuns
+      return allRuns
         .filter((run) => run.context === context)
-        .sort((a, b) => b.tg - a.tg);
+        .sort((a, b) => b.tg - a.tg || a.sizeB - b.sizeB);
     }
 
-    function renderContextCharts() {
-      const currentRuns = runsAtContext(activeContext);
+    function ppRetention(series, context) {
+      const base = series.runs.find((run) => run.context === 4096);
+      const current = series.runs.find((run) => run.context === context);
+      if (!base || !current) return null;
+      return current.pp / base.pp * 100;
+    }
 
-      leaderboardChart.setOption({
+    function setKpis(runs) {
+      const compact = runs.filter((run) => run.sizeB <= 10).sort((a, b) => b.tg - a.tg)[0];
+      const larger = runs.filter((run) => run.sizeB >= 25 && run.sizeB < 60).sort((a, b) => b.tg - a.tg)[0];
+      const flagship = runs.filter((run) => run.sizeB >= 60).sort((a, b) => b.tg - a.tg)[0];
+      const efficient = runs.slice().sort((a, b) => (b.tg / b.vram) - (a.tg / a.vram))[0];
+
+      document.getElementById("kpiRow").innerHTML = [
+        {
+          k: "Fastest at context",
+          v: fmt(runs[0].tg, 2),
+          s: "t/s",
+          d: `${runs[0].short} • ${runs[0].sizeLabel} • ${fmtMem(runs[0].vram)} VRAM`
+        },
+        {
+          k: "Best compact lane",
+          v: compact ? fmt(compact.tg, 2) : "n/a",
+          s: compact ? "t/s" : "",
+          d: compact ? `${compact.short} • ${compact.sizeLabel}` : "No compact run"
+        },
+        {
+          k: "Best 25B+ lane",
+          v: larger ? fmt(larger.tg, 2) : "n/a",
+          s: larger ? "t/s" : "",
+          d: larger ? `${larger.short} • ${larger.sizeLabel}` : "No larger-model run"
+        },
+        {
+          k: "Best TG / VRAM",
+          v: efficient ? fmt(efficient.tg / efficient.vram, 2) : "n/a",
+          s: efficient ? "x" : "",
+          d: efficient ? `${efficient.short} • ${fmtMem(efficient.vram)} for ${fmtSpeed(efficient.tg)}` : "No result"
+        }
+      ].map((card) => `
+        <article class="kpi">
+          <p class="k">${card.k}</p>
+          <p class="v">${card.v}${card.s ? ` <span style="font-size:0.56em">${card.s}</span>` : ""}</p>
+          <p class="d">${card.d}</p>
+        </article>
+      `).join("");
+
+      const tiers = [
+        { label: "Compact", test: (run) => run.sizeB <= 10 },
+        { label: "Large", test: (run) => run.sizeB >= 25 && run.sizeB < 60 },
+        { label: "Flagship", test: (run) => run.sizeB >= 60 }
+      ];
+
+      document.getElementById("tierBoard").innerHTML = tiers
+        .map((tier) => {
+          const winner = runs.filter(tier.test).sort((a, b) => b.tg - a.tg)[0];
+          if (!winner) return "";
+          return `
+            <div class="mini-row">
+              <div class="mini-top">
+                <span class="mini-label">${tier.label}</span>
+                <span class="tag">${winner.sizeLabel}</span>
+              </div>
+              <div class="mini-model">${winner.short}</div>
+              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(winner.pp)} PP • ${fmtMem(winner.vram)} VRAM</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function mountFallback(id, message) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `<div class="fallback">${message}</div>`;
+    }
+
+    function makeChart(id) {
+      if (typeof echarts === "undefined") {
+        mountFallback(id, "Apache ECharts did not load. Open over HTTP or verify the CDN request succeeded.");
+        return null;
+      }
+      try {
+        return echarts.init(document.getElementById(id));
+      } catch (error) {
+        console.error(error);
+        mountFallback(id, "Chart failed to initialize.");
+        return null;
+      }
+    }
+
+    const frontierChart = makeChart("frontierChart");
+    const efficiencyChart = makeChart("efficiencyChart");
+    const heatmapChart = makeChart("heatmapChart");
+    const memoryChart = makeChart("memoryChart");
+    const throughputChart = makeChart("throughputChart");
+    const trendChart = makeChart("trendChart");
+
+    const textStyle = { fontFamily: "Space Grotesk, sans-serif", color: "#edf5ff" };
+
+    function renderFrontier(runs) {
+      if (!frontierChart) return;
+      const families = [...new Set(runs.map((run) => run.family))];
+      frontierChart.setOption({
+        backgroundColor: "transparent",
         animationDuration: 450,
-        grid: { top: 12, right: 30, bottom: 24, left: 150 },
+        legend: {
+          bottom: 0,
+          textStyle
+        },
+        grid: { top: 16, right: 20, bottom: 70, left: 62 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${data.name}</strong>`,
+            `Size: ${data.sizeLabel}`,
+            `TG: ${fmtSpeed(data.value[1])}`,
+            `PP: ${fmtSpeed(data.value[2])}`,
+            `VRAM: ${fmtMem(data.value[3])}`,
+            `RAM: ${fmtMem(data.value[4])}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "log",
+          min: 2,
+          max: 100,
+          name: "Model size",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: {
+            color: "#8ea3bb",
+            formatter: (value) => `${value}B`
+          },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "TG tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: families.map((family) => ({
+          name: family,
+          type: "scatter",
+          symbolSize: (value) => Math.max(18, Math.sqrt(value[3]) * 9),
+          data: runs.filter((run) => run.family === family).map((run) => ({
+            name: run.short,
+            sizeLabel: run.sizeLabel,
+            value: [run.sizeB, run.tg, run.pp, run.vram, run.ram],
+            itemStyle: {
+              color: run.color,
+              shadowBlur: 18,
+              shadowColor: alpha(run.color, 0.35),
+              borderColor: alpha("#ffffff", 0.75),
+              borderWidth: 1.1
+            },
+            label: {
+              show: true,
+              formatter: run.short,
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700,
+              position: "top"
+            }
+          }))
+        }))
+      });
+    }
+
+    function renderEfficiency(runs) {
+      if (!efficiencyChart) return;
+      const ranked = runs.map((run) => ({ ...run, eff: run.tg / run.vram })).sort((a, b) => b.eff - a.eff);
+      efficiencyChart.setOption({
+        animationDuration: 450,
+        grid: { top: 4, right: 18, bottom: 16, left: 118 },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
-          backgroundColor: "rgba(19, 32, 51, 0.95)",
-          borderWidth: 0,
-          textStyle: { color: "#f8f4ec", fontFamily: "Space Grotesk, sans-serif" },
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
           formatter: (params) => {
-            const run = currentRuns[params[0].dataIndex];
+            const run = ranked[params[0].dataIndex];
             return [
-              `<strong>${run.name}</strong>`,
-              `Context: ${contextLabel(run.context)}`,
+              `<strong>${run.short}</strong>`,
+              `TG / VRAM: ${fmt(run.eff, 2)}`,
               `TG: ${fmtSpeed(run.tg)}`,
-              `PP: ${fmtSpeed(run.pp)}`,
-              `VRAM: ${fmtMemory(run.vram)}`
+              `VRAM: ${fmtMem(run.vram)}`
             ].join("<br>");
           }
         },
         xAxis: {
           type: "value",
-          name: "TG tokens/s",
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#58667a" },
-          splitLine: { lineStyle: { color: "rgba(19, 32, 51, 0.08)" } }
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
         yAxis: {
           type: "category",
           inverse: true,
-          data: currentRuns.map((run) => run.short),
-          axisLabel: { color: "#132033", fontWeight: 600 }
+          data: ranked.map((run) => run.short),
+          axisLabel: { color: "#edf5ff", fontWeight: 700 }
         },
-        series: [
-          {
-            type: "bar",
-            data: currentRuns.map((run) => ({
-              value: run.tg,
-              itemStyle: {
-                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                  { offset: 0, color: run.color },
-                  { offset: 1, color: echarts.color.lift(run.color, 0.35) }
-                ]),
-                borderRadius: [10, 10, 10, 10]
-              }
-            })),
-            label: {
-              show: true,
-              position: "right",
-              color: "#132033",
-              formatter: ({ dataIndex }) => {
-                const run = currentRuns[dataIndex];
-                return `${fmt(run.tg, 2)} TG  |  ${fmt(run.pp, 0)} PP`;
-              }
+        series: [{
+          type: "bar",
+          data: ranked.map((run) => ({
+            value: run.eff,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                { offset: 0, color: run.color },
+                { offset: 1, color: alpha(run.color, 0.45) }
+              ]),
+              borderRadius: [999, 999, 999, 999]
             }
+          })),
+          label: {
+            show: true,
+            position: "right",
+            color: "#edf5ff",
+            formatter: ({ dataIndex }) => fmt(ranked[dataIndex].eff, 2)
           }
-        ]
+        }]
+      });
+    }
+
+    function renderHeatmap() {
+      if (!heatmapChart) return;
+      const orderedSeries = SERIES.slice().sort((a, b) => a.sizeB - b.sizeB || b.runs[0].tg - a.runs[0].tg);
+      const points = [];
+      orderedSeries.forEach((series, rowIndex) => {
+        CONTEXTS.forEach((context, colIndex) => {
+          const run = series.runs.find((entry) => entry.context === context);
+          const keep = ppRetention(series, context);
+          if (run && keep != null) {
+            points.push({
+              value: [colIndex, rowIndex, keep],
+              run,
+              model: series.short
+            });
+          }
+        });
       });
 
-      snapshotChart.setOption({
+      heatmapChart.setOption({
         animationDuration: 450,
-        grid: { top: 20, right: 20, bottom: 64, left: 72 },
+        grid: { top: 18, right: 20, bottom: 42, left: 150 },
         tooltip: {
-          trigger: "item",
-          backgroundColor: "rgba(19, 32, 51, 0.95)",
-          borderWidth: 0,
-          textStyle: { color: "#f8f4ec", fontFamily: "Space Grotesk, sans-serif" },
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
           formatter: ({ data }) => [
-            `<strong>${data.name}</strong>`,
-            `Context: ${contextLabel(data.context)}`,
-            `PP: ${fmtSpeed(data.value[0])}`,
-            `TG: ${fmtSpeed(data.value[1])}`,
-            `System RAM: ${fmtMemory(data.ram)}`,
-            `VRAM: ${fmtMemory(data.vram)}`,
-            `GTT: ${fmtMemory(data.gtt)}`
+            `<strong>${data.model}</strong>`,
+            `Context: ${ctx(data.run.context)}`,
+            `PP retention: ${fmt(data.value[2], 1)}%`,
+            `PP: ${fmtSpeed(data.run.pp)}`,
+            `TG: ${fmtSpeed(data.run.tg)}`
           ].join("<br>")
         },
         xAxis: {
-          type: "value",
-          name: "Prompt throughput (t/s)",
-          nameLocation: "middle",
-          nameGap: 42,
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#58667a" },
-          splitLine: { lineStyle: { color: "rgba(19, 32, 51, 0.08)" } }
+          type: "category",
+          data: CONTEXTS.map(ctx),
+          axisLabel: { color: "#8ea3bb" },
+          splitArea: { show: false }
         },
         yAxis: {
-          type: "value",
-          name: "Generation throughput (t/s)",
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#58667a" },
-          splitLine: { lineStyle: { color: "rgba(19, 32, 51, 0.08)" } }
+          type: "category",
+          data: orderedSeries.map((series) => series.short),
+          axisLabel: { color: "#edf5ff", fontWeight: 700 }
         },
-        series: [
-          {
-            type: "scatter",
-            data: currentRuns.map((run) => ({
-              name: run.name,
-              value: [run.pp, run.tg],
-              context: run.context,
-              ram: run.ram,
-              vram: run.vram,
-              gtt: run.gtt,
-              symbolSize: Math.max(14, run.vram * 1.2),
-              itemStyle: {
-                color: run.color,
-                shadowBlur: 18,
-                shadowColor: echarts.color.alpha(run.color, 0.35)
-              },
-              label: {
-                show: currentRuns.length <= 8,
-                formatter: run.short,
-                position: "top",
-                color: "#132033",
-                fontWeight: 600
-              }
-            }))
+        visualMap: {
+          min: 5,
+          max: 100,
+          orient: "horizontal",
+          left: "center",
+          bottom: 0,
+          textStyle,
+          inRange: {
+            color: ["#702f35", "#b45a3b", "#f3b14a", "#39d0ff", "#21c7a8"]
           }
-        ]
+        },
+        series: [{
+          type: "heatmap",
+          data: points,
+          label: {
+            show: true,
+            color: "#03111e",
+            fontWeight: 700,
+            formatter: ({ value }) => `${fmt(value[2], 0)}%`
+          },
+          itemStyle: {
+            borderColor: alpha("#ffffff", 0.22),
+            borderWidth: 1
+          }
+        }]
       });
+    }
 
-      const memoryRuns = currentRuns.slice().sort((a, b) => b.vram - a.vram);
-
+    function renderMemory(runs) {
+      if (!memoryChart) return;
+      const sorted = runs.slice().sort((a, b) => b.vram - a.vram);
       memoryChart.setOption({
         animationDuration: 450,
         legend: {
           bottom: 0,
           textStyle
         },
-        grid: { top: 18, right: 18, bottom: 72, left: 62 },
+        grid: { top: 18, right: 18, bottom: 62, left: 58 },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
-          backgroundColor: "rgba(19, 32, 51, 0.95)",
-          borderWidth: 0,
-          textStyle: { color: "#f8f4ec", fontFamily: "Space Grotesk, sans-serif" }
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle
         },
         xAxis: {
           type: "category",
-          data: memoryRuns.map((run) => run.short),
+          data: sorted.map((run) => run.short),
           axisLabel: {
-            color: "#58667a",
+            color: "#8ea3bb",
             interval: 0,
             rotate: 24
           }
@@ -1268,111 +1385,161 @@
           type: "value",
           name: "GiB",
           nameTextStyle: textStyle,
-          axisLabel: { color: "#58667a" },
-          splitLine: { lineStyle: { color: "rgba(19, 32, 51, 0.08)" } }
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
         series: [
           {
             name: "System RAM",
             type: "bar",
-            data: memoryRuns.map((run) => run.ram),
-            itemStyle: { color: "#94a3b8", borderRadius: [8, 8, 0, 0] }
+            data: sorted.map((run) => run.ram),
+            itemStyle: { color: alpha("#95a6be", 0.85), borderRadius: [8, 8, 0, 0] }
           },
           {
             name: "VRAM",
             type: "bar",
-            data: memoryRuns.map((run) => run.vram),
-            itemStyle: { color: "#203659", borderRadius: [8, 8, 0, 0] }
+            data: sorted.map((run) => run.vram),
+            itemStyle: { color: alpha("#39d0ff", 0.92), borderRadius: [8, 8, 0, 0] }
           },
           {
             name: "GTT",
             type: "bar",
-            data: memoryRuns.map((run) => run.gtt),
-            itemStyle: { color: "#ae7b2f", borderRadius: [8, 8, 0, 0] }
+            data: sorted.map((run) => run.gtt),
+            itemStyle: { color: alpha("#f3b14a", 0.92), borderRadius: [8, 8, 0, 0] }
           }
         ]
       });
     }
 
-    function buildLineSeries(metric) {
-      return benchmarkSeries.map((series) => {
-        const runMap = new Map(series.runs.filter((run) => run.status === "ok" && run[metric] != null).map((run) => [run.context, run[metric]]));
-        return {
-          name: series.short,
-          type: "line",
-          smooth: false,
-          symbol: "circle",
-          symbolSize: 9,
-          lineStyle: { width: 3, color: series.color },
-          itemStyle: { color: series.color },
-          emphasis: { focus: "series" },
-          data: contexts.map((context) => runMap.get(context) ?? null)
-        };
+    function renderThroughput(runs) {
+      if (!throughputChart) return;
+      const families = [...new Set(runs.map((run) => run.family))];
+      throughputChart.setOption({
+        animationDuration: 450,
+        legend: {
+          bottom: 0,
+          textStyle
+        },
+        grid: { top: 18, right: 18, bottom: 64, left: 58 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${data.name}</strong>`,
+            `PP: ${fmtSpeed(data.value[0])}`,
+            `TG: ${fmtSpeed(data.value[1])}`,
+            `Size: ${data.sizeLabel}`,
+            `VRAM: ${fmtMem(data.vram)}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: "PP tokens/s",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "TG tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: families.map((family) => ({
+          name: family,
+          type: "scatter",
+          data: runs.filter((run) => run.family === family).map((run) => ({
+            name: run.short,
+            sizeLabel: run.sizeLabel,
+            vram: run.vram,
+            value: [run.pp, run.tg],
+            symbolSize: Math.max(14, Math.sqrt(run.sizeB) * 6),
+            itemStyle: {
+              color: run.color,
+              shadowBlur: 14,
+              shadowColor: alpha(run.color, 0.3)
+            },
+            label: {
+              show: runs.length <= 12,
+              formatter: run.short,
+              position: "top",
+              color: "#edf5ff",
+              fontWeight: 700
+            }
+          }))
+        }))
       });
     }
 
-    function renderTrendCharts() {
-      const sharedLegend = {
-        type: "scroll",
-        top: 0,
-        textStyle
-      };
-
-      const sharedXAxis = {
-        type: "category",
-        boundaryGap: false,
-        data: contexts.map((context) => contextLabel(context)),
-        axisLabel: { color: "#58667a" }
-      };
-
-      const sharedYAxis = {
-        type: "value",
-        axisLabel: { color: "#58667a" },
-        splitLine: { lineStyle: { color: "rgba(19, 32, 51, 0.08)" } }
-      };
-
-      ppChart.setOption({
+    function renderTrend() {
+      if (!trendChart) return;
+      trendChart.setOption({
         animationDuration: 450,
-        legend: sharedLegend,
-        grid: { top: 56, right: 18, bottom: 24, left: 64 },
+        legend: {
+          type: "scroll",
+          top: 0,
+          textStyle
+        },
+        grid: { top: 56, right: 16, bottom: 24, left: 58 },
         tooltip: {
           trigger: "axis",
-          backgroundColor: "rgba(19, 32, 51, 0.95)",
-          borderWidth: 0,
-          textStyle: { color: "#f8f4ec", fontFamily: "Space Grotesk, sans-serif" },
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
           valueFormatter: (value) => value == null ? "n/a" : fmtSpeed(value)
         },
-        xAxis: sharedXAxis,
-        yAxis: { ...sharedYAxis, name: "PP t/s", nameTextStyle: textStyle },
-        series: buildLineSeries("pp")
-      });
-
-      tgChart.setOption({
-        animationDuration: 450,
-        legend: sharedLegend,
-        grid: { top: 56, right: 18, bottom: 24, left: 64 },
-        tooltip: {
-          trigger: "axis",
-          backgroundColor: "rgba(19, 32, 51, 0.95)",
-          borderWidth: 0,
-          textStyle: { color: "#f8f4ec", fontFamily: "Space Grotesk, sans-serif" },
-          valueFormatter: (value) => value == null ? "n/a" : fmtSpeed(value)
+        xAxis: {
+          type: "category",
+          boundaryGap: false,
+          data: CONTEXTS.map(ctx),
+          axisLabel: { color: "#8ea3bb" }
         },
-        xAxis: sharedXAxis,
-        yAxis: { ...sharedYAxis, name: "TG t/s", nameTextStyle: textStyle },
-        series: buildLineSeries("tg")
+        yAxis: {
+          type: "value",
+          name: "PP tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: SERIES.map((series) => {
+          const runMap = new Map(series.runs.map((run) => [run.context, run.pp]));
+          return {
+            name: series.short,
+            type: "line",
+            smooth: false,
+            symbol: "circle",
+            symbolSize: 7,
+            lineStyle: { width: 2.5, color: series.color },
+            itemStyle: { color: series.color },
+            emphasis: { focus: "series" },
+            data: CONTEXTS.map((context) => runMap.get(context) ?? null)
+          };
+        })
       });
     }
 
-    renderContextCharts();
-    renderTrendCharts();
+    function render() {
+      const runs = runsAtContext(activeContext);
+      setKpis(runs);
+      renderFrontier(runs);
+      renderEfficiency(runs);
+      renderHeatmap();
+      renderMemory(runs);
+      renderThroughput(runs);
+      renderTrend();
+    }
+
+    render();
 
     window.addEventListener("resize", () => {
-      leaderboardChart.resize();
-      snapshotChart.resize();
-      ppChart.resize();
-      tgChart.resize();
-      memoryChart.resize();
+      [frontierChart, efficiencyChart, heatmapChart, memoryChart, throughputChart, trendChart]
+        .filter(Boolean)
+        .forEach((chart) => chart.resize());
     });
   </script>
 </body>
