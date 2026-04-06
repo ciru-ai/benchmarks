@@ -4,6 +4,59 @@ This file tracks prior LLM benchmark runs or related test commands found on this
 
 ## Known prior runs
 
+### 2026-04-06 Gemma 4 26B 16K refresh for new Q6 and uncensored variants
+
+Run labels:
+
+- `gemma-4-26b-a4b-it-q6-k`
+- `gemma-4-26b-a4b-it-uncensored-q4-km`
+- `gemma-4-26b-a4b-it-uncensored-q8`
+
+Models:
+
+- Q6_K: `/srv/llm/models/Gemma-4-26B-A4B-it-Q6_K/gemma-4-26B-A4B-it-Q6_K.gguf`
+- Uncensored Q4_K_M: `/srv/llm/models/gemma-4-26B-A4B-it-uncensored-GGUF/gemma-4-26B-A4B-it-uncensored-Q4_K_M.gguf`
+- Uncensored Q8_0: `/srv/llm/models/gemma-4-26B-A4B-it-uncensored-GGUF/gemma-4-26B-A4B-it-uncensored-Q8_0.gguf`
+
+Common settings:
+
+- context: `16384`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- wrapper guard: `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- `qwen-main.service` was stopped before the run so the live serving model would not contend for VRAM
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Q6_K result:
+
+- Manifest: `/srv/llm/runs/20260406-022810-gemma-4-26b-a4b-it-q6-k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `965.33 ± 2.18 t/s` | `55.52 ± 0.25 t/s` | `13.09 GiB` | `23.84 GiB` | `0.77 GiB` | `/srv/llm/runs/20260406-022810-gemma-4-26b-a4b-it-q6-k-p16384.log` |
+
+Uncensored Q4_K_M result:
+
+- Manifest: `/srv/llm/runs/20260406-022921-gemma-4-26b-a4b-it-uncensored-q4-km-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `1012.67 ± 0.94 t/s` | `65.85 ± 0.18 t/s` | `13.09 GiB` | `18.40 GiB` | `0.77 GiB` | `/srv/llm/runs/20260406-022921-gemma-4-26b-a4b-it-uncensored-q4-km-p16384.log` |
+
+Uncensored Q8_0 result:
+
+- Manifest: `/srv/llm/runs/20260406-023021-gemma-4-26b-a4b-it-uncensored-q8-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `1054.80 ± 0.38 t/s` | `47.16 ± 0.15 t/s` | `13.53 GiB` | `27.77 GiB` | `0.94 GiB` | `/srv/llm/runs/20260406-023021-gemma-4-26b-a4b-it-uncensored-q8-p16384.log` |
+
+Takeaways:
+
+- Of the three new additions, the uncensored `Q4_K_M` is the strongest practical result on this machine at `16384`: it beats the new `Q6_K` on both PP and TG while using about `5.4 GiB` less VRAM.
+- The uncensored `Q4_K_M` also edges out the earlier official `Gemma 4 26B A4B Q4_K_M` baseline at `16384` on both PP and TG in this environment.
+- `Q6_K` increased model size and VRAM use without improving throughput on this host.
+- `Q8_0` improved PP speed, but TG speed dropped sharply to `47.16 t/s` while peak VRAM climbed to `27.77 GiB`, making it a poor default serving choice here.
+
 ### 2026-04-02 Gemma 4 Q4_K_M benchmark series
 
 Run labels:
