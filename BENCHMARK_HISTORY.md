@@ -2,7 +2,1066 @@
 
 This file tracks prior LLM benchmark runs or related test commands found on this machine.
 
+## Agent quick recall
+
+Last consolidated: `2026-04-30`
+
+This file is the canonical local benchmark memory for agents. New entries should keep exact model paths, engine paths, settings, active context size, validity notes, and service-restore status. Older benchmark history is preserved below this quick recall section.
+
+Current high-signal conclusions:
+
+- Best validated Qwen3.6 27B Q8 speculative path: upstream b8971 built through the system Nix Vulkan package at `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan-systempkg/bin/llama-server`, Qwen3.6 27B Q8 target, official `Qwen/Qwen3-1.7B-GGUF` Q8 draft, `--kv-unified`, `--spec-draft-n-max 32 --spec-draft-n-min 1 --spec-draft-p-min 0.75`, Vulkan. The older `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin` package currently reports no Vulkan devices after the system update.
+- Valid short/low-occupied-context result on `2026-04-30`: Qwen3.6 27B Q8 with `q8_0/q8_0` KV improved from `6.27 t/s` baseline to `17.83 t/s` with Qwen3-1.7B Q8 draft. With `f16/f16` KV it improved from `6.29` to `18.32 t/s`. This is a real result from coherent server output and clean checkpointed speculative decoding.
+- Long occupied context result: at `32768` max context with about `24035` prompt tokens already active, baseline Q8 decode was `6.13 t/s`; speculative Qwen3-1.7B Q8 fell to `3.55 t/s`. Do not use this draft setup for long active context.
+- Invalid result warning: standalone `llama-speculative` / `llama-speculative-simple` runs on Qwen3.6 emitted M-RoPE/KV position errors such as `inconsistent sequence positions`, `failed to decode`, or `non-consecutive token position`. Treat their throughput numbers as invalid even when tok/s looked high.
+- Installed `/home/crown/.local/llama-current` was too old for valid Qwen3.6 server speculative checkpointing on `2026-04-24`: it disabled speculative decoding with `target context does not support partial sequence removal`. Fresh upstream llama.cpp fixed this by falling back to checkpoints.
+- DFlash was not useful on this AMD/Vulkan host in the tested state. Acceptance stayed around `1-3%`, decode was slower than baseline, and buun fork paths needed workarounds. Keep DFlash isolated from production until backend/runtime support changes.
+- Qwen3.6 27B Q8 is slower but preferred when quality/accuracy matters and RAM allows. Q4_XL is much faster for plain baseline decode, but the user explicitly prefers Q8 when feasible.
+- HauhauCS Qwen3.6 35B A3B Uncensored Aggressive Q4/Q6/Q8 profiles should use `f16/f16` KV on this Vulkan stack. On `2026-04-29`, `f16/f16` beat the previous `q8_0/q8_0` defaults at 16k and 32k, and Q8 also held the gain at 128k. Profiles were updated accordingly.
+- Official Qwen3.6 27B Q8 dense should keep `q8_0/q8_0` KV for the stable profile. Clean 32k rerun on `2026-04-29`: current build `q8_0/q8_0` was `223.82 PP / 6.11 TG`; upstream b8971 `q8_0/q8_0` was `223.54 / 6.12`; `q4_0/q4_0` was effectively tied (`223.37 / 6.11`) with slightly less memory but more quality risk; TheTom TurboQuant Vulkan `turbo3/turbo3` loaded and generated coherently but was slower at 32k (`201.48 / 6.12`).
+- TheTom TurboQuant asymmetric KV with the Apr 29 attention-rotation default fix is not viable on Strix Halo Vulkan in the tested state. `q8_0/turbo4` aborts at 32k on both official Qwen3.6 27B Q8 and 35B A3B Q8 with Vulkan `SET_ROWS` unsupported for `cache_v_l3`; `q8_0/turbo3` produced no benchmark row before cutoff on both models and was not promoted to deeper context. On `2026-04-30`, TheTom `experiment/decode-speed-parity` built and saw the Vulkan device, but standard `q8_0/q8_0` had no gain (`280.49 PP / 6.27 TG` at `p512/n256` vs system `282.52 / 6.28`) and `turbo3` KV aborted on Vulkan `SET_ROWS`.
+- Official Qwen3.6 35B A3B Q8 should keep `f16/f16` KV. Clean 32k b8971 rerun on `2026-04-29`: `f16/f16` was `837.35 PP / 53.23 TG`, while `q8_0/q8_0` fell to `739.18 / 52.32` for only about `0.27 GiB` peak combined GPU memory savings.
+- After the `2026-04-30` kernel/system update, `/run/current-system/sw/bin/llama-bench` build `8864` sees Vulkan as `RADV STRIX_HALO` with `int dot: 1`. Quick 32k baselines improved versus the prior clean Vulkan checks: official Qwen3.6 27B Q8 `q8_0/q8_0` was `226.89 PP / 6.27 TG`; official Qwen3.6 35B A3B Q8 `f16/f16` was `910.13 / 54.45`; HauhauCS 35B A3B Q8 `f16/f16` was `789.50 / 43.50`.
+- Clean `2026-04-30` novel-method sweep: current Vulkan 27B Q8 `q8_0/q8_0` at 32k was `226.55 PP / 6.27 TG`; isolated ROCm 7.2.2 build with `HSA_OVERRIDE_GFX_VERSION=11.5.1 ROCBLAS_USE_HIPBLASLT=1` was `280.94 / 6.42`. Treat ROCm as a prefill-bound option only: +24% PP, only +2.4% TG, and the user prefers ROCm only if materially faster.
+- Clean `2026-04-30` official Qwen3.6 35B A3B Q8 `f16/f16` at 32k was `912.40 PP / 54.46 TG` on current Vulkan, still the strongest stable throughput class if that model is acceptable.
+- For routine tests, stop only model services and restore them: `qwen-main.service` and `qwen3-tts.service`. For fully isolated clean windows, also stop `hermes-gateway.service`. Verify all three are active afterward with `systemctl --user is-active qwen-main.service qwen3-tts.service hermes-gateway.service`.
+
+Important local paths:
+
+| Purpose | Path |
+| --- | --- |
+| Current production-style llama.cpp install | `/home/crown/.local/llama-current` |
+| Fresh upstream llama.cpp Vulkan build that supports Qwen3.6 speculative checkpoints | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin` |
+| Working post-update upstream b8971 Vulkan build with speculative checkpoints | `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan-systempkg/bin` |
+| TheTom TurboQuant decode-speed branch build tested on 2026-04-30 | `/home/crown/tmp/llama-cpp-turboquant-decode-speed-parity-20260430/result-vulkan-systempkg/bin` |
+| Fresh upstream source | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec` |
+| buun DFlash fork source | `/home/crown/tmp/buun-llama-cpp` |
+| Qwen3.6 speculative benchmark harness | `/home/crown/machine-setup/bench-qwen36-spec.sh` |
+| DFlash-specific benchmark harness | `/home/crown/machine-setup/bench-spec-qwen27b.sh` |
+| Run logs | `/srv/llm/runs` |
+
+Important model paths:
+
+| Role | Model | Path | Notes |
+| --- | --- | --- | --- |
+| Target | Qwen3.6 27B Q8 | `/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-UD-Q8_K_XL.gguf` | Main accuracy target; `qwen35` tokenizer, `248320` vocab |
+| Target | Qwen3.6 27B Q4 | `/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-UD-Q4_K_XL.gguf` | Faster baseline; lower quality than Q8 |
+| Draft | Official Qwen3 1.7B Q8 | `/srv/llm/models/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q8_0.gguf` | Official Qwen HF repo; `qwen2` tokenizer, `151936` vocab, incompatible vocab translated by llama.cpp |
+| DFlash draft | Qwen3.6 DFlash Q8 | `/srv/llm/models/Qwen3.6-27B-DFlash-GGUF/dflash-draft-3.6-q8_0.gguf` | Tested and not useful on local AMD/Vulkan setup |
+| DFlash draft | Qwen3.6 DFlash Q4 | `/srv/llm/models/Qwen3.6-27B-DFlash/Qwen3.6-27B-DFlash-Q4_K_M.gguf` | Old local DFlash draft; poor acceptance |
+| DFlash draft | Qwen3.6 DFlash F16 | `/srv/llm/models/Qwen3.6-27B-DFlash/Qwen3.6-27B-DFlash-F16.gguf` | Old local DFlash draft; poor acceptance |
+
+Source repos / model pages checked:
+
+- `https://huggingface.co/Qwen/Qwen3-1.7B-GGUF`
+- `https://huggingface.co/spiritbuun/Qwen3.6-27B-DFlash-GGUF`
+- `https://provide.ai/qwen-3-6-27b-llamacpp-speculative-decoding-appreciation-post/`
+- `https://github.com/ggml-org/llama.cpp.git`
+- `https://github.com/spiritbuun/buun-llama-cpp.git`
+
+## 2026-04-30 Novel method sweep after kernel/system update
+
+Goal: look up and test current Strix Halo / gfx1151 performance leads without changing production model infrastructure. The sweep focused on upstream Vulkan checkpointed speculative decoding, ROCm as an isolated engine comparison, and newer TheTom TurboQuant branches. Production services were stopped before testing and restored afterward.
+
+Service handling:
+
+- Stopped `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` before benchmark runs.
+- Verified no active `llama-server`, `llama-bench`, or `llm-guard` processes before starting tests.
+- Restored `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` afterward; all three returned `active`, and `http://127.0.0.1:18081/v1/models` returned `main`.
+- Run directory: `/srv/llm/runs/20260430-novel-gains-sweep`.
+
+Runtimes:
+
+| Runtime | Path | Notes |
+| --- | --- | --- |
+| Current system Vulkan | `/run/current-system/sw/bin` | build `8864`, RADV STRIX_HALO, int dot enabled |
+| Upstream b8971 Vulkan, rebuilt with system package | `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan-systempkg/bin` | build `8971`, working RADV device detection and checkpointed speculative server |
+| ROCm 7.2.2 isolated build | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/build-rocm-7d/bin` | commit `f65bc34`, `HSA_OVERRIDE_GFX_VERSION=11.5.1`, optional `ROCBLAS_USE_HIPBLASLT=1` |
+| TheTom TurboQuant decode-speed branch | `/home/crown/tmp/llama-cpp-turboquant-decode-speed-parity-20260430/result-vulkan-systempkg/bin` | commit `9b135133`, branch `experiment/decode-speed-parity` |
+
+Clean 32k engine/model controls:
+
+| Target | Runtime / mode | Context | KV | PP t/s | TG t/s | Peak combined GPU | Log |
+| --- | --- | ---: | --- | ---: | ---: | ---: | --- |
+| Qwen3.6 27B Q8 | current Vulkan | 32768 | `q8_0/q8_0` | `226.55` | `6.27` | `35.22 GiB` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-134940-novel-vulkan-27b-q8-q8kv-32k-p32768.log` |
+| Qwen3.6 27B Q8 | ROCm + hipBLASLt | 32768 | `q8_0/q8_0` | `280.94` | `6.42` | `34.77 GiB` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-135503-novel-rocm-27b-q8-q8kv-32k-p32768.log` |
+| Qwen3.6 27B Q8 | upstream b8971 Vulkan | 32768 | `q8_0/q8_0` | `225.74` | `6.25` | `35.22 GiB` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-140928-novel-b8971-vulkan-27b-q8-q8kv-32k-p32768.log` |
+| Qwen3.6 35B A3B Q8 | current Vulkan | 32768 | `f16/f16` | `912.40` | `54.46` | `36.24 GiB` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-143250-novel-system-35b-a3b-q8-f16kv-32k-p32768.log` |
+
+Server speculative results on upstream b8971:
+
+| Target | Mode | Context max | Active prompt tokens | KV | Prompt t/s | Decode t/s | Draft accepted | Validity | Response |
+| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q8 | baseline | 4096 | `29` | `q8_0/q8_0` | `69.93` | `6.27` | n/a | valid | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-141903-b8971-baseline-q8kv-general-response.json` |
+| Qwen3.6 27B Q8 + Qwen3 1.7B Q8 draft | draft model, `--spec-draft-n-max 32 --spec-draft-n-min 1 --spec-draft-p-min 0.75` | 4096 | `29` | `q8_0/q8_0` | `69.97` | `17.83` | `227/386` | valid, coherent output | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-141950-b8971-draft-q8kv-general-response.json` |
+| Qwen3.6 27B Q8 | baseline | 32768 | `24035` | `q8_0/q8_0` | `162.31` | `6.13` | n/a | valid | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-142120-b8971-baseline-q8kv-500ledger-32k-response.json` |
+| Qwen3.6 27B Q8 + Qwen3 1.7B Q8 draft | draft model, same flags | 32768 | `24035` | `q8_0/q8_0` | `162.70` | `3.55` | `78/124` | valid but slower | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-142414-b8971-draft-q8kv-500ledger-32k-response.json` |
+| Qwen3.6 27B Q8 | `ngram-mod`, code-refactor prompt | 4096 | `319` | `f16/f16` | `181.51` | `6.22` | `3/74` | not useful | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-141749-b8971-ngram-mod-f16-prompt-v2-response.json` |
+
+TurboQuant branch gate:
+
+| Target | Runtime | Context | KV | PP t/s | TG t/s | Result | Log |
+| --- | --- | ---: | --- | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q8 | current Vulkan | 512 | `q8_0/q8_0` | `282.52` | `6.28` | control | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-143049-novel-system-27b-q8-q8kv-p512n256-p512.log` |
+| Qwen3.6 27B Q8 | TQ decode-speed branch | 512 | `q8_0/q8_0` | `280.49` | `6.27` | no gain | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-143136-novel-tqdecode-27b-q8-q8kv-p512n256-p512.log` |
+| Qwen3.6 27B Q8 | TQ decode-speed branch | 512 | `turbo3/turbo3` | n/a | n/a | abort: Vulkan `SET_ROWS` unsupported for `cache_k_l3` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-143224-novel-tqdecode-27b-q8-turbo3kv-p512n256-p512.log` |
+| Qwen3.6 27B Q8 | TQ decode-speed branch | 512 | `q8_0/turbo3` | n/a | n/a | abort: Vulkan `SET_ROWS` unsupported for `cache_v_l3` | `/srv/llm/runs/20260430-novel-gains-sweep/20260430-143230-novel-tqdecode-27b-q8-q8k-turbo3v-p512n256-p512.log` |
+
+Conclusions:
+
+- Real Qwen3.6 27B Q8 gain found: upstream b8971 checkpointed draft-model speculative decoding is about `2.85x` decode speed at low active context with q8 KV (`6.27 -> 17.83 t/s`).
+- Do not enable that draft path for long active context. At `24035` active tokens, it is slower (`6.13 -> 3.55 t/s`) even with accepted draft tokens, because checkpoint/draft overhead dominates.
+- ROCm is a real 27B Q8 prefill gain at 32k (`226.55 -> 280.94 PP t/s`) but not a meaningful decode gain (`6.27 -> 6.42 TG t/s`). Given ROCm stability concerns, it is not a broad replacement for Vulkan.
+- The newer TheTom TurboQuant decode-speed branch is not usable as a Strix Halo Vulkan throughput path in this state. Standard q8 KV has no gain and turbo3 KV aborts before a bench row.
+- Official Qwen3.6 35B A3B Q8 on current Vulkan remains the strongest stable throughput class if a MoE A3B model is acceptable (`912.40 PP / 54.46 TG` at 32k).
+
+## 2026-04-29 Official Qwen3.6 Vulkan/TurboQuant KV clean rerun
+
+Goal: investigate current AMD/Strix Halo llama.cpp Vulkan leads and KV-cache compression on clean official Qwen3.6 Q8 baselines, with model/gateway services unloaded during measurements.
+
+Service handling:
+
+- Stopped `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` for this clean window.
+- Restored all three services afterward and verified `/v1/models` on the main passthrough endpoint.
+- Run directory: `/srv/llm/runs/20260429-amd-vulkan-upstream-kv`.
+
+Runtime builds:
+
+| Runtime | Path | Notes |
+| --- | --- | --- |
+| Current production-style Vulkan | `/home/crown/.local/llama-current/bin` | current service-style install |
+| Upstream b8971 Vulkan | `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan/bin` | commit `683c5acb`, built from `ggml-org/llama.cpp` origin/master on 2026-04-29 |
+| TheTom TurboQuant Vulkan fork | `/home/crown/tmp/llama-cpp-turboquant-kv-20260429/result-vulkan/bin` | branch `feature/turboquant-kv-cache`, commit `11a241d0`; local Nix duplicate `spirv-headers` arg removed for build only |
+
+Official Qwen3.6 27B Q8 32k results, `-ngl 999 -fa 1 -p 32768 -n 128 -r 1`:
+
+| Runtime | KV | PP | TG | Peak GPU | Log |
+| --- | --- | ---: | ---: | ---: | --- |
+| current | `f16/f16` | `194.29` | `6.15` | `36.25 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-114906-20260429-current-qwen36-27b-q8-f16kv-p32768.log` |
+| current | `q8_0/q8_0` | `223.82` | `6.11` | `35.30 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-115529-20260429-current-qwen36-27b-q8-q8kv-p32768.log` |
+| upstream b8971 | `f16/f16` | `194.97` | `6.13` | `36.24 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-120053-20260429-upstream-b8971-qwen36-27b-q8-f16kv-p32768.log` |
+| upstream b8971 | `q8_0/q8_0` | `223.54` | `6.12` | `35.31 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-120700-20260429-upstream-b8971-qwen36-27b-q8-q8kv-p32768.log` |
+| upstream b8971 | `q4_0/q4_0` | `223.37` | `6.11` | `34.81 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-121605-20260429-upstream-b8971-qwen36-27b-q8-q4kv-p32768.log` |
+| TheTom TQ fork | `turbo3/turbo3` | `201.48` | `6.12` | `34.65 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-122504-20260429-tqfork-qwen36-27b-q8-turbo3kv-p32768.log` |
+
+TheTom fork short probes, official Qwen3.6 27B Q8, `-p 512 -n 256`:
+
+| KV | PP | TG | Peak GPU | Log |
+| --- | ---: | ---: | ---: | --- |
+| `turbo3/turbo3` | `280.35` | `6.12` | `34.20 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-122302-20260429-tqfork-qwen36-27b-q8-turbo3kv-p512-p512.log` |
+| `q8_0/turbo3` | `163.70` | `5.90` | `34.20 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-122359-20260429-tqfork-qwen36-27b-q8-q8k-turbo3v-p512-p512.log` |
+
+Official Qwen3.6 35B A3B Q8 32k results, upstream b8971, `-ngl 999 -fa 1 -p 32768 -n 128 -r 1`:
+
+| KV | PP | TG | Peak GPU | Log |
+| --- | ---: | ---: | ---: | --- |
+| `f16/f16` | `837.35` | `53.23` | `36.32 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-121234-20260429-upstream-b8971-qwen36-35b-a3b-q8-f16kv-p32768.log` |
+| `q8_0/q8_0` | `739.18` | `52.32` | `36.05 GiB` | `/srv/llm/runs/20260429-amd-vulkan-upstream-kv/20260429-121420-20260429-upstream-b8971-qwen36-35b-a3b-q8-q8kv-p32768.log` |
+
+Conclusions:
+
+- No upstream b8971 speed gain over current for the official 27B Q8 dense model; results are within run noise.
+- Official 27B Q8: `q8_0/q8_0` remains the stable recommendation. `q4_0/q4_0` saves about `0.5 GiB` more at 32k but is not faster and carries more KV quality risk.
+- Official 35B A3B Q8: `f16/f16` is clearly faster and already matches the profile default.
+- TheTom TurboQuant Vulkan fork works on this box and a one-shot sanity prompt returned `2 + 2 is 4`, but at 32k it is slower than upstream q8/q4 KV and saves only about `0.16 GiB` versus q4 KV on this model/shape. Treat it as experimental memory-capacity work, not a throughput win.
+
+## 2026-04-29 TheTom TurboQuant attn-rotation asymmetric KV check
+
+Goal: check only the asymmetric KV lead after treating the prior symmetric `turbo3/turbo3` 32k result as a negative throughput result. Specifically test `q8_0/turbo4` and `q8_0/turbo3` on official Qwen3.6 27B Q8 and official Qwen3.6 35B A3B Q8, using a recent TheTom TurboQuant build with the Apr 29 attention-rotation default fix applied.
+
+Runtime:
+
+- Source: `/home/crown/tmp/llama-cpp-turboquant-attnrot-20260429`
+- Binary: `/home/crown/tmp/llama-cpp-turboquant-attnrot-20260429/result-vulkan/bin/llama-bench`
+- Base branch: TheTom `feature/turboquant-kv-cache` at `11a241d0`
+- Local applied fix: TheTom `fix/enable-attn-rot-by-default` commit `6c55e849`, plus local Nix duplicate `spirv-headers` argument removal for build only.
+- Run directory: `/srv/llm/runs/20260429-tq-attnrot-asym`
+
+32k sanity results:
+
+| Model | KV | Result | Peak GPU | Log |
+| --- | --- | --- | ---: | --- |
+| Qwen3.6 27B Q8 | `q8_0/turbo4` | abort, Vulkan `SET_ROWS` unsupported for `cache_v_l3` | `34.47 GiB` | `/srv/llm/runs/20260429-tq-attnrot-asym/20260429-141809-20260429-tqattnrot-qwen36-27b-q8-q8k-turbo4v-32k-p32768.log` |
+| Qwen3.6 27B Q8 | `q8_0/turbo3` | terminated after no benchmark row before cutoff | `35.00 GiB` | `/srv/llm/runs/20260429-tq-attnrot-asym/20260429-141832-20260429-tqattnrot-qwen36-27b-q8-q8k-turbo3v-32k-p32768.log` |
+| Qwen3.6 35B A3B Q8 | `q8_0/turbo4` | abort, Vulkan `SET_ROWS` unsupported for `cache_v_l3` | `35.30 GiB` | `/srv/llm/runs/20260429-tq-attnrot-asym/20260429-143935-20260429-tqattnrot-qwen36-35b-a3b-q8-q8k-turbo4v-32k-p32768.log` |
+| Qwen3.6 35B A3B Q8 | `q8_0/turbo3` | terminated after no benchmark row before cutoff | `35.91 GiB` | `/srv/llm/runs/20260429-tq-attnrot-asym/20260429-144000-20260429-tqattnrot-qwen36-35b-a3b-q8-q8k-turbo3v-32k-p32768.log` |
+
+Comparison baselines from the clean run immediately before this check:
+
+| Model | Stable KV | 32k PP | TG | Peak GPU |
+| --- | --- | ---: | ---: | ---: |
+| Qwen3.6 27B Q8 | `q8_0/q8_0` | `223.54-223.82` | `6.11-6.12` | `35.30-35.31 GiB` |
+| Qwen3.6 35B A3B Q8 | `f16/f16` | `837.35` | `53.23` | `36.32 GiB` |
+
+Conclusion:
+
+- Asymmetric TurboQuant KV was not promoted to deeper context because both requested configs failed the 32k sanity gate for non-memory reasons.
+- `q8_0/turbo4` is currently a hard Vulkan backend failure.
+- `q8_0/turbo3` is not a practical throughput path with the attention-rotation default fix on this Strix Halo Vulkan setup.
+- Classification: not a throughput feature here; not currently usable enough to recommend as a memory-capacity feature for these Qwen3.6 profiles.
+
+## 2026-04-30 Kernel/system update quick baseline
+
+Goal: after kernel/system update, run a few clean 32k baselines to see whether Vulkan throughput materially changed.
+
+Environment:
+
+- Kernel: `Linux ciru 7.0.1 #1-NixOS SMP PREEMPT_DYNAMIC Wed Apr 22 11:32:23 UTC 2026 x86_64 GNU/Linux`
+- Active benchmark binary: `/run/current-system/sw/bin/llama-bench`, build `8864`
+- Vulkan device line: `Radeon 8060S Graphics (RADV STRIX_HALO)`, UMA, `int dot: 1`, `matrix cores: KHR_coopmat`
+- Note: `/home/crown/.local/llama-current/llama-bench` reported no Vulkan devices after the update. The restored service uses `/run/current-system/sw/bin/llama-server`, so these baselines use the active system binary.
+- Run directory: `/srv/llm/runs/20260430-kernel-baseline`
+- Services stopped for benchmark window and restored afterward: `qwen-main.service`, `qwen3-tts.service`, `hermes-gateway.service`.
+
+Results, all `-ngl 999 -fa 1 -p 32768 -n 128 -r 1`:
+
+| Model | KV | PP | TG | Peak GPU | Prior comparable | Log |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Official Qwen3.6 27B Q8 | `q8_0/q8_0` | `226.89` | `6.27` | `35.23 GiB` | `223.54-223.82 / 6.11-6.12` | `/srv/llm/runs/20260430-kernel-baseline/20260430-124844-20260430-system8864-qwen36-27b-q8-q8kv-32k-p32768.log` |
+| Official Qwen3.6 35B A3B Q8 | `f16/f16` | `910.13` | `54.45` | `36.24 GiB` | `837.35 / 53.23` | `/srv/llm/runs/20260430-kernel-baseline/20260430-125414-20260430-system8864-qwen36-35b-a3b-q8-f16kv-32k-p32768.log` |
+| HauhauCS Qwen3.6 35B A3B Q8_K_P | `f16/f16` | `789.50` | `43.50` | `42.48 GiB` | `739.10 / 41.21` | `/srv/llm/runs/20260430-kernel-baseline/20260430-125552-20260430-system8864-hauhaucs35b-q8-f16kv-32k-p32768.log` |
+
+Conclusion:
+
+- Material positive change for 35B/MoE prefill: official 35B A3B Q8 prefill improved about `8.7%`, HauhauCS Q8 prefill about `6.8%`.
+- 27B dense Q8 moved only slightly: about `1.4-1.5%` prefill and about `2.5%` decode.
+- This should be treated as a kernel/system/runtime change, not isolated to the kernel alone, because the active service binary also changed to the system `llama.cpp` build `8864` and RADV now identifies the device as `STRIX_HALO`.
+
+## 2026-04-29 HauhauCS Qwen3.6 35B A3B Aggressive KV sweep
+
+Goal: find faster serving defaults for HauhauCS `Q4_K_M`, `Q6_K_P`, and `Q8_K_P`, especially materially faster Q8 prefill/decode without breaking the existing stack.
+
+Service handling:
+
+- Stopped `qwen-main.service` and `qwen3-tts.service` before the sweep.
+- Left unrelated services alone.
+- Run directory: `/srv/llm/runs/20260429-hauhaucs-35b-sweep`.
+- Baseline engine: `/home/crown/.local/llama-current/llama-bench`.
+- Settings unless noted: Vulkan, `-ngl 999 -fa 1 -t 16 -sm row -n 128 -r 1 -o md`.
+
+Key 16k screening result: `f16/f16` KV was fastest for all three HauhauCS quants. `q8_0/q8_0` and `q4_0/q4_0` saved only a small amount of memory and consistently lost throughput.
+
+Confirmed 32k comparisons:
+
+| Model | KV | PP | TG | Peak GPU | Log |
+| --- | --- | ---: | ---: | ---: | --- |
+| Q4_K_M | `f16/f16` | `802.67` | `71.83` | `21.78 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-050237-hauhaucs35b-q4-f16-32k-p32768.log` |
+| Q4_K_M | `q8_0/q8_0` | `709.42` | `72.73` | `21.51 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-053400-hauhaucs35b-q4-confirm-q8kv-32k-p32768.log` |
+| Q6_K_P | `f16/f16` | `764.56` | `60.94` | `30.49 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-050410-hauhaucs35b-q6-f16-32k-p32768.log` |
+| Q6_K_P | `q8_0/q8_0` | `678.37` | `59.87` | `30.22 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-053543-hauhaucs35b-q6-confirm-q8kv-32k-p32768.log` |
+| Q8_K_P | `f16/f16` | `739.10` | `41.21` | `42.56 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-050749-hauhaucs35b-q8-f16-32k-p32768.log` |
+| Q8_K_P | `q8_0/q8_0` | `665.13` | `40.80` | `42.28 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-050549-hauhaucs35b-q8-current-profile-q8kv-32k-p32768.log` |
+
+Q8 128k decisive comparison:
+
+| Model | KV | PP | TG | Peak GPU | Log |
+| --- | --- | ---: | ---: | ---: | --- |
+| Q8_K_P | `q8_0/q8_0` | `364.01` | `40.81` | `43.59 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-051123-hauhaucs35b-q8-128k-q8_0-q8_0-p128000.log` |
+| Q8_K_P | `f16/f16` | `420.95` | `41.25` | `44.75 GiB` | `/srv/llm/runs/20260429-hauhaucs-35b-sweep/20260429-052313-hauhaucs35b-q8-128k-f16-f16-p128000.log` |
+
+ROCm check:
+
+- ROCm Q8 `f16/f16` at 32k: `734.30` PP / `41.29` TG.
+- Vulkan Q8 `f16/f16` at 32k: `739.10` PP / `41.21` TG.
+- ROCm was not materially faster and is less stable on this box, so it is not a recommended default for this model family.
+
+Profile changes made after the sweep:
+
+- `machine-setup/model-profiles/qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-q4-k-m.env`
+- `machine-setup/model-profiles/qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-q6-k-p.env`
+- `machine-setup/model-profiles/qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-q8-k-p.env`
+
+All three were changed from `CACHE_TYPE_K=q8_0` / `CACHE_TYPE_V=q8_0` to `CACHE_TYPE_K=f16` / `CACHE_TYPE_V=f16`.
+
+## 2026-04-24 Qwen3.6 27B ROCm backend investigation
+
+### 2026-04-24 Qwen3.6 35B A3B Q8_0 128k ROCm check
+
+Goal: test whether the ROCm backend that helped Qwen3.6 27B prefill also helps the active Qwen3.6 35B A3B `Q8_0` model at 128k context.
+
+Service handling:
+
+- Stopped `qwen-main.service` and `qwen3-tts.service`.
+- Left `hermes-gateway.service` active.
+- Restored `qwen-main.service` and `qwen3-tts.service` after the requested Q8 tests.
+
+Command shape:
+
+```bash
+llm-guard --reserve-sys-gib 8 --gpu-limit-gib 95 --poll-ms 250 \
+  <llama-bench> \
+  -m /srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-Q8_0.gguf \
+  -ngl 999 -fa 1 -p 128000 -n 128 -r 1 -o md
+```
+
+ROCm runtime env:
+
+```bash
+HSA_OVERRIDE_GFX_VERSION=11.5.1 ROCBLAS_USE_HIPBLASLT=1
+```
+
+Results:
+
+| Model | Backend | Context | PP | TG | Notes | Log |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 35B A3B Q8_0 | Vulkan | 128000 | `454.13 t/s` | `53.05 t/s` | valid baseline | `/srv/llm/runs/20260424-175106-qwen36-35b-q8-vulkan-rocm-128k-vulkan-q8-p128000.log` |
+| Qwen3.6 35B A3B Q8_0 | ROCm + hipBLASLt | 128000 | `445.18 t/s` | `46.25 t/s` | valid but slower than Vulkan | `/srv/llm/runs/20260424-175106-qwen36-35b-q8-vulkan-rocm-128k-rocm-q8-hipblaslt-p128000.log` |
+
+Conclusion:
+
+- For Qwen3.6 35B A3B `Q8_0` at 128k, Vulkan is better than ROCm on both prompt processing and generation.
+- ROCm was about `2%` slower on PP and about `12.8%` slower on TG.
+- Keep the active Vulkan main-model path for this 35B Q8 model.
+- An extra Q4 128k Vulkan run was started after the requested Q8 pair, but it was interrupted and has no result table. Do not treat `/srv/llm/runs/20260424-175106-qwen36-35b-q8-vulkan-rocm-128k-vulkan-q4-p128000.log` as a valid benchmark.
+
+Goal: research and test a clean ROCm-backed Qwen3.6 27B engine on the local Strix Halo host without changing the current production serving path.
+
+Local ROCm capability:
+
+- Host GPU: AMD Strix Halo / Radeon 8060S, exposed to ROCm as `gfx1151`.
+- `/dev/kfd` and `/dev/dri/renderD128` are present.
+- `rocminfo` from Nix ROCm 7.2.2 sees the GPU agent as `gfx1151`, 40 CUs, wavefront size 32, and fast f16 support.
+
+Build notes:
+
+- Upstream source: `/home/crown/tmp/llama-cpp-upstream-qwen36-spec`
+- Commit: `f65bc34`
+- Upstream flake `.#rocm` failed because it pinned ROCm 6.0.2 while current `ggml-hip` requires HIP/ROCm 6.1+.
+- Successful build path: manual CMake build in `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/build-rocm-7d`
+- Build shape: Nix ROCm 7.2.2 packages, GCC host compiler, ROCm clang HIP compiler, `AMDGPU_TARGETS=gfx1151`, `GGML_HIP=ON`, `GGML_HIP_GRAPHS=ON`, `GGML_HIP_MMQ_MFMA=ON`.
+- First manual attempt with ROCm clang as the host C++ compiler failed on a glibc header conflict around `posix_memalign`; using GCC for host C/C++ and ROCm clang only for HIP fixed it.
+- Device enumeration from the final binary: `Radeon 8060S Graphics, gfx1151 (0x1151), VMM: no, Wave Size: 32, VRAM: 65536 MiB`.
+
+Runtime setup:
+
+```bash
+export HSA_OVERRIDE_GFX_VERSION=11.5.1
+export ROCBLAS_USE_HIPBLASLT=1
+```
+
+New local flow:
+
+- Direct isolated server: `/home/crown/machine-setup/serve-qwen36-rocm.sh`
+- Optional main-model profile: `/home/crown/machine-setup/model-profiles/qwen3.6-27b-ud-q8-k-xl-rocm.env`
+
+Clean benchmark procedure:
+
+- Stopped `qwen-main.service` and `qwen3-tts.service`.
+- Left `hermes-gateway.service` active.
+- Used `llm-guard --reserve-sys-gib 8 --gpu-limit-gib 95 --poll-ms 250`.
+- Ran current-source Vulkan baseline and ROCm comparison at `-p 32768 -n 128 -r 1 -ngl 999 -fa 1`.
+
+Results:
+
+| Model | Backend | Context | PP | TG | Notes | Log |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q8 | Vulkan | 32768 | `194.46 t/s` | `6.13 t/s` | current-source baseline, matches previous installed result | `/srv/llm/runs/20260424-141651-qwen36-27b-vulkan-rocm-32k-vulkan-q8-p32768.log` |
+| Qwen3.6 27B Q8 | ROCm | 32768 | `283.30 t/s` | `6.44 t/s` | valid ROCm baseline | `/srv/llm/runs/20260424-141651-qwen36-27b-vulkan-rocm-32k-rocm-q8-p32768.log` |
+| Qwen3.6 27B Q8 | ROCm + hipBLASLt | 32768 | `284.68 t/s` | `6.44 t/s` | best Q8 ROCm setting tested | `/srv/llm/runs/20260424-141651-qwen36-27b-vulkan-rocm-32k-rocm-q8-hipblaslt-p32768.log` |
+| Qwen3.6 27B Q4 | Vulkan | 32768 | `211.40 t/s` | `12.02 t/s` | current-source baseline | `/srv/llm/runs/20260424-141651-qwen36-27b-vulkan-rocm-32k-vulkan-q4-p32768.log` |
+| Qwen3.6 27B Q4 | ROCm | 32768 | `282.25 t/s` | `11.63 t/s` | PP faster, TG slower than Vulkan | `/srv/llm/runs/20260424-141651-qwen36-27b-vulkan-rocm-32k-rocm-q4-p32768.log` |
+
+Conclusion:
+
+- ROCm is viable on this host for upstream llama.cpp Qwen3.6 27B.
+- ROCm materially improves Q8 prompt/prefill throughput: `194.46 -> 284.68 t/s`, about `46%`.
+- ROCm barely improves Q8 decode: `6.13 -> 6.44 t/s`, about `5%`.
+- ROCm improves Q4 prompt throughput but is slower on Q4 decode, so it should not replace Vulkan for fastest Q4 generation.
+- Recommended ROCm use case: Qwen3.6 27B Q8 accuracy target for prefill-heavy workflows. Keep Vulkan as the default production path unless a workload is known to be prefill-bound.
+
+## 2026-04-24 Qwen3.6 27B speculative decoding investigation
+
+Goal: test whether Qwen3-1.7B can accelerate Qwen3.6 27B on the local AMD/Vulkan UMA host, and evaluate DFlash / ngram-style reports without disturbing existing services.
+
+Service handling:
+
+- Stopped only `qwen-main.service` and `qwen3-tts.service` during model tests.
+- Left `hermes-gateway.service` active.
+- Final verified state after testing: `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` all `active`.
+
+### Recommended validated short-context command shape
+
+Use fresh upstream server, not `/home/crown/.local/llama-current`, for Qwen3.6 speculative decoding:
+
+```bash
+llm-guard --reserve-sys-gib 8 --gpu-limit-gib 95 --poll-ms 250 \
+  /home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin/llama-server \
+  -m /srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-UD-Q8_K_XL.gguf \
+  -md /srv/llm/models/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q8_0.gguf \
+  -ngl 999 -ngld 999 \
+  -c 4096 --kv-unified -fa on -b 256 -ub 64 \
+  --draft 32 --draft-min 1 --draft-p-min 0.75 \
+  --parallel 1 --no-webui \
+  --temp 0.0 --top-k 1 --top-p 1.0 --min-p 0.0 --seed 1 --perf
+```
+
+For a `32768` max context server, same settings worked with `-c 32768 -b 512 -ub 128`, but only low occupied context benefited from draft speculation.
+
+### Valid server-mode Qwen3-1.7B draft results
+
+These results used fresh upstream llama.cpp built from `ggml-org/llama.cpp` at `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin`. The important loader line was `speculative decoding will use checkpoints`, followed by `speculative decoding context initialized`.
+
+| Target | Context max | Active prompt tokens | Draft settings | Prompt speed | Decode speed | Draft accepted | Validity | Notes |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q8 | 4096 | 29 | `--draft 8 --draft-min 1 --draft-p-min 0.75` | `56.73 t/s` | `11.01 t/s` | `100/100` | valid | coherent output, clean server timings |
+| Qwen3.6 27B Q8 | 4096 | 29 | `--draft 16 --draft-min 1 --draft-p-min 0.75` | `67.40 t/s` | `11.22 t/s` | `104/104` | valid | slight improvement over draft 8 |
+| Qwen3.6 27B Q8 | 4096 | 29 | `--draft 32 --draft-min 1 --draft-p-min 0.75` | `68.44 t/s` | `14.04 t/s` | `111/111` | valid | best short-context setting in this sweep |
+| Qwen3.6 27B Q8 | 4096 | 29 | `--draft 48 --draft-min 1 --draft-p-min 0.75` | `68.72 t/s` | `13.47 t/s` | `111/111` | valid | slower than draft 32 |
+| Qwen3.6 27B Q8 | 32768 | 29 | `--draft 32 --draft-min 1 --draft-p-min 0.75` | `63.38 t/s` | `14.25 t/s` | `111/111` | valid | large max context does not hurt if active prompt is short |
+| Qwen3.6 27B Q8 | 32768 | 29800 | `--draft 32 --draft-min 1 --draft-p-min 0.75` | `208.52 t/s` | `3.46 t/s` | `88/88` | valid but not useful | near-30k active context makes speculative slower than baseline |
+
+### Matching baseline results
+
+| Target | Engine / mode | Context max | Active prompt tokens | Prompt speed | Decode speed | Validity | Notes |
+| --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q8 | `llama-bench`, installed `llama-current` | 32768 | synthetic bench prompt | `194.47 t/s` | `6.13 t/s` | valid | clean benchmark from `2026-04-23`; see older section below |
+| Qwen3.6 27B Q8 | fresh upstream `llama-server`, no draft | 32768 | 29800 | `208.96 t/s` | `5.83 t/s` | valid | apples-to-apples long active context baseline for speculative comparison |
+| Qwen3.6 27B Q4 | `llama-bench`, installed `llama-current` | 32768 | synthetic bench prompt | `211.65 t/s` | `12.04 t/s` | valid | clean benchmark from `2026-04-23`; faster than Q8, lower quality |
+
+Interpretation:
+
+- Short/low-occupied context: Qwen3-1.7B Q8 draft can give about `2.3x` Q8 decode speedup (`6.13 t/s` class baseline to `14.04-14.25 t/s`) when using fresh upstream server checkpointing.
+- Near-30k active context: Qwen3-1.7B Q8 draft is a loss (`5.83 t/s` baseline vs `3.46 t/s` speculative), even though all reported draft tokens were accepted. The checkpoint/draft overhead dominates.
+- Acceptance can appear excellent in server timings (`111/111` accepted) despite tokenizer mismatch, but performance still depends on active context and checkpoint overhead.
+
+### Invalid standalone speculative-example results
+
+These runs used standalone `llama-speculative` / `llama-speculative-simple` style binaries. They produced M-RoPE/KV position errors and often degenerate output. Preserve them only as failure evidence.
+
+| Target | Draft | Engine | Settings | Reported decode | Reported acceptance | Validity | Failure evidence |
+| --- | --- | --- | --- | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q4 | Qwen3-1.7B Q8 | installed upstream example | `--draft 16 --draft-min 1 --draft-p-min 0.75` | `15.06 t/s` | `7.50%` | invalid | `inconsistent sequence positions`, `failed to decode` |
+| Qwen3.6 27B Q4 | Qwen3-1.7B Q8 | installed upstream example | code prompt, `--draft 16 --draft-min 0 --draft-p-min 0.60` | `20.21 t/s` | `4.45%` | invalid | repeated decode-position failures |
+| Qwen3.6 27B Q8 | Qwen3-1.7B Q8 | installed upstream example | code prompt, `--draft 16 --draft-min 0 --draft-p-min 0.60` | `20.84 t/s` | `20.05%` | invalid | repeated `useState`/`{` output plus M-RoPE/KV errors |
+| Qwen3.6 27B Q8 | Qwen3-1.7B Q8 | patched buun example | `--draft 8 --draft-min 1 --draft-p-min 0.75` | `7.95 t/s` | `15.19%` | invalid | `non-consecutive token position` and degenerate output |
+
+Common invalid-log patterns:
+
+- `init: the tokens of sequence 0 in the input batch have inconsistent sequence positions`
+- `for M-RoPE, it is required that the position satisfies: X < Y`
+- `llama_decode: failed to decode, ret = -1`
+- `find_slot: non-consecutive token position`
+
+### DFlash results
+
+DFlash was tested because of new user-provided repos and forum/Twitter claims. Local conclusion: not useful yet on this AMD/Vulkan setup.
+
+| Target | Draft | Engine | Baseline | Spec decode | Acceptance | Validity | Log prefix |
+| --- | --- | --- | ---: | ---: | ---: | --- | --- |
+| Qwen3.6 27B Q4 | old DFlash Q4 | buun fork | `12.4 t/s` | `4.35 t/s` | `3.19%` | valid failed experiment | `/srv/llm/runs/20260424-095221-qwen3.6-27b-q4xl-dflash-q4-spec-*` |
+| Qwen3.6 27B Q4 | old DFlash F16 | buun fork | `12.2 t/s` | `3.20 t/s` | `1.07%` | valid failed experiment | `/srv/llm/runs/20260424-095635-qwen3.6-27b-q4xl-dflash-f16-spec-*` |
+| Qwen3.6 27B Q4 | new DFlash Q8 | buun fork | `12.2 t/s` | `3.90 t/s` | `2.18%` | valid failed experiment | `/srv/llm/runs/20260424-100711-qwen3.6-27b-q4xl-dflash-q8-spec-*` |
+| Qwen3.6 27B Q8 | new DFlash Q8 | buun fork | `6.2 t/s` | `3.57 t/s` | `2.55%` | valid failed experiment | `/srv/llm/runs/20260424-100805-qwen3.6-27b-q8xl-dflash-q8-spec-*` |
+
+Notes:
+
+- New DFlash repo checked: `https://huggingface.co/spiritbuun/Qwen3.6-27B-DFlash-GGUF`.
+- Downloaded new Q8 file: `/srv/llm/models/Qwen3.6-27B-DFlash-GGUF/dflash-draft-3.6-q8_0.gguf`.
+- buun fork source updated to `f8c928b Merge SD-075: multi-slot DFlash tape + tree kernel guards`.
+- Local buun patch was needed because Vulkan lacked the DFlash tree op path; DFlash still underperformed badly.
+
+### Engine findings
+
+| Engine | Path | Qwen3.6 standard draft status | Qwen3.6 ngram-mod status | DFlash status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Installed llama.cpp | `/home/crown/.local/llama-current` | standalone examples invalid; server disabled spec | server exposed `--spec-type`, but disabled speculative for Qwen3.6 context | no DFlash | too old for Qwen3.6 checkpoint fallback |
+| Fresh upstream llama.cpp | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin` | valid in `llama-server` with checkpoints | not retested after checkpoint fix in this consolidation | no DFlash | best general engine found so far |
+| buun fork | `/home/crown/tmp/buun-llama-cpp/result-qwen36-spec-vulkan/bin` and related result links | example path still invalid for standard Qwen3 draft | supports extra spec types | DFlash available but slow | use only for DFlash experiments unless proven otherwise |
+
+### Search and model availability findings
+
+- Official `Qwen/Qwen3-1.7B-GGUF` exists, Apache-2.0, file `Qwen3-1.7B-Q8_0.gguf`, author `Qwen`.
+- HF search did not find official `Qwen3.6-1.6B` or `Qwen3.6-1.7B` draft models on `2026-04-24`.
+- The official Qwen3-1.7B draft and Qwen3.6 27B target use incompatible tokenizers/vocabs; fresh upstream server can translate between them, but this may still affect workload-dependent speed.
+- Forum-style `ngram-mod` commands were identified, but installed upstream server initially disabled speculative on Qwen3.6. Fresh upstream fixed checkpoint fallback for draft-model speculative; ngram-mod should be retested separately before recommending.
+
+
 ## Known prior runs
+
+### 2026-04-23 Qwen3.6 27B UD Q8_K_XL and Q4_K_XL clean benchmark attempt
+
+These runs benchmark the downloaded `unsloth/Qwen3.6-27B-GGUF` UD quants after unloading `qwen-main.service` so the measurements ran without a resident `llama-server` process.
+
+Models:
+
+- Q8: `/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-UD-Q8_K_XL.gguf`
+- Q4: `/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-UD-Q4_K_XL.gguf`
+- mmproj: `/srv/llm/models/Qwen3.6-27B-GGUF/mmproj-F16.gguf`
+
+Source:
+
+- `https://huggingface.co/unsloth/Qwen3.6-27B-GGUF`
+
+Recommended serving settings carried into the local profiles:
+
+- keep at least `128K` context
+- `--jinja`
+- `--ngl 999`
+- `--cache-type-k q8_0`
+- `--cache-type-v q8_0`
+- `--threads 16`
+- coding sampling defaults: `temperature=0.6`, `min_p=0.0`, `top_p=0.95`, `top_k=20`, `repeat_penalty=1.0`
+
+Benchmark notes:
+
+- service state: `qwen-main.service` was stopped before the first run and stayed unloaded until the benchmarks were complete
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+- initial `r=2` Q8 `131072` attempt ran for about one hour without producing a result table, so the remaining measurements were rerun or continued with `r=1`
+- this host can load the model into memory, but long-context prompt processing on the current llama.cpp Vulkan build is dramatically slower than the previously logged `Qwen3.6` 35B A3B family
+
+Completed results:
+
+| Model | Prompt context | Reps | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Exit | Log |
+| --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | --- |
+| `Qwen3.6-27B-UD-Q8_K_XL` | 32768 | 1 | `194.47 +/- 0.00 t/s` | `6.13 +/- 0.00 t/s` | `18.69 GiB` | `39.25 GiB` | `2.62 GiB` | `0` | `/srv/llm/runs/20260423-060653-qwen3.6-27b-ud-q8-k-xl-clean-r1-32k-131072-p32768.log` |
+| `Qwen3.6-27B-UD-Q4_K_XL` | 32768 | 1 | `211.65 +/- 0.00 t/s` | `12.04 +/- 0.00 t/s` | `17.32 GiB` | `24.46 GiB` | `1.22 GiB` | `0` | `/srv/llm/runs/20260423-064402-qwen3.6-27b-ud-q4-k-xl-clean-r1-32k-p32768.log` |
+
+Long-context outcome:
+
+| Model | Prompt context | Reps | Result | Peak system RAM | Peak VRAM | Peak GTT | Exit | Log |
+| --- | ---: | ---: | --- | --- | --- | --- | ---: | --- |
+| `Qwen3.6-27B-UD-Q8_K_XL` | 131072 | 1 | no result table emitted before manual stop at about `31m`; prompt run was abandoned as impractically slow on this host | `18.90 GiB` | `45.26 GiB` | `2.81 GiB` | `143` | `/srv/llm/runs/20260423-060653-qwen3.6-27b-ud-q8-k-xl-clean-r1-32k-131072-p131072.log` |
+| `Qwen3.6-27B-UD-Q4_K_XL` | 131072 | 1 | no result table emitted before `timeout 30m` | not recorded | not recorded | not recorded | `124` | `/srv/llm/runs/20260423-064935-qwen3.6-27b-ud-q4-k-xl-clean-r1-131072-p131072.log` |
+
+Associated manifests:
+
+- `/srv/llm/runs/20260423-060653-qwen3.6-27b-ud-q8-k-xl-clean-r1-32k-131072-bench.txt`
+- `/srv/llm/runs/20260423-064402-qwen3.6-27b-ud-q4-k-xl-clean-r1-32k-bench.txt`
+- `/srv/llm/runs/20260423-064935-qwen3.6-27b-ud-q4-k-xl-clean-r1-131072-bench.txt`
+
+Takeaways:
+
+- At `32768`, the Q4 quant is only modestly faster than the Q8 quant on prompt processing (`211.65` vs `194.47 t/s`) and about `1.96x` faster on token generation (`12.04` vs `6.13 t/s`)
+- Both quants fit comfortably at `32768` on this machine, with the expected Q8 memory penalty
+- `131072` prompt benchmarking is currently not practical for this 27B Qwen3.6 family on the installed llama.cpp Vulkan build, despite both quants loading into memory successfully
+- The local switchable profiles were still added with the model card's normal `262144` context cap and `128K+` usage guidance, but the benchmark record should be treated as a warning that this host/build combination is a poor fit for long-context prompt throughput on these quants
+
+### 2026-04-20 Qwen3.6 35B A3B Q8_0 clean 32K benchmark
+
+This run benchmarks the downloaded `unsloth/Qwen3.6-35B-A3B-GGUF` `Qwen3.6-35B-A3B-Q8_0.gguf` after unloading `qwen-main.service` so the benchmark could run cleanly with no resident `llama-server` process competing for memory.
+
+Model:
+
+- `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-Q8_0.gguf`
+- mmproj: `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf`
+
+Source:
+
+- `https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF`
+
+Common settings:
+
+- context: `32768`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run and remained inactive after the benchmark
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Result:
+
+- Manifest: `/srv/llm/runs/20260420-002832-qwen3.6-35b-a3b-q8-0-clean-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `799.72 +/- 55.09 t/s` | `52.81 +/- 0.08 t/s` | `14.28 GiB` | `40.72 GiB` | `0.65 GiB` | `/srv/llm/runs/20260420-002832-qwen3.6-35b-a3b-q8-0-clean-32k-p32768.log` |
+
+Takeaways:
+
+- The plain `Q8_0` quant fits this host at `32768` prompt context under Vulkan with the existing guard settings
+- Prompt processing is in the same broad range as recent clean 35B A3B Q4-family 32K runs, while token generation is lower than the Q4-family results because the Q8_0 weights occupy substantially more memory
+- This entry records a clean 32K datapoint only; it does not prove that the full `262144` profile context is practical for serving or benchmarking on this machine
+
+
+
+### 2026-04-17 HauhauCS Qwen3.6 35B A3B Uncensored Aggressive Q4_K_M clean 32K benchmark
+
+This run benchmarks the downloaded `HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive` `Q4_K_M` GGUF after unloading `qwen-main.service` so the benchmark could run cleanly from an unloaded state.
+
+Model:
+
+- `/srv/llm/models/HauhauCS-Qwen3.6-35B-A3B-Uncensored-Aggressive-GGUF/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf`
+- mmproj: `/srv/llm/models/HauhauCS-Qwen3.6-35B-A3B-Uncensored-Aggressive-GGUF/mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf`
+
+Source:
+
+- `https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive`
+
+Selection note:
+
+- The repo publishes both `Q4_K_P` and `Q4_K_M`; this run used `Q4_K_M` as the requested plain `q4` variant
+
+Recommended settings from model card:
+
+- keep at least `128K` context
+- use `--jinja`
+- vision support requires the `mmproj` file
+
+Common settings:
+
+- context: `32768`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run so no other live serving model remained loaded
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Result:
+
+- Manifest: `/srv/llm/runs/20260417-110540-qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-q4-k-m-clean-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `801.63 ± 0.05 t/s` | `71.44 ± 0.79 t/s` | `19.54 GiB` | `26.37 GiB` | `0.53 GiB` | `/srv/llm/runs/20260417-110540-qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-q4-k-m-clean-32k-p32768.log` |
+
+Takeaways:
+
+- On this host, this HauhauCS `Q4_K_M` run lands in essentially the same prompt-processing class as the recent clean `Qwen3.6` and `Qwopus` 35B A3B Q4-family runs at `32768`
+- `TG` at `71.44 t/s` is materially higher than the clean `Qwen3.6-35B-A3B-UD-Q4_K_XL` runs recorded earlier, while peak VRAM remains in the same practical range for this machine
+- The model card recommends keeping `128K` context, so the switchable serving profile for this model keeps the normal `128000` default context rather than treating this `32K` benchmark as a serving cap
+- The current profile schema does not expose the model card's recommended `presence_penalty`, so the new serving profile keeps the supported llama.cpp knobs only
+
+### 2026-04-17 Qwen3.6 35B A3B UD Q4_K_XL clean 65536 benchmark
+
+This run benchmarks the downloaded `unsloth/Qwen3.6-35B-A3B-GGUF` `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` at `65536` prompt context after unloading the active local Qwen3.6 serving process so the benchmark could run from a cold baseline.
+
+Model:
+
+- `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`
+- mmproj: `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf`
+
+Source:
+
+- `https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF`
+
+Common settings:
+
+- context: `65536`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- service state: the resident Qwen3.6 `llama-server` process was stopped before the run and remained unloaded until the benchmark completed
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+- guard note: the normal `llm-guard` wrapper on this host is currently hard-coded to `/sys/class/drm/card1/device`, so this run used direct `llama-bench` with manual pre-run and post-run AMD memory-counter checks against `card0`
+
+Result:
+
+- Run time: `2026-04-17T09:27:11-04:00`
+
+| Prompt context | PP speed | TG speed | Pre-run VRAM | Pre-run GTT | Mid-run VRAM sample | Mid-run GTT sample | Post-run VRAM | Post-run GTT |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 65536 | `645.58 ± 1.20 t/s` | `57.59 ± 0.21 t/s` | `5.68 GiB` | `0.06 GiB` | `27.93 GiB` | `0.70 GiB` | `5.68 GiB` | `0.06 GiB` |
+
+Takeaways:
+
+- This was a clean cold-start run: no resident `llama-server` or `llama-bench` process remained loaded before or after the measurement
+- Relative to the clean `131072` `fa=1` result recorded on `2026-04-16`, prompt throughput at `65536` is substantially higher (`645.58` vs `435.41 t/s`) while `TG` remains effectively in the same band
+- Mid-run residency stayed well below the contaminated earlier attempt from the same morning, confirming that the first `~55 GiB` sample was inflated by the already loaded live server rather than by the benchmark alone
+- The usual main-model profile for this GGUF still targets `128000` requested context with a `131072` profile cap, so this `65536` result is a benchmark datapoint rather than a serving-profile change
+### 2026-04-16 Qwen3.6 35B A3B UD Q4_K_XL clean 32K and 131072 benchmark comparison
+
+These runs benchmark the downloaded `unsloth/Qwen3.6-35B-A3B-GGUF` `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` after unloading the active local serving stack so the benchmark could run cleanly. Two series were recorded on this host:
+
+- initial benchmark with `fa=1`
+- follow-up rerun with `fa=0` after reviewing the model author's recommendation
+
+Model:
+
+- `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`
+- mmproj: `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf`
+
+Source:
+
+- `https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF`
+
+Recommended serving settings from model author:
+
+- `--jinja`
+- `--ctx-size 131072`
+- `--gpu-layers all`
+- `--fa off`
+- `--cache-type-k q8_0`
+- `--cache-type-v q8_0`
+- `--threads 16`
+- `--temp 0.6`
+- `--min-p 0.0`
+- `--top-p 0.95`
+- `--top-k 20`
+- `--repeat-penalty 1.0`
+
+Common settings:
+
+- contexts: `32768 131072`
+- flags: `-ngl 999 -n 128 -r 2`, with one series at `-fa 1` and one at `-fa 0`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run to unload the live `qwopus-moe-35b-a3b-q4` server
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+`fa=1` result:
+
+- Manifest: `/srv/llm/runs/20260416-123743-qwen3-6-35b-a3b-ud-q4-k-xl-clean-32k-131072-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `807.81 ± 1.04 t/s` | `57.62 ± 0.62 t/s` | `19.21 GiB` | `27.24 GiB` | `0.64 GiB` | `/srv/llm/runs/20260416-123743-qwen3-6-35b-a3b-ud-q4-k-xl-clean-32k-131072-p32768.log` |
+| 131072 | `435.41 ± 0.02 t/s` | `56.67 ± 0.21 t/s` | `19.59 GiB` | `29.32 GiB` | `0.83 GiB` | `/srv/llm/runs/20260416-123743-qwen3-6-35b-a3b-ud-q4-k-xl-clean-32k-131072-p131072.log` |
+
+`fa=0` follow-up rerun:
+
+- Manifest: `/srv/llm/runs/20260416-125739-qwen3-6-35b-a3b-ud-q4-k-xl-fa-off-clean-32k-131072-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `678.97 ± 1.07 t/s` | `57.36 ± 0.12 t/s` | `19.25 GiB` | `27.89 GiB` | `0.64 GiB` | `/srv/llm/runs/20260416-125739-qwen3-6-35b-a3b-ud-q4-k-xl-fa-off-clean-32k-131072-p32768.log` |
+| 131072 | `210.58 ± 0.11 t/s` | `57.53 ± 0.16 t/s` | `25.71 GiB` | `33.03 GiB` | `1.09 GiB` | `/srv/llm/runs/20260416-125739-qwen3-6-35b-a3b-ud-q4-k-xl-fa-off-clean-32k-131072-p131072.log` |
+
+Takeaways:
+
+- On this host, `fa=0` is materially worse on prompt processing at both tested contexts: about `15.9%` slower at `32768` and about `51.6%` slower at `131072`
+- `TG` stayed nearly flat across both series, so the `fa=0` rerun does not buy a meaningful generation-speed gain here
+- `fa=0` also used noticeably more memory at `131072`, adding about `6.12 GiB` system RAM, `3.71 GiB` VRAM, and `0.26 GiB` GTT versus the `fa=1` run
+- The model author recommends `fa off`, likely to avoid host-specific fallback issues, but the measured benchmark data on this machine favors keeping `FA=on` as the default profile setting for now
+- Relative to the current `qwopus-moe-35b-a3b-q4` baseline on this host, this Qwen3.6 quant remains materially slower on TG but still practical for 131072-context use while staying within the machine's memory envelope when `fa=1`
+
+### 2026-04-16 Gemopus 4 26B A4B Preview Q4_K_M and Q8_0 clean 32K and 128K benchmark
+
+This run benchmarks the downloaded `Jackrong/Gemopus-4-26B-A4B-it-GGUF` `Q4_K_M` and `Q8_0` GGUFs after unloading the active local serving stack so both quants could be measured cleanly at `32768` and `128000`.
+
+Run labels:
+
+- `gemopus-4-26b-a4b-it-preview-q4-km-clean-32k-128k`
+- `gemopus-4-26b-a4b-it-preview-q8-0-clean-32k-128k`
+
+Models:
+
+- Q4: `/srv/llm/models/Gemopus-4-26B-A4B-it-GGUF/Gemopus-4-26B-A4B-it-Preview-Q4_K_M.gguf`
+- Q8: `/srv/llm/models/Gemopus-4-26B-A4B-it-GGUF/Gemopus-4-26B-A4B-it-Preview-Q8_0.gguf`
+- mmproj: `/srv/llm/models/Gemopus-4-26B-A4B-it-GGUF/mmproj.gguf`
+
+Source:
+
+- `https://huggingface.co/Jackrong/Gemopus-4-26B-A4B-it-GGUF`
+
+Serving note from model author:
+
+- recommended sampling settings: `temperature=1.0`, `top_p=0.95`, `top_k=64`
+- these affect inference behavior, not `llama-bench` PP/TG throughput
+
+Common settings:
+
+- contexts: `32768 128000`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run to unload the live `qwopus-moe-35b-a3b-q4` server, then started again after both Gemopus runs finished
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Q4 result:
+
+- Manifest: `/srv/llm/runs/20260416-010140-gemopus-4-26b-a4b-it-preview-q4-km-clean-32k-128k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `814.13 ± 4.50 t/s` | `64.27 ± 0.36 t/s` | `19.35 GiB` | `22.82 GiB` | `0.71 GiB` | `/srv/llm/runs/20260416-010140-gemopus-4-26b-a4b-it-preview-q4-km-clean-32k-128k-p32768.log` |
+| 128000 | `313.21 ± 0.34 t/s` | `64.07 ± 0.72 t/s` | `19.57 GiB` | `24.57 GiB` | `0.90 GiB` | `/srv/llm/runs/20260416-010140-gemopus-4-26b-a4b-it-preview-q4-km-clean-32k-128k-p128000.log` |
+
+Q8 result:
+
+- Manifest: `/srv/llm/runs/20260416-012831-gemopus-4-26b-a4b-it-preview-q8-0-clean-32k-128k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `841.00 ± 0.71 t/s` | `45.70 ± 0.26 t/s` | `19.53 GiB` | `32.20 GiB` | `0.89 GiB` | `/srv/llm/runs/20260416-012831-gemopus-4-26b-a4b-it-preview-q8-0-clean-32k-128k-p32768.log` |
+| 128000 | `317.71 ± 0.35 t/s` | `45.96 ± 0.33 t/s` | `19.73 GiB` | `33.95 GiB` | `1.07 GiB` | `/srv/llm/runs/20260416-012831-gemopus-4-26b-a4b-it-preview-q8-0-clean-32k-128k-p128000.log` |
+
+Takeaways:
+
+- `Q8_0` buys only a small PP gain over `Q4_K_M`: about `3.3%` at `32768` and about `1.4%` at `128000`
+- `Q4_K_M` is much stronger on TG: about `40.6%` faster than `Q8_0` at `32768` and about `39.4%` faster at `128000`
+- `Q8_0` costs about `9.38 GiB` more VRAM than `Q4_K_M` at both tested contexts while also using slightly more system RAM and GTT
+- `Q4_K_M` stayed effectively flat on TG from `32768` to `128000`, while `Q8_0` also stayed flat but at a much lower generation rate
+- On this machine, `Gemopus` `Q4_K_M` is the practical default between these two quants unless a later quality eval shows a real win worth the extra memory and lower TG speed
+
+### 2026-04-15 Qwopus MoE 35B A3B Q4_K_M clean 32K and 128K benchmark
+
+This run benchmarks `Qwopus-MoE-35B-A3B-Q4_K_M` at `32768` and `128000` context after unloading the active local serving stack so the benchmark could run cleanly.
+
+Run label:
+
+- `qwopus-moe-35b-a3b-q4-k-m-clean-32k-128k`
+
+Model:
+
+- `/srv/llm/models/Qwopus-MoE-35B-A3B-GGUF/Qwopus-MoE-35B-A3B-Q4_K_M.gguf`
+
+Common settings:
+
+- contexts: `32768 128000`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run and no `llama-*` serving process was left loaded during the benchmark
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Result:
+
+- Manifest: `/srv/llm/runs/20260415-151045-qwopus-moe-35b-a3b-q4-k-m-clean-32k-128k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32768 | `804.57 ± 0.72 t/s` | `73.81 ± 0.21 t/s` | `17.31 GiB` | `26.38 GiB` | `0.53 GiB` | `/srv/llm/runs/20260415-151045-qwopus-moe-35b-a3b-q4-k-m-clean-32k-128k-p32768.log` |
+| 128000 | `442.31 ± 0.25 t/s` | `73.75 ± 0.05 t/s` | `17.53 GiB` | `28.38 GiB` | `0.71 GiB` | `/srv/llm/runs/20260415-151045-qwopus-moe-35b-a3b-q4-k-m-clean-32k-128k-p128000.log` |
+
+Takeaways:
+
+- `TG` stayed effectively flat from `32768` to `128000`, moving only from `73.81` to `73.75 t/s`
+- `PP` dropped materially at the larger prompt, from `804.57` to `442.31 t/s`, which is the expected high-context cost on this host
+- Peak VRAM rose by about `2.00 GiB` going from `32768` to `128000`, while peak system RAM rose only slightly by about `0.22 GiB`
+- Relative to the earlier clean Qwopus MoE Q4 run at `32768`, this rerun is slightly faster on both PP and TG but uses more measured peak system RAM and VRAM on this machine
+- The `128000` context completed successfully and appears practical on this box for this model, but it has a noticeably longer wall-clock setup and benchmark time than the `32768` case
+
+### 2026-04-13 SuperGemma4 26B uncensored fast v2 Q4_K_M clean 16K benchmark
+
+This run benchmarks the downloaded `Jiunsong/supergemma4-26b-uncensored-gguf-v2` `Q4_K_M` GGUF through the existing Vulkan benchmark wrapper on this machine.
+
+Run label:
+
+- `supergemma4-26b-uncensored-fast-v2-q4-km`
+
+Model:
+
+- `/home/crown/models-local/supergemma4-26b-uncensored-fast-v2-Q4_K_M.gguf`
+
+Source:
+
+- `https://huggingface.co/Jiunsong/supergemma4-26b-uncensored-gguf-v2`
+
+Common settings:
+
+- contexts: `16384`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped and runtime-masked during the run, then restored after completion
+- benchmark binary: `/home/crown/.local/llama-current/llama-bench`
+
+Result:
+
+- Manifest: `/srv/llm/runs/20260413-143959-supergemma4-26b-uncensored-fast-v2-q4-km-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `982.28 ± 3.72 t/s` | `66.07 ± 0.10 t/s` | `8.45 GiB` | `22.26 GiB` | `0.66 GiB` | `/srv/llm/runs/20260413-143959-supergemma4-26b-uncensored-fast-v2-q4-km-p16384.log` |
+
+Takeaways:
+
+- This `supergemma4` Q4 run lands in the same practical class as the recent Gemma 4 uncensored 26B Q4 runs on this host
+- Against the earlier `gemma-4-26b-a4b-it-uncensored-q4-km` result at `16384`, it is slightly slower on PP (`982.28` vs `1012.67 t/s`) but essentially tied on TG (`66.07` vs `65.85 t/s`)
+- Peak VRAM is materially higher than that earlier uncensored Gemma 4 Q4 run (`22.26 GiB` vs `18.40 GiB`), so this variant does not improve efficiency on this machine
+
+### 2026-04-10 Carnice MoE 35B A3B Q4_K_M clean 16K to 80K benchmark
+
+This run benchmarks the newly downloaded `Carnice-MoE-35B-A3B-Q4_K_M` on the same clean 16K to 80K matrix used for the earlier `Qwopus-MoE-35B-A3B` comparison series.
+
+Run label:
+
+- `carnice-moe-35b-a3b-q4-k-m`
+
+Model:
+
+- `/srv/llm/models/Carnice-MoE-35B-A3B-GGUF/Carnice-MoE-35B-A3B-Q4_K_M.gguf`
+
+Common settings:
+
+- contexts: `16384 32768 65536 80000`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- wrapper guard: `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` was stopped before the run and no `llama-*` process was left loaded
+
+Result:
+
+- Manifest: `/srv/llm/runs/20260410-115841-carnice-moe-35b-a3b-q4-k-m-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `934.44 ± 2.65 t/s` | `72.58 ± 0.09 t/s` | `8.29 GiB` | `25.25 GiB` | `0.48 GiB` | `/srv/llm/runs/20260410-115841-carnice-moe-35b-a3b-q4-k-m-p16384.log` |
+| 32768 | `816.34 ± 0.47 t/s` | `72.59 ± 0.05 t/s` | `8.35 GiB` | `25.56 GiB` | `0.51 GiB` | `/srv/llm/runs/20260410-115841-carnice-moe-35b-a3b-q4-k-m-p32768.log` |
+| 65536 | `651.20 ± 0.37 t/s` | `72.64 ± 0.14 t/s` | `8.41 GiB` | `26.25 GiB` | `0.58 GiB` | `/srv/llm/runs/20260410-115841-carnice-moe-35b-a3b-q4-k-m-p65536.log` |
+| 80000 | `593.08 ± 0.47 t/s` | `72.71 ± 0.15 t/s` | `8.41 GiB` | `26.55 GiB` | `0.60 GiB` | `/srv/llm/runs/20260410-115841-carnice-moe-35b-a3b-q4-k-m-p80000.log` |
+
+Takeaways:
+
+- This Carnice Q4 run is effectively in the same throughput class as the earlier `Qwopus-MoE-35B-A3B-Q4_K_M` run on this host
+- Compared with the earlier Qwopus MoE Q4 series, Carnice is slightly faster at `16384` and `80000`, slightly slower at `32768` and `65536`, and functionally tied on TG around `72.6 t/s`
+- The practical trade is memory: Carnice used about `3.2 GiB` more peak VRAM than the earlier Qwopus MoE Q4 at every tested context while staying slightly lower on peak system RAM
+- On this machine, Carnice Q4 looks safe to serve as another high-throughput 35B A3B option, but it does not clearly displace the earlier Qwopus MoE Q4 on efficiency
+
+### 2026-04-07 Qwopus3.5-27B-v3 clean 16K and 32K family completion
+
+This completes the clean rerun for the `Qwopus3.5-27B-v3` quant family after the earlier gameplay-contaminated attempt.
+
+Run labels:
+
+- `qwopus3-5-27b-v3-q4-k-m-clean-16k-32k`
+- `qwopus3-5-27b-v3-q5-k-m-clean-16k-32k`
+- `qwopus3-5-27b-v3-q6-k-clean-16k-32k`
+- `qwopus3-5-27b-v3-q8-0-clean-16k-32k`
+
+Models:
+
+- Q4_K_M: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q4_K_M.gguf`
+- Q5_K_M: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q5_K_M.gguf`
+- Q6_K: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q6_K.gguf`
+- Q8_0: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q8_0.gguf`
+
+Common settings:
+
+- contexts: `16384 32768`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` remained stopped for the run
+
+Q4_K_M result:
+
+- Manifest: `/srv/llm/runs/20260407-003947-qwopus3-5-27b-v3-q4-k-m-clean-16k-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `264.73 ± 0.42 t/s` | `12.94 ± 0.00 t/s` | `13.87 GiB` | `18.16 GiB` | `1.18 GiB` | `/srv/llm/runs/20260407-003947-qwopus3-5-27b-v3-q4-k-m-clean-16k-32k-p16384.log` |
+| 32768 | `210.91 ± 0.34 t/s` | `12.97 ± 0.03 t/s` | `13.91 GiB` | `19.03 GiB` | `1.22 GiB` | `/srv/llm/runs/20260407-003947-qwopus3-5-27b-v3-q4-k-m-clean-16k-32k-p32768.log` |
+
+Q5_K_M result:
+
+- Manifest: `/srv/llm/runs/20260407-005126-qwopus3-5-27b-v3-q5-k-m-clean-16k-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `260.20 ± 0.01 t/s` | `11.32 ± 0.00 t/s` | `13.86 GiB` | `20.52 GiB` | `1.18 GiB` | `/srv/llm/runs/20260407-005126-qwopus3-5-27b-v3-q5-k-m-clean-16k-32k-p16384.log` |
+| 32768 | `208.78 ± 0.06 t/s` | `11.32 ± 0.00 t/s` | `13.94 GiB` | `21.39 GiB` | `1.22 GiB` | `/srv/llm/runs/20260407-005126-qwopus3-5-27b-v3-q5-k-m-clean-16k-32k-p32768.log` |
+
+Q6_K result:
+
+- Manifest: `/srv/llm/runs/20260407-010322-qwopus3-5-27b-v3-q6-k-clean-16k-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `256.51 ± 0.02 t/s` | `9.85 ± 0.00 t/s` | `13.87 GiB` | `23.01 GiB` | `1.18 GiB` | `/srv/llm/runs/20260407-010322-qwopus3-5-27b-v3-q6-k-clean-16k-32k-p16384.log` |
+| 32768 | `205.94 ± 0.09 t/s` | `9.86 ± 0.00 t/s` | `13.91 GiB` | `24.04 GiB` | `1.22 GiB` | `/srv/llm/runs/20260407-010322-qwopus3-5-27b-v3-q6-k-clean-16k-32k-p32768.log` |
+
+Q8_0 result:
+
+- Manifest: `/srv/llm/runs/20260407-011535-qwopus3-5-27b-v3-q8-0-clean-16k-32k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `277.00 ± 0.04 t/s` | `7.85 ± 0.01 t/s` | `14.20 GiB` | `28.79 GiB` | `1.47 GiB` | `/srv/llm/runs/20260407-011535-qwopus3-5-27b-v3-q8-0-clean-16k-32k-p16384.log` |
+| 32768 | `215.47 ± 0.32 t/s` | `7.84 ± 0.00 t/s` | `14.25 GiB` | `29.66 GiB` | `1.51 GiB` | `/srv/llm/runs/20260407-011535-qwopus3-5-27b-v3-q8-0-clean-16k-32k-p32768.log` |
+
+Takeaways:
+
+- `Q4_K_M` remains the strongest practical default in this family: it is either fastest or effectively tied on PP while clearly leading TG
+- `Q5_K_M` is very close to `Q4_K_M` on PP, but loses about `1.6 t/s` on TG and costs about `2.3 GiB` more VRAM at `32768`
+- `Q6_K` and `Q8_0` do not buy enough PP improvement to justify their TG losses on this host
+- `Q8_0` is the most extreme trade: best PP in the set, but only about `7.8 t/s` TG while using nearly `30 GiB` VRAM at `32768`
+- Compared with the earlier contaminated gameplay run for `Q4_K_M`, the clean rerun again confirms that concurrent gaming had materially depressed both PP and TG
+
+### 2026-04-06 to 2026-04-07 Qwopus MoE 35B A3B clean 16K to 80K benchmark series
+
+This is the clean rerun for the actual intended new Qwopus MoE pair after stopping all model services and confirming no other `llama-*` workloads were loaded.
+
+Run labels:
+
+- `qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k`
+- `qwopus-moe-35b-a3b-q8-0-clean-16k-80k`
+
+Models:
+
+- Q4_K_M: `/srv/llm/models/Qwopus-MoE-35B-A3B-GGUF/Qwopus-MoE-35B-A3B-Q4_K_M.gguf`
+- Q8_0: `/srv/llm/models/Qwopus-MoE-35B-A3B-GGUF/Qwopus-MoE-35B-A3B-Q8_0.gguf`
+
+Common settings:
+
+- contexts: `16384 32768 65536 80000`
+- flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- service state: `qwen-main.service` remained stopped for the full run so no other model was loaded
+
+Q4_K_M result:
+
+- Manifest: `/srv/llm/runs/20260406-235825-qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `909.34 ± 2.18 t/s` | `72.41 ± 0.05 t/s` | `13.95 GiB` | `22.04 GiB` | `0.59 GiB` | `/srv/llm/runs/20260406-235825-qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k-p16384.log` |
+| 32768 | `800.74 ± 1.01 t/s` | `72.39 ± 0.19 t/s` | `13.88 GiB` | `22.35 GiB` | `0.63 GiB` | `/srv/llm/runs/20260406-235825-qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k-p32768.log` |
+| 65536 | `641.58 ± 0.71 t/s` | `72.51 ± 0.13 t/s` | `13.95 GiB` | `23.04 GiB` | `0.69 GiB` | `/srv/llm/runs/20260406-235825-qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k-p65536.log` |
+| 80000 | `586.28 ± 0.71 t/s` | `72.43 ± 0.11 t/s` | `13.98 GiB` | `23.34 GiB` | `0.71 GiB` | `/srv/llm/runs/20260406-235825-qwopus-moe-35b-a3b-q4-k-m-clean-16k-80k-p80000.log` |
+
+Q8_0 result:
+
+- Manifest: `/srv/llm/runs/20260407-001348-qwopus-moe-35b-a3b-q8-0-clean-16k-80k-bench.txt`
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Log |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `941.79 ± 3.30 t/s` | `50.27 ± 0.21 t/s` | `13.48 GiB` | `36.46 GiB` | `0.70 GiB` | `/srv/llm/runs/20260407-001348-qwopus-moe-35b-a3b-q8-0-clean-16k-80k-p16384.log` |
+| 32768 | `828.12 ± 0.65 t/s` | `53.08 ± 0.08 t/s` | `13.47 GiB` | `36.77 GiB` | `0.73 GiB` | `/srv/llm/runs/20260407-001348-qwopus-moe-35b-a3b-q8-0-clean-16k-80k-p32768.log` |
+| 65536 | `661.07 ± 0.27 t/s` | `53.16 ± 0.06 t/s` | `13.49 GiB` | `37.46 GiB` | `0.80 GiB` | `/srv/llm/runs/20260407-001348-qwopus-moe-35b-a3b-q8-0-clean-16k-80k-p65536.log` |
+| 80000 | `602.47 ± 0.04 t/s` | `53.14 ± 0.01 t/s` | `13.53 GiB` | `37.77 GiB` | `0.83 GiB` | `/srv/llm/runs/20260407-001348-qwopus-moe-35b-a3b-q8-0-clean-16k-80k-p80000.log` |
+
+Takeaways:
+
+- `Q4_K_M` is the stronger default on this machine for throughput-balanced use: TG stayed near `72.4 t/s` across the full range while peak VRAM stayed between `22.04` and `23.34 GiB`
+- `Q8_0` was slightly faster on PP at every tested context, but TG dropped to about `50.3` to `53.2 t/s`
+- `Q8_0` also cost about `14 GiB` more VRAM than `Q4_K_M` at every tested context
+- For practical local serving, the measured trade strongly favors `Q4_K_M` unless the Q8 quant shows a workload-specific quality win later
+
+Game-load comparison note:
+
+- The earlier gameplay-contaminated run on `2026-04-06` was for the older `Qwopus3.5-27B-v3` quant set, not this MoE pair, so there is no direct contaminated-vs-clean apples-to-apples comparison for the MoE models yet
+- The one clean same-day cross-check we do have for the older `Qwopus3.5-27B-v3-Q4_K_M` at `16384` shows the scale of the distortion:
+  - gameplay-contaminated: `146.32 ± 0.88 t/s` PP, `6.06 ± 0.19 t/s` TG
+  - clean rerun: `/srv/llm/runs/20260406-235230-qwopus3-5-27b-v3-q4-k-m-clean-16k-80k-p16384.log` with `264.63 ± 0.44 t/s` PP, `12.94 ± 0.01 t/s` TG
+- That earlier side-by-side is enough to show that a concurrent game can materially distort both PP and TG on this host
+
+### 2026-04-06 Qwopus3.5-27B-v3 16K to 80K refresh attempt stopped early due concurrent gameplay
+
+This series was started while a game was also running on the machine. The partial numbers below are potentially tarnished by GPU contention and should not be treated as clean comparison data. Plan to rerun the full matrix later after the game session is finished.
+
+Requested matrix:
+
+- Models:
+  - `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q4_K_M.gguf`
+  - `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q5_K_M.gguf`
+  - `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q6_K.gguf`
+  - `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q8_0.gguf`
+- Contexts: `16384 32768 65536 80000`
+- Common flags: `-ngl 999 -fa 1 -n 128 -r 2`
+- Guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
+- Live service note: `qwen-main.service` was stopped before the run, then left stopped after the run was cancelled so the machine could stay free for gaming
+
+Q4_K_M partial result:
+
+- Run label: `qwopus3-5-27b-v3-q4-k-m-refresh-16k-80k`
+- Manifest: `/srv/llm/runs/20260406-230636-qwopus3-5-27b-v3-q4-k-m-refresh-16k-80k-bench.txt`
+- Status: partial and contaminated; user requested stop mid-series
+
+| Prompt context | PP speed | TG speed | Peak system RAM | Peak VRAM | Peak GTT | Status | Log |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 16384 | `146.32 ± 0.88 t/s` | `6.06 ± 0.19 t/s` | `25.41 GiB` | `29.92 GiB` | `1.36 GiB` | completed, contaminated | `/srv/llm/runs/20260406-230636-qwopus3-5-27b-v3-q4-k-m-refresh-16k-80k-p16384.log` |
+| 32768 | `124.54 ± 6.15 t/s` | `6.09 ± 0.19 t/s` | `25.57 GiB` | `31.08 GiB` | `1.39 GiB` | completed, contaminated | `/srv/llm/runs/20260406-230636-qwopus3-5-27b-v3-q4-k-m-refresh-16k-80k-p32768.log` |
+| 65536 | not measured | not measured | `25.64 GiB` | `32.74 GiB` | `1.45 GiB` | terminated by user, `exit_status=143` | `/srv/llm/runs/20260406-230636-qwopus3-5-27b-v3-q4-k-m-refresh-16k-80k-p65536.log` |
+| 80000 | not started | not started | not measured | not measured | not measured | not run | no log |
+
+Q5_K_M partial result:
+
+- Run label: `qwopus3-5-27b-v3-q5-k-m-refresh-16k-80k`
+- Manifest: `/srv/llm/runs/20260406-233156-qwopus3-5-27b-v3-q5-k-m-refresh-16k-80k-bench.txt`
+- Status: started at `16384`, then terminated before any benchmark row was written
+- Partial log: `/srv/llm/runs/20260406-233156-qwopus3-5-27b-v3-q5-k-m-refresh-16k-80k-p16384.log`
+
+Q6_K and Q8_0:
+
+- Not started in this attempt
+
+Takeaways:
+
+- These results are not reliable enough for model selection because the run overlapped with gameplay on the same machine
+- The only recorded throughput rows from this attempt are the contaminated `Q4_K_M` `16384` and `32768` entries above
+- A clean rerun should restart the full matrix from `16384` through `80000` for all four quants instead of mixing clean and contaminated samples
+- No benchmark or model server processes were left running after the cancellation
 
 ### 2026-04-06 Gemma 4 26B 16K refresh for new Q6 and uncensored variants
 
@@ -144,7 +1203,7 @@ Takeaways:
 Run label: `qwopus3.5-27b-v3-q5-km`
 
 - Manifest: `/srv/llm/runs/20260402-141136-qwopus3.5-27b-v3-q5-km-bench.txt`
-- Model: `/home/crown/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q5_K_M.gguf`
+- Model: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q5_K_M.gguf`
 - Command pattern: `/run/current-system/sw/bin/llama-bench -ngl 999 -fa 1 -n 128 -r 2 -o md`
 - Guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
 - Status: completed successfully
@@ -188,7 +1247,7 @@ Quality follow-up on the same date:
 Run label: `qwopus3.5-27b-v3-q4-km`
 
 - Manifest: `/srv/llm/runs/20260402-133000-qwopus3.5-27b-v3-q4-km-bench.txt`
-- Model: `/home/crown/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q4_K_M.gguf`
+- Model: `/srv/llm/models/Qwopus3.5-27B-v3-GGUF/Qwopus3.5-27B-v3-Q4_K_M.gguf`
 - Command pattern: `/run/current-system/sw/bin/llama-bench -ngl 999 -fa 1 -n 128 -r 2 -o md`
 - Guard profile: benchmark wrapper guard with `8 GiB` system RAM reserve, `2 GiB` VRAM reserve, and `4 GiB` GTT reserve
 - Status: completed successfully
@@ -500,3 +1559,50 @@ Append future runs here with:
 - key throughput or latency numbers
 - exit status
 - log path
+
+## 2026-04-26 Ornstein3.6 35B A3B SABER Q4_K_M
+
+Goal: download and benchmark `DJLougen/Ornstein3.6-35B-A3B-SABER-GGUF` at 32k and 128k context, then add switchable model profiles if valid.
+
+Setup:
+
+- Model repo: `https://huggingface.co/DJLougen/Ornstein3.6-35B-A3B-SABER-GGUF`
+- Downloaded Q4 file: `/srv/llm/models/Ornstein3.6-35B-A3B-SABER-GGUF/Ornstein3.6-35B-A3B-SABER-Q4_K_M.gguf`
+- Downloaded Q4 size: `21166758112` bytes, shown by llama.cpp as `19.70 GiB`
+- Downloaded Q8 file: `/srv/llm/models/Ornstein3.6-35B-A3B-SABER-GGUF/Ornstein3.6-35B-A3B-SABER-Q8_0.gguf`
+- Downloaded Q8 size: `36903139552` bytes, shown by llama.cpp as `34.36 GiB`
+- Runtime: `/home/crown/tmp/llama-cpp-upstream-20260426-tech-sweep/result-vulkan/bin/llama-bench`
+- Backend: Vulkan, Radeon 8060S Graphics / RADV GFX1151
+- Clean benchmark window: stopped `qwen-main.service` and `qwen3-tts.service`; `hermes-gateway.service` stayed active; no llama processes were running before benchmark.
+
+Commands:
+
+```bash
+/home/crown/.local/bin/llm-guard --reserve-vram-gib 2 \
+  /home/crown/tmp/llama-cpp-upstream-20260426-tech-sweep/result-vulkan/bin/llama-bench \
+  -m /srv/llm/models/Ornstein3.6-35B-A3B-SABER-GGUF/Ornstein3.6-35B-A3B-SABER-Q4_K_M.gguf \
+  -ngl 999 -fa 1 -p 32768 -n 128 -r 1 -o md
+
+/home/crown/.local/bin/llm-guard --reserve-vram-gib 2 \
+  /home/crown/tmp/llama-cpp-upstream-20260426-tech-sweep/result-vulkan/bin/llama-bench \
+  -m /srv/llm/models/Ornstein3.6-35B-A3B-SABER-GGUF/Ornstein3.6-35B-A3B-SABER-Q4_K_M.gguf \
+  -ngl 999 -fa 1 -p 128000 -n 128 -r 1 -o md
+```
+
+Results:
+
+| Model | Quant | Context | PP speed | TG speed | Status | Log |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| Ornstein3.6 35B A3B SABER | Q4_K_M | 32768 | `809.65 t/s` | `73.84 t/s` | valid | `/srv/llm/runs/20260426-ornstein36-35b-a3b-saber/ornstein36-35b-a3b-saber-q4km-vulkan-p32768.log` |
+| Ornstein3.6 35B A3B SABER | Q4_K_M | 128000 | `446.30 t/s` | `74.36 t/s` | valid | `/srv/llm/runs/20260426-ornstein36-35b-a3b-saber/ornstein36-35b-a3b-saber-q4km-vulkan-p128000.log` |
+| Ornstein3.6 35B A3B SABER | Q8_0 | 32768 | `842.25 t/s` | `52.77 t/s` | valid | `/srv/llm/runs/20260426-ornstein36-35b-a3b-saber/ornstein36-35b-a3b-saber-q8-vulkan-p32768.log` |
+| Ornstein3.6 35B A3B SABER | Q8_0 | 128000 | `454.20 t/s` | `52.83 t/s` | valid | `/srv/llm/runs/20260426-ornstein36-35b-a3b-saber/ornstein36-35b-a3b-saber-q8-vulkan-p128000.log` |
+
+Takeaways:
+
+- Ornstein3.6 SABER Q4_K_M is a top-tier 35B A3B local throughput candidate on this host.
+- Ornstein3.6 SABER Q8_0 is a strong accuracy-oriented local 35B A3B candidate, matching the prior Qwen3.6/Qwopus Q8 decode class while slightly improving 128k prefill.
+- Decode throughput is essentially flat from 32k to 128k and slightly above prior Qwopus/Carnice Q4-class results.
+- 128k prefill is strong for this model class: `446.30 t/s`, similar to the best prior 35B A3B/Qwopus long-context results.
+- Added model profile: `/home/crown/machine-setup/model-profiles/ornstein3.6-35b-a3b-saber-q4-k-m.env`.
+- Added model profile: `/home/crown/machine-setup/model-profiles/ornstein3.6-35b-a3b-saber-q8-0.env`.
