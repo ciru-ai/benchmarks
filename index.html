@@ -728,7 +728,7 @@
         <div class="brand-copy">
           <p class="eyebrow">Crown Citadel Performance Lab</p>
           <div class="title">Ryzen AI Max+ 395 local LLM battle station</div>
-          <p class="subtitle">Strix Halo, 128 GiB UMA, RADV Vulkan, and enough local model horsepower to make the benchmark table worth showing off.</p>
+          <p class="subtitle">Strix Halo, 128 GiB UMA, RADV Vulkan, and local model benchmarks from a compact AMD AI workstation.</p>
           <div class="hero-stats">
             <div class="hero-stat"><strong>128 GiB</strong><span>UMA memory</span></div>
             <div class="hero-stat"><strong>16C / 32T</strong><span>Zen 5 CPU</span></div>
@@ -749,8 +749,8 @@
           <img src="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
         </picture>
         <div class="badge-caption">
-          <span>AI Max+</span>
-          <span>Local inference rig</span>
+          <span>AI Max+ 395</span>
+          <span>Local AI Server</span>
         </div>
       </div>
     </header>
@@ -793,18 +793,6 @@
           <div id="efficiencyChart" class="chart chart-sm"></div>
         </article>
       </aside>
-    </section>
-
-    <section class="single">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Memory Envelope</h2>
-            <p>GPU, system RAM, and GTT at the active context, sorted by GPU pressure.</p>
-          </div>
-        </div>
-        <div id="memoryChart" class="chart chart-md"></div>
-      </article>
     </section>
 
     <section class="double">
@@ -877,7 +865,7 @@
               <li>Some later April tables report only peak GPU memory; those points use that value as GPU footprint and leave system RAM/GTT blank.</li>
               <li>Speculative decoding points are separated from the llama-bench frontier because active prompt occupancy changes the meaning of the context number.</li>
               <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded beyond measured contexts.</li>
-              <li>Qwen3-Coder-Next is plotted as 80B-class on the parameter axis to match the benchmark notes in this repo.</li>
+              <li>Qwen Coder Next is plotted as 80B-class on the parameter axis to match the benchmark notes in this repo.</li>
             </ul>
           </section>
         </div>
@@ -1080,8 +1068,8 @@
       },
       {
         id: "qwen-30b",
-        name: "Qwen3-Coder-30B-A3B-Instruct Q5_K_M",
-        short: "Qwen 30B A3B",
+        name: "Qwen 3.5 30B A3B Q5_K_M",
+        short: "Qwen 3.5 30B A3B",
         family: "Qwen Coder",
         color: "#ff6f91",
         sizeB: 30,
@@ -1111,9 +1099,9 @@
       },
       {
         id: "qwen-next-q4",
-        name: "Qwen3-Coder-Next Q4_K_M Official",
-        short: "Qwen Next Q4",
-        family: "Qwen Next",
+        name: "Qwen Coder Next Q4_K_M Official",
+        short: "Qwen Coder Next Q4",
+        family: "Qwen Coder Next",
         color: "#36d17e",
         sizeB: 80,
         sizeLabel: "80B-class",
@@ -1127,9 +1115,9 @@
       },
       {
         id: "qwen-next-q5",
-        name: "Qwen3-Coder-Next Q5_K_M",
-        short: "Qwen Next Q5",
-        family: "Qwen Next",
+        name: "Qwen Coder Next Q5_K_M",
+        short: "Qwen Coder Next Q5",
+        family: "Qwen Coder Next",
         color: "#9ddc3b",
         sizeB: 80,
         sizeLabel: "80B-class",
@@ -1566,7 +1554,6 @@
 
     const frontierChart = makeChart("frontierChart");
     const efficiencyChart = makeChart("efficiencyChart");
-    const memoryChart = makeChart("memoryChart");
     const throughputChart = makeChart("throughputChart");
     const trendChart = makeChart("trendChart");
     const labChart = makeChart("labChart");
@@ -1782,74 +1769,6 @@
       });
     }
 
-    function renderMemory(runs) {
-      if (!memoryChart) return;
-      const sorted = runs.slice().sort((a, b) => (gpuMem(b) || 0) - (gpuMem(a) || 0)).slice(0, 18);
-      memoryChart.setOption({
-        animationDuration: 450,
-        legend: {
-          top: 0,
-          textStyle
-        },
-        grid: { top: 48, right: 26, bottom: 48, left: 128 },
-        tooltip: {
-          trigger: "axis",
-          axisPointer: { type: "shadow" },
-          backgroundColor: "rgba(5, 10, 16, 0.95)",
-          borderColor: alpha("#39d0ff", 0.2),
-          textStyle,
-          formatter: (params) => {
-            const run = sorted[params[0].dataIndex];
-            return [
-              `<strong>${run.short}</strong>`,
-              `GPU: ${fmtMem(gpuMem(run))}`,
-              `System RAM: ${fmtMem(run.ram)}`,
-              `GTT: ${fmtMem(run.gtt)}`,
-              `Memory basis: ${memoryBasis(run)}`
-            ].join("<br>");
-          }
-        },
-        xAxis: {
-          type: "value",
-          name: "GiB",
-          nameLocation: "middle",
-          nameGap: 32,
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#8ea3bb" },
-          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
-        },
-        yAxis: {
-          type: "category",
-          inverse: true,
-          data: sorted.map((run) => run.short),
-          axisLabel: { color: "#edf5ff", fontWeight: 700 }
-        },
-        series: [
-          {
-            name: "System RAM",
-            type: "bar",
-            stack: "memory",
-            data: sorted.map((run) => isNumber(run.ram) ? run.ram : null),
-            itemStyle: { color: alpha("#95a6be", 0.85), borderRadius: [0, 8, 8, 0] }
-          },
-          {
-            name: "GPU",
-            type: "bar",
-            stack: "memory",
-            data: sorted.map((run) => gpuMem(run)),
-            itemStyle: { color: alpha("#39d0ff", 0.92), borderRadius: [0, 8, 8, 0] }
-          },
-          {
-            name: "GTT",
-            type: "bar",
-            stack: "memory",
-            data: sorted.map((run) => isNumber(run.gtt) ? run.gtt : null),
-            itemStyle: { color: alpha("#f3b14a", 0.92), borderRadius: [0, 8, 8, 0] }
-          }
-        ]
-      });
-    }
-
     function renderThroughput(runs) {
       if (!throughputChart) return;
       const families = [...new Set(runs.map((run) => run.family))];
@@ -2038,7 +1957,6 @@
       setKpis(runs);
       renderFrontier(runs);
       renderEfficiency(runs);
-      renderMemory(runs);
       renderThroughput(runs);
       renderTrend();
       renderLab();
@@ -2047,7 +1965,7 @@
     render();
 
     window.addEventListener("resize", () => {
-      [frontierChart, efficiencyChart, memoryChart, throughputChart, trendChart, labChart]
+      [frontierChart, efficiencyChart, throughputChart, trendChart, labChart]
         .filter(Boolean)
         .forEach((chart) => chart.resize());
     });
