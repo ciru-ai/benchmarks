@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks</title>
   <meta name="description" content="AMD Ryzen AI Max+ 395 128GB local LLM benchmark dashboard for llama.cpp Vulkan on Strix Halo.">
-  <meta name="theme-color" content="#081019">
+  <meta name="theme-color" content="#0a0808">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta property="og:title" content="AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks">
@@ -26,22 +26,24 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     :root {
-      --bg: #081019;
-      --bg-2: #0d1724;
-      --panel: rgba(10, 19, 31, 0.86);
-      --panel-2: rgba(13, 24, 39, 0.94);
-      --line: rgba(139, 170, 204, 0.12);
-      --line-strong: rgba(139, 170, 204, 0.22);
-      --text: #edf5ff;
-      --muted: #8ea3bb;
+      --bg: #070707;
+      --bg-2: #121111;
+      --panel: rgba(14, 15, 18, 0.9);
+      --panel-2: rgba(20, 20, 23, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-strong: rgba(255, 255, 255, 0.24);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --amd-2: #ff5a36;
       --cyan: #39d0ff;
-      --teal: #21c7a8;
-      --amber: #f3b14a;
-      --rose: #ff6f91;
-      --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
-      --radius-xl: 28px;
-      --radius-lg: 22px;
-      --radius-md: 16px;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --rose: #ff4e6e;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius-xl: 10px;
+      --radius-lg: 8px;
+      --radius-md: 8px;
       --max: 1540px;
     }
 
@@ -54,9 +56,10 @@
       color: var(--text);
       font-family: "Space Grotesk", system-ui, sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(57, 208, 255, 0.14), transparent 24%),
-        radial-gradient(circle at top right, rgba(243, 177, 74, 0.08), transparent 22%),
-        linear-gradient(180deg, #071018 0%, #09131d 42%, #0c1621 100%);
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
     }
 
     body::before {
@@ -65,11 +68,11 @@
       inset: 0;
       pointer-events: none;
       background-image:
-        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-      background-size: 28px 28px;
-      opacity: 0.4;
-      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 85%);
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
     }
 
     body::after {
@@ -77,12 +80,10 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background-image: url("crowncitadeloutline.png");
-      background-repeat: no-repeat;
-      background-position: center center;
-      background-size: min(92vw, 1440px);
-      opacity: 0.06;
-      filter: brightness(0) invert(1) contrast(1.08);
+      background:
+        linear-gradient(90deg, transparent 0 62%, rgba(237, 28, 36, 0.08) 62% 62.3%, transparent 62.3%),
+        linear-gradient(135deg, transparent 0 70%, rgba(255, 255, 255, 0.06) 70% 70.4%, transparent 70.4%);
+      opacity: 0.72;
     }
 
     img {
@@ -92,23 +93,45 @@
 
     .app {
       width: min(calc(100% - 28px), var(--max));
-      margin: 14px auto 26px;
+      margin: 16px auto 28px;
       position: relative;
       z-index: 1;
     }
 
     .topbar {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+      gap: 24px;
+      align-items: stretch;
       margin-bottom: 16px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .topbar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
     }
 
     .brand {
       display: inline-flex;
       align-items: center;
       min-width: 0;
+      position: relative;
+      z-index: 1;
     }
 
     .brand-copy {
@@ -117,7 +140,7 @@
 
     .eyebrow {
       margin: 0;
-      color: var(--cyan);
+      color: #ff7863;
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.16em;
@@ -125,20 +148,53 @@
     }
 
     .title {
-      margin: 5px 0 0;
-      font-size: clamp(1.35rem, 2vw, 2rem);
+      margin: 8px 0 0;
+      max-width: 920px;
+      font-size: clamp(2.15rem, 4vw, 4.8rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      letter-spacing: 0;
+      line-height: 0.94;
+      text-transform: uppercase;
     }
 
     .subtitle {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 0.94rem;
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
       line-height: 1.5;
+      max-width: 78ch;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .hero-stat {
+      min-width: 112px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-left: 3px solid var(--amd);
+      border-radius: var(--radius-md);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
     }
 
     .meta-strip {
@@ -146,6 +202,15 @@
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
+      align-items: start;
+      align-content: start;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand .meta-strip {
+      justify-content: flex-start;
+      margin-top: 14px;
     }
 
     .chip {
@@ -155,11 +220,55 @@
       padding: 10px 14px;
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: rgba(13, 24, 39, 0.68);
+      background: rgba(0, 0, 0, 0.36);
       color: var(--text);
       font-size: 0.84rem;
       font-weight: 700;
       backdrop-filter: blur(14px);
+    }
+
+    .badge-card {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 220px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.08), transparent 34%),
+        rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .badge-card::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+      border: 1px solid rgba(237, 28, 36, 0.34);
+      clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
+    }
+
+    .badge-card img {
+      width: min(100%, 240px);
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    .badge-caption {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #f2f3f1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
 
     .mono {
@@ -170,8 +279,8 @@
       min-width: 0;
       margin: 0 0 14px;
       padding: 14px;
-      border-radius: 18px;
-      background: rgba(7, 14, 24, 0.52);
+      border-radius: var(--radius-lg);
+      background: rgba(0, 0, 0, 0.28);
       border: 1px solid var(--line);
     }
 
@@ -193,9 +302,9 @@
     .segmented button {
       cursor: pointer;
       border: 1px solid var(--line);
-      background: rgba(13, 24, 39, 0.78);
+      background: rgba(12, 12, 14, 0.9);
       color: var(--text);
-      border-radius: 999px;
+      border-radius: var(--radius-md);
       padding: 10px 13px;
       font: inherit;
       font-size: 0.9rem;
@@ -207,13 +316,13 @@
     .segmented button:focus-visible {
       outline: none;
       transform: translateY(-1px);
-      border-color: rgba(57, 208, 255, 0.32);
+      border-color: rgba(237, 28, 36, 0.55);
     }
 
     .segmented button.active {
-      background: linear-gradient(180deg, rgba(57, 208, 255, 0.18), rgba(57, 208, 255, 0.08));
-      border-color: rgba(57, 208, 255, 0.34);
-      color: #dff8ff;
+      background: linear-gradient(180deg, rgba(237, 28, 36, 0.32), rgba(237, 28, 36, 0.12));
+      border-color: rgba(255, 90, 54, 0.75);
+      color: #fff6f3;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
@@ -231,10 +340,13 @@
 
     .kpi {
       padding: 16px 18px;
-      border-radius: 20px;
-      background: rgba(10, 19, 31, 0.88);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.12), transparent 48%),
+        rgba(13, 13, 15, 0.92);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
+      border-top: 2px solid rgba(237, 28, 36, 0.52);
     }
 
     .kpi .k {
@@ -250,7 +362,7 @@
       margin: 0;
       font-size: 1.75rem;
       font-weight: 700;
-      letter-spacing: -0.04em;
+      letter-spacing: 0;
       line-height: 1;
     }
 
@@ -277,7 +389,9 @@
       position: relative;
       padding: 18px;
       border-radius: var(--radius-xl);
-      background: var(--panel);
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.08), transparent 34%),
+        var(--panel);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -288,7 +402,10 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 25%);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 25%),
+        linear-gradient(90deg, rgba(237, 28, 36, 0.34), transparent 26%);
+      height: 3px;
     }
 
     .panel-head {
@@ -304,7 +421,8 @@
     .panel-head h2 {
       margin: 0;
       font-size: 1.45rem;
-      letter-spacing: -0.03em;
+      letter-spacing: 0;
+      text-transform: uppercase;
     }
 
     .panel-head p {
@@ -339,7 +457,7 @@
       place-items: center;
       min-height: 260px;
       padding: 18px;
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       border: 1px dashed var(--line-strong);
       background: rgba(255, 255, 255, 0.02);
       color: var(--muted);
@@ -403,9 +521,9 @@
 
     details.fold {
       overflow: hidden;
-      border-radius: 24px;
+      border-radius: var(--radius-xl);
       border: 1px solid var(--line);
-      background: rgba(10, 19, 31, 0.82);
+      background: rgba(13, 13, 15, 0.9);
       margin-bottom: 14px;
       box-shadow: var(--shadow);
     }
@@ -446,7 +564,7 @@
 
     .info {
       padding: 16px;
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       background: rgba(255, 255, 255, 0.025);
       border: 1px solid var(--line);
     }
@@ -486,7 +604,7 @@
     .table-wrap {
       overflow: auto;
       margin-top: 16px;
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       border: 1px solid var(--line);
       background: rgba(0, 0, 0, 0.12);
     }
@@ -518,14 +636,14 @@
     }
 
     tbody tr:hover {
-      background: rgba(57, 208, 255, 0.04);
+      background: rgba(237, 28, 36, 0.07);
     }
 
     .tag {
       display: inline-flex;
       align-items: center;
       padding: 6px 10px;
-      border-radius: 999px;
+      border-radius: var(--radius-md);
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
       color: #d7e9ff;
@@ -539,6 +657,14 @@
       .double,
       .info-grid {
         grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .badge-card {
+        min-height: 180px;
       }
 
       .kpi-row {
@@ -555,12 +681,30 @@
         width: min(calc(100% - 14px), var(--max));
       }
 
-      .topbar {
-        grid-template-columns: 1fr;
-      }
-
       .control-panel {
         min-width: 0;
+      }
+
+      .topbar {
+        padding: 16px;
+      }
+
+      .title {
+        font-size: clamp(2rem, 13vw, 3.15rem);
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .badge-card {
+        min-height: 160px;
+      }
+
+      .badge-card img {
+        max-height: 112px;
+        width: auto;
       }
 
       .kpi-row {
@@ -582,16 +726,32 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-copy">
-          <p class="eyebrow">Crown Citadel</p>
-          <div class="title">AMD Ryzen AI Max+ 395 128GB local LLM benchmarks</div>
-          <p class="subtitle">Host <span class="mono">ciru</span> • NixOS • Linux 7.0.1 • Strix Halo / RADV • llama.cpp Vulkan • 16C / 32T • 128 GiB UMA</p>
+          <p class="eyebrow">Crown Citadel Performance Lab</p>
+          <div class="title">Ryzen AI Max+ 395 local LLM battle station</div>
+          <p class="subtitle">Strix Halo, 128 GiB UMA, RADV Vulkan, and enough local model horsepower to make the benchmark table worth showing off.</p>
+          <div class="hero-stats">
+            <div class="hero-stat"><strong>128 GiB</strong><span>UMA memory</span></div>
+            <div class="hero-stat"><strong>16C / 32T</strong><span>Zen 5 CPU</span></div>
+            <div class="hero-stat"><strong>Radeon 8060S</strong><span>Strix Halo GPU</span></div>
+            <div class="hero-stat"><strong>llama.cpp</strong><span>Vulkan bench</span></div>
+          </div>
+          <div class="meta-strip">
+            <span class="chip" id="latestRunChip">Latest</span>
+            <span class="chip">NixOS • Linux 7.0.1</span>
+            <span class="chip">RADV STRIX_HALO</span>
+            <span class="chip mono">-ngl 999 -fa 1</span>
+          </div>
         </div>
       </div>
-      <div class="meta-strip">
-        <span class="chip" id="latestRunChip">Latest</span>
-        <span class="chip">128 GiB UMA</span>
-        <span class="chip">llama.cpp Vulkan</span>
-        <span class="chip mono">-ngl 999 -fa 1</span>
+      <div class="badge-card" aria-label="AMD Ryzen AI Max+ badge">
+        <picture>
+          <source srcset="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" type="image/avif">
+          <img src="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+        </picture>
+        <div class="badge-caption">
+          <span>AI Max+</span>
+          <span>Local inference rig</span>
+        </div>
       </div>
     </header>
 
