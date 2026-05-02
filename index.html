@@ -597,8 +597,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>Frontier Map</h2>
-            <p>Parameters on x, decode speed on y, bubble area by GPU footprint, color by prefill speed. Use this as the high-signal comparison view.</p>
+            <h2>VRAM / Speed Frontier</h2>
+            <p>GPU memory on x and decode speed on y. Bubble size shows parameter count, color shows prefill speed, and labels keep the model tradeoffs readable.</p>
           </div>
         </div>
         <div class="control-panel">
@@ -1459,9 +1459,9 @@
 
     function renderFrontier(runs) {
       if (!frontierChart) return;
-      const visible = runs.filter((run) => isNumber(run.sizeB) && isNumber(run.tg) && isNumber(run.pp));
+      const visible = runs.filter((run) => isNumber(gpuMem(run)) && isNumber(run.sizeB) && isNumber(run.tg) && isNumber(run.pp));
       const ppValues = visible.map((run) => run.pp);
-      const maxGpu = Math.max(...visible.map((run) => gpuMem(run) || 0), 1);
+      const maxParams = Math.max(...visible.map((run) => run.sizeB), 1);
       frontierChart.setOption({
         backgroundColor: "transparent",
         animationDuration: 450,
@@ -1473,7 +1473,7 @@
           max: Math.max(...ppValues),
           right: 0,
           top: 22,
-          text: ["High PP", "Low PP"],
+          text: ["High prefill", "Low prefill"],
           textStyle,
           calculable: true,
           itemHeight: 210,
@@ -1489,9 +1489,10 @@
           formatter: ({ data }) => [
             `<strong>${data.name}</strong>`,
             `${data.family} • ${data.sizeLabel}`,
+            `GPU memory: ${fmtMem(data.value[0])}`,
             `Decode: ${fmtSpeed(data.value[1])}`,
             `Prefill: ${fmtSpeed(data.value[2])}`,
-            `GPU footprint: ${fmtMem(data.value[3])}`,
+            `Parameters: ${fmt(data.value[3], 0)}B`,
             `System RAM: ${fmtMem(data.ram)}`,
             `GTT: ${fmtMem(data.gtt)}`,
             `Memory basis: ${data.memSource}`,
@@ -1504,7 +1505,7 @@
           { type: "inside", yAxisIndex: 0, filterMode: "none" }
         ],
         dataset: {
-          dimensions: ["params", "decode", "prefill", "gpu", "totalMemory"],
+          dimensions: ["gpu", "decode", "prefill", "params", "totalMemory"],
           source: visible.map((run) => ({
             name: run.short,
             family: run.family,
@@ -1514,10 +1515,10 @@
             kv: run.kv,
             runtime: run.runtime,
             memSource: memoryBasis(run),
-            params: run.sizeB,
+            gpu: gpuMem(run),
             decode: run.tg,
             prefill: run.pp,
-            gpu: gpuMem(run),
+            params: run.sizeB,
             totalMemory: totalMeasuredMem(run),
             itemStyle: {
               borderColor: run.color,
@@ -1536,16 +1537,16 @@
           }))
         },
         xAxis: {
-          type: "log",
-          min: 2,
-          max: 100,
-          name: "Model parameters",
+          type: "value",
+          min: 0,
+          max: Math.max(64, Math.ceil(Math.max(...visible.map((run) => gpuMem(run))) / 8) * 8),
+          name: "GPU memory required (GiB)",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
           axisLabel: {
             color: "#8ea3bb",
-            formatter: (value) => `${value}B`
+            formatter: (value) => `${value}`
           },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
@@ -1560,12 +1561,31 @@
         },
         series: [{
           type: "scatter",
-          encode: { x: "params", y: "decode", tooltip: ["params", "decode", "prefill", "gpu"] },
+          encode: { x: "gpu", y: "decode", tooltip: ["gpu", "decode", "prefill", "params"] },
           symbolSize: (value) => {
-            const mem = value[3] || 8;
-            return Math.max(16, Math.min(58, 14 + Math.sqrt(mem / maxGpu) * 44));
+            const params = value[3] || 4;
+            return Math.max(16, Math.min(56, 14 + Math.sqrt(params / maxParams) * 42));
           },
           labelLayout: { hideOverlap: true },
+          markLine: {
+            symbol: "none",
+            silent: true,
+            label: {
+              color: "#8ea3bb",
+              formatter: ({ name }) => name,
+              position: "insideEndTop"
+            },
+            lineStyle: {
+              type: "dashed",
+              color: alpha("#8ea3bb", 0.28)
+            },
+            data: [
+              { name: "24 GiB", xAxis: 24 },
+              { name: "32 GiB", xAxis: 32 },
+              { name: "48 GiB", xAxis: 48 },
+              { name: "64 GiB", xAxis: 64 }
+            ]
+          },
           emphasis: {
             focus: "self",
             scale: true,
