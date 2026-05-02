@@ -397,6 +397,10 @@
       margin-bottom: 16px;
     }
 
+    .single {
+      margin-bottom: 16px;
+    }
+
     details.fold {
       overflow: hidden;
       border-radius: 24px;
@@ -631,17 +635,7 @@
       </aside>
     </section>
 
-    <section class="double">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Context Retention</h2>
-            <p>Prompt-processing retention versus each model’s lowest measured context. Brighter is more stable as prompts get longer.</p>
-          </div>
-        </div>
-        <div id="heatmapChart" class="chart chart-md"></div>
-      </article>
-
+    <section class="single">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -675,17 +669,7 @@
       </article>
     </section>
 
-    <section class="double">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Spec Break-Even</h2>
-            <p>Draft-model speculative decode is excellent with low active context and reverses under heavy occupied context.</p>
-          </div>
-        </div>
-        <div id="specChart" class="chart chart-md"></div>
-      </article>
-
+    <section class="single">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -1335,14 +1319,6 @@
         .sort((a, b) => b.tg - a.tg || a.sizeB - b.sizeB);
     }
 
-    function ppRetention(series, context) {
-      const baseContext = Math.min(...series.runs.map((run) => run.context));
-      const base = series.runs.find((run) => run.context === baseContext);
-      const current = series.runs.find((run) => run.context === context);
-      if (!base || !current) return null;
-      return current.pp / base.pp * 100;
-    }
-
     function setKpis(runs) {
       const compact = runs.filter((run) => run.sizeB <= 10).sort((a, b) => b.tg - a.tg)[0];
       const larger = runs.filter((run) => run.sizeB >= 25 && run.sizeB < 60).sort((a, b) => b.tg - a.tg)[0];
@@ -1430,21 +1406,12 @@
 
     const frontierChart = makeChart("frontierChart");
     const efficiencyChart = makeChart("efficiencyChart");
-    const heatmapChart = makeChart("heatmapChart");
     const memoryChart = makeChart("memoryChart");
     const throughputChart = makeChart("throughputChart");
     const trendChart = makeChart("trendChart");
-    const specChart = makeChart("specChart");
     const labChart = makeChart("labChart");
 
     const textStyle = { fontFamily: "Space Grotesk, sans-serif", color: "#edf5ff" };
-
-    const SPEC_RESULTS = [
-      { scenario: "29 active tokens / 4k max", mode: "Baseline", context: 4096, activeTokens: 29, pp: 69.93, tg: 6.27, accepted: "n/a", color: "#8ea3bb" },
-      { scenario: "29 active tokens / 4k max", mode: "Qwen3 1.7B draft", context: 4096, activeTokens: 29, pp: 69.97, tg: 17.83, accepted: "227/386", color: "#21c7a8" },
-      { scenario: "24k active tokens / 32k max", mode: "Baseline", context: 32768, activeTokens: 24035, pp: 162.31, tg: 6.13, accepted: "n/a", color: "#8ea3bb" },
-      { scenario: "24k active tokens / 32k max", mode: "Qwen3 1.7B draft", context: 32768, activeTokens: 24035, pp: 162.7, tg: 3.55, accepted: "78/124", color: "#ff6f91" }
-    ];
 
     const LAB_RESULTS = [
       { model: "Qwen3.6 27B Q8", variant: "Vulkan q8/q8", pp: 226.89, tg: 6.27, gpu: 35.23, color: "#ffcf5a" },
@@ -1655,90 +1622,6 @@
       });
     }
 
-    function renderHeatmap() {
-      if (!heatmapChart) return;
-      const orderedSeries = SERIES.slice().sort((a, b) => a.sizeB - b.sizeB || b.runs[0].tg - a.runs[0].tg);
-      const points = [];
-      orderedSeries.forEach((series, rowIndex) => {
-        CONTEXTS.forEach((context, colIndex) => {
-          const run = series.runs.find((entry) => entry.context === context);
-          const keep = ppRetention(series, context);
-          if (run && keep != null) {
-            points.push({
-              value: [colIndex, rowIndex, keep],
-              run,
-              model: series.short
-            });
-          }
-        });
-      });
-
-      heatmapChart.setOption({
-        animationDuration: 450,
-        grid: { top: 18, right: 42, bottom: 48, left: 158 },
-        tooltip: {
-          backgroundColor: "rgba(5, 10, 16, 0.95)",
-          borderColor: alpha("#39d0ff", 0.2),
-          textStyle,
-          formatter: ({ data }) => [
-            `<strong>${data.model}</strong>`,
-            `Context: ${ctx(data.run.context)}`,
-            `PP retention: ${fmt(data.value[2], 1)}%`,
-            `PP: ${fmtSpeed(data.run.pp)}`,
-            `TG: ${fmtSpeed(data.run.tg)}`
-          ].join("<br>")
-        },
-        xAxis: {
-          type: "category",
-          data: CONTEXTS.map(ctx),
-          axisLabel: { color: "#8ea3bb" },
-          splitArea: { show: false }
-        },
-        yAxis: {
-          type: "category",
-          data: orderedSeries.map((series) => series.short),
-          axisLabel: { color: "#edf5ff", fontWeight: 700 }
-        },
-        dataZoom: [{
-          type: "slider",
-          yAxisIndex: 0,
-          right: 4,
-          width: 12,
-          start: 0,
-          end: orderedSeries.length > 22 ? 58 : 100,
-          borderColor: alpha("#8ea3bb", 0.22),
-          fillerColor: alpha("#39d0ff", 0.18),
-          handleStyle: { color: "#39d0ff" },
-          textStyle: { color: "#8ea3bb" }
-        }],
-        visualMap: {
-          min: 5,
-          max: 100,
-          orient: "horizontal",
-          left: "center",
-          bottom: 0,
-          textStyle,
-          inRange: {
-            color: ["#702f35", "#b45a3b", "#f3b14a", "#39d0ff", "#21c7a8"]
-          }
-        },
-        series: [{
-          type: "heatmap",
-          data: points,
-          label: {
-            show: orderedSeries.length <= 24,
-            color: "#03111e",
-            fontWeight: 700,
-            formatter: ({ value }) => `${fmt(value[2], 0)}%`
-          },
-          itemStyle: {
-            borderColor: alpha("#ffffff", 0.22),
-            borderWidth: 1
-          }
-        }]
-      });
-    }
-
     function renderMemory(runs) {
       if (!memoryChart) return;
       const sorted = runs.slice().sort((a, b) => (gpuMem(b) || 0) - (gpuMem(a) || 0)).slice(0, 18);
@@ -1926,68 +1809,6 @@
       });
     }
 
-    function renderSpec() {
-      if (!specChart) return;
-      const scenarios = [...new Set(SPEC_RESULTS.map((run) => run.scenario))];
-      const modes = [...new Set(SPEC_RESULTS.map((run) => run.mode))];
-      specChart.setOption({
-        animationDuration: 450,
-        legend: { bottom: 0, textStyle },
-        grid: { top: 18, right: 28, bottom: 72, left: 58 },
-        tooltip: {
-          trigger: "axis",
-          axisPointer: { type: "shadow" },
-          backgroundColor: "rgba(5, 10, 16, 0.95)",
-          borderColor: alpha("#39d0ff", 0.2),
-          textStyle,
-          formatter: (params) => params.map((param) => {
-            const run = SPEC_RESULTS.find((entry) => entry.scenario === param.axisValue && entry.mode === param.seriesName);
-            if (!run) return "";
-            return [
-              `<strong>${run.mode}</strong>`,
-              `${run.scenario}`,
-              `Decode: ${fmtSpeed(run.tg)}`,
-              `Prompt: ${fmtSpeed(run.pp)}`,
-              `Accepted: ${run.accepted}`
-            ].join("<br>");
-          }).filter(Boolean).join("<br><br>")
-        },
-        xAxis: {
-          type: "category",
-          data: scenarios,
-          axisLabel: {
-            color: "#8ea3bb",
-            interval: 0,
-            lineHeight: 16
-          }
-        },
-        yAxis: {
-          type: "value",
-          name: "Decode tokens/s",
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#8ea3bb" },
-          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
-        },
-        series: modes.map((mode) => ({
-          name: mode,
-          type: "bar",
-          data: scenarios.map((scenario) => {
-            const run = SPEC_RESULTS.find((entry) => entry.scenario === scenario && entry.mode === mode);
-            return run ? {
-              value: run.tg,
-              itemStyle: { color: run.color, borderRadius: [8, 8, 0, 0] }
-            } : null;
-          }),
-          label: {
-            show: true,
-            position: "top",
-            color: "#edf5ff",
-            formatter: ({ value }) => fmt(value, 1)
-          }
-        }))
-      });
-    }
-
     function renderLab() {
       if (!labChart) return;
       labChart.setOption({
@@ -2057,18 +1878,16 @@
       setKpis(runs);
       renderFrontier(runs);
       renderEfficiency(runs);
-      renderHeatmap();
       renderMemory(runs);
       renderThroughput(runs);
       renderTrend();
-      renderSpec();
       renderLab();
     }
 
     render();
 
     window.addEventListener("resize", () => {
-      [frontierChart, efficiencyChart, heatmapChart, memoryChart, throughputChart, trendChart, specChart, labChart]
+      [frontierChart, efficiencyChart, memoryChart, throughputChart, trendChart, labChart]
         .filter(Boolean)
         .forEach((chart) => chart.resize());
     });
