@@ -217,6 +217,11 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
+    .segmented button span {
+      color: var(--muted);
+      font-size: 0.78em;
+    }
+
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -318,11 +323,11 @@
     }
 
     .chart-lg {
-      height: 560px;
+      height: 620px;
     }
 
     .chart-md {
-      height: 360px;
+      height: 400px;
     }
 
     .chart-sm {
@@ -575,7 +580,7 @@
         <div class="brand-copy">
           <p class="eyebrow">Crown Citadel</p>
           <div class="title">AMD Ryzen AI Max+ 395 128GB local LLM benchmarks</div>
-          <p class="subtitle">Host <span class="mono">ciru</span> • NixOS • Linux 6.19.9 • llama.cpp Vulkan • 16C / 32T • 64 / 64 split</p>
+          <p class="subtitle">Host <span class="mono">ciru</span> • NixOS • Linux 7.0.1 • Strix Halo / RADV • llama.cpp Vulkan • 16C / 32T • 128 GiB UMA</p>
         </div>
       </div>
       <div class="meta-strip">
@@ -592,8 +597,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>Size / Speed Frontier</h2>
-            <p>Model size on x, generation speed on y, bubble area by VRAM. This is the main “what actually wins here?” chart.</p>
+            <h2>Frontier Map</h2>
+            <p>Parameters on x, decode speed on y, bubble area by GPU footprint, color by prefill speed. Use this as the high-signal comparison view.</p>
           </div>
         </div>
         <div class="control-panel">
@@ -617,8 +622,8 @@
         <article class="panel">
           <div class="panel-head">
             <div>
-              <h2>Speed / VRAM</h2>
-              <p>Output throughput normalized by VRAM use at the current context.</p>
+              <h2>Decode per GiB</h2>
+              <p>Generation throughput normalized by measured GPU memory at the active context.</p>
             </div>
           </div>
           <div id="efficiencyChart" class="chart chart-sm"></div>
@@ -631,7 +636,7 @@
         <div class="panel-head">
           <div>
             <h2>Context Retention</h2>
-            <p>Prompt-processing retention versus each model’s own 4096 baseline. Brighter is more stable as context grows.</p>
+            <p>Prompt-processing retention versus each model’s lowest measured context. Brighter is more stable as prompts get longer.</p>
           </div>
         </div>
         <div id="heatmapChart" class="chart chart-md"></div>
@@ -641,7 +646,7 @@
         <div class="panel-head">
           <div>
             <h2>Memory Envelope</h2>
-            <p>VRAM, system RAM, and GTT at the active context, sorted by VRAM pressure.</p>
+            <p>GPU, system RAM, and GTT at the active context, sorted by GPU pressure.</p>
           </div>
         </div>
         <div id="memoryChart" class="chart chart-md"></div>
@@ -652,8 +657,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>Prompt vs Generate</h2>
-            <p>Raw throughput view at the active context. Symbol size tracks model size, not memory.</p>
+            <h2>Prefill vs Decode</h2>
+            <p>Raw throughput balance at the active context. Symbol size tracks model size.</p>
           </div>
         </div>
         <div id="throughputChart" class="chart chart-md"></div>
@@ -663,10 +668,32 @@
         <div class="panel-head">
           <div>
             <h2>Scaling Curves</h2>
-            <p>Prompt-processing throughput across all tested contexts, one line per model family entry.</p>
+            <p>Prompt-processing throughput across tested contexts. Long-context survivors stay high to the right.</p>
           </div>
         </div>
         <div id="trendChart" class="chart chart-md"></div>
+      </article>
+    </section>
+
+    <section class="double">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Spec Break-Even</h2>
+            <p>Draft-model speculative decode is excellent with low active context and reverses under heavy occupied context.</p>
+          </div>
+        </div>
+        <div id="specChart" class="chart chart-md"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>KV / Backend Lab</h2>
+            <p>Experimental runtime and KV-cache variants, plotted by prefill, decode, and measured GPU footprint.</p>
+          </div>
+        </div>
+        <div id="labChart" class="chart chart-md"></div>
       </article>
     </section>
 
@@ -683,19 +710,19 @@
           <section class="info">
             <h3>System</h3>
             <ul class="bullets">
-              <li>Host <span class="mono">ciru</span>, NixOS, Linux 6.19.9</li>
+              <li>Host <span class="mono">ciru</span>, NixOS, Linux 7.0.1</li>
               <li>AMD Ryzen AI Max+ 395, 16 cores / 32 threads</li>
-              <li>AMD Radeon 8060S-class Strix Halo iGPU</li>
-              <li>128 GiB total RAM, currently split 64 / 64</li>
-              <li>Reported pools: 64 GiB VRAM, 31.2 GiB GTT, about 62 GiB system RAM</li>
+              <li>AMD Radeon 8060S-class Strix Halo iGPU, RADV STRIX_HALO</li>
+              <li>128 GiB total UMA memory, benchmarked with large GPU aperture available</li>
+              <li>Reported pools include 64 GiB VRAM and about 31.2 GiB GTT on the tested setup</li>
             </ul>
           </section>
           <section class="info">
             <h3>Runtime</h3>
             <ul class="bullets">
-              <li><span class="mono">llama.cpp</span> with Vulkan via <span class="mono">llama-cpp-vulkan</span></li>
-              <li>Pinned commit <span class="mono">08f21453aec846867b39878500d725a05bd32683</span></li>
-              <li>Common benchmark flags <span class="mono">-ngl 999 -fa 1 -n 128 -r 2 -o md</span></li>
+              <li><span class="mono">llama.cpp</span> with Vulkan, plus isolated ROCm comparisons where noted</li>
+              <li>Current system benchmark build <span class="mono">8864</span>; upstream b8971 used for checkpointed speculative tests</li>
+              <li>Common benchmark flags <span class="mono">-ngl 999 -fa 1 -n 128 -o md</span>, usually <span class="mono">-r 1</span> or <span class="mono">-r 2</span></li>
               <li>Guard reserves: 8 GiB RAM, 2 GiB VRAM, 4 GiB GTT</li>
               <li>Typical contexts: 4096, 16384, 32768, with long checks to 100000+</li>
             </ul>
@@ -703,10 +730,10 @@
           <section class="info">
             <h3>Important notes</h3>
             <ul class="bullets">
-              <li>Gemma 4 required a newer local Vulkan-enabled build because the older system build lacked <span class="mono">gemma4</span> support.</li>
-              <li>The April 6 Gemma 4 26B refresh entries were measured only at <span class="mono">16384</span>, so they appear only on that context slice.</li>
-              <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded from the charted active comparison points beyond measured contexts.</li>
-              <li>Qwen3-Coder-Next is plotted as 80B-class on the size axis to reflect the benchmark notes in this repo.</li>
+              <li>Some later April tables report only peak GPU memory; those points use that value as GPU footprint and leave system RAM/GTT blank.</li>
+              <li>Speculative decoding points are separated from the llama-bench frontier because active prompt occupancy changes the meaning of the context number.</li>
+              <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded beyond measured contexts.</li>
+              <li>Qwen3-Coder-Next is plotted as 80B-class on the parameter axis to match the benchmark notes in this repo.</li>
             </ul>
           </section>
         </div>
@@ -733,9 +760,10 @@
                 <th>Context</th>
                 <th>PP t/s</th>
                 <th>TG t/s</th>
-                <th>VRAM</th>
+                <th>GPU GiB</th>
                 <th>RAM</th>
                 <th>GTT</th>
+                <th>Memory basis</th>
               </tr>
             </thead>
             <tbody id="resultsBody"></tbody>
@@ -887,8 +915,8 @@
         tier: "Large",
         runs: [
           { date: "2026-04-02", context: 4096, pp: 305.26, tg: 12.86, ram: 6.88, vram: 15.76, gtt: 1.02 },
-          { date: "2026-04-02", context: 16384, pp: 267.0, tg: 12.85, ram: 6.92, vram: 16.81, gtt: 1.04 },
-          { date: "2026-04-02", context: 32768, pp: 211.45, tg: 12.86, ram: 6.96, vram: 17.51, gtt: 1.08 }
+          { date: "2026-04-07", context: 16384, pp: 264.73, tg: 12.94, ram: 13.87, vram: 18.16, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 210.91, tg: 12.97, ram: 13.91, vram: 19.03, gtt: 1.22 }
         ]
       },
       {
@@ -902,8 +930,8 @@
         tier: "Large",
         runs: [
           { date: "2026-04-02", context: 4096, pp: 296.35, tg: 11.26, ram: 6.89, vram: 18.11, gtt: 1.02 },
-          { date: "2026-04-02", context: 16384, pp: 262.44, tg: 11.26, ram: 6.92, vram: 18.99, gtt: 1.04 },
-          { date: "2026-04-02", context: 32768, pp: 208.53, tg: 11.27, ram: 6.93, vram: 19.86, gtt: 1.08 }
+          { date: "2026-04-07", context: 16384, pp: 260.2, tg: 11.32, ram: 13.86, vram: 20.52, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 208.78, tg: 11.32, ram: 13.94, vram: 21.39, gtt: 1.22 }
         ]
       },
       {
@@ -968,19 +996,271 @@
           { date: "2026-03-31", context: 32768, pp: 511.88, tg: 51.39, ram: 3.8, vram: 53.89, gtt: 0.5 },
           { date: "2026-03-31", context: 80000, pp: 404.03, tg: 51.18, ram: 3.9, vram: 55.05, gtt: 0.6 }
         ]
+      },
+      {
+        id: "supergemma-26b-q4",
+        name: "SuperGemma4 26B Uncensored Fast v2 Q4_K_M",
+        short: "SuperGemma 26B",
+        family: "Gemma 4 Uncensored",
+        color: "#e85d75",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-13", context: 16384, pp: 982.28, tg: 66.07, ram: 8.45, vram: 22.26, gtt: 0.66 }
+        ]
+      },
+      {
+        id: "gemopus-26b-q4",
+        name: "Gemopus 4 26B A4B Preview Q4_K_M",
+        short: "Gemopus Q4",
+        family: "Gemopus",
+        color: "#22b8a3",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-16", context: 32768, pp: 814.13, tg: 64.27, ram: 19.35, vram: 22.82, gtt: 0.71 },
+          { date: "2026-04-16", context: 128000, pp: 313.21, tg: 64.07, ram: 19.57, vram: 24.57, gtt: 0.9 }
+        ]
+      },
+      {
+        id: "gemopus-26b-q8",
+        name: "Gemopus 4 26B A4B Preview Q8_0",
+        short: "Gemopus Q8",
+        family: "Gemopus",
+        color: "#7cd5ff",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-16", context: 32768, pp: 841.0, tg: 45.7, ram: 19.53, vram: 32.2, gtt: 0.89 },
+          { date: "2026-04-16", context: 128000, pp: 317.71, tg: 45.96, ram: 19.73, vram: 33.95, gtt: 1.07 }
+        ]
+      },
+      {
+        id: "qwen36-27b-q4",
+        name: "Qwen3.6 27B UD Q4_K_XL",
+        short: "Qwen3.6 27B Q4",
+        family: "Qwen 3.6 Dense",
+        color: "#ff9f43",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-23", context: 32768, pp: 211.65, tg: 12.04, ram: 17.32, vram: 24.46, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwen36-27b-q8",
+        name: "Qwen3.6 27B UD Q8_K_XL",
+        short: "Qwen3.6 27B Q8",
+        family: "Qwen 3.6 Dense",
+        color: "#ffcf5a",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-30", context: 32768, pp: 226.89, tg: 6.27, ram: null, vram: 35.23, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "qwopus-27b-q6",
+        name: "Qwopus3.5-27B-v3 Q6_K",
+        short: "Qwopus Q6",
+        family: "Qwopus",
+        color: "#b58cff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-07", context: 16384, pp: 256.51, tg: 9.85, ram: 13.87, vram: 23.01, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 205.94, tg: 9.86, ram: 13.91, vram: 24.04, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwopus-27b-q8",
+        name: "Qwopus3.5-27B-v3 Q8_0",
+        short: "Qwopus Q8",
+        family: "Qwopus",
+        color: "#dca8ff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-07", context: 16384, pp: 277.0, tg: 7.85, ram: 14.2, vram: 28.79, gtt: 1.47 },
+          { date: "2026-04-07", context: 32768, pp: 215.47, tg: 7.84, ram: 14.25, vram: 29.66, gtt: 1.51 }
+        ]
+      },
+      {
+        id: "qwen36-35b-q4",
+        name: "Qwen3.6 35B A3B UD Q4_K_XL",
+        short: "Qwen3.6 35B Q4",
+        family: "Qwen 3.6 A3B",
+        color: "#33d17a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-16", context: 32768, pp: 807.81, tg: 57.62, ram: 19.21, vram: 27.24, gtt: 0.64 },
+          { date: "2026-04-17", context: 65536, pp: 645.58, tg: 57.59, ram: null, vram: 27.93, gtt: 0.7, memSource: "Mid-run VRAM sample" },
+          { date: "2026-04-16", context: 131072, pp: 435.41, tg: 56.67, ram: 19.59, vram: 29.32, gtt: 0.83 }
+        ]
+      },
+      {
+        id: "qwen36-35b-q8",
+        name: "Qwen3.6 35B A3B Q8_0",
+        short: "Qwen3.6 35B Q8",
+        family: "Qwen 3.6 A3B",
+        color: "#67e8f9",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-30", context: 32768, pp: 912.4, tg: 54.46, ram: null, vram: 36.24, gtt: null, kv: "f16/f16", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-04-24", context: 128000, pp: 454.13, tg: 53.05, ram: null, vram: null, gtt: null, runtime: "Vulkan" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q4",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q4_K_M",
+        short: "HauhauCS Q4",
+        family: "HauhauCS A3B",
+        color: "#2dd4bf",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-29", context: 32768, pp: 802.67, tg: 71.83, ram: null, vram: 21.78, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q6",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q6_K_P",
+        short: "HauhauCS Q6",
+        family: "HauhauCS A3B",
+        color: "#60a5fa",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-29", context: 32768, pp: 764.56, tg: 60.94, ram: null, vram: 30.49, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q8",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q8_K_P",
+        short: "HauhauCS Q8",
+        family: "HauhauCS A3B",
+        color: "#a78bfa",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-30", context: 32768, pp: 789.5, tg: 43.5, ram: null, vram: 42.48, gtt: null, kv: "f16/f16", memSource: "Peak GPU" },
+          { date: "2026-04-29", context: 128000, pp: 420.95, tg: 41.25, ram: null, vram: 44.75, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "qwopus-moe-q4",
+        name: "Qwopus MoE 35B A3B Q4_K_M",
+        short: "Qwopus MoE Q4",
+        family: "Qwopus MoE",
+        color: "#f97316",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-06", context: 16384, pp: 909.34, tg: 72.41, ram: 13.95, vram: 22.04, gtt: 0.59 },
+          { date: "2026-04-15", context: 32768, pp: 804.57, tg: 73.81, ram: 17.31, vram: 26.38, gtt: 0.53 },
+          { date: "2026-04-06", context: 65536, pp: 641.58, tg: 72.51, ram: 13.95, vram: 23.04, gtt: 0.69 },
+          { date: "2026-04-06", context: 80000, pp: 586.28, tg: 72.43, ram: 13.98, vram: 23.34, gtt: 0.71 },
+          { date: "2026-04-15", context: 128000, pp: 442.31, tg: 73.75, ram: 17.53, vram: 28.38, gtt: 0.71 }
+        ]
+      },
+      {
+        id: "qwopus-moe-q8",
+        name: "Qwopus MoE 35B A3B Q8_0",
+        short: "Qwopus MoE Q8",
+        family: "Qwopus MoE",
+        color: "#fb7185",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-07", context: 16384, pp: 941.79, tg: 50.27, ram: 13.48, vram: 36.46, gtt: 0.7 },
+          { date: "2026-04-07", context: 32768, pp: 828.12, tg: 53.08, ram: 13.47, vram: 36.77, gtt: 0.73 },
+          { date: "2026-04-07", context: 65536, pp: 661.07, tg: 53.16, ram: 13.49, vram: 37.46, gtt: 0.8 },
+          { date: "2026-04-07", context: 80000, pp: 602.47, tg: 53.14, ram: 13.53, vram: 37.77, gtt: 0.83 }
+        ]
+      },
+      {
+        id: "carnice-moe-q4",
+        name: "Carnice MoE 35B A3B Q4_K_M",
+        short: "Carnice Q4",
+        family: "Carnice MoE",
+        color: "#38bdf8",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-10", context: 16384, pp: 934.44, tg: 72.58, ram: 8.29, vram: 25.25, gtt: 0.48 },
+          { date: "2026-04-10", context: 32768, pp: 816.34, tg: 72.59, ram: 8.35, vram: 25.56, gtt: 0.51 },
+          { date: "2026-04-10", context: 65536, pp: 651.2, tg: 72.64, ram: 8.41, vram: 26.25, gtt: 0.58 },
+          { date: "2026-04-10", context: 80000, pp: 593.08, tg: 72.71, ram: 8.41, vram: 26.55, gtt: 0.6 }
+        ]
+      },
+      {
+        id: "ornstein-saber-q4",
+        name: "Ornstein3.6 35B A3B SABER Q4_K_M",
+        short: "Ornstein Q4",
+        family: "Ornstein SABER",
+        color: "#facc15",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-26", context: 32768, pp: 809.65, tg: 73.84, ram: null, vram: 19.7, gtt: null, memSource: "Model file size" },
+          { date: "2026-04-26", context: 128000, pp: 446.3, tg: 74.36, ram: null, vram: 19.7, gtt: null, memSource: "Model file size" }
+        ]
+      },
+      {
+        id: "ornstein-saber-q8",
+        name: "Ornstein3.6 35B A3B SABER Q8_0",
+        short: "Ornstein Q8",
+        family: "Ornstein SABER",
+        color: "#fde68a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-26", context: 32768, pp: 842.25, tg: 52.77, ram: null, vram: 34.36, gtt: null, memSource: "Model file size" },
+          { date: "2026-04-26", context: 128000, pp: 454.2, tg: 52.83, ram: null, vram: 34.36, gtt: null, memSource: "Model file size" }
+        ]
       }
     ];
 
     const CONTEXTS = [...new Set(SERIES.flatMap((series) => series.runs.map((run) => run.context)))].sort((a, b) => a - b);
-    let activeContext = CONTEXTS.includes(16384) ? 16384 : CONTEXTS[0];
+    const CONTEXT_COUNTS = CONTEXTS.map((context) => ({
+      context,
+      count: SERIES.reduce((sum, series) => sum + (series.runs.some((run) => run.context === context) ? 1 : 0), 0)
+    }));
+    let activeContext = CONTEXT_COUNTS.slice().sort((a, b) => b.count - a.count || b.context - a.context)[0].context;
 
-    const fmt = (value, digits = 2) => Number(value).toLocaleString(undefined, {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    });
-    const fmtSpeed = (value) => `${fmt(value, 2)} t/s`;
-    const fmtMem = (value) => `${fmt(value, 2)} GiB`;
-    const ctx = (value) => value.toLocaleString();
+    const isNumber = (value) => value != null && Number.isFinite(Number(value));
+    const fmt = (value, digits = 2) => {
+      if (!isNumber(value)) return "n/a";
+      return Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    };
+    const fmtSpeed = (value) => isNumber(value) ? `${fmt(value, 2)} t/s` : "n/a";
+    const fmtMem = (value) => isNumber(value) ? `${fmt(value, 2)} GiB` : "n/a";
+    const ctx = (value) => Number(value).toLocaleString();
+    const gpuMem = (run) => isNumber(run.vram) ? Number(run.vram) : null;
+    const totalMeasuredMem = (run) => [run.ram, run.vram, run.gtt].filter(isNumber).reduce((sum, value) => sum + Number(value), 0);
+    const memoryBasis = (run) => run.memSource || "Peak VRAM";
 
     function alpha(hex, opacity) {
       const clean = hex.replace("#", "");
@@ -1024,9 +1304,10 @@
           <td class="mono">${ctx(run.context)}</td>
           <td>${fmt(run.pp, 2)}</td>
           <td>${fmt(run.tg, 2)}</td>
-          <td>${fmt(run.vram, 2)} GiB</td>
-          <td>${fmt(run.ram, 2)} GiB</td>
-          <td>${fmt(run.gtt, 2)} GiB</td>
+          <td>${fmtMem(run.vram)}</td>
+          <td>${fmtMem(run.ram)}</td>
+          <td>${fmtMem(run.gtt)}</td>
+          <td>${memoryBasis(run)}</td>
         </tr>
       `)
       .join("");
@@ -1034,7 +1315,7 @@
     const contextSwitch = document.getElementById("contextSwitch");
     contextSwitch.innerHTML = CONTEXTS.map((value) => `
       <button type="button" data-context="${value}" class="${value === activeContext ? "active" : ""}">
-        ${ctx(value)}
+        ${ctx(value)} <span class="mono">${CONTEXT_COUNTS.find((entry) => entry.context === value)?.count || 0}</span>
       </button>
     `).join("");
 
@@ -1055,7 +1336,8 @@
     }
 
     function ppRetention(series, context) {
-      const base = series.runs.find((run) => run.context === 4096);
+      const baseContext = Math.min(...series.runs.map((run) => run.context));
+      const base = series.runs.find((run) => run.context === baseContext);
       const current = series.runs.find((run) => run.context === context);
       if (!base || !current) return null;
       return current.pp / base.pp * 100;
@@ -1065,14 +1347,16 @@
       const compact = runs.filter((run) => run.sizeB <= 10).sort((a, b) => b.tg - a.tg)[0];
       const larger = runs.filter((run) => run.sizeB >= 25 && run.sizeB < 60).sort((a, b) => b.tg - a.tg)[0];
       const flagship = runs.filter((run) => run.sizeB >= 60).sort((a, b) => b.tg - a.tg)[0];
-      const efficient = runs.slice().sort((a, b) => (b.tg / b.vram) - (a.tg / a.vram))[0];
+      const efficient = runs
+        .filter((run) => isNumber(gpuMem(run)) && gpuMem(run) > 0)
+        .sort((a, b) => (b.tg / gpuMem(b)) - (a.tg / gpuMem(a)))[0];
 
       document.getElementById("kpiRow").innerHTML = [
         {
           k: "Fastest at context",
           v: fmt(runs[0].tg, 2),
           s: "t/s",
-          d: `${runs[0].short} • ${runs[0].sizeLabel} • ${fmtMem(runs[0].vram)} VRAM`
+          d: `${runs[0].short} • ${runs[0].sizeLabel} • ${fmtMem(gpuMem(runs[0]))} GPU`
         },
         {
           k: "Best compact lane",
@@ -1087,10 +1371,10 @@
           d: larger ? `${larger.short} • ${larger.sizeLabel}` : "No larger-model run"
         },
         {
-          k: "Best TG / VRAM",
-          v: efficient ? fmt(efficient.tg / efficient.vram, 2) : "n/a",
+          k: "Best TG / GPU GiB",
+          v: efficient ? fmt(efficient.tg / gpuMem(efficient), 2) : "n/a",
           s: efficient ? "x" : "",
-          d: efficient ? `${efficient.short} • ${fmtMem(efficient.vram)} for ${fmtSpeed(efficient.tg)}` : "No result"
+          d: efficient ? `${efficient.short} • ${fmtMem(gpuMem(efficient))} for ${fmtSpeed(efficient.tg)}` : "No measured GPU result"
         }
       ].map((card) => `
         <article class="kpi">
@@ -1117,7 +1401,7 @@
                 <span class="tag">${winner.sizeLabel}</span>
               </div>
               <div class="mini-model">${winner.short}</div>
-              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(winner.pp)} PP • ${fmtMem(winner.vram)} VRAM</div>
+              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(winner.pp)} PP • ${fmtMem(gpuMem(winner))} GPU</div>
             </div>
           `;
         })
@@ -1150,20 +1434,53 @@
     const memoryChart = makeChart("memoryChart");
     const throughputChart = makeChart("throughputChart");
     const trendChart = makeChart("trendChart");
+    const specChart = makeChart("specChart");
+    const labChart = makeChart("labChart");
 
     const textStyle = { fontFamily: "Space Grotesk, sans-serif", color: "#edf5ff" };
 
+    const SPEC_RESULTS = [
+      { scenario: "29 active tokens / 4k max", mode: "Baseline", context: 4096, activeTokens: 29, pp: 69.93, tg: 6.27, accepted: "n/a", color: "#8ea3bb" },
+      { scenario: "29 active tokens / 4k max", mode: "Qwen3 1.7B draft", context: 4096, activeTokens: 29, pp: 69.97, tg: 17.83, accepted: "227/386", color: "#21c7a8" },
+      { scenario: "24k active tokens / 32k max", mode: "Baseline", context: 32768, activeTokens: 24035, pp: 162.31, tg: 6.13, accepted: "n/a", color: "#8ea3bb" },
+      { scenario: "24k active tokens / 32k max", mode: "Qwen3 1.7B draft", context: 32768, activeTokens: 24035, pp: 162.7, tg: 3.55, accepted: "78/124", color: "#ff6f91" }
+    ];
+
+    const LAB_RESULTS = [
+      { model: "Qwen3.6 27B Q8", variant: "Vulkan q8/q8", pp: 226.89, tg: 6.27, gpu: 35.23, color: "#ffcf5a" },
+      { model: "Qwen3.6 27B Q8", variant: "ROCm hipBLASLt", pp: 280.94, tg: 6.42, gpu: 34.77, color: "#39d0ff" },
+      { model: "Qwen3.6 27B Q8", variant: "Vulkan f16/f16", pp: 194.29, tg: 6.15, gpu: 36.25, color: "#f97316" },
+      { model: "Qwen3.6 27B Q8", variant: "Turbo3 KV", pp: 201.48, tg: 6.12, gpu: 34.65, color: "#a78bfa" },
+      { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan f16/f16", pp: 912.4, tg: 54.46, gpu: 36.24, color: "#67e8f9" },
+      { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan q8/q8", pp: 739.18, tg: 52.32, gpu: 36.05, color: "#60a5fa" },
+      { model: "HauhauCS 35B Q8", variant: "f16/f16", pp: 789.5, tg: 43.5, gpu: 42.48, color: "#a78bfa" },
+      { model: "HauhauCS 35B Q8", variant: "q8/q8", pp: 665.13, tg: 40.8, gpu: 42.28, color: "#c084fc" }
+    ];
+
     function renderFrontier(runs) {
       if (!frontierChart) return;
-      const families = [...new Set(runs.map((run) => run.family))];
+      const visible = runs.filter((run) => isNumber(run.sizeB) && isNumber(run.tg) && isNumber(run.pp));
+      const ppValues = visible.map((run) => run.pp);
+      const maxGpu = Math.max(...visible.map((run) => gpuMem(run) || 0), 1);
       frontierChart.setOption({
         backgroundColor: "transparent",
         animationDuration: 450,
-        legend: {
-          bottom: 0,
-          textStyle
+        grid: { top: 24, right: 112, bottom: 58, left: 68 },
+        visualMap: {
+          type: "continuous",
+          dimension: 2,
+          min: Math.min(...ppValues),
+          max: Math.max(...ppValues),
+          right: 0,
+          top: 22,
+          text: ["High PP", "Low PP"],
+          textStyle,
+          calculable: true,
+          itemHeight: 210,
+          inRange: {
+            color: ["#4b5563", "#38bdf8", "#22c55e", "#facc15"]
+          }
         },
-        grid: { top: 16, right: 20, bottom: 70, left: 62 },
         tooltip: {
           trigger: "item",
           backgroundColor: "rgba(5, 10, 16, 0.95)",
@@ -1171,18 +1488,58 @@
           textStyle,
           formatter: ({ data }) => [
             `<strong>${data.name}</strong>`,
-            `Size: ${data.sizeLabel}`,
-            `TG: ${fmtSpeed(data.value[1])}`,
-            `PP: ${fmtSpeed(data.value[2])}`,
-            `VRAM: ${fmtMem(data.value[3])}`,
-            `RAM: ${fmtMem(data.value[4])}`
-          ].join("<br>")
+            `${data.family} • ${data.sizeLabel}`,
+            `Decode: ${fmtSpeed(data.value[1])}`,
+            `Prefill: ${fmtSpeed(data.value[2])}`,
+            `GPU footprint: ${fmtMem(data.value[3])}`,
+            `System RAM: ${fmtMem(data.ram)}`,
+            `GTT: ${fmtMem(data.gtt)}`,
+            `Memory basis: ${data.memSource}`,
+            data.kv ? `KV: ${data.kv}` : null,
+            data.runtime ? `Runtime: ${data.runtime}` : null
+          ].filter(Boolean).join("<br>")
+        },
+        dataZoom: [
+          { type: "inside", xAxisIndex: 0, filterMode: "none" },
+          { type: "inside", yAxisIndex: 0, filterMode: "none" }
+        ],
+        dataset: {
+          dimensions: ["params", "decode", "prefill", "gpu", "totalMemory"],
+          source: visible.map((run) => ({
+            name: run.short,
+            family: run.family,
+            sizeLabel: run.sizeLabel,
+            ram: run.ram,
+            gtt: run.gtt,
+            kv: run.kv,
+            runtime: run.runtime,
+            memSource: memoryBasis(run),
+            params: run.sizeB,
+            decode: run.tg,
+            prefill: run.pp,
+            gpu: gpuMem(run),
+            totalMemory: totalMeasuredMem(run),
+            itemStyle: {
+              borderColor: run.color,
+              borderWidth: 2.5,
+              shadowBlur: 18,
+              shadowColor: alpha(run.color, 0.34)
+            },
+            label: {
+              show: true,
+              formatter: run.short,
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700,
+              position: "top"
+            }
+          }))
         },
         xAxis: {
           type: "log",
           min: 2,
           max: 100,
-          name: "Model size",
+          name: "Model parameters",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
@@ -1194,45 +1551,40 @@
         },
         yAxis: {
           type: "value",
-          name: "TG tokens/s",
+          name: "Decode tokens/s",
+          nameLocation: "middle",
+          nameGap: 48,
           nameTextStyle: textStyle,
           axisLabel: { color: "#8ea3bb" },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
-        series: families.map((family) => ({
-          name: family,
+        series: [{
           type: "scatter",
-          symbolSize: (value) => Math.max(18, Math.sqrt(value[3]) * 9),
-          data: runs.filter((run) => run.family === family).map((run) => ({
-            name: run.short,
-            sizeLabel: run.sizeLabel,
-            value: [run.sizeB, run.tg, run.pp, run.vram, run.ram],
-            itemStyle: {
-              color: run.color,
-              shadowBlur: 18,
-              shadowColor: alpha(run.color, 0.35),
-              borderColor: alpha("#ffffff", 0.75),
-              borderWidth: 1.1
-            },
-            label: {
-              show: true,
-              formatter: run.short,
-              color: "#edf5ff",
-              fontSize: 11,
-              fontWeight: 700,
-              position: "top"
-            }
-          }))
-        }))
+          encode: { x: "params", y: "decode", tooltip: ["params", "decode", "prefill", "gpu"] },
+          symbolSize: (value) => {
+            const mem = value[3] || 8;
+            return Math.max(16, Math.min(58, 14 + Math.sqrt(mem / maxGpu) * 44));
+          },
+          labelLayout: { hideOverlap: true },
+          emphasis: {
+            focus: "self",
+            scale: true,
+            label: { show: true }
+          }
+        }]
       });
     }
 
     function renderEfficiency(runs) {
       if (!efficiencyChart) return;
-      const ranked = runs.map((run) => ({ ...run, eff: run.tg / run.vram })).sort((a, b) => b.eff - a.eff);
+      const ranked = runs
+        .filter((run) => isNumber(gpuMem(run)) && gpuMem(run) > 0)
+        .map((run) => ({ ...run, eff: run.tg / gpuMem(run) }))
+        .sort((a, b) => b.eff - a.eff)
+        .slice(0, 12);
       efficiencyChart.setOption({
         animationDuration: 450,
-        grid: { top: 4, right: 18, bottom: 16, left: 118 },
+        grid: { top: 4, right: 42, bottom: 16, left: 128 },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
@@ -1243,9 +1595,10 @@
             const run = ranked[params[0].dataIndex];
             return [
               `<strong>${run.short}</strong>`,
-              `TG / VRAM: ${fmt(run.eff, 2)}`,
-              `TG: ${fmtSpeed(run.tg)}`,
-              `VRAM: ${fmtMem(run.vram)}`
+              `Decode / GPU GiB: ${fmt(run.eff, 2)}`,
+              `Decode: ${fmtSpeed(run.tg)}`,
+              `GPU: ${fmtMem(gpuMem(run))}`,
+              `Memory basis: ${memoryBasis(run)}`
             ].join("<br>");
           }
         },
@@ -1302,7 +1655,7 @@
 
       heatmapChart.setOption({
         animationDuration: 450,
-        grid: { top: 18, right: 20, bottom: 42, left: 150 },
+        grid: { top: 18, right: 42, bottom: 48, left: 158 },
         tooltip: {
           backgroundColor: "rgba(5, 10, 16, 0.95)",
           borderColor: alpha("#39d0ff", 0.2),
@@ -1326,6 +1679,18 @@
           data: orderedSeries.map((series) => series.short),
           axisLabel: { color: "#edf5ff", fontWeight: 700 }
         },
+        dataZoom: [{
+          type: "slider",
+          yAxisIndex: 0,
+          right: 4,
+          width: 12,
+          start: 0,
+          end: orderedSeries.length > 22 ? 58 : 100,
+          borderColor: alpha("#8ea3bb", 0.22),
+          fillerColor: alpha("#39d0ff", 0.18),
+          handleStyle: { color: "#39d0ff" },
+          textStyle: { color: "#8ea3bb" }
+        }],
         visualMap: {
           min: 5,
           max: 100,
@@ -1341,7 +1706,7 @@
           type: "heatmap",
           data: points,
           label: {
-            show: true,
+            show: orderedSeries.length <= 24,
             color: "#03111e",
             fontWeight: 700,
             formatter: ({ value }) => `${fmt(value[2], 0)}%`
@@ -1356,55 +1721,67 @@
 
     function renderMemory(runs) {
       if (!memoryChart) return;
-      const sorted = runs.slice().sort((a, b) => b.vram - a.vram);
+      const sorted = runs.slice().sort((a, b) => (gpuMem(b) || 0) - (gpuMem(a) || 0)).slice(0, 18);
       memoryChart.setOption({
         animationDuration: 450,
         legend: {
-          bottom: 0,
+          top: 0,
           textStyle
         },
-        grid: { top: 18, right: 18, bottom: 62, left: 58 },
+        grid: { top: 48, right: 26, bottom: 48, left: 128 },
         tooltip: {
           trigger: "axis",
           axisPointer: { type: "shadow" },
           backgroundColor: "rgba(5, 10, 16, 0.95)",
           borderColor: alpha("#39d0ff", 0.2),
-          textStyle
-        },
-        xAxis: {
-          type: "category",
-          data: sorted.map((run) => run.short),
-          axisLabel: {
-            color: "#8ea3bb",
-            interval: 0,
-            rotate: 24
+          textStyle,
+          formatter: (params) => {
+            const run = sorted[params[0].dataIndex];
+            return [
+              `<strong>${run.short}</strong>`,
+              `GPU: ${fmtMem(gpuMem(run))}`,
+              `System RAM: ${fmtMem(run.ram)}`,
+              `GTT: ${fmtMem(run.gtt)}`,
+              `Memory basis: ${memoryBasis(run)}`
+            ].join("<br>");
           }
         },
-        yAxis: {
+        xAxis: {
           type: "value",
           name: "GiB",
+          nameLocation: "middle",
+          nameGap: 32,
           nameTextStyle: textStyle,
           axisLabel: { color: "#8ea3bb" },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "category",
+          inverse: true,
+          data: sorted.map((run) => run.short),
+          axisLabel: { color: "#edf5ff", fontWeight: 700 }
         },
         series: [
           {
             name: "System RAM",
             type: "bar",
-            data: sorted.map((run) => run.ram),
-            itemStyle: { color: alpha("#95a6be", 0.85), borderRadius: [8, 8, 0, 0] }
+            stack: "memory",
+            data: sorted.map((run) => isNumber(run.ram) ? run.ram : null),
+            itemStyle: { color: alpha("#95a6be", 0.85), borderRadius: [0, 8, 8, 0] }
           },
           {
-            name: "VRAM",
+            name: "GPU",
             type: "bar",
-            data: sorted.map((run) => run.vram),
-            itemStyle: { color: alpha("#39d0ff", 0.92), borderRadius: [8, 8, 0, 0] }
+            stack: "memory",
+            data: sorted.map((run) => gpuMem(run)),
+            itemStyle: { color: alpha("#39d0ff", 0.92), borderRadius: [0, 8, 8, 0] }
           },
           {
             name: "GTT",
             type: "bar",
-            data: sorted.map((run) => run.gtt),
-            itemStyle: { color: alpha("#f3b14a", 0.92), borderRadius: [8, 8, 0, 0] }
+            stack: "memory",
+            data: sorted.map((run) => isNumber(run.gtt) ? run.gtt : null),
+            itemStyle: { color: alpha("#f3b14a", 0.92), borderRadius: [0, 8, 8, 0] }
           }
         ]
       });
@@ -1430,7 +1807,8 @@
             `PP: ${fmtSpeed(data.value[0])}`,
             `TG: ${fmtSpeed(data.value[1])}`,
             `Size: ${data.sizeLabel}`,
-            `VRAM: ${fmtMem(data.vram)}`
+            `GPU: ${fmtMem(data.gpu)}`,
+            `Memory basis: ${data.memSource}`
           ].join("<br>")
         },
         xAxis: {
@@ -1455,7 +1833,8 @@
           data: runs.filter((run) => run.family === family).map((run) => ({
             name: run.short,
             sizeLabel: run.sizeLabel,
-            vram: run.vram,
+            gpu: gpuMem(run),
+            memSource: memoryBasis(run),
             value: [run.pp, run.tg],
             symbolSize: Math.max(14, Math.sqrt(run.sizeB) * 6),
             itemStyle: {
@@ -1477,6 +1856,10 @@
 
     function renderTrend() {
       if (!trendChart) return;
+      const trendSeries = SERIES
+        .filter((series) => series.runs.length >= 2)
+        .sort((a, b) => Math.max(...b.runs.map((run) => run.context)) - Math.max(...a.runs.map((run) => run.context)) || b.sizeB - a.sizeB)
+        .slice(0, 18);
       trendChart.setOption({
         animationDuration: 450,
         legend: {
@@ -1496,7 +1879,7 @@
           type: "category",
           boundaryGap: false,
           data: CONTEXTS.map(ctx),
-          axisLabel: { color: "#8ea3bb" }
+          axisLabel: { color: "#8ea3bb", hideOverlap: true }
         },
         yAxis: {
           type: "value",
@@ -1505,7 +1888,7 @@
           axisLabel: { color: "#8ea3bb" },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
-        series: SERIES.map((series) => {
+        series: trendSeries.map((series) => {
           const runMap = new Map(series.runs.map((run) => [run.context, run.pp]));
           return {
             name: series.short,
@@ -1516,9 +1899,136 @@
             lineStyle: { width: 2.5, color: series.color },
             itemStyle: { color: series.color },
             emphasis: { focus: "series" },
+            connectNulls: false,
             data: CONTEXTS.map((context) => runMap.get(context) ?? null)
           };
         })
+      });
+    }
+
+    function renderSpec() {
+      if (!specChart) return;
+      const scenarios = [...new Set(SPEC_RESULTS.map((run) => run.scenario))];
+      const modes = [...new Set(SPEC_RESULTS.map((run) => run.mode))];
+      specChart.setOption({
+        animationDuration: 450,
+        legend: { bottom: 0, textStyle },
+        grid: { top: 18, right: 28, bottom: 72, left: 58 },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: (params) => params.map((param) => {
+            const run = SPEC_RESULTS.find((entry) => entry.scenario === param.axisValue && entry.mode === param.seriesName);
+            if (!run) return "";
+            return [
+              `<strong>${run.mode}</strong>`,
+              `${run.scenario}`,
+              `Decode: ${fmtSpeed(run.tg)}`,
+              `Prompt: ${fmtSpeed(run.pp)}`,
+              `Accepted: ${run.accepted}`
+            ].join("<br>");
+          }).filter(Boolean).join("<br><br>")
+        },
+        xAxis: {
+          type: "category",
+          data: scenarios,
+          axisLabel: {
+            color: "#8ea3bb",
+            interval: 0,
+            lineHeight: 16
+          }
+        },
+        yAxis: {
+          type: "value",
+          name: "Decode tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: modes.map((mode) => ({
+          name: mode,
+          type: "bar",
+          data: scenarios.map((scenario) => {
+            const run = SPEC_RESULTS.find((entry) => entry.scenario === scenario && entry.mode === mode);
+            return run ? {
+              value: run.tg,
+              itemStyle: { color: run.color, borderRadius: [8, 8, 0, 0] }
+            } : null;
+          }),
+          label: {
+            show: true,
+            position: "top",
+            color: "#edf5ff",
+            formatter: ({ value }) => fmt(value, 1)
+          }
+        }))
+      });
+    }
+
+    function renderLab() {
+      if (!labChart) return;
+      labChart.setOption({
+        animationDuration: 450,
+        grid: { top: 18, right: 20, bottom: 46, left: 58 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${data.model}</strong>`,
+            data.variant,
+            `Prefill: ${fmtSpeed(data.value[0])}`,
+            `Decode: ${fmtSpeed(data.value[1])}`,
+            `GPU: ${fmtMem(data.gpu)}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: "Prefill tokens/s",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Decode tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: [{
+          type: "scatter",
+          data: LAB_RESULTS.map((run) => ({
+            model: run.model,
+            variant: run.variant,
+            gpu: run.gpu,
+            value: [run.pp, run.tg],
+            symbolSize: Math.max(18, Math.sqrt(run.gpu) * 7),
+            itemStyle: {
+              color: run.color,
+              borderColor: alpha("#ffffff", 0.7),
+              borderWidth: 1.2,
+              shadowBlur: 16,
+              shadowColor: alpha(run.color, 0.34)
+            },
+            label: {
+              show: true,
+              formatter: run.variant,
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700,
+              position: "top"
+            }
+          })),
+          labelLayout: { hideOverlap: true },
+          emphasis: { focus: "self", scale: true }
+        }]
       });
     }
 
@@ -1531,12 +2041,14 @@
       renderMemory(runs);
       renderThroughput(runs);
       renderTrend();
+      renderSpec();
+      renderLab();
     }
 
     render();
 
     window.addEventListener("resize", () => {
-      [frontierChart, efficiencyChart, heatmapChart, memoryChart, throughputChart, trendChart]
+      [frontierChart, efficiencyChart, heatmapChart, memoryChart, throughputChart, trendChart, specChart, labChart]
         .filter(Boolean)
         .forEach((chart) => chart.resize());
     });
