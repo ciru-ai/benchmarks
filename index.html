@@ -452,6 +452,81 @@
       height: 290px;
     }
 
+    .chart-selection {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .chart-selection[hidden] {
+      display: none;
+    }
+
+    .chart-selection-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .chart-selection-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .chart-selection-meta {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chart-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .chart-selection-stat {
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .chart-selection-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .chart-selection-stat strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.98rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .chart-selection-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
     .fallback {
       display: grid;
       place-items: center;
@@ -718,6 +793,18 @@
       .chart-md {
         height: 320px;
       }
+
+      .chart-selection-head {
+        flex-direction: column;
+      }
+
+      .chart-selection-meta {
+        justify-content: flex-start;
+      }
+
+      .chart-selection-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -770,6 +857,7 @@
           <div id="contextSwitch" class="segmented"></div>
         </div>
         <div id="frontierChart" class="chart chart-lg"></div>
+        <div id="frontierSelection" class="chart-selection" aria-live="polite" hidden></div>
       </article>
 
       <aside class="stack">
@@ -1445,6 +1533,55 @@
       .join("");
 
     const contextSwitch = document.getElementById("contextSwitch");
+    const frontierSelection = document.getElementById("frontierSelection");
+    let frontierVisibleRuns = [];
+    let selectedFrontierDataIndex = null;
+    let frontierMaxParams = 1;
+
+    function frontierSymbolSize(params, maxParams = frontierMaxParams) {
+      return Math.max(16, Math.min(56, 14 + Math.sqrt((params || 4) / maxParams) * 42));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function renderFrontierSelection(run) {
+      if (!frontierSelection) return;
+      if (!run) {
+        frontierSelection.hidden = true;
+        frontierSelection.innerHTML = "";
+        return;
+      }
+
+      frontierSelection.hidden = false;
+      frontierSelection.innerHTML = `
+        <div class="chart-selection-head">
+          <p class="chart-selection-title">${escapeHtml(run.name)}</p>
+          <div class="chart-selection-meta">
+            <span class="tag">${escapeHtml(run.family)}</span>
+            <span class="tag">${escapeHtml(run.sizeLabel)}</span>
+            <span class="tag mono">${ctx(run.context)}</span>
+          </div>
+        </div>
+        <div class="chart-selection-grid">
+          <div class="chart-selection-stat"><span>Decode</span><strong>${fmtSpeed(run.tg)}</strong></div>
+          <div class="chart-selection-stat"><span>Prefill</span><strong>${fmtSpeed(run.pp)}</strong></div>
+          <div class="chart-selection-stat"><span>GPU</span><strong>${fmtMem(gpuMem(run))}</strong></div>
+          <div class="chart-selection-stat"><span>Memory basis</span><strong>${escapeHtml(memoryBasis(run))}</strong></div>
+        </div>
+        <p class="chart-selection-note">
+          Date ${escapeHtml(run.date)} • System RAM ${fmtMem(run.ram)} • GTT ${fmtMem(run.gtt)}${run.kv ? ` • KV ${escapeHtml(run.kv)}` : ""}${run.runtime ? ` • Runtime ${escapeHtml(run.runtime)}` : ""}
+        </p>
+      `;
+    }
+
     contextSwitch.innerHTML = CONTEXTS.map((value) => `
       <button type="button" data-context="${value}" class="${value === activeContext ? "active" : ""}">
         ${ctx(value)} <span class="mono">${CONTEXT_COUNTS.find((entry) => entry.context === value)?.count || 0}</span>
@@ -1574,8 +1711,11 @@
     function renderFrontier(runs) {
       if (!frontierChart) return;
       const visible = runs.filter((run) => isNumber(gpuMem(run)) && isNumber(run.sizeB) && isNumber(run.tg) && isNumber(run.pp));
+      frontierVisibleRuns = visible;
+      selectedFrontierDataIndex = null;
+      renderFrontierSelection(null);
       const ppValues = visible.map((run) => run.pp);
-      const maxParams = Math.max(...visible.map((run) => run.sizeB), 1);
+      frontierMaxParams = Math.max(...visible.map((run) => run.sizeB), 1);
       frontierChart.setOption({
         backgroundColor: "transparent",
         animationDuration: 450,
@@ -1597,22 +1737,27 @@
         },
         tooltip: {
           trigger: "item",
+          triggerOn: "mousemove|click",
           backgroundColor: "rgba(5, 10, 16, 0.95)",
           borderColor: alpha("#39d0ff", 0.2),
           textStyle,
-          formatter: ({ data }) => [
-            `<strong>${data.name}</strong>`,
-            `${data.family} • ${data.sizeLabel}`,
-            `GPU memory: ${fmtMem(data.value[0])}`,
-            `Decode: ${fmtSpeed(data.value[1])}`,
-            `Prefill: ${fmtSpeed(data.value[2])}`,
-            `Parameters: ${fmt(data.value[3], 0)}B`,
-            `System RAM: ${fmtMem(data.ram)}`,
-            `GTT: ${fmtMem(data.gtt)}`,
-            `Memory basis: ${data.memSource}`,
-            data.kv ? `KV: ${data.kv}` : null,
-            data.runtime ? `Runtime: ${data.runtime}` : null
-          ].filter(Boolean).join("<br>")
+          formatter: ({ data, value }) => {
+            const row = data || {};
+            const values = Array.isArray(row.value) ? row.value : (Array.isArray(value) ? value : [row.gpu, row.decode, row.prefill, row.params]);
+            return [
+              `<strong>${row.name}</strong>`,
+              `${row.family} • ${row.sizeLabel}`,
+              `GPU memory: ${fmtMem(values[0])}`,
+              `Decode: ${fmtSpeed(values[1])}`,
+              `Prefill: ${fmtSpeed(values[2])}`,
+              `Parameters: ${fmt(values[3], 0)}B`,
+              `System RAM: ${fmtMem(row.ram)}`,
+              `GTT: ${fmtMem(row.gtt)}`,
+              `Memory basis: ${row.memSource}`,
+              row.kv ? `KV: ${row.kv}` : null,
+              row.runtime ? `Runtime: ${row.runtime}` : null
+            ].filter(Boolean).join("<br>");
+          }
         },
         dataZoom: [
           { type: "inside", xAxisIndex: 0, filterMode: "none" },
@@ -1675,11 +1820,9 @@
         },
         series: [{
           type: "scatter",
+          cursor: "pointer",
           encode: { x: "gpu", y: "decode", tooltip: ["gpu", "decode", "prefill", "params"] },
-          symbolSize: (value) => {
-            const params = value[3] || 4;
-            return Math.max(16, Math.min(56, 14 + Math.sqrt(params / maxParams) * 42));
-          },
+          symbolSize: (value) => frontierSymbolSize(value[3]),
           labelLayout: { hideOverlap: true },
           markLine: {
             symbol: "none",
@@ -1703,9 +1846,86 @@
           emphasis: {
             focus: "self",
             scale: true,
-            label: { show: true }
+            label: { show: true },
+            itemStyle: {
+              borderColor: "#ffffff",
+              borderWidth: 3.5
+            }
           }
         }]
+      });
+    }
+
+    function clearFrontierSelection() {
+      if (!frontierChart) return;
+      if (selectedFrontierDataIndex != null) {
+        frontierChart.dispatchAction({
+          type: "downplay",
+          seriesIndex: 0,
+          dataIndex: selectedFrontierDataIndex
+        });
+      }
+      selectedFrontierDataIndex = null;
+      frontierChart.dispatchAction({ type: "hideTip" });
+      renderFrontierSelection(null);
+    }
+
+    function selectFrontierRun(dataIndex) {
+      if (!frontierChart) return;
+      const run = frontierVisibleRuns[dataIndex];
+      if (!run) return;
+
+      if (selectedFrontierDataIndex != null && selectedFrontierDataIndex !== dataIndex) {
+        frontierChart.dispatchAction({
+          type: "downplay",
+          seriesIndex: 0,
+          dataIndex: selectedFrontierDataIndex
+        });
+      }
+
+      selectedFrontierDataIndex = dataIndex;
+      frontierChart.dispatchAction({
+        type: "highlight",
+        seriesIndex: 0,
+        dataIndex
+      });
+      frontierChart.dispatchAction({
+        type: "showTip",
+        seriesIndex: 0,
+        dataIndex
+      });
+      renderFrontierSelection(run);
+    }
+
+    function frontierPointAt(clientX, clientY) {
+      if (!frontierChart || !frontierVisibleRuns.length) return null;
+      const rect = frontierChart.getDom().getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      let closest = null;
+
+      frontierVisibleRuns.forEach((run, dataIndex) => {
+        const point = frontierChart.convertToPixel({ seriesIndex: 0 }, [gpuMem(run), run.tg]);
+        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
+
+        const distance = Math.hypot(point[0] - localX, point[1] - localY);
+        const hitRadius = (frontierSymbolSize(run.sizeB) / 2) + 8;
+        if (distance <= hitRadius && (!closest || distance < closest.distance)) {
+          closest = { dataIndex, distance };
+        }
+      });
+
+      return closest;
+    }
+
+    if (frontierChart) {
+      frontierChart.getDom().addEventListener("click", (event) => {
+        const hit = frontierPointAt(event.clientX, event.clientY);
+        if (!hit) {
+          clearFrontierSelection();
+          return;
+        }
+        selectFrontierRun(hit.dataIndex);
       });
     }
 
