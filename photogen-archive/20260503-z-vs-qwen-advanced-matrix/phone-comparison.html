@@ -1,0 +1,209 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Z-Image vs Qwen Advanced Matrix</title><style>
+:root{--bg:#11100d;--panel:#1d1a15;--ink:#f6eddd;--muted:#b9aa95;--edge:#3b3328;--accent:#d9a441;--bad:#7d2d25;--good:#2f6b4f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#2f281b,#11100d 42%),#11100d;color:var(--ink);font-family:Georgia,'Times New Roman',serif}main{max-width:1400px;margin:0 auto;padding:24px}h1{font-size:clamp(34px,7vw,82px);line-height:.9;margin:18px 0 10px;letter-spacing:-.05em}h2{margin:34px 0 10px;font-size:30px}.lede{color:var(--muted);font-size:18px;max-width:900px}.task{border:1px solid var(--edge);background:rgba(29,26,21,.78);border-radius:18px;margin:22px 0;padding:16px}.task>p{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{background:#17140f;border:1px solid var(--edge);border-radius:14px;overflow:hidden}.card header{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:10px 12px;border-bottom:1px solid var(--edge)}.card h3{font-size:16px;margin:0}.card span{font-size:13px;color:var(--accent);white-space:nowrap}.card img{width:100%;display:block;background:#090806}.card details{padding:10px 12px;color:var(--muted);font-size:13px}.fail{min-height:260px;display:grid;place-items:center;padding:18px;background:#21120f;color:#ffb4a8}.meta{padding:0 12px 10px;color:var(--muted);font-size:13px}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}.pill{border:1px solid var(--edge);background:#181510;border-radius:12px;padding:12px}.pill b{display:block;color:var(--accent);font-size:22px}.note{color:var(--muted);font-size:14px}code{color:#ffd27d}</style></head><body><main>
+<h1>Z-Image vs Qwen Advanced Matrix</h1>
+<p class="lede">New comparison page for advanced features and speed paths. FLUX is intentionally excluded here because the installed FLUX.1 path was removed; FLUX.2 should be tested separately, not conflated with this result.</p>
+<section class="summary">
+<div class="pill"><span>Advanced matrix</span><b>9/10</b><small>successful outputs</small></div>
+<div class="pill"><span>Advanced matrix</span><b>51.3s</b><small>median wall time</small></div>
+<div class="pill"><span>Advanced matrix</span><b>46.1-361.8s</b><small>observed range</small></div>
+</section>
+<section class="summary">
+<div class="pill"><span>Turbo matrix</span><b>15/15</b><small>successful outputs</small></div>
+<div class="pill"><span>Turbo matrix</span><b>48.3s</b><small>median wall time</small></div>
+<div class="pill"><span>Turbo matrix</span><b>38.0-101.4s</b><small>observed range</small></div>
+</section>
+<h2>Advanced feature matrix</h2>
+<section class="task"><h2>Photoreal editorial portrait</h2><p>Z-Image should shine on natural beauty/photo realism; Qwen should show whether corrected workflow can match it.</p><div class="grid">
+
+    <article class="card success">
+      <header><h3>zimage</h3><span>success 51.3s</span></header>
+      <a href="images/beauty_editorial-zimage.png"><img src="images/beauty_editorial-zimage.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>qwen</h3><span>success 55.3s</span></header>
+      <a href="images/beauty_editorial-qwen.png"><img src="images/beauty_editorial-qwen.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Readable text in scene</h2><p>Qwen should shine if text rendering works; Z-Image may produce nicer scene quality but weaker exact text.</p><div class="grid">
+
+    <article class="card success">
+      <header><h3>zimage</h3><span>success 46.1s</span></header>
+      <a href="images/exact_sign_text-zimage.png"><img src="images/exact_sign_text-zimage.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>qwen</h3><span>success 50.4s</span></header>
+      <a href="images/exact_sign_text-qwen.png"><img src="images/exact_sign_text-qwen.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Product detail and label text</h2><p>Qwen should shine on label text; Z-Image should show product realism.</p><div class="grid">
+
+    <article class="card success">
+      <header><h3>zimage</h3><span>success 48.1s</span></header>
+      <a href="images/premium_product_label-zimage.png"><img src="images/premium_product_label-zimage.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>qwen</h3><span>success 50.6s</span></header>
+      <a href="images/premium_product_label-qwen.png"><img src="images/premium_product_label-qwen.png" loading="lazy"></a>
+      <div class="meta">kind: t2i</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Semantic edit: change clothing color</h2><p>Qwen-Edit should preserve the source while applying a specific semantic change. Z-Image reference mode is included as a comparison, not expected to be as faithful.</p><div class="grid">
+
+    <article class="card failed">
+      <header><h3>zimage_reference</h3><span>failed </span></header>
+      <div class="fail">RuntimeError(&#x27;no output image&#x27;)</div>
+      <div class="meta">kind: edit</div>
+      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman’s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>qwen_edit</h3><span>success 353.7s</span></header>
+      <a href="images/semantic_edit_coat-qwen_edit.png"><img src="images/semantic_edit_coat-qwen_edit.png" loading="lazy"></a>
+      <div class="meta">kind: edit</div>
+      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman’s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Reference/material transfer</h2><p>Qwen-Edit should do targeted product/material editing; Z-Image reference mode may create a new similar image rather than a precise edit.</p><div class="grid">
+
+    <article class="card success">
+      <header><h3>zimage_reference</h3><span>success 84.2s</span></header>
+      <a href="images/style_reference_material-zimage_reference.png"><img src="images/style_reference_material-zimage_reference.png" loading="lazy"></a>
+      <div class="meta">kind: edit</div>
+      <details><summary>Prompt</summary><p>Keep the perfume bottle shape, camera angle, composition, and black marble setting. Change the bottle glass from amber to translucent emerald green and make the label cream paper with gold lettering, preserving realistic studio reflections.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>qwen_edit</h3><span>success 361.8s</span></header>
+      <a href="images/style_reference_material-qwen_edit.png"><img src="images/style_reference_material-qwen_edit.png" loading="lazy"></a>
+      <div class="meta">kind: edit</div>
+      <details><summary>Prompt</summary><p>Keep the perfume bottle shape, camera angle, composition, and black marble setting. Change the bottle glass from amber to translucent emerald green and make the label cream paper with gold lettering, preserving realistic studio reflections.</p></details>
+    </article>
+</div></section>
+<h2>Turbo / speed path matrix</h2>
+<p class="note">Z-Image baseline is already an 8-step Turbo model. These rows test whether fewer steps are useful. Qwen rows test proper 20-step quality baseline against Lightning V2 8-step and 4-step LoRA paths.</p>
+<section class="task"><h2>Turbo: photoreal woman</h2><div class="grid">
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 6 steps</h3><span>success 43.3s</span></header>
+      <a href="images/turbo_beauty-zimage_steps6.png"><img src="images/turbo_beauty-zimage_steps6.png" loading="lazy"></a>
+      <div class="meta">steps: 6<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 4 steps</h3><span>success 39.1s</span></header>
+      <a href="images/turbo_beauty-zimage_steps4.png"><img src="images/turbo_beauty-zimage_steps4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 101.4s</span></header>
+      <a href="images/turbo_beauty-qwen_steps20.png"><img src="images/turbo_beauty-qwen_steps20.png" loading="lazy"></a>
+      <div class="meta">steps: 20<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 64.0s</span></header>
+      <a href="images/turbo_beauty-qwen_lightning8.png"><img src="images/turbo_beauty-qwen_lightning8.png" loading="lazy"></a>
+      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 50.2s</span></header>
+      <a href="images/turbo_beauty-qwen_lightning4.png"><img src="images/turbo_beauty-qwen_lightning4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Turbo: exact sign text</h2><div class="grid">
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 6 steps</h3><span>success 43.0s</span></header>
+      <a href="images/turbo_text-zimage_steps6.png"><img src="images/turbo_text-zimage_steps6.png" loading="lazy"></a>
+      <div class="meta">steps: 6<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 4 steps</h3><span>success 38.0s</span></header>
+      <a href="images/turbo_text-zimage_steps4.png"><img src="images/turbo_text-zimage_steps4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 92.3s</span></header>
+      <a href="images/turbo_text-qwen_steps20.png"><img src="images/turbo_text-qwen_steps20.png" loading="lazy"></a>
+      <div class="meta">steps: 20<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 63.1s</span></header>
+      <a href="images/turbo_text-qwen_lightning8.png"><img src="images/turbo_text-qwen_lightning8.png" loading="lazy"></a>
+      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 47.4s</span></header>
+      <a href="images/turbo_text-qwen_lightning4.png"><img src="images/turbo_text-qwen_lightning4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
+    </article>
+</div></section>
+<section class="task"><h2>Turbo: product label</h2><div class="grid">
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 6 steps</h3><span>success 42.0s</span></header>
+      <a href="images/turbo_product-zimage_steps6.png"><img src="images/turbo_product-zimage_steps6.png" loading="lazy"></a>
+      <div class="meta">steps: 6<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Z-Image FP8, 4 steps</h3><span>success 38.0s</span></header>
+      <a href="images/turbo_product-zimage_steps4.png"><img src="images/turbo_product-zimage_steps4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 94.7s</span></header>
+      <a href="images/turbo_product-qwen_steps20.png"><img src="images/turbo_product-qwen_steps20.png" loading="lazy"></a>
+      <div class="meta">steps: 20<br>LoRA: none</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 64.5s</span></header>
+      <a href="images/turbo_product-qwen_lightning8.png"><img src="images/turbo_product-qwen_lightning8.png" loading="lazy"></a>
+      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+
+    <article class="card success">
+      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 48.3s</span></header>
+      <a href="images/turbo_product-qwen_lightning4.png"><img src="images/turbo_product-qwen_lightning4.png" loading="lazy"></a>
+      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+      <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
+    </article>
+</div></section>
+<h2>Notes</h2><p class="note">VRAM sampling fields are blank in this run because the local ROCm memory parser did not return usable values during the turbo runner. Timing and image outputs are valid. Comfy service privacy opt-outs are now set with <code>HF_HUB_DISABLE_TELEMETRY=1</code>, <code>DO_NOT_TRACK=1</code>, <code>DISABLE_TELEMETRY=1</code>, and <code>COMFYUI_DISABLE_TELEMETRY=1</code>.</p></main></body></html>

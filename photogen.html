@@ -1,211 +1,433 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Z-Image vs Qwen Advanced Matrix</title><style>
-:root{--bg:#11100d;--panel:#1d1a15;--ink:#f6eddd;--muted:#b9aa95;--edge:#3b3328;--accent:#d9a441;--bad:#7d2d25;--good:#2f6b4f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#2f281b,#11100d 42%),#11100d;color:var(--ink);font-family:Georgia,'Times New Roman',serif}main{max-width:1400px;margin:0 auto;padding:24px}h1{font-size:clamp(34px,7vw,82px);line-height:.9;margin:18px 0 10px;letter-spacing:-.05em}h2{margin:34px 0 10px;font-size:30px}.lede{color:var(--muted);font-size:18px;max-width:900px}.task{border:1px solid var(--edge);background:rgba(29,26,21,.78);border-radius:18px;margin:22px 0;padding:16px}.task>p{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{background:#17140f;border:1px solid var(--edge);border-radius:14px;overflow:hidden}.card header{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:10px 12px;border-bottom:1px solid var(--edge)}.card h3{font-size:16px;margin:0}.card span{font-size:13px;color:var(--accent);white-space:nowrap}.card img{width:100%;display:block;background:#090806}.card details{padding:10px 12px;color:var(--muted);font-size:13px}.fail{min-height:260px;display:grid;place-items:center;padding:18px;background:#21120f;color:#ffb4a8}.meta{padding:0 12px 10px;color:var(--muted);font-size:13px}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}.pill{border:1px solid var(--edge);background:#181510;border-radius:12px;padding:12px}.pill b{display:block;color:var(--accent);font-size:22px}.note{color:var(--muted);font-size:14px}code{color:#ffd27d}</style></head><body><main>
-<h1>Z-Image vs Qwen Advanced Matrix</h1>
-<p class="lede">Measured on an AMD Strix Halo 128GB system. New comparison page for advanced features and speed paths. FLUX is intentionally excluded here because the installed FLUX.1 path was removed; FLUX.2 should be tested separately, not conflated with this result.</p>
-<section class="summary">
-<div class="pill"><span>Hardware</span><b>AMD Strix Halo</b><small>128GB system</small></div>
-<div class="pill"><span>Advanced matrix</span><b>9/10</b><small>successful outputs</small></div>
-<div class="pill"><span>Advanced matrix</span><b>51.3s</b><small>median wall time</small></div>
-<div class="pill"><span>Advanced matrix</span><b>46.1-361.8s</b><small>observed range</small></div>
-</section>
-<section class="summary">
-<div class="pill"><span>Turbo matrix</span><b>15/15</b><small>successful outputs</small></div>
-<div class="pill"><span>Turbo matrix</span><b>48.3s</b><small>median wall time</small></div>
-<div class="pill"><span>Turbo matrix</span><b>38.0-101.4s</b><small>observed range</small></div>
-</section>
-<h2>Advanced feature matrix</h2>
-<section class="task"><h2>Photoreal editorial portrait</h2><p>Z-Image should shine on natural beauty/photo realism; Qwen should show whether corrected workflow can match it.</p><div class="grid">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMD Strix Halo 128GB Image Generation Benchmarks</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --ink: #111827;
+      --muted: #586579;
+      --line: #d8e1ec;
+      --panel: #ffffff;
+      --navy: #111827;
+      --blue: #2563eb;
+      --teal: #0f766e;
+      --green: #15803d;
+      --rose: #be123c;
+      --amber: #b45309;
+      --soft-blue: #eaf1ff;
+      --soft-teal: #e5f5f2;
+      --soft-green: #e9f7ed;
+      --soft-rose: #ffeaf0;
+      --soft-amber: #fff4df;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 "Segoe UI", Arial, sans-serif; }
+    a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: clamp(34px, 6vw, 70px); line-height: 1; max-width: 980px; }
+    h2 { font-size: clamp(24px, 3vw, 38px); line-height: 1.1; }
+    h3 { font-size: 21px; }
+    h4 { font-size: 15px; }
+    code { font-family: Consolas, "SFMono-Regular", monospace; font-size: .94em; }
+    .wrap { max-width: 1380px; margin: 0 auto; padding: 0 24px; }
+    .hero { background: var(--navy); color: #f9fbff; padding: 34px 0 28px; }
+    .hero p { color: #c9d4e5; max-width: 920px; margin-top: 14px; font-size: 17px; }
+    .hero-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .chip { border: 1px solid rgba(255,255,255,.24); border-radius: 999px; padding: 7px 11px; color: #dbe7f7; background: rgba(255,255,255,.06); white-space: nowrap; }
+    nav { background: #fff; border-bottom: 1px solid var(--line); }
+    nav .wrap { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
+    nav a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; background: #fff; }
+    .band { border-top: 1px solid var(--line); padding: 34px 0; }
+    .band:first-of-type { border-top: 0; }
+    .section-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 18px; }
+    .section-head p { color: var(--muted); max-width: 860px; margin-top: 8px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .metric, .model-card, .image-card, .retry-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+    .metric { padding: 14px; min-height: 106px; }
+    .metric span, .card-meta, .model-stats, .task-heading p, .retry-card p, .prompt-list span, figcaption { color: var(--muted); }
+    .metric strong { display: block; font-size: 28px; line-height: 1.1; margin-top: 8px; }
+    .metric small { display: block; margin-top: 4px; color: var(--muted); }
+    .metric.blue { border-color: #adc6ff; background: var(--soft-blue); }
+    .metric.teal { border-color: #a8d7cf; background: var(--soft-teal); }
+    .metric.green { border-color: #a9d8b8; background: var(--soft-green); }
+    .metric.rose { border-color: #ffc0cd; background: var(--soft-rose); }
+    .metric.amber { border-color: #f5d49b; background: var(--soft-amber); }
+    .table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; min-width: 880px; }
+    th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 700; }
+    tr:last-child td { border-bottom: 0; }
+    .takeaways { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .takeaways article { background: #fff; border-left: 4px solid var(--blue); border-radius: 8px; padding: 14px; }
+    .takeaways article:nth-child(2) { border-left-color: var(--teal); }
+    .takeaways article:nth-child(3) { border-left-color: var(--amber); }
+    .takeaways article:nth-child(4) { border-left-color: var(--rose); }
+    .takeaways p { color: var(--muted); margin-top: 7px; }
+    .task-block { margin-top: 20px; }
+    .task-heading { display: flex; justify-content: space-between; gap: 14px; align-items: start; margin-bottom: 10px; }
+    .task-heading span { color: var(--muted); white-space: nowrap; }
+    .image-grid { display: grid; gap: 12px; }
+    .image-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .image-grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .image-card { overflow: hidden; }
+    .image-card header { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); align-items: baseline; }
+    .image-card header span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .image-link { display: block; background: #0f172a; }
+    .image-link img { width: 100%; display: block; }
+    .thumb img { aspect-ratio: 1 / 1; object-fit: contain; }
+    .retry-thumb img { max-height: 380px; object-fit: contain; }
+    .card-meta { padding: 10px 12px 0; font-size: 12px; }
+    details { padding: 10px 12px 12px; }
+    details p { color: var(--muted); margin-top: 8px; }
+    summary { cursor: pointer; color: var(--ink); font-weight: 650; }
+    .failure-box { min-height: 260px; display: grid; place-items: center; padding: 18px; background: #fff1f1; color: #991b1b; text-align: center; }
+    .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 12px; margin: 14px 0 18px; }
+    .model-card { padding: 14px; }
+    .model-stats { display: grid; gap: 4px; margin-top: 8px; font-size: 13px; }
+    .sheet-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    figure { margin: 0; }
+    .sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .sheet img { width: 100%; display: block; }
+    figcaption { padding: 10px 12px; font-size: 13px; }
+    .prompt-list { margin: 10px 0 0; padding: 0; display: grid; gap: 8px; list-style: none; }
+    .prompt-list li { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; }
+    .prompt-list strong, .prompt-list span { display: block; }
+    .prompt-list span { margin-top: 4px; font-size: 13px; }
+    .retry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .retry-card { padding: 14px; }
+    .retry-card p { margin-top: 8px; }
+    .retry-card a { display: inline-block; margin-top: 10px; }
+    footer { padding: 24px 0 40px; color: var(--muted); }
+    @media (max-width: 1100px) { .metrics, .takeaways, .image-grid.five { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 760px) {
+      .wrap { padding: 0 14px; }
+      .hero { padding-top: 26px; }
+      .section-head, .task-heading { display: block; }
+      .metrics, .takeaways, .image-grid.two, .image-grid.five, .sheet-grid { grid-template-columns: 1fr; }
+      .task-heading span { display: inline-block; margin-top: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>AMD Strix Halo 128GB Image Generation Benchmarks</h1>
+      <p>Recovered and consolidated image-generation benchmark results from the AMD Strix Halo 128GB system. This page combines the current Z-Image / Qwen advanced matrix with earlier high-signal sweeps for Z-Image, RealVisXL, FLUX, Qwen BF16, and Comfy FP8 paths.</p>
+      <div class="hero-bar">
+        <span class="chip">Hardware: AMD Strix Halo 128GB system</span>
+        <span class="chip">Recovered runs: 5</span>
+        <span class="chip">Detailed images: 24 current matrix PNGs</span>
+        <span class="chip">Archive assets: contact sheets and JSON metadata</span>
+      </div>
+    </div>
+  </header>
+  <nav aria-label="Page sections"><div class="wrap">
+    <a href="#overview">Overview</a><a href="#advanced">Advanced Matrix</a><a href="#turbo">Turbo Matrix</a><a href="#comfy">Comfy FP8 Sweep</a><a href="#baseline">Baseline Photo Suites</a><a href="#retry">Qwen BF16 Retry</a><a href="#archive">Archive Data</a>
+  </div></nav>
 
-    <article class="card success">
-      <header><h3>zimage</h3><span>success 51.3s</span></header>
-      <a href="photogen-images/beauty_editorial-zimage.png"><img src="photogen-images/beauty_editorial-zimage.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+  <main>
+    <section class="band" id="overview"><div class="wrap">
+      <div class="section-head"><div><h2>Overview</h2><p>The page favors artifacts with the highest information density: full current comparison grids, old contact sheets, prompt and summary JSON, and retry evidence where full HTML was not available.</p></div></div>
+      <div class="metrics"><article class="metric teal">
+      <span>Hardware</span>
+      <strong>AMD Strix Halo</strong>
+      <small>128GB system</small>
+    </article><article class="metric blue">
+      <span>Detailed advanced matrix</span>
+      <strong>9/10</strong>
+      <small>median 51.3s</small>
+    </article><article class="metric green">
+      <span>Turbo speed matrix</span>
+      <strong>15/15</strong>
+      <small>median 48.3s</small>
+    </article><article class="metric rose">
+      <span>Recovered runs</span>
+      <strong>5</strong>
+      <small>HTML, JSON, sheets, retry images</small>
+    </article><article class="metric amber">
+      <span>Mirrored visual assets</span>
+      <strong>32</strong>
+      <small>24 detailed PNGs, 6 sheets, 2 retry PNGs</small>
+    </article></div>
+      <div class="takeaways" style="margin-top:14px">
+        <article><h3>Advanced matrix</h3><p>Qwen Edit completed the semantic edit cases but took roughly 354-362s. Z-Image covered the T2I rows quickly and had one reference-mode edit failure.</p></article>
+        <article><h3>Turbo matrix</h3><p>Z-Image 4-6 step runs were the fastest cluster. Qwen Lightning 4-step narrowed runtime substantially versus Qwen 20-step baseline.</p></article>
+        <article><h3>Comfy FP8 sweep</h3><p>The broad 15-prompt sheet preserves the best recovered side-by-side view across Z-Image, Qwen, and FLUX FP8/BF16 paths.</p></article>
+        <article><h3>BF16 retry</h3><p>The Qwen BF16 retry artifacts show full-GPU OOM/failure paths and a slower successful GTT/VA pool output.</p></article>
+      </div>
+    </div></section>
+
+    <section class="band" id="archive"><div class="wrap">
+      <div class="section-head"><div><h2>Recovered Run Index</h2><p>Original HTML and JSON files are mirrored under <code>photogen-archive/</code>. Older original HTML pages are preserved as artifacts, while this consolidated page uses local, working asset paths.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Run</th><th>Set</th><th>Signal</th><th>Count</th><th>Data</th></tr></thead><tbody><tr><td><code>20260503-z-vs-qwen-advanced-matrix</code></td><td>Advanced feature and turbo matrix</td><td>5 advanced tasks plus 3 turbo tasks; full local PNG grid is mirrored.</td><td>9/10 advanced, 15/15 turbo</td><td><a href="photogen-archive/20260503-z-vs-qwen-advanced-matrix/matrix-results.json">metadata</a></td></tr><tr><td><code>20260503-comfy-fp8-all-prompts</code></td><td>Comfy FP8 / BF16 all-prompt sweep</td><td>15 prompt contact sheet comparing Z-Image, Qwen, and FLUX columns; corrected Qwen note preserved.</td><td>6 model summary rows</td><td><a href="photogen-archive/20260503-comfy-fp8-all-prompts/all-model-summary.json">metadata</a></td></tr><tr><td><code>20260502-180258-zimage-vs-realvisxl</code></td><td>Z-Image vs RealVisXL baseline</td><td>10 broad photo prompts with Z-Image, RealVisXL, FLUX, and failed Qwen candidate evidence.</td><td>10 prompts</td><td><a href="photogen-archive/20260502-180258-zimage-vs-realvisxl/all-candidates-summary.json">metadata</a></td></tr><tr><td><code>20260503-003803-women-model-comparison</code></td><td>Women-focused model comparison</td><td>5 portrait prompts with Z-Image, RealVisXL, FLUX, and partial Qwen BF16 + GTT pool.</td><td>5 prompts</td><td><a href="photogen-archive/20260503-003803-women-model-comparison/all-candidates-summary.json">metadata</a></td></tr><tr><td><code>20260503-qwen-bf16-retry</code></td><td>Qwen BF16 retry evidence</td><td>No original comparison HTML; summaries show OOM/failure paths and one successful GTT/VA pool image.</td><td>2 output PNGs</td><td><a href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-gpu-with-gtt-vae-pool/summary.json">metadata</a></td></tr></tbody></table></div>
+    </div></section>
+
+    <section class="band" id="advanced"><div class="wrap">
+      <div class="section-head"><div><h2>Advanced Feature Matrix</h2><p>Full detailed grid from <code>20260503-z-vs-qwen-advanced-matrix</code>, including prompts, timings, success/failure state, and mirrored PNGs.</p></div><div><article class="metric blue">
+      <span>Advanced outputs</span>
+      <strong>9/10</strong>
+      <small>range 46.1s-362s</small>
+    </article></div></div>
+      <section class="task-block" id="advanced-beauty_editorial">
+      <div class="task-heading"><div><h3>Photoreal editorial portrait</h3><p>Z-Image should shine on natural beauty/photo realism; Qwen should show whether corrected workflow can match it.</p></div><span>t2i - 896x1152</span></div>
+      <div class="image-grid two"><article class="image-card">
+      <header><h4>zimage</h4><span>success 51.3s</span></header>
+      <a class="image-link thumb" href="photogen-images/beauty_editorial-zimage.png"><img src="photogen-images/beauty_editorial-zimage.png" alt="Photoreal editorial portrait - zimage" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 51.3s</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>qwen</h3><span>success 55.3s</span></header>
-      <a href="photogen-images/beauty_editorial-qwen.png"><img src="photogen-images/beauty_editorial-qwen.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+    </article><article class="image-card">
+      <header><h4>qwen</h4><span>success 55.3s</span></header>
+      <a class="image-link thumb" href="photogen-images/beauty_editorial-qwen.png"><img src="photogen-images/beauty_editorial-qwen.png" alt="Photoreal editorial portrait - qwen" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 55.3s</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Readable text in scene</h2><p>Qwen should shine if text rendering works; Z-Image may produce nicer scene quality but weaker exact text.</p><div class="grid">
-
-    <article class="card success">
-      <header><h3>zimage</h3><span>success 46.1s</span></header>
-      <a href="photogen-images/exact_sign_text-zimage.png"><img src="photogen-images/exact_sign_text-zimage.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+    </article></div>
+    </section><section class="task-block" id="advanced-exact_sign_text">
+      <div class="task-heading"><div><h3>Readable text in scene</h3><p>Qwen should shine if text rendering works; Z-Image may produce nicer scene quality but weaker exact text.</p></div><span>t2i - 1152x896</span></div>
+      <div class="image-grid two"><article class="image-card">
+      <header><h4>zimage</h4><span>success 46.1s</span></header>
+      <a class="image-link thumb" href="photogen-images/exact_sign_text-zimage.png"><img src="photogen-images/exact_sign_text-zimage.png" alt="Readable text in scene - zimage" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 46.1s</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>qwen</h3><span>success 50.4s</span></header>
-      <a href="photogen-images/exact_sign_text-qwen.png"><img src="photogen-images/exact_sign_text-qwen.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+    </article><article class="image-card">
+      <header><h4>qwen</h4><span>success 50.4s</span></header>
+      <a class="image-link thumb" href="photogen-images/exact_sign_text-qwen.png"><img src="photogen-images/exact_sign_text-qwen.png" alt="Readable text in scene - qwen" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 50.4s</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Product detail and label text</h2><p>Qwen should shine on label text; Z-Image should show product realism.</p><div class="grid">
-
-    <article class="card success">
-      <header><h3>zimage</h3><span>success 48.1s</span></header>
-      <a href="photogen-images/premium_product_label-zimage.png"><img src="photogen-images/premium_product_label-zimage.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+    </article></div>
+    </section><section class="task-block" id="advanced-premium_product_label">
+      <div class="task-heading"><div><h3>Product detail and label text</h3><p>Qwen should shine on label text; Z-Image should show product realism.</p></div><span>t2i - 1024x1024</span></div>
+      <div class="image-grid two"><article class="image-card">
+      <header><h4>zimage</h4><span>success 48.1s</span></header>
+      <a class="image-link thumb" href="photogen-images/premium_product_label-zimage.png"><img src="photogen-images/premium_product_label-zimage.png" alt="Product detail and label text - zimage" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 48.1s</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>qwen</h3><span>success 50.6s</span></header>
-      <a href="photogen-images/premium_product_label-qwen.png"><img src="photogen-images/premium_product_label-qwen.png" loading="lazy"></a>
-      <div class="meta">kind: t2i</div>
+    </article><article class="image-card">
+      <header><h4>qwen</h4><span>success 50.6s</span></header>
+      <a class="image-link thumb" href="photogen-images/premium_product_label-qwen.png"><img src="photogen-images/premium_product_label-qwen.png" alt="Product detail and label text - qwen" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 50.6s</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Semantic edit: change clothing color</h2><p>Qwen-Edit should preserve the source while applying a specific semantic change. Z-Image reference mode is included as a comparison, not expected to be as faithful.</p><div class="grid">
-
-    <article class="card failed">
-      <header><h3>zimage_reference</h3><span>failed </span></header>
-      <div class="fail">RuntimeError(&#x27;no output image&#x27;)</div>
-      <div class="meta">kind: edit</div>
-      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman’s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>qwen_edit</h3><span>success 353.7s</span></header>
-      <a href="photogen-images/semantic_edit_coat-qwen_edit.png"><img src="photogen-images/semantic_edit_coat-qwen_edit.png" loading="lazy"></a>
-      <div class="meta">kind: edit</div>
-      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman’s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Reference/material transfer</h2><p>Qwen-Edit should do targeted product/material editing; Z-Image reference mode may create a new similar image rather than a precise edit.</p><div class="grid">
-
-    <article class="card success">
-      <header><h3>zimage_reference</h3><span>success 84.2s</span></header>
-      <a href="photogen-images/style_reference_material-zimage_reference.png"><img src="photogen-images/style_reference_material-zimage_reference.png" loading="lazy"></a>
-      <div class="meta">kind: edit</div>
+    </article></div>
+    </section><section class="task-block" id="advanced-semantic_edit_coat">
+      <div class="task-heading"><div><h3>Semantic edit: change clothing color</h3><p>Qwen-Edit should preserve the source while applying a specific semantic change. Z-Image reference mode is included as a comparison, not expected to be as faithful.</p></div><span>edit - 896x1152</span></div>
+      <div class="image-grid two"><article class="image-card">
+      <header><h4>zimage_reference</h4><span>failed n/a</span></header>
+      <div class="failure-box">RuntimeError(&#x27;no output image&#x27;)</div>
+      <p class="card-meta">edit - failed - n/a</p>
+      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman&#8217;s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
+    </article><article class="image-card">
+      <header><h4>qwen_edit</h4><span>success 354s</span></header>
+      <a class="image-link thumb" href="photogen-images/semantic_edit_coat-qwen_edit.png"><img src="photogen-images/semantic_edit_coat-qwen_edit.png" alt="Semantic edit: change clothing color - qwen_edit" loading="lazy"></a>
+      <p class="card-meta">edit - success - 354s</p>
+      <details><summary>Prompt</summary><p>Change only the coat to deep ruby red velvet. Preserve the woman&#8217;s face, identity, pose, hair, camera angle, rooftop background, lighting, depth of field, and overall photorealistic style.</p></details>
+    </article></div>
+    </section><section class="task-block" id="advanced-style_reference_material">
+      <div class="task-heading"><div><h3>Reference/material transfer</h3><p>Qwen-Edit should do targeted product/material editing; Z-Image reference mode may create a new similar image rather than a precise edit.</p></div><span>edit - 1024x1024</span></div>
+      <div class="image-grid two"><article class="image-card">
+      <header><h4>zimage_reference</h4><span>success 84.2s</span></header>
+      <a class="image-link thumb" href="photogen-images/style_reference_material-zimage_reference.png"><img src="photogen-images/style_reference_material-zimage_reference.png" alt="Reference/material transfer - zimage_reference" loading="lazy"></a>
+      <p class="card-meta">edit - success - 84.2s</p>
       <details><summary>Prompt</summary><p>Keep the perfume bottle shape, camera angle, composition, and black marble setting. Change the bottle glass from amber to translucent emerald green and make the label cream paper with gold lettering, preserving realistic studio reflections.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>qwen_edit</h3><span>success 361.8s</span></header>
-      <a href="photogen-images/style_reference_material-qwen_edit.png"><img src="photogen-images/style_reference_material-qwen_edit.png" loading="lazy"></a>
-      <div class="meta">kind: edit</div>
+    </article><article class="image-card">
+      <header><h4>qwen_edit</h4><span>success 362s</span></header>
+      <a class="image-link thumb" href="photogen-images/style_reference_material-qwen_edit.png"><img src="photogen-images/style_reference_material-qwen_edit.png" alt="Reference/material transfer - qwen_edit" loading="lazy"></a>
+      <p class="card-meta">edit - success - 362s</p>
       <details><summary>Prompt</summary><p>Keep the perfume bottle shape, camera angle, composition, and black marble setting. Change the bottle glass from amber to translucent emerald green and make the label cream paper with gold lettering, preserving realistic studio reflections.</p></details>
-    </article>
-</div></section>
-<h2>Turbo / speed path matrix</h2>
-<p class="note">Z-Image baseline is already an 8-step Turbo model. These rows test whether fewer steps are useful. Qwen rows test proper 20-step quality baseline against Lightning V2 8-step and 4-step LoRA paths.</p>
-<section class="task"><h2>Turbo: photoreal woman</h2><div class="grid">
+    </article></div>
+    </section>
+    </div></section>
 
-    <article class="card success">
-      <header><h3>Z-Image FP8, 6 steps</h3><span>success 43.3s</span></header>
-      <a href="photogen-images/turbo_beauty-zimage_steps6.png"><img src="photogen-images/turbo_beauty-zimage_steps6.png" loading="lazy"></a>
-      <div class="meta">steps: 6<br>LoRA: none</div>
+    <section class="band" id="turbo"><div class="wrap">
+      <div class="section-head"><div><h2>Turbo And Lightning Speed Matrix</h2><p>Full speed-path matrix from the same recovered run. Z-Image Turbo is compared against Qwen FP8 baseline and Lightning V2 LoRA paths.</p></div><div><article class="metric green">
+      <span>Turbo outputs</span>
+      <strong>15/15</strong>
+      <small>range 38.0s-101s</small>
+    </article></div></div>
+      <section class="task-block" id="turbo-turbo_beauty">
+      <div class="task-heading"><div><h3>Turbo: photoreal woman</h3><p>Speed-path comparison across Z-Image FP8 and Qwen FP8 / Lightning variants.</p></div><span>896x1152</span></div>
+      <div class="image-grid five"><article class="image-card">
+      <header><h4>Z-Image FP8, 6 steps</h4><span>success 43.3s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_beauty-zimage_steps6.png"><img src="photogen-images/turbo_beauty-zimage_steps6.png" alt="Turbo: photoreal woman - Z-Image FP8, 6 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 43.3s<br>steps: 6</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Z-Image FP8, 4 steps</h3><span>success 39.1s</span></header>
-      <a href="photogen-images/turbo_beauty-zimage_steps4.png"><img src="photogen-images/turbo_beauty-zimage_steps4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Z-Image FP8, 4 steps</h4><span>success 39.1s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_beauty-zimage_steps4.png"><img src="photogen-images/turbo_beauty-zimage_steps4.png" alt="Turbo: photoreal woman - Z-Image FP8, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 39.1s<br>steps: 4</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 101.4s</span></header>
-      <a href="photogen-images/turbo_beauty-qwen_steps20.png"><img src="photogen-images/turbo_beauty-qwen_steps20.png" loading="lazy"></a>
-      <div class="meta">steps: 20<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8, 20 steps no LoRA</h4><span>success 101s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_beauty-qwen_steps20.png"><img src="photogen-images/turbo_beauty-qwen_steps20.png" alt="Turbo: photoreal woman - Qwen FP8, 20 steps no LoRA" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 101s<br>steps: 20</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 64.0s</span></header>
-      <a href="photogen-images/turbo_beauty-qwen_lightning8.png"><img src="photogen-images/turbo_beauty-qwen_lightning8.png" loading="lazy"></a>
-      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 8 steps</h4><span>success 64.0s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_beauty-qwen_lightning8.png"><img src="photogen-images/turbo_beauty-qwen_lightning8.png" alt="Turbo: photoreal woman - Qwen FP8 + Lightning V2, 8 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 64.0s<br>steps: 8 - LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 50.2s</span></header>
-      <a href="photogen-images/turbo_beauty-qwen_lightning4.png"><img src="photogen-images/turbo_beauty-qwen_lightning4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 4 steps</h4><span>success 50.2s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_beauty-qwen_lightning4.png"><img src="photogen-images/turbo_beauty-qwen_lightning4.png" alt="Turbo: photoreal woman - Qwen FP8 + Lightning V2, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 50.2s<br>steps: 4 - LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Turbo: exact sign text</h2><div class="grid">
-
-    <article class="card success">
-      <header><h3>Z-Image FP8, 6 steps</h3><span>success 43.0s</span></header>
-      <a href="photogen-images/turbo_text-zimage_steps6.png"><img src="photogen-images/turbo_text-zimage_steps6.png" loading="lazy"></a>
-      <div class="meta">steps: 6<br>LoRA: none</div>
+    </article></div>
+    </section><section class="task-block" id="turbo-turbo_text">
+      <div class="task-heading"><div><h3>Turbo: exact sign text</h3><p>Speed-path comparison across Z-Image FP8 and Qwen FP8 / Lightning variants.</p></div><span>1152x896</span></div>
+      <div class="image-grid five"><article class="image-card">
+      <header><h4>Z-Image FP8, 6 steps</h4><span>success 43.0s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_text-zimage_steps6.png"><img src="photogen-images/turbo_text-zimage_steps6.png" alt="Turbo: exact sign text - Z-Image FP8, 6 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 43.0s<br>steps: 6</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Z-Image FP8, 4 steps</h3><span>success 38.0s</span></header>
-      <a href="photogen-images/turbo_text-zimage_steps4.png"><img src="photogen-images/turbo_text-zimage_steps4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Z-Image FP8, 4 steps</h4><span>success 38.0s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_text-zimage_steps4.png"><img src="photogen-images/turbo_text-zimage_steps4.png" alt="Turbo: exact sign text - Z-Image FP8, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 38.0s<br>steps: 4</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 92.3s</span></header>
-      <a href="photogen-images/turbo_text-qwen_steps20.png"><img src="photogen-images/turbo_text-qwen_steps20.png" loading="lazy"></a>
-      <div class="meta">steps: 20<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8, 20 steps no LoRA</h4><span>success 92.3s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_text-qwen_steps20.png"><img src="photogen-images/turbo_text-qwen_steps20.png" alt="Turbo: exact sign text - Qwen FP8, 20 steps no LoRA" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 92.3s<br>steps: 20</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 63.1s</span></header>
-      <a href="photogen-images/turbo_text-qwen_lightning8.png"><img src="photogen-images/turbo_text-qwen_lightning8.png" loading="lazy"></a>
-      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 8 steps</h4><span>success 63.1s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_text-qwen_lightning8.png"><img src="photogen-images/turbo_text-qwen_lightning8.png" alt="Turbo: exact sign text - Qwen FP8 + Lightning V2, 8 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 63.1s<br>steps: 8 - LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 47.4s</span></header>
-      <a href="photogen-images/turbo_text-qwen_lightning4.png"><img src="photogen-images/turbo_text-qwen_lightning4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 4 steps</h4><span>success 47.4s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_text-qwen_lightning4.png"><img src="photogen-images/turbo_text-qwen_lightning4.png" alt="Turbo: exact sign text - Qwen FP8 + Lightning V2, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 47.4s<br>steps: 4 - LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>Photorealistic street-level cafe storefront at night after rain, warm interior light, wet pavement reflections, a clean black sign above the door with the exact readable white text &quot;MOON CAFE&quot;, realistic typography, no other text, no watermark.</p></details>
-    </article>
-</div></section>
-<section class="task"><h2>Turbo: product label</h2><div class="grid">
-
-    <article class="card success">
-      <header><h3>Z-Image FP8, 6 steps</h3><span>success 42.0s</span></header>
-      <a href="photogen-images/turbo_product-zimage_steps6.png"><img src="photogen-images/turbo_product-zimage_steps6.png" loading="lazy"></a>
-      <div class="meta">steps: 6<br>LoRA: none</div>
+    </article></div>
+    </section><section class="task-block" id="turbo-turbo_product">
+      <div class="task-heading"><div><h3>Turbo: product label</h3><p>Speed-path comparison across Z-Image FP8 and Qwen FP8 / Lightning variants.</p></div><span>1024x1024</span></div>
+      <div class="image-grid five"><article class="image-card">
+      <header><h4>Z-Image FP8, 6 steps</h4><span>success 42.0s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_product-zimage_steps6.png"><img src="photogen-images/turbo_product-zimage_steps6.png" alt="Turbo: product label - Z-Image FP8, 6 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 42.0s<br>steps: 6</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Z-Image FP8, 4 steps</h3><span>success 38.0s</span></header>
-      <a href="photogen-images/turbo_product-zimage_steps4.png"><img src="photogen-images/turbo_product-zimage_steps4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Z-Image FP8, 4 steps</h4><span>success 38.0s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_product-zimage_steps4.png"><img src="photogen-images/turbo_product-zimage_steps4.png" alt="Turbo: product label - Z-Image FP8, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 38.0s<br>steps: 4</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8, 20 steps no LoRA</h3><span>success 94.7s</span></header>
-      <a href="photogen-images/turbo_product-qwen_steps20.png"><img src="photogen-images/turbo_product-qwen_steps20.png" loading="lazy"></a>
-      <div class="meta">steps: 20<br>LoRA: none</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8, 20 steps no LoRA</h4><span>success 94.7s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_product-qwen_steps20.png"><img src="photogen-images/turbo_product-qwen_steps20.png" alt="Turbo: product label - Qwen FP8, 20 steps no LoRA" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 94.7s<br>steps: 20</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 8 steps</h3><span>success 64.5s</span></header>
-      <a href="photogen-images/turbo_product-qwen_lightning8.png"><img src="photogen-images/turbo_product-qwen_lightning8.png" loading="lazy"></a>
-      <div class="meta">steps: 8<br>LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 8 steps</h4><span>success 64.5s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_product-qwen_lightning8.png"><img src="photogen-images/turbo_product-qwen_lightning8.png" alt="Turbo: product label - Qwen FP8 + Lightning V2, 8 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 64.5s<br>steps: 8 - LoRA: Qwen-Image-Lightning-8steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-
-    <article class="card success">
-      <header><h3>Qwen FP8 + Lightning V2, 4 steps</h3><span>success 48.3s</span></header>
-      <a href="photogen-images/turbo_product-qwen_lightning4.png"><img src="photogen-images/turbo_product-qwen_lightning4.png" loading="lazy"></a>
-      <div class="meta">steps: 4<br>LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</div>
+    </article><article class="image-card">
+      <header><h4>Qwen FP8 + Lightning V2, 4 steps</h4><span>success 48.3s</span></header>
+      <a class="image-link thumb" href="photogen-images/turbo_product-qwen_lightning4.png"><img src="photogen-images/turbo_product-qwen_lightning4.png" alt="Turbo: product label - Qwen FP8 + Lightning V2, 4 steps" loading="lazy"></a>
+      <p class="card-meta">t2i - success - 48.3s<br>steps: 4 - LoRA: Qwen-Image-Lightning-4steps-V2.0.safetensors</p>
       <details><summary>Prompt</summary><p>High-end product photograph of an amber glass perfume bottle on black marble, gold cap, realistic reflections, shallow depth of field, luxury studio lighting, the front label has exact readable text &quot;AURELIA No. 7&quot; in elegant serif typography, no other text, no watermark.</p></details>
-    </article>
-</div></section>
-<h2>Notes</h2><p class="note">VRAM sampling fields are blank in this run because the local ROCm memory parser did not return usable values during the turbo runner. Timing and image outputs are valid. Comfy service privacy opt-outs are now set with <code>HF_HUB_DISABLE_TELEMETRY=1</code>, <code>DO_NOT_TRACK=1</code>, <code>DISABLE_TELEMETRY=1</code>, and <code>COMFYUI_DISABLE_TELEMETRY=1</code>.</p></main></body></html>
+    </article></div>
+    </section>
+    </div></section>
 
+    <section class="band" id="comfy"><div class="wrap">
+      <div class="section-head"><div><h2>Comfy FP8 / BF16 All-Prompt Sweep</h2><p>The richest recovered broad sweep. The contact sheet is the primary artifact, and the cleaned summary note is preserved below.</p></div></div>
+      <div class="model-grid"><article class="model-card">
+          <h4>Z-Image BF16 API</h4>
+          <div class="model-stats"><span>15 outputs</span><span>median 40.1s</span><span>range 36.0s-60.1s</span></div>
+        </article><article class="model-card">
+          <h4>Z-Image FP8 Comfy</h4>
+          <div class="model-stats"><span>15 outputs</span><span>median 47.1s</span><span>range 46.0s-51.1s</span></div>
+        </article><article class="model-card">
+          <h4>Qwen FP8 Comfy corrected</h4>
+          <div class="model-stats"><span>5 outputs</span><span>median 50.1s</span><span>range 50.1s-51.1s</span></div>
+        </article><article class="model-card">
+          <h4>Qwen BF16 previous</h4>
+          <div class="model-stats"><span>3 outputs</span><span>median 181s</span><span>range 180s-181s</span></div>
+        </article><article class="model-card">
+          <h4>FLUX BF16 Diffusers</h4>
+          <div class="model-stats"><span>15 outputs</span><span>median 44.2s</span><span>range 39.5s-54.8s</span></div>
+        </article><article class="model-card">
+          <h4>FLUX FP8 Comfy</h4>
+          <div class="model-stats"><span>15 outputs</span><span>median 40.1s</span><span>range 37.0s-43.4s</span></div>
+        </article></div>
+      <figure class="sheet"><a href="photogen-archive/20260503-comfy-fp8-all-prompts/contact-sheet-fp8-vs-16.jpg"><img src="photogen-archive/20260503-comfy-fp8-all-prompts/contact-sheet-fp8-vs-16.jpg" alt="Comfy FP8 and BF16 contact sheet" loading="lazy"></a><figcaption>Invalid earlier Qwen generic/edit T2I columns removed. Corrected Qwen uses Comfy blueprint pattern and is currently women prompts only. Qwen Edit requires a real edit benchmark and is not included as a quality column.</figcaption></figure>
+      <div class="model-grid" style="margin-top:14px"><article class="model-card"><h4>FLUX.1 Schnell Comfy FP8</h4><div class="model-stats"><span>15 result rows</span><span>median 40.1s</span><span><a href="photogen-archive/20260503-comfy-fp8-all-prompts/candidates/flux-comfy-fp8/summary.json">summary JSON</a></span></div></article><article class="model-card"><h4>Qwen Image Comfy FP8 mixed</h4><div class="model-stats"><span>15 result rows</span><span>median 48.3s</span><span><a href="photogen-archive/20260503-comfy-fp8-all-prompts/candidates/qwen-comfy-fp8mixed/summary.json">summary JSON</a></span></div></article><article class="model-card"><h4>Qwen FP8 mixed Comfy corrected</h4><div class="model-stats"><span>5 result rows</span><span>median 50.1s</span><span><a href="photogen-archive/20260503-comfy-fp8-all-prompts/candidates/qwen-comfy-fp8mixed-blueprint-women/summary.json">summary JSON</a></span></div></article><article class="model-card"><h4>Qwen Image Edit Comfy FP8 mixed</h4><div class="model-stats"><span>15 result rows</span><span>median 48.5s</span><span><a href="photogen-archive/20260503-comfy-fp8-all-prompts/candidates/qwen-edit-comfy-fp8mixed/summary.json">summary JSON</a></span></div></article><article class="model-card"><h4>Z-Image Comfy FP8</h4><div class="model-stats"><span>15 result rows</span><span>median 47.1s</span><span><a href="photogen-archive/20260503-comfy-fp8-all-prompts/candidates/zimage-comfy-fp8/summary.json">summary JSON</a></span></div></article></div>
+    </div></section>
+
+    <section class="band" id="baseline"><div class="wrap">
+      <div class="section-head"><div><h2>Baseline Photo Suites</h2><p>Earlier broad prompt suites that give context for the later advanced page. These were rebuilt from contact sheets, prompts, and summary JSON.</p></div></div>
+      <h3>Z-Image vs RealVisXL, 10 broad prompts</h3>
+      <div class="model-grid"><article class="model-card">
+          <h4>Z-Image Turbo</h4>
+          <div class="model-stats"><span>10 outputs</span><span>median 40.1s</span><span>peak 63.7 GiB</span></div>
+        </article><article class="model-card">
+          <h4>RealVisXL V5</h4>
+          <div class="model-stats"><span>10 outputs</span><span>median 38.1s</span><span>peak 50.7 GiB</span></div>
+        </article><article class="model-card">
+          <h4>FLUX.1 Schnell</h4>
+          <div class="model-stats"><span>10 outputs</span><span>median 43.8s</span><span>peak 24.5 GiB</span></div>
+        </article></div>
+      <div class="sheet-grid">
+        <figure class="sheet"><a href="photogen-archive/20260502-180258-zimage-vs-realvisxl/contact-sheet-all-candidates.jpg"><img src="photogen-archive/20260502-180258-zimage-vs-realvisxl/contact-sheet-all-candidates.jpg" alt="Z-Image RealVisXL all candidates contact sheet" loading="lazy"></a><figcaption>All-candidate contact sheet, including failed/partial candidate context where available.</figcaption></figure>
+        <figure class="sheet"><a href="photogen-archive/20260502-180258-zimage-vs-realvisxl/contact-sheet-zimage-vs-realvisxl.jpg"><img src="photogen-archive/20260502-180258-zimage-vs-realvisxl/contact-sheet-zimage-vs-realvisxl.jpg" alt="Z-Image vs RealVisXL contact sheet" loading="lazy"></a><figcaption>Z-Image Turbo against RealVisXL comparison sheet.</figcaption></figure>
+      </div>
+      <details style="margin-top:14px"><summary>Show baseline prompts</summary><ol class="prompt-list"><li><strong>1. portrait_window</strong><span>Photorealistic editorial portrait of a middle-aged ceramic artist standing beside a large north-facing studio window, natural skin texture, calm confident expression, clay-dusted apron, shelves of handmade bowls softly out of focus behind her, 85mm lens, shallow depth of field, soft cool window light, realistic color grading, no text, no watermark.</span></li><li><strong>2. street_rain</strong><span>Photorealistic night street scene after rain in a dense city neighborhood, wet asphalt reflecting warm shop lights and red traffic signals, pedestrians with umbrellas in natural motion blur, realistic lens bloom, documentary photography, 35mm lens, high dynamic range, detailed reflections, no text, no watermark.</span></li><li><strong>3. product_watch</strong><span>High-end product photograph of a brushed titanium field watch on dark green canvas fabric, crisp engraved bezel details, sapphire crystal reflections, softbox key light from upper left, subtle rim light, macro realism, clean commercial composition, no brand logo, no text, no watermark.</span></li><li><strong>4. food_pasta</strong><span>Photorealistic overhead food photograph of handmade tagliatelle with porcini mushrooms, parmesan shavings, parsley, and a light cream sauce in a shallow white ceramic bowl, rustic oak table, natural window light, appetizing steam, true-to-life colors, no text, no watermark.</span></li><li><strong>5. interior_living</strong><span>Photorealistic modern living room interior with warm walnut shelving, linen sofa, sculptural floor lamp, large plants, late afternoon sunlight casting realistic shadows across a textured rug, architectural digest style, wide angle but natural proportions, no text, no watermark.</span></li><li><strong>6. landscape_alpine</strong><span>Photorealistic alpine landscape at sunrise, clear glacial lake in foreground with subtle ripples, jagged snow-dusted peaks catching first orange light, low mist near the tree line, ultra-realistic atmospheric perspective, 24mm landscape photography, no text, no watermark.</span></li><li><strong>7. wildlife_fox</strong><span>Photorealistic wildlife photograph of a red fox standing alert in fresh winter snow at the edge of a pine forest, detailed fur, visible breath in cold air, soft overcast light, natural pose, telephoto lens compression, no text, no watermark.</span></li><li><strong>8. sports_cyclist</strong><span>Photorealistic action sports photo of a road cyclist descending a mountain switchback at golden hour, dynamic panning motion, sharp rider and bike with blurred background, realistic tire contact and shadows, dramatic valley view, no logos, no text, no watermark.</span></li><li><strong>9. macro_bee</strong><span>Photorealistic macro photograph of a honeybee collecting pollen from a lavender flower, transparent wings with fine veins, pollen grains visible on legs, creamy green and purple bokeh, natural sunlight, scientific detail with artistic composition, no text, no watermark.</span></li><li><strong>10. architecture_library</strong><span>Photorealistic architectural interior of a grand contemporary public library atrium, layered wooden balconies, skylight beams, people reading at tables for scale, realistic perspective lines, balanced exposure, high detail, no signage, no text, no watermark.</span></li></ol></details>
+      <h3 style="margin-top:28px">Women-focused model comparison, 5 prompts</h3>
+      <div class="model-grid"><article class="model-card">
+          <h4>Z-Image Turbo</h4>
+          <div class="model-stats"><span>5 outputs</span><span>median 42.1s</span><span>peak 21.6 GiB</span></div>
+        </article><article class="model-card">
+          <h4>RealVisXL V5</h4>
+          <div class="model-stats"><span>5 outputs</span><span>median 38.8s</span><span>peak 8.5 GiB</span></div>
+        </article><article class="model-card">
+          <h4>FLUX.1 Schnell</h4>
+          <div class="model-stats"><span>5 outputs</span><span>median 45.0s</span><span>peak 24.5 GiB</span></div>
+        </article><article class="model-card">
+          <h4>Qwen-Image BF16 + GTT pool</h4>
+          <div class="model-stats"><span>3 outputs</span><span>median 181s</span><span>peak 55.5 GiB</span></div>
+        </article></div>
+      <div class="sheet-grid">
+        <figure class="sheet"><a href="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-with-qwen.jpg"><img src="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-with-qwen.jpg" alt="Women model comparison with Qwen contact sheet" loading="lazy"></a><figcaption>Women portrait comparison including the partial Qwen BF16 + GTT pool run.</figcaption></figure>
+        <figure class="sheet"><a href="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-women-models.jpg"><img src="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-women-models.jpg" alt="Women models contact sheet" loading="lazy"></a><figcaption>Primary women-focused model contact sheet.</figcaption></figure>
+        <figure class="sheet"><a href="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-all-candidates.jpg"><img src="photogen-archive/20260503-003803-women-model-comparison/contact-sheet-all-candidates.jpg" alt="Women comparison all candidates contact sheet" loading="lazy"></a><figcaption>All-candidate sheet retained from the original recovered folder.</figcaption></figure>
+      </div>
+      <details style="margin-top:14px"><summary>Show women-comparison prompts</summary><ol class="prompt-list"><li><strong>1. cinematic_rooftop_portrait</strong><span>Photorealistic cinematic portrait of a beautiful adult woman in her late 20s standing on a city rooftop at blue hour, confident calm expression, elegant tailored cream coat, soft wind moving her hair naturally, skyline bokeh behind her, 85mm lens, shallow depth of field, realistic skin texture, refined editorial fashion photography, tasteful and non-sexual, no text, no watermark.</span></li><li><strong>2. artist_studio_window</strong><span>Photorealistic editorial portrait of a beautiful adult woman painter in her early 30s inside a sunlit art studio, linen shirt with subtle paint marks, holding a brush and palette, large north-facing window, canvases and ceramic cups softly out of focus, natural skin texture, warm thoughtful expression, soft window light, tasteful and non-sexual, no text, no watermark.</span></li><li><strong>3. rainy_tokyo_crosswalk</strong><span>Photorealistic street photograph of a beautiful adult woman in her late 20s walking through a rainy Tokyo crosswalk at night, black trench coat, clear umbrella, wet pavement reflecting neon signs and traffic lights, candid documentary style, realistic motion and reflections, 35mm lens, tasteful and non-sexual, no text, no watermark.</span></li><li><strong>4. botanical_greenhouse</strong><span>Photorealistic portrait of a beautiful adult woman botanist in her 30s inside a lush glass greenhouse, surrounded by tropical plants and hanging vines, wearing a simple olive work shirt, holding a notebook, soft diffused morning light through glass panels, natural skin and hair detail, serene intelligent expression, tasteful and non-sexual, no text, no watermark.</span></li><li><strong>5. mountain_travel_portrait</strong><span>Photorealistic travel portrait of a beautiful adult woman in her early 30s standing near an alpine lake at sunrise, practical wool sweater and hiking jacket, snow-dusted mountains reflected in clear water behind her, gentle golden rim light, natural relaxed smile, realistic outdoor photography, tasteful and non-sexual, no text, no watermark.</span></li></ol></details>
+    </div></section>
+
+    <section class="band" id="retry"><div class="wrap">
+      <div class="section-head"><div><h2>Qwen BF16 Retry Evidence</h2><p>This folder did not have a top-level comparison page, but the summaries and two PNGs preserve the useful evidence: full-GPU OOM/failure paths and a successful GTT/VA pool output.</p></div></div>
+      <div class="retry-grid"><article class="retry-card recorded">
+      <h4>qwen-image</h4>
+      <p><b>recorded</b> - 361s</p>
+      <a class="image-link thumb retry-thumb" href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image/images/00-mountain_travel_portrait.png"><img src="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image/images/00-mountain_travel_portrait.png" alt="qwen-image" loading="lazy"></a>
+      <p></p>
+      <a href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image/summary.json">summary JSON</a>
+    </article><article class="retry-card failed">
+      <h4>qwen-image-fullgpu</h4>
+      <p><b>failed</b> - 30.3s</p>
+      
+      <p>OutOfMemoryError(&#x27;HIP out of memory. Tried to allocate 4.98 GiB. GPU 0 has a total capacity of 64.00 GiB of which 3.75 GiB is free. Of the allocated memory 56.09 GiB is allocated by PyTorch, and 3.57 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmen</p>
+      <a href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-fullgpu/summary.json">summary JSON</a>
+    </article><article class="retry-card failed">
+      <h4>qwen-image-gpu-denoise-delete-cpu-vae</h4>
+      <p><b>failed</b></p>
+      
+      <p>TypeError(&quot;unsupported operand type(s) for +: &#x27;PosixPath&#x27; and &#x27;str&#x27;&quot;)</p>
+      <a href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-gpu-denoise-delete-cpu-vae/summary.json">summary JSON</a>
+    </article><article class="retry-card completed">
+      <h4>qwen-image-gpu-with-gtt-vae-pool</h4>
+      <p><b>completed</b> - 281s</p>
+      <a class="image-link thumb retry-thumb" href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-gpu-with-gtt-vae-pool/images/01-cinematic_rooftop_portrait.png"><img src="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-gpu-with-gtt-vae-pool/images/01-cinematic_rooftop_portrait.png" alt="qwen-image-gpu-with-gtt-vae-pool" loading="lazy"></a>
+      <p></p>
+      <a href="photogen-archive/20260503-qwen-bf16-retry/candidates/qwen-image-gpu-with-gtt-vae-pool/summary.json">summary JSON</a>
+    </article></div>
+    </div></section>
+  </main>
+  <footer><div class="wrap">Generated from recovered local archive files. Original server paths are preserved in JSON metadata; live image paths on this page are local to the benchmark site.</div></footer>
+</body>
+</html>

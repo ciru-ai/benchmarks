@@ -1,0 +1,42 @@
+{
+  "candidate": "qwen-image-fullgpu",
+  "config": {
+    "cache_dir": "/srv/llm/imagegen-candidates/qwen-image/hf-cache",
+    "cpu_offload": false,
+    "dtype": "bf16",
+    "guidance": 4.0,
+    "kind": "qwen",
+    "model_id": "Qwen/Qwen-Image",
+    "steps": 30,
+    "variant": null
+  },
+  "gpu_after_error": {
+    "gtt_total": 51539607552,
+    "gtt_used": 175157248,
+    "vram_total": 68719476736,
+    "vram_used": 64848883712
+  },
+  "gpu_after_load": {
+    "gtt_total": 51539607552,
+    "gtt_used": 85553152,
+    "vram_total": 68719476736,
+    "vram_used": 58692194304
+  },
+  "gpu_before_load": {
+    "gtt_total": 51539607552,
+    "gtt_used": 79192064,
+    "vram_total": 68719476736,
+    "vram_used": 502587392
+  },
+  "gpu_load_peak": {
+    "gtt_used": 85553152,
+    "vram_used": 58407047168
+  },
+  "kind": "qwen",
+  "load_error": "OutOfMemoryError('HIP out of memory. Tried to allocate 4.98 GiB. GPU 0 has a total capacity of 64.00 GiB of which 3.75 GiB is free. Of the allocated memory 56.09 GiB is allocated by PyTorch, and 3.57 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)')",
+  "load_sec_wall": 30.28203768498497,
+  "model_id": "Qwen/Qwen-Image",
+  "results": [],
+  "started_at": 1777789756.3956165,
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 22, in <module>\n  File \"/home/crown/imagegen-zimage/bench/benchmark_candidate.py\", line 132, in run_one\n    image=pipe(**kwargs).images[0]\n          ^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 124, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/pipelines/qwenimage/pipeline_qwenimage.py\", line 750, in __call__\n    image = self.vae.decode(latents, return_dict=False)[0][:, :, 0]\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/utils/accelerate_utils.py\", line 46, in wrapper\n    return method(self, *args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 878, in decode\n    decoded = self._decode(z).sample\n              ^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 847, in _decode\n    out = self.decoder(x[:, :, i : i + 1, :, :], feat_cache=self._feat_map, feat_idx=self._conv_idx)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 647, in forward\n    x = up_block(x, feat_cache, feat_idx)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 536, in forward\n    x = resnet(x, feat_cache, feat_idx)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 258, in forward\n    x = self.conv1(x, feat_cache[idx])\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py\", line 82, in forward\n    return super().forward(x)\n           ^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/conv.py\", line 723, in forward\n    return self._conv_forward(input, self.weight, self.bias)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/srv/llm/imagegen-zimage/.venv-py312/lib/python3.12/site-packages/torch/nn/modules/conv.py\", line 718, in _conv_forward\n    return F.conv3d(\n           ^^^^^^^^^\ntorch.OutOfMemoryError: HIP out of memory. Tried to allocate 4.98 GiB. GPU 0 has a total capacity of 64.00 GiB of which 3.75 GiB is free. Of the allocated memory 56.09 GiB is allocated by PyTorch, and 3.57 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+}
