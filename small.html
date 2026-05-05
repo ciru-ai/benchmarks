@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice PC Assistant Benchmark Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202a;
+      --muted: #617084;
+      --line: #d8dee8;
+      --paper: #f7f8fb;
+      --panel: #ffffff;
+      --ok: #16794c;
+      --ok-bg: #e7f6ee;
+      --bad: #b42318;
+      --bad-bg: #ffebe8;
+      --warn: #9a5b00;
+      --warn-bg: #fff2d8;
+      --blue: #2357a4;
+      --blue-bg: #eaf1ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 14px/1.5 "Segoe UI", Arial, sans-serif;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      padding: 28px 36px 24px;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+    }
+
+    h1, h2, h3 { margin: 0; line-height: 1.2; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 20px; margin-bottom: 14px; }
+    h3 { font-size: 15px; margin-bottom: 8px; }
+
+    p { margin: 8px 0 0; }
+    code { font-family: Consolas, "SFMono-Regular", monospace; font-size: 0.94em; }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 860px;
+      margin-top: 10px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      padding: 5px 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .score {
+      font-size: 34px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    .score small {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .winner {
+      border-color: #8fb7f3;
+      background: var(--blue-bg);
+    }
+
+    .winner h3 { color: var(--blue); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 14px;
+      margin-top: 12px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      font-weight: 650;
+      font-size: 15px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      table-layout: fixed;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pass { color: var(--ok); background: var(--ok-bg); }
+    .fail { color: var(--bad); background: var(--bad-bg); }
+    .mixed { color: var(--warn); background: var(--warn-bg); }
+
+    .bar-track {
+      height: 10px;
+      background: #edf1f6;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .bar {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .step strong { display: block; }
+    .step span { color: var(--muted); font-size: 12px; }
+
+    .notes {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .notes li { margin: 5px 0; }
+
+    .muted { color: var(--muted); }
+    .nowrap { white-space: nowrap; }
+
+    @media (max-width: 860px) {
+      header { padding: 22px 20px; }
+      main { padding: 18px 14px 36px; }
+      .grid, .timeline { grid-template-columns: 1fr; }
+      table { table-layout: auto; }
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Voice PC Assistant Benchmark Report</h1>
+    <p class="subtitle">
+      Deterministic text-only benchmark of the local voice-driven PC assistant path. The harness used
+      <code>ToolCallingAgent</code>, the real desktop tool registry, a real controlled browser, and local fixture pages.
+      STT, TTS, public web drift, and raw model-only prompting were excluded from scored results.
+      All runs were measured on an NVIDIA GeForce RTX 4080 Super test system.
+    </p>
+    <div class="meta">
+      <span class="pill">Final run: <code>20260505-000652-loop5-all</code></span>
+      <span class="pill">Date: May 5, 2026</span>
+      <span class="pill">Hardware: NVIDIA GeForce RTX 4080 Super</span>
+      <span class="pill">Tasks: 10 deterministic PC-assistant workflows</span>
+      <span class="pill">Target: reliable 8/10 or better</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Executive Summary</h2>
+      <div class="grid">
+        <div class="card winner">
+          <h3>Best Overall</h3>
+          <p><code>qwen3.5-4b-q4_k_m</code></p>
+          <div class="score">8<small>/10</small></div>
+          <div class="bar-track"><div class="bar" style="width: 80%"></div></div>
+          <p class="muted">Repeated post-fix scores: 8/10, 9/10, 8/10.</p>
+        </div>
+        <div class="card">
+          <h3>Fastest But Weakest</h3>
+          <p><code>gemma-4-e4b-it-q4_k_m</code></p>
+          <div class="score">3<small>/10</small></div>
+          <div class="bar-track"><div class="bar" style="width: 30%"></div></div>
+          <p class="muted">Median latency was lowest, but accuracy suffered from guessed fixture paths and early give-ups.</p>
+        </div>
+        <div class="card">
+          <h3>Middle Result</h3>
+          <p><code>granite-4.1-8b-q4_k_m</code></p>
+          <div class="score">6<small>/10</small></div>
+          <div class="bar-track"><div class="bar" style="width: 60%"></div></div>
+          <p class="muted">Good on several browser tasks, but often used too many steps and timed out on simple workflows.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Measurement Story</h2>
+      <p class="muted">
+        Loops 1 and 2 intentionally used Qwen only as a fast probe model to harden shared assistant and harness behavior.
+        They were not comparative model runs, because the failures being fixed affected every model path: stale memory,
+        recovery handling, fixture routing, and max-step policy. After those shared issues were fixed, the final comparison
+        measured Qwen, Granite, and Gemma on the same deterministic 10-task suite, with one llama.cpp server running at a time.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Run Stage</th>
+            <th>Qwen</th>
+            <th>Granite</th>
+            <th>Gemma</th>
+            <th>What Changed Or Was Learned</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>baseline-qwen</code><br><span class="muted">probe run</span></td>
+            <td><span class="status fail">4/10</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td>Qwen-only probe to expose shared product failures: stale memory, immediate stop on recoverable tool errors, and public web shortcuts.</td>
+          </tr>
+          <tr>
+            <td><code>loop1-qwen</code><br><span class="muted">probe run</span></td>
+            <td><span class="status fail">5/10</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td>Still Qwen-only by design. Isolated benchmark memory per case and tightened deterministic fixture context before comparing models.</td>
+          </tr>
+          <tr>
+            <td><code>loop2-qwen</code><br><span class="muted">probe run</span></td>
+            <td><span class="status pass">8/10</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td><span class="status mixed">not run</span></td>
+            <td>Final Qwen-only hardening probe. Allowed recovery after failed tool observations, required real navigation, and raised max steps to 12.</td>
+          </tr>
+          <tr>
+            <td><code>loop3-all</code><br><span class="muted">first comparison attempt</span></td>
+            <td><span class="status pass">9/10</span></td>
+            <td><span class="status mixed">6/10 partial</span></td>
+            <td><span class="status mixed">not reached</span></td>
+            <td>First all-model attempt confirmed Qwen strength and exposed a report-printing Unicode crash before Gemma could run.</td>
+          </tr>
+          <tr>
+            <td><code>loop5-all</code><br><span class="muted">final comparison</span></td>
+            <td><span class="status pass">8/10</span></td>
+            <td><span class="status mixed">6/10</span></td>
+            <td><span class="status fail">3/10</span></td>
+            <td>Final complete measurement: Qwen met target reliability, Granite was usable but step-heavy, and Gemma was fast but inaccurate.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Model Outcome Story</h2>
+      <div class="grid">
+        <div class="card winner">
+          <h3>Qwen: Reliable Enough</h3>
+          <p class="score">8<small>/10 final</small></p>
+          <p>Qwen was the only model to repeatedly meet the 8/10 target after shared assistant fixes. Its main remaining failure was video follow-up drift.</p>
+        </div>
+        <div class="card">
+          <h3>Granite: Accurate In Places, Step-Heavy</h3>
+          <p class="score">6<small>/10 final</small></p>
+          <p>Granite passed official docs, video seeking, recovery, file lookup, and time reasoning, but ran out of steps on several workflows.</p>
+        </div>
+        <div class="card">
+          <h3>Gemma: Fast But Not Reliable</h3>
+          <p class="score">3<small>/10 final</small></p>
+          <p>Gemma had the best latency profile, but repeatedly guessed local paths and stopped after 404 pages instead of recovering through the home page.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Final Model Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Score</th>
+            <th>Median Task</th>
+            <th>P90 Task</th>
+            <th>Total LLM</th>
+            <th>Failed Tools</th>
+            <th>Read</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>qwen3.5-4b-q4_k_m</code></td>
+            <td><span class="status pass">8/10</span></td>
+            <td>6421 ms</td>
+            <td>14978 ms</td>
+            <td>31121 ms</td>
+            <td>3</td>
+            <td>Best accuracy; still weak on video follow-up drift.</td>
+          </tr>
+          <tr>
+            <td><code>granite-4.1-8b-q4_k_m</code></td>
+            <td><span class="status mixed">6/10</span></td>
+            <td>5886 ms</td>
+            <td>19456 ms</td>
+            <td>25306 ms</td>
+            <td>0</td>
+            <td>Competent, but step-heavy and prone to max-step stops.</td>
+          </tr>
+          <tr>
+            <td><code>gemma-4-e4b-it-q4_k_m</code></td>
+            <td><span class="status fail">3/10</span></td>
+            <td>2514 ms</td>
+            <td>4701 ms</td>
+            <td>11711 ms</td>
+            <td>1</td>
+            <td>Fastest; accuracy not strong enough for PC operation.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">
+        “Not run” in the probe rows means “not part of that hardening stage,” not that the models failed or were skipped during final scoring.
+        Granite and Gemma were scored once the shared benchmark path was stable enough to make the comparison meaningful.
+      </p>
+    </section>
+
+    <section>
+      <h2>Case-Level Results</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%">Task</th>
+            <th>Qwen</th>
+            <th>Granite</th>
+            <th>Gemma</th>
+            <th>What It Tested</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Browser Link Following</td>
+            <td><span class="status pass">PASS</span> 3622 ms</td>
+            <td><span class="status fail">FAIL</span> 19456 ms</td>
+            <td><span class="status pass">PASS</span> 3431 ms</td>
+            <td>Navigate from home page, click Reference Domains, answer maintainer.</td>
+          </tr>
+          <tr>
+            <td>Search Result Disambiguation</td>
+            <td><span class="status pass">PASS</span> 6107 ms</td>
+            <td><span class="status pass">PASS</span> 5263 ms</td>
+            <td><span class="status fail">FAIL</span> 2031 ms</td>
+            <td>Choose official NVIDIA result over blog/forum decoys.</td>
+          </tr>
+          <tr>
+            <td>Video Result Disambiguation</td>
+            <td><span class="status pass">PASS</span> 6735 ms</td>
+            <td><span class="status pass">PASS</span> 5013 ms</td>
+            <td><span class="status fail">FAIL</span> 2089 ms</td>
+            <td>Find the music video, not an interview or trailer.</td>
+          </tr>
+          <tr>
+            <td>Video Seeking</td>
+            <td><span class="status fail">FAIL</span> 14978 ms</td>
+            <td><span class="status pass">PASS</span> 6509 ms</td>
+            <td><span class="status fail">FAIL</span> 2489 ms</td>
+            <td>Use follow-up memory and seek/read the local video state at 1:30.</td>
+          </tr>
+          <tr>
+            <td>Sponsored And Shorts Filtering</td>
+            <td><span class="status fail">FAIL</span> 5082 ms</td>
+            <td><span class="status fail">FAIL</span> 5253 ms</td>
+            <td><span class="status fail">FAIL</span> 4442 ms</td>
+            <td>Avoid sponsored and Shorts decoys, open full walkthrough.</td>
+          </tr>
+          <tr>
+            <td>Form Fill From Evidence</td>
+            <td><span class="status pass">PASS</span> 11393 ms</td>
+            <td><span class="status fail">FAIL</span> 20307 ms</td>
+            <td><span class="status fail">FAIL</span> 928 ms</td>
+            <td>Read customer record, fill transfer form, submit, report code.</td>
+          </tr>
+          <tr>
+            <td>Multi-Step Documentation Navigation</td>
+            <td><span class="status pass">PASS</span> 8863 ms</td>
+            <td><span class="status fail">FAIL</span> 6930 ms</td>
+            <td><span class="status fail">FAIL</span> 2539 ms</td>
+            <td>Open docs, follow setup guide, answer latency setting follow-up.</td>
+          </tr>
+          <tr>
+            <td>Error Recovery</td>
+            <td><span class="status pass">PASS</span> 37016 ms</td>
+            <td><span class="status pass">PASS</span> 8986 ms</td>
+            <td><span class="status fail">FAIL</span> 12101 ms</td>
+            <td>Handle stale 404 link and recover via site navigation.</td>
+          </tr>
+          <tr>
+            <td>File/Index Lookup</td>
+            <td><span class="status pass">PASS</span> 5110 ms</td>
+            <td><span class="status pass">PASS</span> 3466 ms</td>
+            <td><span class="status pass">PASS</span> 4701 ms</td>
+            <td>Compare dated guide entries and read newest first instruction.</td>
+          </tr>
+          <tr>
+            <td>Mixed Browser Plus Time Reasoning</td>
+            <td><span class="status pass">PASS</span> 3847 ms</td>
+            <td><span class="status pass">PASS</span> 3527 ms</td>
+            <td><span class="status pass">PASS</span> 2421 ms</td>
+            <td>Combine schedule page evidence with the local time tool.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Run Progression</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Run</th>
+            <th>Model(s)</th>
+            <th>Score</th>
+            <th>Median Latency</th>
+            <th>Key Learning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>20260504-235450-baseline-qwen</code></td>
+            <td>Qwen</td>
+            <td>4/10</td>
+            <td>8500 ms</td>
+            <td>Initial harness exposed stale refs, public web drift, and unrecovered tool failures.</td>
+          </tr>
+          <tr>
+            <td><code>20260504-235718-loop1-qwen</code></td>
+            <td>Qwen</td>
+            <td>5/10</td>
+            <td>7824 ms</td>
+            <td>Memory isolation helped, but the agent still masked recovered work after earlier failures.</td>
+          </tr>
+          <tr>
+            <td><code>20260504-235946-loop2-qwen</code></td>
+            <td>Qwen</td>
+            <td>8/10</td>
+            <td>6537 ms</td>
+            <td>Recovery behavior, clearer local-site policy, and a 12-step cap reached the target.</td>
+          </tr>
+          <tr>
+            <td><code>20260505-000209-loop3-all</code></td>
+            <td>Qwen, Granite partial</td>
+            <td>Qwen 9/10</td>
+            <td>Not final</td>
+            <td>Run crashed only while printing Unicode to the Windows console; results confirmed qwen strength.</td>
+          </tr>
+          <tr>
+            <td><code>20260505-000652-loop5-all</code></td>
+            <td>Qwen, Granite, Gemma</td>
+            <td>8/10, 6/10, 3/10</td>
+            <td>6421 / 5886 / 2514 ms</td>
+            <td>Final comparison: qwen was reliable enough; Gemma was fast but inaccurate.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Behavior Notes</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Qwen</h3>
+          <ul class="notes">
+            <li>Best balance of tool choice, concise answers, and recovery.</li>
+            <li>Remaining risk: video follow-ups can drift to public YouTube if the prior turn only identifies the local video instead of opening it.</li>
+            <li>Error recovery can be slow: the stale-link case took 37016 ms and 9 tool calls.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Granite</h3>
+          <ul class="notes">
+            <li>No failed tool calls in the final run, but several tasks exhausted the step budget.</li>
+            <li>Passed video seeking where qwen failed in the final run.</li>
+            <li>Some scorer misses came from punctuation variants such as nonstandard hyphen characters.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Gemma</h3>
+          <ul class="notes">
+            <li>Very fast median latency, but often guessed paths like <code>/docs</code> or <code>/videos</code>.</li>
+            <li>Frequently stopped after 404 pages instead of returning to the test home page.</li>
+            <li>Not reliable enough for the current PC assistant path despite speed.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Artifacts</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Artifact</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>scripts/benchmark_pc_assistant_loop.py</code></td>
+            <td>Benchmark runner: serves fixtures, starts one llama.cpp model at a time, drives <code>ToolCallingAgent</code>, records JSON.</td>
+          </tr>
+          <tr>
+            <td><code>benchmarks/fixtures/pc_assistant/</code></td>
+            <td>Deterministic local pages for browser, docs, video, form, recovery, file, and schedule tasks.</td>
+          </tr>
+          <tr>
+            <td><code>benchmarks/results/*summary.json</code></td>
+            <td>Machine-readable summaries for each run.</td>
+          </tr>
+          <tr>
+            <td><code>benchmarks/results/*-{model}.json</code></td>
+            <td>Full per-model traces: prompts, replies, tool calls, observations, timings, and case outcomes.</td>
+          </tr>
+          <tr>
+            <td><code>notebook.md</code></td>
+            <td>Human-readable loop notes and improvement observations.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Verification after code changes: <code>pytest</code> reported 44 passed tests. Port 8080 was clear after the benchmark run.</p>
+    </section>
+  </main>
+</body>
+</html>
