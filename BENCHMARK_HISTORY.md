@@ -4,12 +4,20 @@ This file tracks prior LLM benchmark runs or related test commands found on this
 
 ## Agent quick recall
 
-Last consolidated: `2026-04-30`
+Last consolidated: `2026-05-08`
 
 This file is the canonical local benchmark memory for agents. New entries should keep exact model paths, engine paths, settings, active context size, validity notes, and service-restore status. Older benchmark history is preserved below this quick recall section.
 
 Current high-signal conclusions:
 
+- Qwen3.6 35B A3B MTP matrix in `/home/crown/machine-setup/mtpbench.md` was run on `2026-05-06` with the isolated llama.cpp PR #22673 `mtp-clean` Vulkan binary at `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin`. On long real chat workloads, MTP improved decode but slowed prompt ingestion: Q4_1 MTP draft-3 was `66.8 TG` vs `59.3 TG` same-file MTP-off at 65k (+12.6%) and `53.42 TG` vs `48.86 TG` at 128k (+9.3%); Q8 MTP was `56.28 TG` vs `47.04 TG` at 65k (+19.7%) and `44.97 TG` vs `40.16 TG` at 128k (+12.0%). These are server-side multi-turn weighted generation rows, not clean `llama-bench` context rows.
+- Strix-specific `0xSero/Qwen3.6-35B-A3B-GGUF-Strix` Dynamic quant was tested from the same MTP workspace. With `-b 2048 -ub 1024`, `q8_0/q8_0` KV produced `1055.10 PP / 66.17 TG` at 16k and `454.16 / 66.16` at 128k; `f16/f16` won short 16k (`1133.59 / 67.15`) but regressed true 128k prefill (`387.94 / 67.15`). Keep Dynamic Strix on q8 KV for long-context use.
+- Qwen3.6 35B Q4 128k prompt batch sweep found `-b 2048 -ub 1024` best for the 96,112-token prompt: `526.41 tok/s`, about +8.9% over `-b 2048 -ub 512`; `-ub 2048` regressed.
+- Gemma 4 MTP assistant heads were tested on `2026-05-08` with AtomicChat's Gemma 4 MTP llama.cpp fork, commit `2e81dc5f6`, locally rebuilt with Vulkan at `/home/crown/tmp/atomic-llama-cpp-turboquant-gemma4-mtp/build-vulkan/bin/llama-server`. Use Q4_K_S assistant heads and `--spec-type mtp --mtp-head ...`. On this Strix Halo Vulkan host, MTP is useful for larger/dense Gemma 4 decode but not for E2B: E2B old vanilla still wins (`2490.02 PP / 107.74 TG` at 16k via b8672 `llama-bench`), while Atomic MTP E2B only reached `1776.43 PP / 101.18 TG` in the best server-side `throughput` preset. E4B improved decode from `55.74` to `67.03 TG` with `lift`; 26B A4B improved from `56.04` to `59.43 TG` with `throughput`; 31B dense improved from `10.35` to `18.33 TG` with `lift`.
+- Clean Gemma 4 E2B Q4_K_M refresh on `2026-05-07` using b8672 Vulkan `llama-bench`, f16 KV, `-sm row`: `2490.02 ± 3.06 PP / 107.74 ± 0.19 TG` at 16k and `764.21 ± 1.50 PP / 108.10 ± 0.62 TG` at 128k. This supersedes the older 2026-04-02 E2B 16k row and adds the missing 128k E2B row.
+- MedPsy 4B Q5_K_M imatrix was downloaded from `qvac/MedPsy-4B-GGUF` on `2026-05-08`. q8 KV is the right serving profile: f16 KV at 32k was `310.97 PP / 67.12 TG` and f16 128k hit Vulkan `ErrorDeviceLost`; q8 KV improved to `581.80 PP / 67.12 TG` at 32k with lower peak GPU (`6.80 GiB`). q8 128k was manually stopped before completion due long prefill time; production profile is capped at validated `32768`.
+- Gemma KV retest on `2026-05-08`: q8 KV is worse for Gemma. E2B q8 16k was `2026.97 PP / 106.41 TG`, below f16 `2490.02 / 107.74`; E4B q8 16k was only `541.17 PP / 20.46 TG`. Keep Gemma profiles on f16 KV.
+- Clean `2026-05-07` current-model Qwopus3.6 run: `Qwopus3.6-35B-A3B-v1-Q5_K_M` on current system Vulkan build `8864`, serving-style `q8_0/q8_0` KV, `-sm row`, `-t 16`, `-ngl 999`, `-fa 1`, `-n 128`, `-r 2`, produced `996.23 PP / 68.14 TG` at 4k, `886.21 / 67.98` at 16k, `755.50 / 68.08` at 32k, `464.25 / 57.45` at 100k, and `400.94 / 68.20` at 128k. The 100k TG row had high variance (`±10.22`); the 128k row was cleaner (`±0.13`).
 - Best validated Qwen3.6 27B Q8 speculative path: upstream b8971 built through the system Nix Vulkan package at `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan-systempkg/bin/llama-server`, Qwen3.6 27B Q8 target, official `Qwen/Qwen3-1.7B-GGUF` Q8 draft, `--kv-unified`, `--spec-draft-n-max 32 --spec-draft-n-min 1 --spec-draft-p-min 0.75`, Vulkan. The older `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin` package currently reports no Vulkan devices after the system update.
 - Valid short/low-occupied-context result on `2026-04-30`: Qwen3.6 27B Q8 with `q8_0/q8_0` KV improved from `6.27 t/s` baseline to `17.83 t/s` with Qwen3-1.7B Q8 draft. With `f16/f16` KV it improved from `6.29` to `18.32 t/s`. This is a real result from coherent server output and clean checkpointed speculative decoding.
 - Long occupied context result: at `32768` max context with about `24035` prompt tokens already active, baseline Q8 decode was `6.13 t/s`; speculative Qwen3-1.7B Q8 fell to `3.55 t/s`. Do not use this draft setup for long active context.
@@ -34,11 +42,272 @@ Important local paths:
 | Fresh upstream llama.cpp Vulkan build that supports Qwen3.6 speculative checkpoints | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec/result-vulkan/bin` |
 | Working post-update upstream b8971 Vulkan build with speculative checkpoints | `/home/crown/tmp/llama-cpp-upstream-20260429-b8971/result-vulkan-systempkg/bin` |
 | TheTom TurboQuant decode-speed branch build tested on 2026-04-30 | `/home/crown/tmp/llama-cpp-turboquant-decode-speed-parity-20260430/result-vulkan-systempkg/bin` |
+| Qwen3.6 35B MTP bench workspace | `/srv/llm/bench/qwen36-mtp-bench` |
+| Qwen3.6 MTP PR #22673 Vulkan binary | `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin` |
+| AtomicChat Gemma 4 MTP Vulkan build tested on 2026-05-08 | `/home/crown/tmp/atomic-llama-cpp-turboquant-gemma4-mtp/build-vulkan/bin` |
 | Fresh upstream source | `/home/crown/tmp/llama-cpp-upstream-qwen36-spec` |
 | buun DFlash fork source | `/home/crown/tmp/buun-llama-cpp` |
 | Qwen3.6 speculative benchmark harness | `/home/crown/machine-setup/bench-qwen36-spec.sh` |
 | DFlash-specific benchmark harness | `/home/crown/machine-setup/bench-spec-qwen27b.sh` |
 | Run logs | `/srv/llm/runs` |
+
+## 2026-05-06 Qwen3.6 35B MTP matrix and Strix Dynamic quant notes
+
+Source file: `/home/crown/machine-setup/mtpbench.md`.
+
+Goal: test Qwen3.6 35B A3B MTP on Strix Halo without changing the system llama.cpp binary, then capture prompt-processing and Strix-specific quant findings from the same workspace.
+
+Runtime:
+
+- Binary: `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin/llama-server`
+- Version: `110 (267f8af)`
+- Branch: ggml-org llama.cpp PR `#22673`, `mtp-clean`
+- Backend: Vulkan/RADV
+- Workspace: `/srv/llm/bench/qwen36-mtp-bench`
+- Common server shape: `-ngl 999 -fa on --no-mmap -np 1`, `q8_0/q8_0` KV
+
+65k Q4 workload:
+
+- Context: `65536`
+- Long prompt: `33680` prompt tokens
+- Chat shape: real 3-turn multi-turn chat chain
+- Existing baseline: `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`
+- MTP file: `/srv/llm/bench/qwen36-mtp-bench/models/bartowski-Qwen_Qwen3.6-35B-A3B-MTP-Q4_1.gguf`
+
+Generation throughput:
+
+| Condition | Turn 1 tok/s | Turn 2 tok/s | Turn 3 tok/s | Summary |
+| --- | ---: | ---: | ---: | --- |
+| Existing Q4, no MTP | `51.72` | `51.68` | `51.60` | Existing `UD-Q4_K_XL` baseline |
+| MTP Q4_1, MTP off | `59.02` | `59.47` | `59.34` | Same MTP file, MTP disabled |
+| MTP Q4_1, MTP on, draft 3 | `57.01` | `61.38` | `80.69` | About `66.8` weighted TG, +12.6% vs same-file MTP-off |
+
+128k Q4 rerun:
+
+- Context: `131072`
+- First prompt: `96112` tokens
+- No truncation reported
+
+| Condition | Turn 1 tok/s | Turn 2 tok/s | Turn 3 tok/s | Weighted tok/s |
+| --- | ---: | ---: | ---: | ---: |
+| Existing Q4, no MTP | `43.49` | `43.55` | `43.47` | `43.50` |
+| MTP Q4_1, MTP off | `48.95` | `48.90` | `48.77` | `48.86` |
+| MTP Q4_1, MTP on, draft 3 | `55.08` | `47.14` | `58.12` | `53.42` |
+
+Q8 MTP comparison:
+
+- Existing Q8: `/srv/llm/models/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-Q8_0.gguf`
+- MTP Q8: `/srv/llm/bench/qwen36-mtp-bench/models/Qwen3.6-35BA3B-MTP.gguf`
+- MTP Q8 source: `am17an/Qwen3.6-35BA3B-MTP-GGUF`
+- Caveat: MTP-off control for the MTP Q8 quant was skipped, so this is base Q8 versus MTP Q8, not a pure MTP-only delta.
+
+| Context | Condition | Turn 1 tok/s | Turn 2 tok/s | Turn 3 tok/s | Weighted tok/s |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 65536 | Existing Q8, no MTP | `47.13` | `47.11` | `46.93` | `47.04` |
+| 65536 | Q8 MTP, draft 3 | `50.77` | `51.11` | `65.75` | `56.28` |
+| 131072 | Existing Q8, no MTP | `40.21` | `40.18` | `40.12` | `40.16` |
+| 131072 | Q8 MTP, draft 3 | `43.44` | `38.85` | `52.30` | `44.97` |
+
+MTP interpretation:
+
+- Q4 same-file MTP improved weighted decode by about `+12.6%` at 65k and `+9.3%` at 128k.
+- Q8 MTP improved weighted decode by about `+19.7%` at 65k and `+12.0%` at 128k versus the existing Q8 baseline, but that comparison includes model/file differences.
+- Prompt ingestion was slower with MTP enabled. Treat these as server-side, multi-turn, long-chat results, not clean `llama-bench` capacity rows.
+
+Q4 128k batch/ubatch prompt sweep:
+
+| Batch | Ubatch | Prompt tok/s | Elapsed |
+| ---: | ---: | ---: | ---: |
+| 2048 | 512 | `483.48` | `198.79s` |
+| 2048 | 1024 | `526.41` | `182.58s` |
+| 2048 | 2048 | `471.78` | `203.72s` |
+| 4096 | 1024 | `526.03` | `182.71s` |
+| 4096 | 2048 | `471.55` | `203.82s` |
+
+Recommendation from this sweep: test `-b 2048 -ub 1024` in real server use; larger `-ub 2048` regressed.
+
+Strix Dynamic quant:
+
+- Source repo: `0xSero/Qwen3.6-35B-A3B-GGUF-Strix`
+- Local Dynamic model: `/srv/llm/bench/qwen36-mtp-bench/models/Qwen3.6-35B-A3B-DYNAMIC.gguf`
+- Fixed flags: `-ngl 999 -fa 1 -b 2048 -ub 1024 -mmp 0 -r 1`
+
+| Prompt | KV | PP tok/s | TG tok/s | PP elapsed |
+| ---: | --- | ---: | ---: | ---: |
+| 16384 | `q8_0/q8_0` | `1055.10` | `66.17` | `15.53s` |
+| 16384 | `f16/f16` | `1133.59` | `67.15` | `14.45s` |
+| 128000 | `q8_0/q8_0` | `454.16` | `66.16` | `281.84s` |
+| 128000 | `f16/f16` | `387.94` | `67.15` | `329.94s` |
+
+Dynamic interpretation:
+
+- At 16k, `f16/f16` is faster by about `+7.4%` PP and `+1.5%` TG.
+- At true 128k prompt length, `f16/f16` regresses prefill by about `-14.6%` and takes about `48s` longer on the prefill leg.
+- Keep Dynamic Strix on `q8_0/q8_0` KV for long-context use unless optimizing specifically for shorter/decode-heavy chats.
+
+Artifacts:
+
+- `/srv/llm/bench/qwen36-mtp-bench/results/matrix_results.json`
+- `/srv/llm/bench/qwen36-mtp-bench/results/matrix_results_ctx128k.json`
+- `/srv/llm/bench/qwen36-mtp-bench/results/matrix_results_q8_ctx65k.json`
+- `/srv/llm/bench/qwen36-mtp-bench/results/matrix_results_q8_ctx128k.json`
+- `/srv/llm/bench/qwen36-mtp-bench/results/q4_batch_ubatch_128k_prompt.jsonl`
+- `/srv/llm/bench/qwen36-mtp-bench/results/dynamic_kv16_compare_16k_128k.jsonl`
+
+## 2026-05-08 MedPsy 4B Q5_K_M imatrix benchmark and profile
+
+Goal: download `medpsy-4b-q5_k_m-imat.gguf`, test it with the normal local Vulkan benchmark flow, compare f16 KV against q8 KV, and create a switchable profile.
+
+Source and model:
+
+- Hugging Face repo: `qvac/MedPsy-4B-GGUF`
+- File: `medpsy-4b-q5_k_m-imat.gguf`
+- Local path: `/srv/llm/models/MedPsy-4B-GGUF/medpsy-4b-q5_k_m-imat.gguf`
+- Native context from GGUF metadata: `262144`
+- Profile: `/home/crown/machine-setup/model-profiles/medpsy-4b-q5-k-m-imat.env`
+
+Common settings:
+
+- Engine: `/run/current-system/sw/bin/llama-bench`, build `8864`
+- Backend/device: Vulkan, `Radeon 8060S Graphics (RADV STRIX_HALO)`
+- Command shape: `-ngl 999 -fa 1 -n 128 -r 2 -o md -t 16 -sm row`
+
+f16 KV results:
+
+| Context | PP speed | TG speed | Peak GPU | Exit | Log |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 4096 | `1758.22 ± 7.11` | `67.21 ± 0.21` | `4.92 GiB` | `0` | `/srv/llm/runs/20260508-002959-medpsy-4b-q5-k-m-imat-p4096.log` |
+| 16384 | `752.18 ± 1.43` | `67.07 ± 0.12` | `6.63 GiB` | `0` | `/srv/llm/runs/20260508-002959-medpsy-4b-q5-k-m-imat-p16384.log` |
+| 32768 | `310.97 ± 0.32` | `67.12 ± 0.06` | `8.92 GiB` | `0` | `/srv/llm/runs/20260508-002959-medpsy-4b-q5-k-m-imat-p32768.log` |
+| 128000 | aborted | not measured | `22.29 GiB` | `134` | `/srv/llm/runs/20260508-002959-medpsy-4b-q5-k-m-imat-p128000.log` |
+
+q8_0 KV results:
+
+| Context | PP speed | TG speed | Peak GPU | Exit | Log |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 4096 | `1773.47 ± 8.24` | `66.83 ± 0.06` | `4.66 GiB` | `0` | `/srv/llm/runs/20260508-004547-medpsy-4b-q5-k-m-imat-q8kv-p4096.log` |
+| 16384 | `941.72 ± 0.75` | `67.31 ± 0.28` | `5.58 GiB` | `0` | `/srv/llm/runs/20260508-004547-medpsy-4b-q5-k-m-imat-q8kv-p16384.log` |
+| 32768 | `581.80 ± 0.62` | `67.12 ± 0.05` | `6.80 GiB` | `0` | `/srv/llm/runs/20260508-004547-medpsy-4b-q5-k-m-imat-q8kv-p32768.log` |
+| 128000 | manually stopped before row | not measured | not recorded | interrupted | `/srv/llm/runs/20260508-004547-medpsy-4b-q5-k-m-imat-q8kv-p128000.log` |
+
+Takeaways:
+
+- Use `q8_0/q8_0` KV for MedPsy. It improves PP materially at 16k and 32k, keeps TG around `67 t/s`, and lowers GPU memory.
+- Do not promote a 128k MedPsy profile from this run. f16 128k lost the Vulkan device, and q8 128k was stopped before completion because prefill was too slow for this validation window.
+- Created profile `medpsy-4b-q5-k-m-imat` capped at `32768`, q8 KV, single slot.
+
+## 2026-05-08 Gemma q8 KV retest
+
+User asked whether Gemma should also use q8 KV after MedPsy improved with q8. Retested E2B and E4B with q8 KV using b8672 Vulkan `llama-bench`, `-sm row`, `-t 16`.
+
+| Model | Context | KV | PP speed | TG speed | Peak GPU | Exit | Log |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |
+| Gemma 4 E2B Q4_K_M | 16384 | `q8_0/q8_0` | `2026.97 ± 4.02` | `106.41 ± 0.35` | `6.71 GiB` | `0` | `/srv/llm/runs/20260508-010357-gemma4-e2b-it-q4-km-q8kv-b8672-clean-p16384.log` |
+| Gemma 4 E2B Q4_K_M | 128000 | `q8_0/q8_0` | manually stopped | not measured | not recorded | interrupted | `/srv/llm/runs/20260508-010357-gemma4-e2b-it-q4-km-q8kv-b8672-clean-p128000.log` |
+| Gemma 4 E4B Q4_K_M | 16384 | `q8_0/q8_0` | `541.17 ± 59.13` | `20.46 ± 0.09` | `15.20 GiB` | `0` | `/srv/llm/runs/20260508-011231-gemma4-e4b-it-q4-km-q8kv-b8672-clean-p16384.log` |
+| Gemma 4 E4B Q4_K_M | 32768 | `q8_0/q8_0` | manually stopped | not measured | not recorded | interrupted | `/srv/llm/runs/20260508-011231-gemma4-e4b-it-q4-km-q8kv-b8672-clean-p32768.log` |
+
+Takeaway: keep Gemma on f16 KV. E2B q8 loses PP and a little TG versus the f16 `2490.02 / 107.74` row; E4B q8 is dramatically worse than both f16 baseline and f16 MTP.
+
+## 2026-05-08 Gemma 4 MTP assistant sweep
+
+Goal: test Google's new Gemma 4 `gemma4_assistant` / MTP drafter heads against the local Gemma 4 Q4_K_M line, find the best decode-speed settings, keep metrics exposed during runs, and update the older E2B row with the faster clean baseline.
+
+Sources checked:
+
+- Official assistant models: `google/gemma-4-E2B-it-assistant`, `google/gemma-4-E4B-it-assistant`, `google/gemma-4-26B-A4B-it-assistant`, `google/gemma-4-31B-it-assistant`
+- GGUF assistant heads: `AtomicChat/gemma-4-E2B-it-assistant-GGUF`, `AtomicChat/gemma-4-E4B-it-assistant-GGUF`, `AtomicChat/gemma-4-26B-A4B-it-assistant-GGUF`, `AtomicChat/gemma-4-31B-it-assistant-GGUF`
+- Runtime: `AtomicBot-ai/atomic-llama-cpp-turboquant`, commit `2e81dc5f6`
+
+Local files:
+
+- Target E2B: `/srv/llm/models/Gemma-4-E2B-it-Q4_K_M/google_gemma-4-E2B-it-Q4_K_M.gguf`
+- Target E4B: `/srv/llm/models/Gemma-4-E4B-it-Q4_K_M/google_gemma-4-E4B-it-Q4_K_M.gguf`
+- Target 26B A4B: `/srv/llm/models/Gemma-4-26B-A4B-it-Q4_K_M/google_gemma-4-26B-A4B-it-Q4_K_M.gguf`
+- Target 31B Dense: `/srv/llm/models/Gemma-4-31B-it-Q4_K_M/google_gemma-4-31B-it-Q4_K_M.gguf`
+- Assistant heads: `/srv/llm/models/Gemma-4-*-assistant-GGUF/*Q4_K_S.gguf`
+
+Tooling and metrics:
+
+- Valid MTP engine: `/home/crown/tmp/atomic-llama-cpp-turboquant-gemma4-mtp/build-vulkan/bin/llama-server`
+- Invalid engine excluded: `/nix/store/4zkdlkv99aacv3ir658f4spzch0biq15-llama-cpp-vulkan-0.0.0/bin/llama-server` was CPU-only despite the package name and printed `compiled without support for GPU offload`
+- Harness: `/home/crown/machine-setup/gemma4-mtp-bench.py`
+- Metrics page: `/home/crown/machine-setup/gemma-metrics-page.py`, human page `http://100.122.35.13:3011/metrics`, raw target proxy `http://100.122.35.13:3011/raw-metrics`
+- Server flags common to all valid MTP runs: `--ctx-size 16384 --no-context-shift -sm row -ngl 999 -fa on -b 2048 -ub 1024 -t 16 -ctk f16 -ctv f16 --parallel 1 --metrics --no-webui`
+- MTP settings tested: `throughput` = `--draft-block-size 2 --draft-max 6`; `lift` = `--draft-block-size 3 --draft-max 8`; `quality` = `--draft-block-size 4 --draft-max 16` on E2B only. All MTP rows used `--draft-min 0 --draft-p-min 0.75 -ngld 999`.
+- Service restore status: `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` were restored and reported `active`; `http://127.0.0.1:18081/v1/models` returned `main`.
+
+Clean E2B vanilla refresh:
+
+| Context | Engine | PP speed | TG speed | Peak VRAM | Log |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 16384 | b8672 `llama-bench` | `2490.02 ± 3.06` | `107.74 ± 0.19` | `6.76 GiB` | `/srv/llm/runs/20260507-233401-gemma4-e2b-it-q4-km-f16kv-b8672-p16384.log` |
+| 128000 | b8672 `llama-bench` | `764.21 ± 1.50` | `108.10 ± 0.62` | `7.58 GiB` | `/srv/llm/runs/20260507-233401-gemma4-e2b-it-q4-km-f16kv-b8672-p128000.log` |
+
+Valid MTP server sweep:
+
+| Model | Mode | Prompt | Predict | PP t/s | TG t/s | Wall TG | Accept | Log |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| E2B | base | 527 | 256 | `1250.63` | `99.29` | `85.26` | n/a | `/srv/llm/runs/20260508-gemma4-mtp-e2b-vulkan-sweep/gemma4-e2b-base-ctx16384-p512-n256.server.log` |
+| E2B | throughput | 527 | 256 | `1776.43` | `101.18` | `90.47` | `57.8%` | `/srv/llm/runs/20260508-gemma4-mtp-e2b-vulkan-sweep/gemma4-e2b-throughput-ctx16384-p512-n256.server.log` |
+| E2B | lift | 527 | 256 | `1761.99` | `92.62` | `83.49` | `41.2%` | `/srv/llm/runs/20260508-gemma4-mtp-e2b-vulkan-sweep/gemma4-e2b-lift-ctx16384-p512-n256.server.log` |
+| E2B | quality | 527 | 256 | `1734.27` | `88.98` | `80.40` | `34.3%` | `/srv/llm/runs/20260508-gemma4-mtp-e2b-vulkan-sweep/gemma4-e2b-quality-ctx16384-p512-n256.server.log` |
+| E4B | base | 527 | 256 | `1450.34` | `55.74` | `51.63` | n/a | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-e4b-base-ctx16384-p512-n256.server.log` |
+| E4B | throughput | 527 | 256 | `1035.84` | `64.56` | `57.19` | `55.5%` | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-e4b-throughput-ctx16384-p512-n256.server.log` |
+| E4B | lift | 527 | 256 | `1053.21` | `67.03` | `59.22` | `46.2%` | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-e4b-lift-ctx16384-p512-n256.server.log` |
+| 26B A4B | base | 527 | 256 | `731.91` | `56.04` | `48.38` | n/a | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-26b-base-ctx16384-p512-n256.server.log` |
+| 26B A4B | throughput | 527 | 256 | `865.60` | `59.43` | `52.04` | `74.0%` | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-26b-throughput-ctx16384-p512-n256.server.log` |
+| 26B A4B | lift | 527 | 256 | `871.07` | `55.29` | `48.87` | `56.2%` | `/srv/llm/runs/20260508-gemma4-mtp-e4b-26b-vulkan/gemma4-26b-lift-ctx16384-p512-n256.server.log` |
+| 31B Dense | base | 527 | 128 | `243.08` | `10.35` | `8.80` | n/a | `/srv/llm/runs/20260508-gemma4-mtp-31b-vulkan/gemma4-31b-base-ctx16384-p512-n128.server.log` |
+| 31B Dense | throughput | 527 | 128 | `214.02` | `15.89` | `12.16` | `78.9%` | `/srv/llm/runs/20260508-gemma4-mtp-31b-vulkan/gemma4-31b-throughput-ctx16384-p512-n128.server.log` |
+| 31B Dense | lift | 527 | 128 | `210.76` | `18.33` | `13.49` | `70.5%` | `/srv/llm/runs/20260508-gemma4-mtp-31b-vulkan/gemma4-31b-lift-ctx16384-p512-n128.server.log` |
+
+Takeaways:
+
+- E2B MTP is not worth using on this host. The best Atomic MTP server result only reached `101.18 TG`, below the clean b8672 vanilla `107.74-108.10 TG`, and its server-side PP did not beat clean `llama-bench` PP.
+- E4B benefits materially from MTP decode. Best setting was `lift` (`block 3 / draft-max 8`), `55.74 -> 67.03 TG` by llama.cpp timings.
+- 26B A4B gets a small decode gain. Best setting was `throughput` (`block 2 / draft-max 6`), `56.04 -> 59.43 TG`; deeper `lift` accepted fewer drafts per cost and lost the gain.
+- 31B Dense gets the strongest relative decode gain. Best setting was `lift`, `10.35 -> 18.33 TG`, but absolute speed is still low compared with E4B or 26B A4B.
+- The MTP PP values above are server-side prompt timings for short prompts and should not replace the clean `llama-bench` PP rows for capacity/context planning.
+
+## 2026-05-07 Current Qwopus3.6 35B A3B Q5 benchmark
+
+Goal: benchmark the model currently served by `qwen-main.service` using the normal local `bench-llama.sh` flow and record all requested contexts, including the user's normal 128k row.
+
+Service handling:
+
+- Before benchmark, active `qwen-main.service` was serving `/srv/llm/models/Qwopus3.6-35B-A3B-v1-GGUF/Qwopus3.6-35B-A3B-v1-Q5_K_M.gguf` with alias `main`.
+- Stopped `qwen-main.service` and `qwen3-tts.service` before benchmark windows; left `hermes-gateway.service` running.
+- Restored `qwen-main.service` and `qwen3-tts.service` afterward.
+- Final service check: `qwen-main.service`, `qwen3-tts.service`, and `hermes-gateway.service` all reported `active`; `http://127.0.0.1:18081/v1/models` returned model id `main`.
+
+Runtime and settings:
+
+- Engine: `/run/current-system/sw/bin/llama-bench`
+- Build: `8864`
+- Backend/device: Vulkan, `Radeon 8060S Graphics (RADV STRIX_HALO)`, `int dot: 1`, `matrix cores: KHR_coopmat`
+- Model: `/srv/llm/models/Qwopus3.6-35B-A3B-v1-GGUF/Qwopus3.6-35B-A3B-v1-Q5_K_M.gguf`
+- Model metadata from `llama-bench`: `qwen35moe 35B.A3B Q5_K - Medium`, `23.02 GiB`, `34.66 B`
+- Wrapper: `/home/crown/machine-setup/bench-llama.sh`
+- Command shape: `-ngl 999 -fa 1 -n 128 -r 2 -o md -t 16 -ctk q8_0 -ctv q8_0 -sm row`
+- Main manifest: `/srv/llm/runs/20260507-203139-qwopus36-35b-a3b-v1-q5-km-current-q8kv-bench.txt`
+- 128k manifest: `/srv/llm/runs/20260507-205607-qwopus36-35b-a3b-v1-q5-km-current-q8kv-128k-bench.txt`
+
+Results:
+
+| Context | PP t/s | TG t/s | Peak system RAM | Peak VRAM | Peak GTT | Peak combined GPU | Exit | Log |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 4096 | `996.23 ± 0.71` | `68.14 ± 0.04` | `13.36 GiB` | `23.98 GiB` | `0.77 GiB` | `24.76 GiB` | `0` | `/srv/llm/runs/20260507-203139-qwopus36-35b-a3b-v1-q5-km-current-q8kv-p4096.log` |
+| 16384 | `886.21 ± 0.74` | `67.98 ± 0.07` | `13.39 GiB` | `24.18 GiB` | `0.80 GiB` | `24.98 GiB` | `0` | `/srv/llm/runs/20260507-203139-qwopus36-35b-a3b-v1-q5-km-current-q8kv-p16384.log` |
+| 32768 | `755.50 ± 1.52` | `68.08 ± 0.03` | `13.41 GiB` | `24.35 GiB` | `0.83 GiB` | `25.17 GiB` | `0` | `/srv/llm/runs/20260507-203139-qwopus36-35b-a3b-v1-q5-km-current-q8kv-p32768.log` |
+| 100000 | `464.25 ± 0.47` | `57.45 ± 10.22` | `15.49 GiB` | `51.83 GiB` | `2.18 GiB` | `54.01 GiB` | `0` | `/srv/llm/runs/20260507-203139-qwopus36-35b-a3b-v1-q5-km-current-q8kv-p100000.log` |
+| 128000 | `400.94 ± 0.17` | `68.20 ± 0.13` | `13.81 GiB` | `25.50 GiB` | `1.02 GiB` | `26.52 GiB` | `0` | `/srv/llm/runs/20260507-205607-qwopus36-35b-a3b-v1-q5-km-current-q8kv-128k-p128000.log` |
+
+Validity:
+
+- Valid `llama-bench` run: all five contexts exited `0`.
+- No concurrent live serving model during benchmark windows.
+- 100k TG variance was high; prefer the 128k row for long-context decode comparison.
 
 Important model paths:
 

@@ -914,6 +914,94 @@
           </div>
         </div>
         <div id="labChart" class="chart chart-md"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Model</th>
+                <th>Workload</th>
+                <th>Mode</th>
+                <th>Prompt / PP t/s</th>
+                <th>TG t/s</th>
+                <th>Acceptance</th>
+                <th>Interpretation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q4_1 MTP</strong></td>
+                <td>65K, 3-turn long chat</td>
+                <td class="mono">draft 3</td>
+                <td>648.10 prompt</td>
+                <td>66.80 weighted</td>
+                <td>66.98% / 51.56% / 80.22%</td>
+                <td>+12.6% generation vs same Q4_1 file with MTP off; prompt ingestion slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q4_1 MTP</strong></td>
+                <td>128K, 96K-token first prompt</td>
+                <td class="mono">draft 3</td>
+                <td>427.48 prompt</td>
+                <td>53.42 weighted</td>
+                <td>67.62% / 52.93% / 73.80%</td>
+                <td>+9.3% generation vs same Q4_1 file with MTP off; prompt processing still slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q8 MTP</strong></td>
+                <td>65K, 3-turn long chat</td>
+                <td class="mono">draft 3</td>
+                <td>645.82 prompt</td>
+                <td>56.28 weighted</td>
+                <td>52.42% / 53.52% / 79.47%</td>
+                <td>+19.7% generation vs existing Q8 baseline, but includes model/file differences.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q8 MTP</strong></td>
+                <td>128K, 96K-token first prompt</td>
+                <td class="mono">draft 3</td>
+                <td>416.19 prompt</td>
+                <td>44.97 weighted</td>
+                <td>60.47% / 50.66% / 80.22%</td>
+                <td>+12.0% generation vs existing Q8 baseline; prompt ingestion slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 E4B + assistant</strong></td>
+                <td>16K, p512/n256 server run</td>
+                <td class="mono">lift</td>
+                <td>1053.21 PP</td>
+                <td>67.03</td>
+                <td>46.2%</td>
+                <td>Best Gemma E4B MTP setting; decode improved from 55.74 TG.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 26B A4B + assistant</strong></td>
+                <td>16K, p512/n256 server run</td>
+                <td class="mono">throughput</td>
+                <td>865.60 PP</td>
+                <td>59.43</td>
+                <td>74.0%</td>
+                <td>Small decode gain over 56.04 TG base; deeper lift mode was slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 31B Dense + assistant</strong></td>
+                <td>16K, p512/n128 server run</td>
+                <td class="mono">lift</td>
+                <td>210.76 PP</td>
+                <td>18.33</td>
+                <td>70.5%</td>
+                <td>Largest relative Gemma MTP decode gain, from 10.35 TG base.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </article>
     </section>
 
@@ -941,7 +1029,7 @@
             <h3>Runtime</h3>
             <ul class="bullets">
               <li><span class="mono">llama.cpp</span> with Vulkan, plus isolated ROCm comparisons where noted</li>
-              <li>Current system benchmark build <span class="mono">8864</span>; upstream b8971 used for checkpointed speculative tests</li>
+              <li>Current system benchmark build <span class="mono">8864</span>; b8672 used for refreshed Gemma 4 rows; upstream b8971 used for checkpointed speculative tests</li>
               <li>Common benchmark flags <span class="mono">-ngl 999 -fa 1 -n 128 -o md</span>, usually <span class="mono">-r 1</span> or <span class="mono">-r 2</span></li>
               <li>Guard reserves: 8 GiB RAM, 2 GiB VRAM, 4 GiB GTT</li>
               <li>Typical contexts: 4096, 16384, 32768, with long checks to 100000+</li>
@@ -952,6 +1040,10 @@
             <ul class="bullets">
               <li>Some later April tables report only peak GPU memory; those points use that value as GPU footprint and leave system RAM/GTT blank.</li>
               <li>Speculative decoding points are separated from the llama-bench frontier because active prompt occupancy changes the meaning of the context number.</li>
+              <li>Qwen3.6 MTP rows in the KV/backend lab are server-side multi-turn chat timings from <span class="mono">mtpbench.md</span>, not clean llama-bench context rows.</li>
+              <li>Dynamic Strix quant rows are clean prompt/decode checks from the MTP workspace and are included in the main context charts.</li>
+              <li>Gemma 4 E2B 16K uses the refreshed b8672 f16 KV row from 2026-05-07; the older 2026-04-02 16K row was superseded.</li>
+              <li>Gemma 4 MTP server tests are recorded in the history, but clean llama-bench rows remain the chart source for context-planning comparisons.</li>
               <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded beyond measured contexts.</li>
               <li>Qwen Coder Next is plotted as 80B-class on the parameter axis to match the benchmark notes in this repo.</li>
             </ul>
@@ -1006,8 +1098,24 @@
         tier: "Compact",
         runs: [
           { date: "2026-04-02", context: 4096, pp: 3027.12, tg: 107.0, ram: 10.28, vram: 8.38, gtt: 3.89 },
-          { date: "2026-04-02", context: 16384, pp: 2363.87, tg: 107.07, ram: 10.44, vram: 8.49, gtt: 3.91 },
-          { date: "2026-04-02", context: 32768, pp: 1805.97, tg: 106.6, ram: 10.72, vram: 8.55, gtt: 3.94 }
+          { date: "2026-05-07", context: 16384, pp: 2490.02, tg: 107.74, ram: null, vram: 6.76, gtt: null, kv: "f16/f16", runtime: "b8672 Vulkan", memSource: "Peak VRAM" },
+          { date: "2026-04-02", context: 32768, pp: 1805.97, tg: 106.6, ram: 10.72, vram: 8.55, gtt: 3.94 },
+          { date: "2026-05-07", context: 128000, pp: 764.21, tg: 108.1, ram: null, vram: 7.58, gtt: null, kv: "f16/f16", runtime: "b8672 Vulkan", memSource: "Peak VRAM" }
+        ]
+      },
+      {
+        id: "medpsy-4b-q5",
+        name: "MedPsy 4B Q5_K_M imatrix",
+        short: "MedPsy 4B",
+        family: "MedPsy",
+        color: "#14b8a6",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-05-08", context: 4096, pp: 1773.47, tg: 66.83, ram: null, vram: 4.66, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-08", context: 16384, pp: 941.72, tg: 67.31, ram: null, vram: 5.58, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-08", context: 32768, pp: 581.8, tg: 67.12, ram: null, vram: 6.8, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
         ]
       },
       {
@@ -1382,6 +1490,51 @@
         ]
       },
       {
+        id: "qwopus36-35b-q5",
+        name: "Qwopus3.6 35B A3B v1 Q5_K_M",
+        short: "Qwopus3.6 Q5",
+        family: "Qwopus3.6 A3B",
+        color: "#22c55e",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-07", context: 4096, pp: 996.23, tg: 68.14, ram: 13.36, vram: 24.76, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 16384, pp: 886.21, tg: 67.98, ram: 13.39, vram: 24.98, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 32768, pp: 755.5, tg: 68.08, ram: 13.41, vram: 25.17, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 100000, pp: 464.25, tg: 57.45, ram: 15.49, vram: 54.01, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU; high TG variance" },
+          { date: "2026-05-07", context: 128000, pp: 400.94, tg: 68.2, ram: 13.81, vram: 26.52, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "qwen36-35b-dynamic-strix-q8kv",
+        name: "Qwen3.6 35B A3B Dynamic Strix q8 KV",
+        short: "Qwen3.6 Dynamic q8KV",
+        family: "Qwen 3.6 A3B Strix",
+        color: "#10b981",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-06", context: 16384, pp: 1055.1, tg: 66.17, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-06", context: 128000, pp: 454.16, tg: 66.16, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" }
+        ]
+      },
+      {
+        id: "qwen36-35b-dynamic-strix-f16kv",
+        name: "Qwen3.6 35B A3B Dynamic Strix f16 KV",
+        short: "Qwen3.6 Dynamic f16KV",
+        family: "Qwen 3.6 A3B Strix",
+        color: "#86efac",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-06", context: 16384, pp: 1133.59, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-06", context: 128000, pp: 387.94, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" }
+        ]
+      },
+      {
         id: "qwopus-moe-q4",
         name: "Qwopus MoE 35B A3B Q4_K_M",
         short: "Qwopus MoE Q4",
@@ -1704,6 +1857,21 @@
       { model: "Qwen3.6 27B Q8", variant: "Turbo3 KV", pp: 201.48, tg: 6.12, gpu: 34.65, color: "#a78bfa" },
       { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan f16/f16", pp: 912.4, tg: 54.46, gpu: 36.24, color: "#67e8f9" },
       { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan q8/q8", pp: 739.18, tg: 52.32, gpu: 36.05, color: "#60a5fa" },
+      { model: "Qwen3.6 35B Q4_1 MTP", variant: "65k draft 3", pp: 648.1, tg: 66.8, gpu: null, color: "#34d399" },
+      { model: "Qwen3.6 35B Q4_1 MTP", variant: "128k draft 3", pp: 427.48, tg: 53.42, gpu: null, color: "#22c55e" },
+      { model: "Qwen3.6 35B Q8 MTP", variant: "65k draft 3", pp: 645.82, tg: 56.28, gpu: null, color: "#93c5fd" },
+      { model: "Qwen3.6 35B Q8 MTP", variant: "128k draft 3", pp: 416.19, tg: 44.97, gpu: null, color: "#60a5fa" },
+      { model: "Qwen3.6 35B Dynamic", variant: "16k q8/q8", pp: 1055.1, tg: 66.17, gpu: null, color: "#10b981" },
+      { model: "Qwen3.6 35B Dynamic", variant: "128k q8/q8", pp: 454.16, tg: 66.16, gpu: null, color: "#059669" },
+      { model: "Qwen3.6 35B Dynamic", variant: "16k f16/f16", pp: 1133.59, tg: 67.15, gpu: null, color: "#86efac" },
+      { model: "Qwen3.6 35B Dynamic", variant: "128k f16/f16", pp: 387.94, tg: 67.15, gpu: null, color: "#bbf7d0" },
+      { model: "MedPsy 4B Q5", variant: "Vulkan f16/f16", pp: 310.97, tg: 67.12, gpu: 8.92, color: "#2dd4bf" },
+      { model: "MedPsy 4B Q5", variant: "Vulkan q8/q8", pp: 581.8, tg: 67.12, gpu: 6.8, color: "#14b8a6" },
+      { model: "Gemma 4 E2B", variant: "Vulkan f16/f16", pp: 2490.02, tg: 107.74, gpu: 6.76, color: "#21c7a8" },
+      { model: "Gemma 4 E2B", variant: "Vulkan q8/q8", pp: 2026.97, tg: 106.41, gpu: 6.71, color: "#fbbf24" },
+      { model: "Gemma 4 E4B", variant: "MTP lift", pp: 1053.21, tg: 67.03, gpu: null, color: "#39d0ff" },
+      { model: "Gemma 4 26B", variant: "MTP throughput", pp: 865.6, tg: 59.43, gpu: null, color: "#ff8a3d" },
+      { model: "Gemma 4 31B Dense", variant: "MTP lift", pp: 210.76, tg: 18.33, gpu: null, color: "#c96a2c" },
       { model: "HauhauCS 35B Q8", variant: "f16/f16", pp: 789.5, tg: 43.5, gpu: 42.48, color: "#a78bfa" },
       { model: "HauhauCS 35B Q8", variant: "q8/q8", pp: 665.13, tg: 40.8, gpu: 42.28, color: "#c084fc" }
     ];
