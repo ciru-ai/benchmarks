@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TG Decode Sprint: 128-Record Gauntlet</title>
+  <meta name="description" content="Master TG decode sprint with 128-record audit strips for Qwen, Gemma, Mistral, DFlash, and PFlash lanes.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(14, 15, 18, 0.92);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --cyan: #39d0ff;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --rose: #ff4e6e;
+      --violet: #a78bfa;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1480px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+    }
+
+    a {
+      color: #9ee8ff;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(190px, 280px);
+      gap: 22px;
+      align-items: stretch;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      max-width: 980px;
+      font-size: clamp(2.2rem, 5.2vw, 5.35rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 0.93;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 92ch;
+    }
+
+    .hero-badge {
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 210px;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .hero-badge img {
+      display: block;
+      width: min(100%, 220px);
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    .chips,
+    .nav,
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .chip,
+    .nav a,
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 9px 13px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .panel,
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border-left: 3px solid var(--accent, var(--cyan));
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent),
+        rgba(14, 15, 18, 0.88);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 1.16rem;
+      line-height: 1.08;
+    }
+
+    .race-panel {
+      margin-top: 16px;
+      padding: 18px;
+    }
+
+    .race-head {
+      display: flex;
+      gap: 14px;
+      align-items: start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .race-head h2,
+    .panel h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0;
+    }
+
+    .race-head p,
+    .panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .clock {
+      min-width: min(100%, 280px);
+      padding: 12px;
+      border: 1px solid rgba(57, 208, 255, 0.32);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(57, 208, 255, 0.14), rgba(0, 0, 0, 0.18));
+    }
+
+    .clock span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .clock strong {
+      display: block;
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      line-height: 1;
+    }
+
+    .lanes {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .lane {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.78fr) minmax(420px, 2.1fr) minmax(270px, 0.82fr);
+      gap: 12px;
+      align-items: center;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent),
+        rgba(0, 0, 0, 0.24);
+      overflow: hidden;
+    }
+
+    .lane.fail {
+      opacity: 0.86;
+    }
+
+    .lane-title {
+      min-width: 0;
+    }
+
+    .lane-title strong {
+      display: block;
+      font-size: 1rem;
+      line-height: 1.16;
+    }
+
+    .lane-title .sub {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      margin-top: 8px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge.pass { border-color: rgba(32, 209, 162, 0.48); color: #a8ffe6; }
+    .badge.format { border-color: rgba(246, 192, 70, 0.5); color: #ffe29a; }
+    .badge.content { border-color: rgba(255, 78, 110, 0.52); color: #ffb0bf; }
+    .badge.fail { border-color: rgba(164, 168, 176, 0.5); color: #d0d3da; }
+    .badge.locked { border-color: rgba(255, 255, 255, 0.18); color: #d6d9df; }
+
+    .track {
+      min-width: 0;
+    }
+
+    .track-bar {
+      position: relative;
+      height: 82px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 12.5% 100%,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
+        rgba(255, 255, 255, 0.035);
+      overflow: hidden;
+    }
+
+    .track-bar::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 15px;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 -22px 0 rgba(255, 255, 255, 0.055);
+    }
+
+    .audit-rail {
+      position: absolute;
+      inset: 9px 18px 14px;
+      display: grid;
+      grid-template-columns: repeat(128, minmax(0, 1fr));
+      align-items: end;
+      gap: 1px;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .gate {
+      position: relative;
+      align-self: end;
+      min-width: 2px;
+      height: 48px;
+      border-radius: 3px 3px 1px 1px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      opacity: 0.36;
+      transform: scaleY(0.45);
+      transform-origin: bottom center;
+      transition: background 180ms ease, opacity 180ms ease, transform 180ms ease, box-shadow 180ms ease, height 180ms ease;
+    }
+
+    .gate.scanned.clean {
+      height: 48px;
+      background: linear-gradient(180deg, #8affdf, rgba(32, 209, 162, 0.86));
+      box-shadow: 0 0 13px rgba(32, 209, 162, 0.44);
+      opacity: 0.98;
+      transform: none;
+    }
+
+    .gate.scanned.format {
+      height: 48px;
+      background: linear-gradient(180deg, #ffe29a, rgba(246, 192, 70, 0.88));
+      box-shadow: 0 0 12px rgba(246, 192, 70, 0.36);
+      opacity: 0.96;
+      transform: none;
+    }
+
+    .gate.scanned.content {
+      height: 48px;
+      background: linear-gradient(180deg, #ff9cae, rgba(255, 78, 110, 0.9));
+      box-shadow: 0 0 13px rgba(255, 78, 110, 0.38);
+      opacity: 0.98;
+      transform: none;
+    }
+
+    .gate.scanned.missing {
+      height: 48px;
+      background: #000;
+      border-color: rgba(255, 255, 255, 0.36);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 8px rgba(255, 255, 255, 0.12);
+      opacity: 1;
+      transform: none;
+    }
+
+    .gate.current {
+      outline: 1px solid rgba(255, 255, 255, 0.86);
+      outline-offset: 2px;
+    }
+
+    .sweep {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 28%),
+        linear-gradient(90deg, color-mix(in srgb, var(--lane-color) 58%, transparent), rgba(255, 255, 255, 0.02));
+      opacity: 0.72;
+      transition: width 90ms linear;
+      z-index: 1;
+    }
+
+    .runner {
+      position: absolute;
+      top: 11px;
+      left: 0%;
+      width: 52px;
+      height: 52px;
+      transform: translateX(-26px);
+      transition: left 90ms linear;
+      z-index: 4;
+      filter: drop-shadow(0 0 18px var(--lane-color));
+    }
+
+    .runner::before {
+      content: "";
+      position: absolute;
+      inset: 7px 12px;
+      clip-path: polygon(0 50%, 72% 0, 100% 50%, 72% 100%);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255,255,255,0.08)),
+        var(--lane-color);
+    }
+
+    .runner::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      right: 1px;
+      bottom: 2px;
+      width: 14px;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--lane-color) 70%, transparent), transparent);
+      clip-path: polygon(0 0, 100% 50%, 0 100%);
+      opacity: 0.78;
+    }
+
+    .finish-line {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 12px;
+      background: repeating-linear-gradient(45deg, rgba(255,255,255,0.85) 0 5px, rgba(0,0,0,0.8) 5px 10px);
+      opacity: 0.72;
+    }
+
+    .lane-readout {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .audit-card {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .live-audit .score {
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.08;
+    }
+
+    .live-audit .detail {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.32;
+    }
+
+    .audit-breakdown {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .audit-count {
+      min-width: 0;
+      padding: 7px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #d6d9df;
+      font-size: 0.69rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .audit-count b {
+      display: block;
+      margin-bottom: 3px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1rem;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .audit-count.clean { border-color: rgba(32, 209, 162, 0.35); color: #a8ffe6; }
+    .audit-count.format { border-color: rgba(246, 192, 70, 0.38); color: #ffe29a; }
+    .audit-count.content { border-color: rgba(255, 78, 110, 0.38); color: #ffb0bf; }
+    .audit-count.missing { border-color: rgba(255, 255, 255, 0.28); color: #f0f1f3; background: rgba(0, 0, 0, 0.46); }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .board .panel {
+      padding: 15px;
+    }
+
+    .board .value {
+      margin-top: 8px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .board .note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.38;
+    }
+
+    .source {
+      margin-top: 16px;
+      padding: 14px;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .source ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      line-height: 1.55;
+    }
+
+    .explainer {
+      margin-top: 16px;
+      padding: 18px;
+    }
+
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .explain-card {
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .explain-card h3 {
+      margin: 0;
+      font-size: 0.98rem;
+      letter-spacing: 0;
+    }
+
+    .explain-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .color-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .color-row {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 9px;
+      align-items: start;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .color-row i {
+      display: block;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .contract-list {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .example-code {
+      margin: 10px 0 0;
+      padding: 10px;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.45);
+      color: #f4f7fb;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    @media (max-width: 1160px) {
+      .lane {
+        grid-template-columns: 1fr;
+      }
+
+      .board,
+      .explainer-grid,
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .hero,
+      .board,
+      .explainer-grid,
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-badge {
+        min-height: 140px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Master decode sprint</p>
+        <h1>128-Record Gauntlet</h1>
+        <p class="subtitle">This race measures not only speed but task quality. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
+        <div class="chips">
+          <span class="chip">Target 8192 generated tokens</span>
+          <span class="chip">128 requested records</span>
+          <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
+        </div>
+      </div>
+      <div class="hero-badge">
+        <img src="../../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+      </div>
+    </section>
+
+    <nav class="nav" aria-label="Page navigation">
+      <a href="../">DFlash overview</a>
+      <a href="../tg-race/">8192 TG race</a>
+      <a href="../../">Main dashboard</a>
+      <a href="tg-decode-sprint-race-inputs.json">Race input JSON</a>
+      <a href="static-gauntlet-v1.html">Saved static version</a>
+      <a href="live-reveal-draft.html">Saved reveal draft</a>
+    </nav>
+
+    <section class="metric-grid">
+      <div class="metric" style="--accent: var(--cyan)"><span>Leader reveal time</span><strong>2:10 minimum</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>Audit target</span><strong>128 hidden gates</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>Decode target</span><strong>8192 generated tokens</strong></div>
+      <div class="metric" style="--accent: var(--amber)"><span>Score</span><strong>Quality revealed live</strong></div>
+    </section>
+
+    <section class="panel race-panel">
+      <div class="race-head">
+        <div>
+          <h2>Live Sprint</h2>
+          <p>The scanner moves through output-record order, not exact per-token timestamps. Broadcast timing stretches the leader beyond two minutes and compresses the tail so the whole field stays watchable while measured TG remains visible.</p>
+        </div>
+        <div class="clock">
+          <span>Replay clock</span>
+          <strong id="clockReadout">0s</strong>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background: rgba(32, 209, 162, 0.92)"></i> perfect output</span>
+        <span><i style="background: rgba(246, 192, 70, 0.92)"></i> near miss</span>
+        <span><i style="background: rgba(255, 78, 110, 0.92)"></i> wrong content</span>
+        <span><i style="background: #000; border: 1px solid rgba(255,255,255,0.55)"></i> skipped/missing</span>
+      </div>
+      <div id="lanes" class="lanes"></div>
+    </section>
+
+    <section class="board">
+      <article class="panel">
+        <h2>Track Rules</h2>
+        <div class="value">128 gates</div>
+        <div class="note">Each gate is one requested output record. The track starts unknown and only resolves where the scanner has passed.</div>
+      </article>
+      <article class="panel">
+        <h2>Nuance</h2>
+        <div class="value">Not binary</div>
+        <div class="note">Green is perfect output. Yellow is a near miss. Red is wrong. Black means that requested record did not appear.</div>
+      </article>
+      <article class="panel">
+        <h2>Timing</h2>
+        <div class="value">No loop</div>
+        <div class="note">The broadcast stretches the raw speed race so the fastest lane takes over two minutes to finish.</div>
+      </article>
+      <article class="panel">
+        <h2>Score</h2>
+        <div class="value">x/128</div>
+        <div class="note">The live card is the score: how many requested records have resolved into each quality bucket.</div>
+      </article>
+    </section>
+
+    <section class="panel source">
+      <h2>Source Files</h2>
+      <p>Race inputs were copied from <span class="mono">/srv/llm/runs/20260512-225739-tg-decode-sprint-extra-lanes/</span>. PFlash audit data came from the rerun under <span class="mono">/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/</span>.</p>
+      <ul>
+        <li><a href="tg-decode-sprint-race-inputs.json">tg-decode-sprint-race-inputs.json</a></li>
+        <li><a href="tg-decode-sprint-race-lanes.tsv">tg-decode-sprint-race-lanes.tsv</a></li>
+        <li><a href="tg-decode-sprint-race-timeline.tsv">tg-decode-sprint-race-timeline.tsv</a></li>
+        <li><a href="qwen36-27b-dflash-pflash-output-audit-summary.json">qwen36-27b-dflash-pflash-output-audit-summary.json</a></li>
+      </ul>
+    </section>
+
+    <section class="panel explainer">
+      <h2>How To Read This</h2>
+      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The colored gates are not vibes or a generic pass/fail label: each gate is one requested step from 1 through 128, checked against the exact output contract below.</p>
+      <div class="explainer-grid">
+        <article class="explain-card">
+          <h3>The Actual Instructions</h3>
+          <p>The model had to write exactly 128 newline-delimited JSON objects. No array, no Markdown, no preamble, no hidden-thought channel text, and no pretty-printed multi-line objects.</p>
+          <ul class="contract-list">
+            <li>Every object needed keys: marker, step, subsystem, observation, action, restore_token.</li>
+            <li>marker had to be DECODE_MARKER_TIMELINE_RIVER_41729 every time.</li>
+            <li>restore_token had to be RIVER-41729-CYAN every time.</li>
+            <li>step had to count 1, 2, 3 ... 128 in order.</li>
+            <li>subsystem had to cycle scheduler, billing, workspace_export, notification_digest, audit_log, restore_console.</li>
+          </ul>
+        </article>
+        <article class="explain-card">
+          <h3>Color Key</h3>
+          <div class="color-list">
+            <div class="color-row"><i style="background: rgba(32, 209, 162, 0.92)"></i><span><strong>Green:</strong> perfect record. One complete JSON object on one line, right step, right subsystem, right marker, right restore_token.</span></div>
+            <div class="color-row"><i style="background: rgba(246, 192, 70, 0.92)"></i><span><strong>Yellow:</strong> near miss. The answer is recognizable, but the output contract is wrong, such as extra text before JSON or pretty-printed JSON instead of JSONL.</span></div>
+            <div class="color-row"><i style="background: rgba(255, 78, 110, 0.92)"></i><span><strong>Red:</strong> wrong record content. The JSON can be inspected, but a required task field or value is wrong or missing.</span></div>
+            <div class="color-row"><i style="background: #000"></i><span><strong>Black:</strong> skipped or missing. That requested record position never appeared in usable form before the generation ended.</span></div>
+          </div>
+        </article>
+        <article class="explain-card">
+          <h3>Perfect Example</h3>
+          <p>A green gate looks like this: one full object, one line, correct step, correct subsystem for that step, and the required restore token as its own field.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Scheduler initialization sequence begins with standard configuration parameters loaded into memory for processing.","action":"Verify scheduler configuration parameters match the expected baseline values for the current deployment environment.","restore_token":"RIVER-41729-CYAN"}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Gemma 26B Yellow Example</h3>
+          <p>Gemma 26B got the content right, but its first output line had extra channel text before the JSON object. That makes step 1 yellow. Steps 2-87 are green, then steps 88-128 are black because they never appeared.</p>
+          <pre class="example-code">&lt;|channel&gt;thought
+&lt;channel|&gt;{"marker": "DECODE_MARKER_TIMELINE_RIVER_41729", "step": 1, "subsystem": "scheduler", "observation": "The scheduler service is currently experiencing high latency during the peak morning traffic period.", "action": "Increase the resource allocation for the scheduler to handle the incoming request load effectively.", "restore_token": "RIVER-41729-CYAN"}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Baseline Yellow Example</h3>
+          <p>The Qwen baseline produced JSON objects, but it pretty-printed them across several lines. The instruction was newline-delimited JSON, meaning each record must be one complete object on one line. So the baseline is yellow across the track rather than green.</p>
+          <pre class="example-code">{
+  "marker": "DECODE_MARKER_TIMELINE_RIVER_41729",
+  "step": 1,
+  "subsystem": "scheduler",
+  "observation": "Scheduler service initialized successfully with standard configuration parameters for the multi-tenant planning product environment.",
+  "action": "Verify scheduler connectivity and ensure all tenant queues are properly registered and active.",
+  "restore_token": "RIVER-41729-CYAN"
+}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Mistral Red Example</h3>
+          <p>Mistral produced parseable records for steps 1-102, but the required restore_token key was missing. It mentioned the token inside prose, but the benchmark required a separate JSON field. That is why those gates are red, not yellow.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Frozen audit checkpoint indicates active restore token RIVER-41729-CYAN.","action":"Verify no obsolete tokens like RIVER-18820-GRAY or RIVER-39002-AMBER are used."}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Black Missing Example</h3>
+          <p>Black does not mean the existing lines were bad. It means the model did not reach that requested step before the 8192-token decode ended. Gemma 4 E2B reached step 86 and then stopped. PFlash reached step 102. Qwen Dynamic reached step 117.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TARGET_TOKENS = 8192;
+    const TARGET_RECORDS = 128;
+    const LEADER_REPLAY_SECONDS = 130;
+    const FIELD_SPREAD_SECONDS = 190;
+    const seq = (status, count) => Array.from({ length: count }, () => status);
+    const LANES = [
+      {
+        id: "gemma-e2b",
+        display: "Gemma 4 E2B",
+        tier: "FORMAT",
+        speed: 84.49,
+        promptSeconds: 6.9423,
+        statuses: [...seq("clean", 86), ...seq("missing", 42)],
+        color: "#f6c046"
+      },
+      {
+        id: "qwen-dynamic",
+        display: "Qwen3.6 35B Dynamic",
+        tier: "PASS",
+        speed: 59.42,
+        promptSeconds: 15.31136,
+        statuses: [...seq("clean", 117), ...seq("missing", 11)],
+        color: "#20d1a2"
+      },
+      {
+        id: "gemma-26b",
+        display: "Gemma 4 26B-A4B",
+        tier: "FORMAT",
+        speed: 47.85,
+        promptSeconds: 13.77087,
+        statuses: ["format", ...seq("clean", 86), ...seq("missing", 41)],
+        color: "#f59e0b"
+      },
+      {
+        id: "qwen-pflash",
+        display: "Qwen3.6 27B DFlash+PFlash",
+        tier: "PASS",
+        speed: 17.37,
+        speedSub: "17.032 delta estimate; 18.47 t/s at 2048",
+        promptSeconds: 14.113,
+        statuses: [...seq("clean", 102), ...seq("missing", 26)],
+        color: "#39d0ff"
+      },
+      {
+        id: "baseline",
+        display: "Qwen3.6 27B Baseline",
+        tier: "FORMAT",
+        speed: 12.04,
+        promptSeconds: 58.36574,
+        statuses: [...seq("format", 128)],
+        color: "#a78bfa"
+      },
+      {
+        id: "mistral-119b",
+        display: "Mistral Small 4 119B",
+        tier: "CONTENT",
+        speed: 11.91,
+        promptSeconds: 57.64905,
+        statuses: [...seq("content", 102), ...seq("missing", 26)],
+        color: "#ff4e6e"
+      }
+    ];
+
+    const byId = (id) => document.getElementById(id);
+    const fmt = (value, digits = 0) => Number(value).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+    const pct = (value) => `${Math.round(value * 1000) / 10}%`;
+
+    function timeLabel(value) {
+      const total = Math.max(0, Math.round(value));
+      const minutes = Math.floor(total / 60);
+      const seconds = String(total % 60).padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function finishTime(lane) {
+      return lane.promptSeconds + (TARGET_TOKENS / lane.speed);
+    }
+
+    const actualFinishes = LANES.map(finishTime);
+    const fastestActual = Math.min(...actualFinishes);
+    const slowestActual = Math.max(...actualFinishes);
+
+    function broadcastFinish(lane) {
+      const actual = finishTime(lane);
+      const span = Math.max(1, slowestActual - fastestActual);
+      const normalized = Math.max(0, (actual - fastestActual) / span);
+      return LEADER_REPLAY_SECONDS + Math.pow(normalized, 0.68) * FIELD_SPREAD_SECONDS;
+    }
+
+    const maxBroadcastFinish = Math.max(...LANES.map(broadcastFinish));
+    const start = performance.now();
+
+    function statusFor(lane, index) {
+      return lane.statuses[index] || "missing";
+    }
+
+    function countsThrough(lane, reached) {
+      const counts = { clean: 0, format: 0, content: 0, missing: 0 };
+      for (let index = 0; index < reached; index += 1) {
+        counts[statusFor(lane, index)] += 1;
+      }
+      return counts;
+    }
+
+    function renderLane(lane) {
+      const gates = Array.from({ length: TARGET_RECORDS }, (_, index) => (
+        `<span class="gate" data-status="${statusFor(lane, index)}" aria-hidden="true"></span>`
+      )).join("");
+      return `
+        <article class="lane" data-lane="${lane.id}" style="--lane-color:${lane.color}">
+          <div class="lane-title">
+            <strong>${lane.display}</strong>
+            <div class="sub">${fmt(lane.speed, 2)} tok/s${lane.speedSub ? ` • ${lane.speedSub}` : ""}</div>
+            <span class="badge locked">LIVE AUDIT</span>
+          </div>
+          <div class="track">
+            <div class="track-bar">
+              <div class="sweep"></div>
+              <div class="audit-rail">${gates}</div>
+              <div class="runner"></div>
+              <div class="finish-line"></div>
+            </div>
+            <div class="lane-readout">
+              <span class="tokens">0 / 8,192 tokens</span>
+              <span class="phase">scanner armed</span>
+            </div>
+          </div>
+          <div class="audit-card">
+            <div class="live-audit">
+              <span class="score">0/128 checked</span>
+              <span class="detail">perfect 0 • near 0 • wrong 0 • missing 0</span>
+            </div>
+            <div class="audit-breakdown">
+              <span class="audit-count clean"><b>0/128</b>Perfect</span>
+              <span class="audit-count format"><b>0/128</b>Near miss</span>
+              <span class="audit-count content"><b>0/128</b>Wrong</span>
+              <span class="audit-count missing"><b>0/128</b>Missing</span>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function updateInspection(node, lane, reached) {
+      const gates = node.querySelectorAll(".gate");
+      gates.forEach((gate, index) => {
+        const scanned = index < reached;
+        gate.className = `gate${scanned ? ` scanned ${gate.dataset.status}` : ""}${index === reached ? " current" : ""}`;
+      });
+
+      const checked = Math.min(reached, TARGET_RECORDS);
+      const counts = countsThrough(lane, checked);
+      node.querySelector(".live-audit .score").textContent = `${checked}/128 checked`;
+      node.querySelector(".live-audit .detail").textContent =
+        `perfect ${counts.clean} • near ${counts.format} • wrong ${counts.content} • missing ${counts.missing}`;
+      node.querySelector(".audit-count.clean b").textContent = `${counts.clean}/128`;
+      node.querySelector(".audit-count.format b").textContent = `${counts.format}/128`;
+      node.querySelector(".audit-count.content b").textContent = `${counts.content}/128`;
+      node.querySelector(".audit-count.missing b").textContent = `${counts.missing}/128`;
+    }
+
+    function setLaneState(lane, elapsed) {
+      const node = document.querySelector(`[data-lane="${lane.id}"]`);
+      if (!node) return;
+      const finish = broadcastFinish(lane);
+      const progress = Math.min(1, elapsed / finish);
+      const tokens = Math.min(TARGET_TOKENS, Math.round(TARGET_TOKENS * progress));
+      const reached = Math.min(TARGET_RECORDS, Math.floor(progress * TARGET_RECORDS));
+      node.querySelector(".sweep").style.width = pct(progress);
+      node.querySelector(".runner").style.left = pct(progress);
+      node.querySelector(".tokens").textContent = `${fmt(tokens)} / 8,192 tokens`;
+      const phase = progress >= 1 ? "finished" : (reached === 0 ? "opening scan" : `gate ${Math.min(reached + 1, TARGET_RECORDS)}`);
+      node.querySelector(".phase").textContent = `${phase} • broadcast finish ${timeLabel(finish)}`;
+      updateInspection(node, lane, reached);
+    }
+
+    function animate() {
+      const elapsed = Math.min((performance.now() - start) / 1000, maxBroadcastFinish + 4);
+      byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxBroadcastFinish)}`;
+      LANES.forEach((lane) => setLaneState(lane, elapsed));
+      if (elapsed < maxBroadcastFinish + 4) {
+        requestAnimationFrame(animate);
+      }
+    }
+
+    byId("lanes").innerHTML = LANES.map(renderLane).join("");
+    animate();
+  </script>
+</body>
+</html>

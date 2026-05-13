@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TG Decode Sprint: 128-Record Gauntlet</title>
-  <meta name="description" content="Master TG decode sprint with 128-record audit strips for Qwen, Gemma, Mistral, DFlash, and PFlash lanes.">
+  <title>TG64 Decode Quality Race</title>
+  <meta name="description" content="Real-time 64-record decode quality race with model logos, per-record audit bars, and concrete output-contract examples.">
   <meta name="theme-color" content="#080808">
   <link rel="icon" type="image/png" sizes="32x32" href="../../ccglogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,19 +13,18 @@
   <style>
     :root {
       --bg: #070707;
-      --panel: rgba(14, 15, 18, 0.92);
-      --line: rgba(255, 255, 255, 0.12);
+      --panel: rgba(14, 15, 18, 0.93);
+      --line: rgba(255, 255, 255, 0.13);
       --text: #f7f7f4;
-      --muted: #a4a8b0;
+      --muted: #a8adb7;
       --amd: #ed1c24;
       --cyan: #39d0ff;
-      --teal: #20d1a2;
-      --amber: #f6c046;
-      --rose: #ff4e6e;
-      --violet: #a78bfa;
+      --green: #20d1a2;
+      --yellow: #f6c046;
+      --red: #ff4e6e;
       --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
       --radius: 8px;
-      --max: 1480px;
+      --max: 1500px;
     }
 
     * {
@@ -38,8 +37,8 @@
       color: var(--text);
       font-family: "Space Grotesk", system-ui, sans-serif;
       background:
-        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
-        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        linear-gradient(120deg, rgba(237, 28, 36, 0.18), transparent 28%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 30%),
         repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
         linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
     }
@@ -54,7 +53,7 @@
         linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
       background-size: 36px 36px;
       opacity: 0.34;
-      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 82%);
     }
 
     a {
@@ -84,7 +83,7 @@
       border: 1px solid var(--line);
       border-radius: 10px;
       background:
-        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 34%),
         linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -119,7 +118,7 @@
     h1 {
       margin: 8px 0 0;
       max-width: 980px;
-      font-size: clamp(2.2rem, 5.2vw, 5.35rem);
+      font-size: clamp(2.2rem, 5.2vw, 5.3rem);
       font-weight: 700;
       letter-spacing: 0;
       line-height: 0.93;
@@ -131,7 +130,7 @@
       color: #c6c9cf;
       font-size: 1rem;
       line-height: 1.5;
-      max-width: 92ch;
+      max-width: 94ch;
     }
 
     .hero-badge {
@@ -257,7 +256,7 @@
     }
 
     .clock {
-      min-width: min(100%, 280px);
+      min-width: min(100%, 300px);
       padding: 12px;
       border: 1px solid rgba(57, 208, 255, 0.32);
       border-radius: var(--radius);
@@ -289,7 +288,7 @@
 
     .lane {
       display: grid;
-      grid-template-columns: minmax(220px, 0.78fr) minmax(420px, 2.1fr) minmax(270px, 0.82fr);
+      grid-template-columns: minmax(230px, 0.78fr) minmax(420px, 2.2fr) minmax(260px, 0.82fr);
       gap: 12px;
       align-items: center;
       padding: 13px;
@@ -299,10 +298,6 @@
         linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent),
         rgba(0, 0, 0, 0.24);
       overflow: hidden;
-    }
-
-    .lane.fail {
-      opacity: 0.86;
     }
 
     .lane-title {
@@ -328,19 +323,14 @@
       min-height: 28px;
       margin-top: 8px;
       padding: 6px 9px;
-      border: 1px solid var(--line);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 999px;
+      color: #d6d9df;
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-
-    .badge.pass { border-color: rgba(32, 209, 162, 0.48); color: #a8ffe6; }
-    .badge.format { border-color: rgba(246, 192, 70, 0.5); color: #ffe29a; }
-    .badge.content { border-color: rgba(255, 78, 110, 0.52); color: #ffb0bf; }
-    .badge.fail { border-color: rgba(164, 168, 176, 0.5); color: #d0d3da; }
-    .badge.locked { border-color: rgba(255, 255, 255, 0.18); color: #d6d9df; }
 
     .track {
       min-width: 0;
@@ -374,58 +364,50 @@
       position: absolute;
       inset: 9px 18px 14px;
       display: grid;
-      grid-template-columns: repeat(128, minmax(0, 1fr));
+      grid-template-columns: repeat(64, minmax(0, 1fr));
       align-items: end;
-      gap: 1px;
+      gap: 2px;
       pointer-events: none;
       z-index: 3;
     }
 
     .gate {
-      position: relative;
-      align-self: end;
-      min-width: 2px;
       height: 48px;
+      min-width: 3px;
       border-radius: 3px 3px 1px 1px;
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.06);
       opacity: 0.36;
       transform: scaleY(0.45);
       transform-origin: bottom center;
-      transition: background 180ms ease, opacity 180ms ease, transform 180ms ease, box-shadow 180ms ease, height 180ms ease;
+      transition: background 140ms ease, opacity 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .gate.scanned {
+      height: 48px;
+      opacity: 0.98;
+      transform: none;
     }
 
     .gate.scanned.clean {
-      height: 48px;
-      background: linear-gradient(180deg, #8affdf, rgba(32, 209, 162, 0.86));
-      box-shadow: 0 0 13px rgba(32, 209, 162, 0.44);
-      opacity: 0.98;
-      transform: none;
+      background: linear-gradient(180deg, #8affdf, rgba(32, 209, 162, 0.88));
+      box-shadow: 0 0 10px rgba(32, 209, 162, 0.36);
     }
 
     .gate.scanned.format {
-      height: 48px;
-      background: linear-gradient(180deg, #ffe29a, rgba(246, 192, 70, 0.88));
-      box-shadow: 0 0 12px rgba(246, 192, 70, 0.36);
-      opacity: 0.96;
-      transform: none;
+      background: linear-gradient(180deg, #ffe29a, rgba(246, 192, 70, 0.9));
+      box-shadow: 0 0 10px rgba(246, 192, 70, 0.3);
     }
 
     .gate.scanned.content {
-      height: 48px;
-      background: linear-gradient(180deg, #ff9cae, rgba(255, 78, 110, 0.9));
-      box-shadow: 0 0 13px rgba(255, 78, 110, 0.38);
-      opacity: 0.98;
-      transform: none;
+      background: linear-gradient(180deg, #ff9cae, rgba(255, 78, 110, 0.92));
+      box-shadow: 0 0 10px rgba(255, 78, 110, 0.32);
     }
 
     .gate.scanned.missing {
-      height: 48px;
       background: #000;
       border-color: rgba(255, 255, 255, 0.36);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 8px rgba(255, 255, 255, 0.12);
-      opacity: 1;
-      transform: none;
     }
 
     .gate.current {
@@ -447,37 +429,26 @@
 
     .runner {
       position: absolute;
-      top: 11px;
+      top: 14px;
       left: 0%;
-      width: 52px;
-      height: 52px;
-      transform: translateX(-26px);
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.48);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 22px var(--lane-color);
+      transform: translateX(-27px);
       transition: left 90ms linear;
       z-index: 4;
-      filter: drop-shadow(0 0 18px var(--lane-color));
     }
 
-    .runner::before {
-      content: "";
-      position: absolute;
-      inset: 7px 12px;
-      clip-path: polygon(0 50%, 72% 0, 100% 50%, 72% 100%);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255,255,255,0.08)),
-        var(--lane-color);
-    }
-
-    .runner::after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      right: 1px;
-      bottom: 2px;
-      width: 14px;
-      background: linear-gradient(90deg, color-mix(in srgb, var(--lane-color) 70%, transparent), transparent);
-      clip-path: polygon(0 0, 100% 50%, 0 100%);
-      opacity: 0.78;
+    .runner img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      display: block;
     }
 
     .finish-line {
@@ -558,14 +529,16 @@
     .audit-count.content { border-color: rgba(255, 78, 110, 0.38); color: #ffb0bf; }
     .audit-count.missing { border-color: rgba(255, 255, 255, 0.28); color: #f0f1f3; background: rgba(0, 0, 0, 0.46); }
 
-    .board {
+    .board,
+    .explainer-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
       margin-top: 16px;
     }
 
-    .board .panel {
+    .board .panel,
+    .explain-card {
       padding: 15px;
     }
 
@@ -576,86 +549,34 @@
       line-height: 1.15;
     }
 
-    .board .note {
+    .board .note,
+    .explain-card p {
       margin-top: 8px;
       color: var(--muted);
       font-size: 0.86rem;
-      line-height: 1.38;
+      line-height: 1.42;
     }
 
-    .source {
+    .source,
+    .explainer {
       margin-top: 16px;
-      padding: 14px;
+      padding: 18px;
       color: var(--muted);
       overflow-wrap: anywhere;
     }
 
-    .source ul {
+    .source ul,
+    .contract-list {
       margin: 10px 0 0;
       padding-left: 18px;
       line-height: 1.55;
     }
 
-    .explainer {
-      margin-top: 16px;
-      padding: 18px;
-    }
-
-    .explainer-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .explain-card {
-      padding: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--radius);
-      background: rgba(0, 0, 0, 0.22);
-    }
-
     .explain-card h3 {
       margin: 0;
+      color: var(--text);
       font-size: 0.98rem;
       letter-spacing: 0;
-    }
-
-    .explain-card p {
-      margin: 8px 0 0;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .color-list {
-      display: grid;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .color-row {
-      display: grid;
-      grid-template-columns: 20px minmax(0, 1fr);
-      gap: 9px;
-      align-items: start;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    .color-row i {
-      display: block;
-      width: 18px;
-      height: 18px;
-      margin-top: 2px;
-      border-radius: 3px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-    }
-
-    .contract-list {
-      margin: 10px 0 0;
-      padding-left: 18px;
-      color: var(--muted);
-      line-height: 1.5;
     }
 
     .example-code {
@@ -697,6 +618,9 @@
         min-height: 140px;
       }
 
+      .lane-readout {
+        display: grid;
+      }
     }
   </style>
 </head>
@@ -704,12 +628,13 @@
   <main class="app">
     <section class="hero">
       <div>
-        <p class="eyebrow">Master decode sprint</p>
-        <h1>128-Record Gauntlet</h1>
-        <p class="subtitle">This race measures not only speed but task quality. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
+        <p class="eyebrow">TG64 decode quality race</p>
+        <h1>64-Record Real-Time Sprint</h1>
+        <p class="subtitle">This is the archived 128-record template rebuilt with the 64-record rerun. The race runs at measured wall-clock time, and each model logo is the progress token. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
         <div class="chips">
-          <span class="chip">Target 8192 generated tokens</span>
-          <span class="chip">128 requested records</span>
+          <span class="chip">64 requested records</span>
+          <span class="chip">8192-token cap</span>
+          <span class="chip">1x real-time replay</span>
           <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
         </div>
       </div>
@@ -722,27 +647,27 @@
       <a href="../">DFlash overview</a>
       <a href="../tg-race/">8192 TG race</a>
       <a href="../../">Main dashboard</a>
-      <a href="tg-decode-sprint-race-inputs.json">Race input JSON</a>
-      <a href="static-gauntlet-v1.html">Saved static version</a>
-      <a href="live-reveal-draft.html">Saved reveal draft</a>
+      <a href="archive-128-record-race.html">Archived 128-record race</a>
+      <a href="tg64-race-inputs.json">TG64 race input JSON</a>
+      <a href="tg64-summary.json">TG64 summary JSON</a>
     </nav>
 
     <section class="metric-grid">
-      <div class="metric" style="--accent: var(--cyan)"><span>Leader reveal time</span><strong>2:10 minimum</strong></div>
-      <div class="metric" style="--accent: var(--teal)"><span>Audit target</span><strong>128 hidden gates</strong></div>
-      <div class="metric" style="--accent: var(--teal)"><span>Decode target</span><strong>8192 generated tokens</strong></div>
-      <div class="metric" style="--accent: var(--amber)"><span>Score</span><strong>Quality revealed live</strong></div>
+      <div class="metric" style="--accent: var(--cyan)"><span>Real-time leader</span><strong>Codex GPT-5.5 Low, 1:23</strong></div>
+      <div class="metric" style="--accent: var(--green)"><span>Clean contract</span><strong>PFlash, 64/64 perfect</strong></div>
+      <div class="metric" style="--accent: var(--yellow)"><span>Fastest TG</span><strong>Gemma E2B, 76.85 tok/s</strong></div>
+      <div class="metric" style="--accent: var(--red)"><span>Longest lane</span><strong>Qwen baseline, 9:41</strong></div>
     </section>
 
     <section class="panel race-panel">
       <div class="race-head">
         <div>
           <h2>Live Sprint</h2>
-          <p>The scanner moves through output-record order, not exact per-token timestamps. Broadcast timing stretches the leader beyond two minutes and compresses the tail so the whole field stays watchable while measured TG remains visible.</p>
+          <p>Elapsed time is real wall-clock time from the saved run. Logos move by measured request duration; bars reveal each audited record position as that lane progresses.</p>
         </div>
         <div class="clock">
-          <span>Replay clock</span>
-          <strong id="clockReadout">0s</strong>
+          <span>Real-time clock</span>
+          <strong id="clockReadout">0:00 / 9:41</strong>
         </div>
       </div>
       <div class="legend">
@@ -756,163 +681,180 @@
 
     <section class="board">
       <article class="panel">
-        <h2>Track Rules</h2>
-        <div class="value">128 gates</div>
-        <div class="note">Each gate is one requested output record. The track starts unknown and only resolves where the scanner has passed.</div>
+        <h2>Race Winner</h2>
+        <div class="value">Codex GPT-5.5 Low</div>
+        <div class="note">Finished in 82.56s and produced 64 parseable JSONL records, but word counts missed the contract.</div>
       </article>
       <article class="panel">
-        <h2>Nuance</h2>
-        <div class="value">Not binary</div>
-        <div class="note">Green is perfect output. Yellow is a near miss. Red is wrong. Black means that requested record did not appear.</div>
+        <h2>Quality Winner</h2>
+        <div class="value">PFlash</div>
+        <div class="note">The only lane with 64/64 perfect records under the full strict contract.</div>
       </article>
       <article class="panel">
-        <h2>Timing</h2>
-        <div class="value">No loop</div>
-        <div class="note">The broadcast stretches the raw speed race so the fastest lane takes over two minutes to finish.</div>
+        <h2>Near Miss Story</h2>
+        <div class="value">Several fast lanes</div>
+        <div class="note">Codex, Gemma E2B, and Qwen Dynamic completed 64 records but missed formatting or word-count details.</div>
       </article>
       <article class="panel">
-        <h2>Score</h2>
-        <div class="value">x/128</div>
-        <div class="note">The live card is the score: how many requested records have resolved into each quality bucket.</div>
+        <h2>No Token Tail</h2>
+        <div class="value">0 black bars</div>
+        <div class="note">The 64-record version avoids the 128-run issue where several models hit the token cap before finishing.</div>
       </article>
     </section>
 
     <section class="panel source">
       <h2>Source Files</h2>
-      <p>Race inputs were copied from <span class="mono">/srv/llm/runs/20260512-225739-tg-decode-sprint-extra-lanes/</span>. PFlash audit data came from the rerun under <span class="mono">/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/</span>.</p>
+      <p>Race inputs were copied from <span class="mono">/srv/llm/runs/20260513-015545-tg64-all-lanes/</span>. Codex GPT-5.5 output came from <span class="mono">/srv/llm/runs/20260513-015545-tg64-codex-gpt-5.5-low/</span>. The archived 128-record page is still available from the navigation above.</p>
       <ul>
-        <li><a href="tg-decode-sprint-race-inputs.json">tg-decode-sprint-race-inputs.json</a></li>
-        <li><a href="tg-decode-sprint-race-lanes.tsv">tg-decode-sprint-race-lanes.tsv</a></li>
-        <li><a href="tg-decode-sprint-race-timeline.tsv">tg-decode-sprint-race-timeline.tsv</a></li>
-        <li><a href="qwen36-27b-dflash-pflash-output-audit-summary.json">qwen36-27b-dflash-pflash-output-audit-summary.json</a></li>
+        <li><a href="tg64-summary.json">tg64-summary.json</a></li>
+        <li><a href="tg64-race-inputs.json">tg64-race-inputs.json</a></li>
+        <li><a href="archive-128-record-race.html">archive-128-record-race.html</a></li>
       </ul>
     </section>
 
     <section class="panel explainer">
       <h2>How To Read This</h2>
-      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The colored gates are not vibes or a generic pass/fail label: each gate is one requested step from 1 through 128, checked against the exact output contract below.</p>
+      <p>The benchmark asks each model to write exactly 64 newline-delimited JSON objects for the same fixed restore-token task. Each gate is one requested step from 1 through 64, checked against the output contract below.</p>
       <div class="explainer-grid">
         <article class="explain-card">
-          <h3>The Actual Instructions</h3>
-          <p>The model had to write exactly 128 newline-delimited JSON objects. No array, no Markdown, no preamble, no hidden-thought channel text, and no pretty-printed multi-line objects.</p>
+          <h3>The Contract</h3>
+          <p>No array, no Markdown, no preamble, no hidden-thought text, and no pretty-printed multi-line objects.</p>
           <ul class="contract-list">
-            <li>Every object needed keys: marker, step, subsystem, observation, action, restore_token.</li>
-            <li>marker had to be DECODE_MARKER_TIMELINE_RIVER_41729 every time.</li>
-            <li>restore_token had to be RIVER-41729-CYAN every time.</li>
-            <li>step had to count 1, 2, 3 ... 128 in order.</li>
-            <li>subsystem had to cycle scheduler, billing, workspace_export, notification_digest, audit_log, restore_console.</li>
+            <li>Required keys: marker, step, subsystem, observation, action, restore_token.</li>
+            <li>marker: DECODE_MARKER_TIMELINE_RIVER_41729.</li>
+            <li>restore_token: RIVER-41729-CYAN.</li>
+            <li>step: 1 through 64 in order.</li>
+            <li>observation and action: 12 to 18 words each.</li>
           </ul>
         </article>
         <article class="explain-card">
-          <h3>Color Key</h3>
-          <div class="color-list">
-            <div class="color-row"><i style="background: rgba(32, 209, 162, 0.92)"></i><span><strong>Green:</strong> perfect record. One complete JSON object on one line, right step, right subsystem, right marker, right restore_token.</span></div>
-            <div class="color-row"><i style="background: rgba(246, 192, 70, 0.92)"></i><span><strong>Yellow:</strong> near miss. The answer is recognizable, but the output contract is wrong, such as extra text before JSON or pretty-printed JSON instead of JSONL.</span></div>
-            <div class="color-row"><i style="background: rgba(255, 78, 110, 0.92)"></i><span><strong>Red:</strong> wrong record content. The JSON can be inspected, but a required task field or value is wrong or missing.</span></div>
-            <div class="color-row"><i style="background: #000"></i><span><strong>Black:</strong> skipped or missing. That requested record position never appeared in usable form before the generation ended.</span></div>
-          </div>
+          <h3>PFlash Green Example</h3>
+          <p>One full JSON object on one line, all required keys present, right marker, right restore token, and word counts inside range.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Scheduler initialization sequence begins with standard configuration parameters loaded into memory successfully.","action":"Verify scheduler configuration parameters match the expected baseline for multi-tenant planning product operations.","restore_token":"RIVER-41729-CYAN"}</pre>
         </article>
         <article class="explain-card">
-          <h3>Perfect Example</h3>
-          <p>A green gate looks like this: one full object, one line, correct step, correct subsystem for that step, and the required restore token as its own field.</p>
-          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Scheduler initialization sequence begins with standard configuration parameters loaded into memory for processing.","action":"Verify scheduler configuration parameters match the expected baseline values for the current deployment environment.","restore_token":"RIVER-41729-CYAN"}</pre>
-        </article>
-        <article class="explain-card">
-          <h3>Gemma 26B Yellow Example</h3>
-          <p>Gemma 26B got the content right, but its first output line had extra channel text before the JSON object. That makes step 1 yellow. Steps 2-87 are green, then steps 88-128 are black because they never appeared.</p>
-          <pre class="example-code">&lt;|channel&gt;thought
-&lt;channel|&gt;{"marker": "DECODE_MARKER_TIMELINE_RIVER_41729", "step": 1, "subsystem": "scheduler", "observation": "The scheduler service is currently experiencing high latency during the peak morning traffic period.", "action": "Increase the resource allocation for the scheduler to handle the incoming request load effectively.", "restore_token": "RIVER-41729-CYAN"}</pre>
+          <h3>Codex Yellow Example</h3>
+          <p>Codex produced strict JSONL with the right token and fields, but most observation/action fields were too short for the requested 12-18 word range.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Scheduler queue showed delayed restore jobs waiting behind tenant maintenance windows.","action":"Pinned active restore token and advanced eligible jobs through the normal scheduler lane.","restore_token":"RIVER-41729-CYAN"}</pre>
         </article>
         <article class="explain-card">
           <h3>Baseline Yellow Example</h3>
-          <p>The Qwen baseline produced JSON objects, but it pretty-printed them across several lines. The instruction was newline-delimited JSON, meaning each record must be one complete object on one line. So the baseline is yellow across the track rather than green.</p>
+          <p>The Qwen baseline produced JSON objects, but each object was pretty-printed across several lines. The task required newline-delimited JSON: one complete object per line.</p>
           <pre class="example-code">{
   "marker": "DECODE_MARKER_TIMELINE_RIVER_41729",
   "step": 1,
   "subsystem": "scheduler",
-  "observation": "Scheduler service initialized successfully with standard configuration parameters for the multi-tenant planning product environment.",
-  "action": "Verify scheduler connectivity and ensure all tenant queues are properly registered and active.",
   "restore_token": "RIVER-41729-CYAN"
 }</pre>
         </article>
         <article class="explain-card">
-          <h3>Mistral Red Example</h3>
-          <p>Mistral produced parseable records for steps 1-102, but the required restore_token key was missing. It mentioned the token inside prose, but the benchmark required a separate JSON field. That is why those gates are red, not yellow.</p>
-          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Frozen audit checkpoint indicates active restore token RIVER-41729-CYAN.","action":"Verify no obsolete tokens like RIVER-18820-GRAY or RIVER-39002-AMBER are used."}</pre>
+          <h3>Gemma 26B Yellow Example</h3>
+          <p>Gemma 26B was almost clean. Step 1 had hidden channel text attached before the JSON object, then steps 2-64 were perfect.</p>
+          <pre class="example-code">&lt;|channel&gt;thought
+&lt;channel|&gt;{"marker": "DECODE_MARKER_TIMELINE_RIVER_41729", "step": 1, "subsystem": "scheduler", "observation": "The scheduler service is currently experiencing a significant delay in processing all incoming task requests.", "action": "Initiate a full restart of the scheduler service to clear the pending task queue immediately.", "restore_token": "RIVER-41729-CYAN"}</pre>
         </article>
         <article class="explain-card">
-          <h3>Black Missing Example</h3>
-          <p>Black does not mean the existing lines were bad. It means the model did not reach that requested step before the 8192-token decode ended. Gemma 4 E2B reached step 86 and then stopped. PFlash reached step 102. Qwen Dynamic reached step 117.</p>
+          <h3>Mistral Red Example</h3>
+          <p>Mistral produced 64 parseable JSONL records, but every record omitted the required restore_token key. Mentioning the token in prose did not satisfy the contract.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Frozen audit checkpoint indicates active restore token is RIVER-41729-CYAN.","action":"Verify no obsolete tokens like RIVER-18820-GRAY or RIVER-39002-AMBER are used."}</pre>
         </article>
       </div>
     </section>
   </main>
 
   <script>
-    const TARGET_TOKENS = 8192;
-    const TARGET_RECORDS = 128;
-    const LEADER_REPLAY_SECONDS = 130;
-    const FIELD_SPREAD_SECONDS = 190;
-    const seq = (status, count) => Array.from({ length: count }, () => status);
+    const TARGET_RECORDS = 64;
+    const STATUS_MAP = { G: "clean", Y: "format", R: "content", B: "missing" };
     const LANES = [
       {
-        id: "gemma-e2b",
-        display: "Gemma 4 E2B",
-        tier: "FORMAT",
-        speed: 84.49,
-        promptSeconds: 6.9423,
-        statuses: [...seq("clean", 86), ...seq("missing", 42)],
-        color: "#f6c046"
+        id: "codex-gpt-5-5-low",
+        display: "Codex GPT-5.5 Low",
+        provider: "OpenAI",
+        logo: "assets/openai.svg",
+        seconds: 82.562753,
+        tps: 51.597,
+        tokens: 4260,
+        color: "#8dd6ff",
+        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        note: "64 strict JSONL records; word-count misses on most observation/action fields."
       },
       {
-        id: "qwen-dynamic",
-        display: "Qwen3.6 35B Dynamic",
-        tier: "PASS",
-        speed: 59.42,
-        promptSeconds: 15.31136,
-        statuses: [...seq("clean", 117), ...seq("missing", 11)],
-        color: "#20d1a2"
+        id: "gemma4-e2b",
+        display: "Gemma 4 E2B Q4_K_M",
+        provider: "Gemma",
+        logo: "assets/gemma.png",
+        seconds: 86.971492,
+        tps: 76.853,
+        tokens: 6684,
+        color: "#f6c046",
+        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        note: "64 loose objects; pretty-printed/multi-line shape and a few word-count misses."
       },
       {
-        id: "gemma-26b",
-        display: "Gemma 4 26B-A4B",
-        tier: "FORMAT",
-        speed: 47.85,
-        promptSeconds: 13.77087,
-        statuses: ["format", ...seq("clean", 86), ...seq("missing", 41)],
-        color: "#f59e0b"
+        id: "qwen36-dynamic",
+        display: "Qwen3.6 35B-A3B Dynamic",
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 91.487316,
+        tps: 49.679,
+        tokens: 4545,
+        color: "#20d1a2",
+        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        note: "64 strict JSONL records; hidden think preamble and word-count misses."
       },
       {
-        id: "qwen-pflash",
+        id: "gemma4-26b",
+        display: "Gemma 4 26B-A4B Q4_K_M",
+        provider: "Gemma",
+        logo: "assets/gemma.png",
+        seconds: 138.536849,
+        tps: 43.223,
+        tokens: 5988,
+        color: "#f59e0b",
+        statusChars: "YGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        note: "Step 1 has channel text before JSON; steps 2-64 are perfect."
+      },
+      {
+        id: "qwen36-pflash",
         display: "Qwen3.6 27B DFlash+PFlash",
-        tier: "PASS",
-        speed: 17.37,
-        speedSub: "17.032 delta estimate; 18.47 t/s at 2048",
-        promptSeconds: 14.113,
-        statuses: [...seq("clean", 102), ...seq("missing", 26)],
-        color: "#39d0ff"
-      },
-      {
-        id: "baseline",
-        display: "Qwen3.6 27B Baseline",
-        tier: "FORMAT",
-        speed: 12.04,
-        promptSeconds: 58.36574,
-        statuses: [...seq("format", 128)],
-        color: "#a78bfa"
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 306.598348,
+        tps: 16.269,
+        tokens: 4988,
+        color: "#39d0ff",
+        statusChars: "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        note: "64/64 perfect records under the strict TG64 contract."
       },
       {
         id: "mistral-119b",
-        display: "Mistral Small 4 119B",
-        tier: "CONTENT",
-        speed: 11.91,
-        promptSeconds: 57.64905,
-        statuses: [...seq("content", 102), ...seq("missing", 26)],
-        color: "#ff4e6e"
+        display: "Mistral Small 4 119B Q4_K_M",
+        provider: "Mistral",
+        logo: "assets/mistral.png",
+        seconds: 517.439886,
+        tps: 11.035,
+        tokens: 5710,
+        color: "#ff4e6e",
+        statusChars: "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        note: "64 parseable JSONL records, but all omit the required restore_token key."
+      },
+      {
+        id: "qwen36-baseline",
+        display: "Qwen3.6 27B Baseline Filtered",
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 581.328824,
+        tps: 10.86,
+        tokens: 6313,
+        color: "#a78bfa",
+        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        note: "64 loose objects; pretty-printed JSON instead of one object per line."
       }
     ];
 
     const byId = (id) => document.getElementById(id);
+    const maxSeconds = Math.max(...LANES.map((lane) => lane.seconds));
+    const start = performance.now();
     const fmt = (value, digits = 0) => Number(value).toLocaleString(undefined, {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits
@@ -926,113 +868,95 @@
       return `${minutes}:${seconds}`;
     }
 
-    function finishTime(lane) {
-      return lane.promptSeconds + (TARGET_TOKENS / lane.speed);
-    }
-
-    const actualFinishes = LANES.map(finishTime);
-    const fastestActual = Math.min(...actualFinishes);
-    const slowestActual = Math.max(...actualFinishes);
-
-    function broadcastFinish(lane) {
-      const actual = finishTime(lane);
-      const span = Math.max(1, slowestActual - fastestActual);
-      const normalized = Math.max(0, (actual - fastestActual) / span);
-      return LEADER_REPLAY_SECONDS + Math.pow(normalized, 0.68) * FIELD_SPREAD_SECONDS;
-    }
-
-    const maxBroadcastFinish = Math.max(...LANES.map(broadcastFinish));
-    const start = performance.now();
-
-    function statusFor(lane, index) {
-      return lane.statuses[index] || "missing";
+    function statuses(lane) {
+      return lane.statusChars.split("").map((char) => STATUS_MAP[char] || "missing");
     }
 
     function countsThrough(lane, reached) {
       const counts = { clean: 0, format: 0, content: 0, missing: 0 };
-      for (let index = 0; index < reached; index += 1) {
-        counts[statusFor(lane, index)] += 1;
-      }
+      statuses(lane).slice(0, reached).forEach((status) => {
+        counts[status] += 1;
+      });
       return counts;
     }
 
+    function finalCounts(lane) {
+      return countsThrough(lane, TARGET_RECORDS);
+    }
+
     function renderLane(lane) {
-      const gates = Array.from({ length: TARGET_RECORDS }, (_, index) => (
-        `<span class="gate" data-status="${statusFor(lane, index)}" aria-hidden="true"></span>`
+      const laneStatuses = statuses(lane);
+      const gates = laneStatuses.map((status) => (
+        `<span class="gate" data-status="${status}" aria-hidden="true"></span>`
       )).join("");
+      const counts = finalCounts(lane);
       return `
         <article class="lane" data-lane="${lane.id}" style="--lane-color:${lane.color}">
           <div class="lane-title">
             <strong>${lane.display}</strong>
-            <div class="sub">${fmt(lane.speed, 2)} tok/s${lane.speedSub ? ` • ${lane.speedSub}` : ""}</div>
-            <span class="badge locked">LIVE AUDIT</span>
+            <div class="sub">${lane.provider} • ${fmt(lane.tps, 2)} tok/s • ${fmt(lane.tokens)} output tokens</div>
+            <span class="badge">1x real-time</span>
           </div>
           <div class="track">
             <div class="track-bar">
               <div class="sweep"></div>
               <div class="audit-rail">${gates}</div>
-              <div class="runner"></div>
+              <div class="runner"><img src="${lane.logo}" alt="${lane.provider} logo"></div>
               <div class="finish-line"></div>
             </div>
             <div class="lane-readout">
-              <span class="tokens">0 / 8,192 tokens</span>
-              <span class="phase">scanner armed</span>
+              <span class="tokens">0 / ${fmt(lane.tokens)} output tokens</span>
+              <span class="phase">finish ${timeLabel(lane.seconds)}</span>
             </div>
           </div>
           <div class="audit-card">
             <div class="live-audit">
-              <span class="score">0/128 checked</span>
+              <span class="score">0/64 checked</span>
               <span class="detail">perfect 0 • near 0 • wrong 0 • missing 0</span>
             </div>
             <div class="audit-breakdown">
-              <span class="audit-count clean"><b>0/128</b>Perfect</span>
-              <span class="audit-count format"><b>0/128</b>Near miss</span>
-              <span class="audit-count content"><b>0/128</b>Wrong</span>
-              <span class="audit-count missing"><b>0/128</b>Missing</span>
+              <span class="audit-count clean"><b>0/${counts.clean}</b>Perfect</span>
+              <span class="audit-count format"><b>0/${counts.format}</b>Near miss</span>
+              <span class="audit-count content"><b>0/${counts.content}</b>Wrong</span>
+              <span class="audit-count missing"><b>0/${counts.missing}</b>Missing</span>
             </div>
           </div>
         </article>
       `;
     }
 
-    function updateInspection(node, lane, reached) {
-      const gates = node.querySelectorAll(".gate");
-      gates.forEach((gate, index) => {
-        const scanned = index < reached;
-        gate.className = `gate${scanned ? ` scanned ${gate.dataset.status}` : ""}${index === reached ? " current" : ""}`;
-      });
-
-      const checked = Math.min(reached, TARGET_RECORDS);
-      const counts = countsThrough(lane, checked);
-      node.querySelector(".live-audit .score").textContent = `${checked}/128 checked`;
-      node.querySelector(".live-audit .detail").textContent =
-        `perfect ${counts.clean} • near ${counts.format} • wrong ${counts.content} • missing ${counts.missing}`;
-      node.querySelector(".audit-count.clean b").textContent = `${counts.clean}/128`;
-      node.querySelector(".audit-count.format b").textContent = `${counts.format}/128`;
-      node.querySelector(".audit-count.content b").textContent = `${counts.content}/128`;
-      node.querySelector(".audit-count.missing b").textContent = `${counts.missing}/128`;
-    }
-
-    function setLaneState(lane, elapsed) {
+    function updateLane(lane, elapsed) {
       const node = document.querySelector(`[data-lane="${lane.id}"]`);
       if (!node) return;
-      const finish = broadcastFinish(lane);
-      const progress = Math.min(1, elapsed / finish);
-      const tokens = Math.min(TARGET_TOKENS, Math.round(TARGET_TOKENS * progress));
-      const reached = Math.min(TARGET_RECORDS, Math.floor(progress * TARGET_RECORDS));
+      const progress = Math.min(1, elapsed / lane.seconds);
+      const checked = Math.min(TARGET_RECORDS, Math.floor(progress * TARGET_RECORDS));
+      const outputTokens = Math.min(lane.tokens, Math.round(lane.tokens * progress));
       node.querySelector(".sweep").style.width = pct(progress);
       node.querySelector(".runner").style.left = pct(progress);
-      node.querySelector(".tokens").textContent = `${fmt(tokens)} / 8,192 tokens`;
-      const phase = progress >= 1 ? "finished" : (reached === 0 ? "opening scan" : `gate ${Math.min(reached + 1, TARGET_RECORDS)}`);
-      node.querySelector(".phase").textContent = `${phase} • broadcast finish ${timeLabel(finish)}`;
-      updateInspection(node, lane, reached);
+      node.querySelector(".tokens").textContent = `${fmt(outputTokens)} / ${fmt(lane.tokens)} output tokens`;
+      node.querySelector(".phase").textContent = `${progress >= 1 ? "finished" : `record ${Math.min(checked + 1, TARGET_RECORDS)}`} • finish ${timeLabel(lane.seconds)}`;
+
+      node.querySelectorAll(".gate").forEach((gate, index) => {
+        const scanned = index < checked;
+        gate.className = `gate${scanned ? ` scanned ${gate.dataset.status}` : ""}${index === checked ? " current" : ""}`;
+      });
+
+      const counts = countsThrough(lane, checked);
+      const totals = finalCounts(lane);
+      node.querySelector(".live-audit .score").textContent = `${checked}/64 checked`;
+      node.querySelector(".live-audit .detail").textContent =
+        `perfect ${counts.clean} • near ${counts.format} • wrong ${counts.content} • missing ${counts.missing}`;
+      node.querySelector(".audit-count.clean b").textContent = `${counts.clean}/${totals.clean}`;
+      node.querySelector(".audit-count.format b").textContent = `${counts.format}/${totals.format}`;
+      node.querySelector(".audit-count.content b").textContent = `${counts.content}/${totals.content}`;
+      node.querySelector(".audit-count.missing b").textContent = `${counts.missing}/${totals.missing}`;
     }
 
     function animate() {
-      const elapsed = Math.min((performance.now() - start) / 1000, maxBroadcastFinish + 4);
-      byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxBroadcastFinish)}`;
-      LANES.forEach((lane) => setLaneState(lane, elapsed));
-      if (elapsed < maxBroadcastFinish + 4) {
+      const elapsed = Math.min((performance.now() - start) / 1000, maxSeconds);
+      byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxSeconds)}`;
+      LANES.forEach((lane) => updateLane(lane, elapsed));
+      if (elapsed < maxSeconds) {
         requestAnimationFrame(animate);
       }
     }
