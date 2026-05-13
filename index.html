@@ -1099,7 +1099,7 @@
         <div class="panel-head">
           <div>
             <h2>Speculative Results</h2>
-            <p>MTP and DFlash server-style tests from <span class="mono">mtpbench.md</span>, the Gemma assistant sweep, and recent DFlash runs. The DFlash run uses <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a>. Baseline comparisons are kept in the interpretation column.</p>
+            <p>MTP and DFlash server-style tests from <span class="mono">mtpbench.md</span>, the Qwen3.6 35B every-quant MTP sweep, the Gemma assistant sweep, and recent DFlash runs. The DFlash run uses <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a>. Baseline comparisons are kept in the interpretation column.</p>
           </div>
         </div>
         <div id="labChart" class="chart chart-md"></div>
@@ -1159,6 +1159,16 @@
                 <td>+12.0% generation vs existing Q8 baseline (40.16 -> 44.97 TG); prompt ingestion slower.</td>
               </tr>
               <tr>
+                <td><span class="tag">MTP quant race</span><br><a href="qwen35-mtp-race/">Race page</a></td>
+                <td><strong>Qwen3.6 35B MTP every-quant sweep</strong></td>
+                <td>64K context sweep plus TG64 race</td>
+                <td class="mono">PR22673 MTP</td>
+                <td>522.25-556.42 at 64K</td>
+                <td>54.75-84.05 at 64K</td>
+                <td>96.8%-98.6% at 64K</td>
+                <td>All IQ1/Q2/Q3/Q4/MXFP4/Q5/Q6/Q8 quants are now in the main charts; IQ1 and Q2 lead decode, while Q3 is the cleanest Qwen race lane.</td>
+              </tr>
+              <tr>
                 <td><span class="tag">Gemma MTP</span></td>
                 <td><strong>Gemma 4 E4B + assistant</strong></td>
                 <td>16K, p512/n256 server run</td>
@@ -1189,7 +1199,7 @@
                 <td>+77.1% decode vs Gemma 31B base (10.35 -> 18.33 TG); largest relative Gemma MTP gain.</td>
               </tr>
               <tr>
-                <td><span class="tag">DFlash</span><br><a href="dflash/">Wall race</a><br><a href="dflash/tg-race/">8192 TG race</a><br><a href="dflash/master-race/">128-record gauntlet</a><br><a href="https://github.com/Luce-Org/lucebox-hub">lucebox-hub</a></td>
+                <td><span class="tag">DFlash</span><br><a href="dflash/">Wall race</a><br><a href="dflash/tg-race/">8192 TG race</a><br><a href="dflash/master-race/">TG64 master race</a><br><a href="https://github.com/Luce-Org/lucebox-hub">lucebox-hub</a></td>
                 <td><strong>Qwen3.6 27B Q4_K_M + DFlash Q8 draft</strong></td>
                 <td>HumanEval-style 10-prompt sweep, n128</td>
                 <td class="mono">fast</td>
@@ -1239,7 +1249,7 @@
             <ul class="bullets">
               <li>Some later April tables report only peak GPU memory; those points use that value as GPU footprint and leave system RAM/GTT blank.</li>
               <li>Speculative decoding points are separated from the llama-bench frontier because active prompt occupancy changes the meaning of the context number.</li>
-              <li>Qwen3.6 MTP rows in the KV/backend lab are server-side multi-turn chat timings from <span class="mono">mtpbench.md</span>, not clean llama-bench context rows.</li>
+              <li>Older Qwen3.6 MTP rows in the KV/backend lab are server-side multi-turn chat timings from <span class="mono">mtpbench.md</span>; the 2026-05-13 Qwen3.6 35B every-quant MTP rows use the local context sweep and TG64 race summaries.</li>
               <li>Dynamic Strix quant rows are clean prompt/decode checks from the MTP workspace and are included in the main context charts.</li>
               <li>Gemma 4 E2B 16K uses the refreshed b8672 f16 KV row from 2026-05-07; the older 2026-04-02 16K row was superseded.</li>
               <li>Gemma 4 MTP server tests are recorded in the history, but clean llama-bench rows remain the chart source for context-planning comparisons.</li>
@@ -1710,6 +1720,134 @@
           { date: "2026-04-30", context: 32768, pp: 912.4, tg: 54.46, ram: null, vram: 36.24, gtt: null, kv: "f16/f16", runtime: "current Vulkan", memSource: "Peak GPU" },
           { date: "2026-04-24", context: 128000, pp: 454.13, tg: 53.05, ram: null, vram: null, gtt: null, runtime: "Vulkan" },
           { date: "2026-05-12", context: 131072, pg: 383.31, tg: 53.67, ram: 11.67, vram: 39.96, gtt: 1.12, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-iq1",
+        name: "Qwen3.6 35B A3B MTP UD IQ1_M",
+        short: "Qwen3.6 MTP IQ1",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#35e0b0",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 861.724, tg: 122.805, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 889.727, tg: 120.078, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 727.131, tg: 101.433, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 556.42, tg: 84.049, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q2",
+        name: "Qwen3.6 35B A3B MTP UD Q2_K_XL",
+        short: "Qwen3.6 MTP Q2",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#53d8ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 833.051, tg: 121.045, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 873.385, tg: 116.926, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 717.117, tg: 98.956, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 551.376, tg: 82.768, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q3",
+        name: "Qwen3.6 35B A3B MTP UD Q3_K_XL",
+        short: "Qwen3.6 MTP Q3",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#a7f36f",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 749.271, tg: 99.509, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 853.895, tg: 96.394, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 700.114, tg: 83.86, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 540.3, tg: 71.907, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q4",
+        name: "Qwen3.6 35B A3B MTP UD Q4_K_XL",
+        short: "Qwen3.6 MTP Q4",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ffd45a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 804.766, tg: 89.595, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 843.776, tg: 87.124, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 694.682, tg: 75.896, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 538.182, tg: 66.469, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-mxfp4",
+        name: "Qwen3.6 35B A3B MTP MXFP4_MOE",
+        short: "Qwen3.6 MTP MXFP4",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ffb15b",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 830.18, tg: 89.867, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 876.048, tg: 87.577, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 716.166, tg: 77.591, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 550.606, tg: 66.619, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q5",
+        name: "Qwen3.6 35B A3B MTP UD Q5_K_XL",
+        short: "Qwen3.6 MTP Q5",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ff8d5a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 770.449, tg: 85.26, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 814.709, tg: 82.97, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 674.499, tg: 73.909, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 526.227, tg: 64.35, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q6",
+        name: "Qwen3.6 35B A3B MTP UD Q6_K_XL",
+        short: "Qwen3.6 MTP Q6",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#c994ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 760.855, tg: 81.286, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 805.252, tg: 79.481, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 666.326, tg: 71.088, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 522.248, tg: 61.775, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q8",
+        name: "Qwen3.6 35B A3B MTP UD Q8_K_XL",
+        short: "Qwen3.6 MTP Q8",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#8db4ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 775.613, tg: 69.208, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 821.274, tg: 67.782, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 683.263, tg: 61.39, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 531.651, tg: 54.751, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
         ]
       },
       {
@@ -2187,6 +2325,14 @@
       { model: "Qwen3.6 35B Q4_1 MTP", variant: "128k draft 3", pp: 427.48, tg: 53.42, gpu: null, color: "#22c55e" },
       { model: "Qwen3.6 35B Q8 MTP", variant: "65k draft 3", pp: 645.82, tg: 56.28, gpu: null, color: "#93c5fd" },
       { model: "Qwen3.6 35B Q8 MTP", variant: "128k draft 3", pp: 416.19, tg: 44.97, gpu: null, color: "#60a5fa" },
+      { model: "Qwen3.6 35B MTP IQ1_M", variant: "64k PR22673", pp: 556.42, tg: 84.05, gpu: 17.22, color: "#35e0b0" },
+      { model: "Qwen3.6 35B MTP Q2_K_XL", variant: "64k PR22673", pp: 551.38, tg: 82.77, gpu: 18.35, color: "#53d8ff" },
+      { model: "Qwen3.6 35B MTP Q3_K_XL", variant: "64k PR22673", pp: 540.3, tg: 71.91, gpu: 22.34, color: "#a7f36f" },
+      { model: "Qwen3.6 35B MTP Q4_K_XL", variant: "64k PR22673", pp: 538.18, tg: 66.47, gpu: 27.27, color: "#ffd45a" },
+      { model: "Qwen3.6 35B MTP MXFP4_MOE", variant: "64k PR22673", pp: 550.61, tg: 66.62, gpu: 27.24, color: "#ffb15b" },
+      { model: "Qwen3.6 35B MTP Q5_K_XL", variant: "64k PR22673", pp: 526.23, tg: 64.35, gpu: 31.68, color: "#ff8d5a" },
+      { model: "Qwen3.6 35B MTP Q6_K_XL", variant: "64k PR22673", pp: 522.25, tg: 61.78, gpu: 36.94, color: "#c994ff" },
+      { model: "Qwen3.6 35B MTP Q8_K_XL", variant: "64k PR22673", pp: 531.65, tg: 54.75, gpu: 43.67, color: "#8db4ff" },
       { model: "Qwen3.6 35B Dynamic", variant: "16k q8/q8", pp: 1055.1, tg: 66.17, gpu: null, color: "#10b981" },
       { model: "Qwen3.6 35B Dynamic", variant: "128k q8/q8", pp: 454.16, tg: 66.16, gpu: null, color: "#059669" },
       { model: "Qwen3.6 35B Dynamic", variant: "16k f16/f16", pp: 1133.59, tg: 67.15, gpu: null, color: "#86efac" },
