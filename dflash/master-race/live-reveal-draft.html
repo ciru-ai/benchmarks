@@ -289,7 +289,7 @@
 
     .lane {
       display: grid;
-      grid-template-columns: minmax(220px, 0.78fr) minmax(420px, 2.1fr) minmax(270px, 0.82fr);
+      grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.9fr) minmax(230px, 0.8fr);
       gap: 12px;
       align-items: center;
       padding: 13px;
@@ -340,7 +340,6 @@
     .badge.format { border-color: rgba(246, 192, 70, 0.5); color: #ffe29a; }
     .badge.content { border-color: rgba(255, 78, 110, 0.52); color: #ffb0bf; }
     .badge.fail { border-color: rgba(164, 168, 176, 0.5); color: #d0d3da; }
-    .badge.locked { border-color: rgba(255, 255, 255, 0.18); color: #d6d9df; }
 
     .track {
       min-width: 0;
@@ -348,171 +347,100 @@
 
     .track-bar {
       position: relative;
-      height: 82px;
+      height: 48px;
       border-radius: var(--radius);
       border: 1px solid var(--line);
       background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 12.5% 100%,
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
-        rgba(255, 255, 255, 0.035);
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 8.333% 100%,
+        rgba(255, 255, 255, 0.045);
       overflow: hidden;
     }
 
-    .track-bar::before {
-      content: "";
+    .track-hurdles {
       position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 15px;
-      height: 2px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 -22px 0 rgba(255, 255, 255, 0.055);
-    }
-
-    .audit-rail {
-      position: absolute;
-      inset: 9px 18px 14px;
+      inset: 6px 18px;
       display: grid;
       grid-template-columns: repeat(128, minmax(0, 1fr));
-      align-items: end;
       gap: 1px;
       pointer-events: none;
-      z-index: 3;
+      z-index: 1;
     }
 
-    .gate {
-      position: relative;
+    .hurdle {
       align-self: end;
-      min-width: 2px;
-      height: 18px;
-      border-radius: 3px 3px 1px 1px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      opacity: 0.36;
-      transform: scaleY(0.45);
+      height: 13px;
+      border-radius: 2px 2px 0 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      opacity: 0.3;
       transform-origin: bottom center;
-      transition: background 180ms ease, opacity 180ms ease, transform 180ms ease, box-shadow 180ms ease, height 180ms ease;
+      transition: background 160ms ease, opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
     }
 
-    .gate.scanned.clean {
-      height: 54px;
-      background: linear-gradient(180deg, #8affdf, rgba(32, 209, 162, 0.86));
-      box-shadow: 0 0 13px rgba(32, 209, 162, 0.44);
-      opacity: 0.98;
-      transform: translateY(-7px);
+    .hurdle.revealed.clean {
+      background: rgba(32, 209, 162, 0.92);
+      box-shadow: 0 0 8px rgba(32, 209, 162, 0.46);
+      opacity: 0.9;
+      transform: translateY(-5px);
     }
 
-    .gate.scanned.clean::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: -10px;
-      width: 9px;
-      height: 9px;
-      border-top: 2px solid rgba(168, 255, 230, 0.95);
-      border-right: 2px solid rgba(168, 255, 230, 0.95);
-      transform: translateX(-50%) rotate(-45deg);
+    .hurdle.revealed.format {
+      background: rgba(246, 192, 70, 0.92);
+      box-shadow: 0 0 8px rgba(246, 192, 70, 0.34);
+      opacity: 0.9;
+      transform: rotate(-18deg) translateY(2px);
     }
 
-    .gate.scanned.format {
-      height: 43px;
-      background: linear-gradient(180deg, #ffe29a, rgba(246, 192, 70, 0.88));
-      box-shadow: 0 0 12px rgba(246, 192, 70, 0.36);
-      opacity: 0.96;
-      transform: rotate(-10deg) translateY(2px);
+    .hurdle.revealed.content {
+      background: rgba(255, 78, 110, 0.92);
+      box-shadow: 0 0 8px rgba(255, 78, 110, 0.34);
+      opacity: 0.95;
+      transform: rotate(26deg) translateY(6px);
     }
 
-    .gate.scanned.format::after {
-      content: "";
-      position: absolute;
-      inset: 3px 45% 4px auto;
-      width: 2px;
-      background: rgba(54, 33, 0, 0.42);
-      transform: rotate(24deg);
+    .hurdle.revealed.missing,
+    .hurdle.revealed.fail {
+      background: rgba(74, 79, 89, 0.84);
+      opacity: 0.75;
+      transform: scaleY(0.36);
     }
 
-    .gate.scanned.content {
-      height: 47px;
-      background: linear-gradient(180deg, #ff9cae, rgba(255, 78, 110, 0.9));
-      box-shadow: 0 0 13px rgba(255, 78, 110, 0.38);
-      opacity: 0.98;
-      transform: rotate(15deg) translateY(7px);
-    }
-
-    .gate.scanned.content::before,
-    .gate.scanned.content::after {
-      content: "";
-      position: absolute;
-      left: 48%;
-      top: 5px;
-      width: 2px;
-      height: 78%;
-      background: rgba(72, 0, 16, 0.58);
-      border-radius: 999px;
-    }
-
-    .gate.scanned.content::before { transform: rotate(42deg); }
-    .gate.scanned.content::after { transform: rotate(-42deg); }
-
-    .gate.scanned.missing {
-      height: 9px;
-      background: rgba(77, 83, 94, 0.74);
-      border-color: rgba(255, 255, 255, 0.08);
-      opacity: 0.78;
-      transform: scaleY(0.72);
-    }
-
-    .gate.current {
-      outline: 1px solid rgba(255, 255, 255, 0.86);
+    .hurdle.current {
+      outline: 1px solid rgba(255, 255, 255, 0.85);
       outline-offset: 2px;
     }
 
-    .sweep {
+    .fill {
       position: absolute;
       inset: 0 auto 0 0;
       width: 0%;
       background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 28%),
-        linear-gradient(90deg, color-mix(in srgb, var(--lane-color) 58%, transparent), rgba(255, 255, 255, 0.02));
-      opacity: 0.72;
-      transition: width 90ms linear;
-      z-index: 1;
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent 20%),
+        linear-gradient(90deg, var(--lane-color), rgba(255, 255, 255, 0.06));
+      transition: width 80ms linear;
     }
 
-    .runner {
+    .pod {
       position: absolute;
-      top: 11px;
+      top: 7px;
       left: 0%;
-      width: 52px;
-      height: 52px;
-      transform: translateX(-26px);
-      transition: left 90ms linear;
-      z-index: 4;
-      filter: drop-shadow(0 0 18px var(--lane-color));
+      width: 40px;
+      height: 32px;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.46);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08));
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 22px var(--lane-color);
+      transform: translateX(-20px);
+      transition: left 80ms linear;
+      z-index: 2;
     }
 
-    .runner::before {
+    .pod::before {
       content: "";
       position: absolute;
-      inset: 7px 12px;
-      clip-path: polygon(0 50%, 72% 0, 100% 50%, 72% 100%);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255,255,255,0.08)),
-        var(--lane-color);
-    }
-
-    .runner::after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      right: 1px;
-      bottom: 2px;
-      width: 14px;
-      background: linear-gradient(90deg, color-mix(in srgb, var(--lane-color) 70%, transparent), transparent);
-      clip-path: polygon(0 0, 100% 50%, 0 100%);
-      opacity: 0.78;
+      inset: 8px 6px;
+      border-top: 3px solid var(--lane-color);
+      border-bottom: 3px solid var(--lane-color);
     }
 
     .finish-line {
@@ -536,63 +464,48 @@
       line-height: 1.35;
     }
 
-    .audit-card {
+    .audit {
       min-width: 0;
-      padding: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--radius);
-      background: rgba(0, 0, 0, 0.24);
     }
 
-    .live-audit .score {
-      display: block;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 1.25rem;
-      font-weight: 700;
-      line-height: 1.08;
+    .audit-strip {
+      display: grid;
+      grid-template-columns: repeat(32, minmax(0, 1fr));
+      gap: 2px;
     }
 
-    .live-audit .detail,
-    .audit-summary {
-      display: block;
-      margin-top: 6px;
+    .tile {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      opacity: 0.38;
+      transform: scale(0.82);
+      transition: background 160ms ease, opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .tile.revealed {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .tile.revealed.clean { background: rgba(32, 209, 162, 0.92); box-shadow: 0 0 7px rgba(32, 209, 162, 0.32); }
+    .tile.revealed.format { background: rgba(246, 192, 70, 0.92); box-shadow: 0 0 7px rgba(246, 192, 70, 0.28); }
+    .tile.revealed.content { background: rgba(255, 78, 110, 0.92); box-shadow: 0 0 7px rgba(255, 78, 110, 0.26); }
+    .tile.revealed.missing { background: rgba(255, 255, 255, 0.08); }
+    .tile.revealed.fail { background: rgba(74, 79, 89, 0.78); }
+
+    .tile.current {
+      outline: 2px solid rgba(255, 255, 255, 0.8);
+      outline-offset: 1px;
+    }
+
+    .audit-meta {
+      margin-top: 7px;
       color: var(--muted);
       font-size: 0.78rem;
-      line-height: 1.32;
+      line-height: 1.35;
     }
-
-    .audit-breakdown {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .audit-count {
-      min-width: 0;
-      padding: 7px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #d6d9df;
-      font-size: 0.69rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .audit-count b {
-      display: block;
-      margin-bottom: 3px;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 1rem;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-
-    .audit-count.clean { border-color: rgba(32, 209, 162, 0.35); color: #a8ffe6; }
-    .audit-count.format { border-color: rgba(246, 192, 70, 0.38); color: #ffe29a; }
-    .audit-count.content { border-color: rgba(255, 78, 110, 0.38); color: #ffb0bf; }
-    .audit-count.missing { border-color: rgba(164, 168, 176, 0.22); color: #d0d3da; }
 
     .board {
       display: grid;
@@ -666,7 +579,7 @@
       <div>
         <p class="eyebrow">Master decode sprint</p>
         <h1>128-Record Gauntlet</h1>
-        <p class="subtitle">Each lane has 128 hidden audit gates embedded in the track. The scanner reveals them once as the race reaches that record position: green accepted, amber recoverable format, red wrong answer, or dark missing tail.</p>
+        <p class="subtitle">Speed is the race, but quality is revealed while the runner moves. Each lane sprints to 8192 generated tokens; as it reaches each of the 128 requested records, the checkpoint jumps clean, cracks messy, breaks wrong, or stays dark when missing.</p>
         <div class="chips">
           <span class="chip">Target 8192 generated tokens</span>
           <span class="chip">96 records minimum / 128 requested</span>
@@ -684,21 +597,20 @@
       <a href="../../">Main dashboard</a>
       <a href="tg-decode-sprint-race-inputs.json">Race input JSON</a>
       <a href="static-gauntlet-v1.html">Saved static version</a>
-      <a href="live-reveal-draft.html">Saved reveal draft</a>
     </nav>
 
     <section class="metric-grid">
-      <div class="metric" style="--accent: var(--cyan)"><span>Leader reveal time</span><strong>2:10 minimum</strong></div>
-      <div class="metric" style="--accent: var(--teal)"><span>Audit target</span><strong>128 hidden gates</strong></div>
-      <div class="metric" style="--accent: var(--teal)"><span>Pass floor</span><strong>96 accepted records</strong></div>
-      <div class="metric" style="--accent: var(--amber)"><span>Verdicts</span><strong>Unlock on finish</strong></div>
+      <div class="metric" style="--accent: var(--cyan)"><span>Speed leader</span><strong>Gemma E2B, 84.49 t/s</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>Clean winner</span><strong>Qwen3.6 Dynamic, PASS</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>Best clean 27B</span><strong>DFlash+PFlash, 102/128</strong></div>
+      <div class="metric" style="--accent: var(--amber)"><span>Fast but messy</span><strong>Gemma E2B, FORMAT</strong></div>
     </section>
 
     <section class="panel race-panel">
       <div class="race-head">
         <div>
           <h2>Live Sprint</h2>
-          <p>The scanner moves through output-record order, not exact per-token timestamps. Broadcast timing stretches the leader beyond two minutes and compresses the tail so the whole field stays watchable while measured TG remains visible.</p>
+          <p>The pods move by measured TG and prompt/compression overhead. Audit checkpoints reveal as the pod reaches each record position; the mapping is by output progress, not exact per-record timestamps.</p>
         </div>
         <div class="clock">
           <span>Replay clock</span>
@@ -706,40 +618,40 @@
         </div>
       </div>
       <div class="legend">
-        <span><i style="background: rgba(32, 209, 162, 0.92)"></i> accepted</span>
-        <span><i style="background: rgba(246, 192, 70, 0.92)"></i> recoverable format</span>
-        <span><i style="background: rgba(255, 78, 110, 0.92)"></i> wrong content</span>
-        <span><i style="background: rgba(77,83,94,0.74)"></i> missing tail</span>
+        <span><i style="background: rgba(32, 209, 162, 0.92)"></i> clean record</span>
+        <span><i style="background: rgba(246, 192, 70, 0.92)"></i> format/shape issue</span>
+        <span><i style="background: rgba(255, 78, 110, 0.92)"></i> content/token issue</span>
+        <span><i style="background: rgba(255,255,255,0.08)"></i> missing/unusable</span>
       </div>
       <div id="lanes" class="lanes"></div>
     </section>
 
     <section class="board">
       <article class="panel">
-        <h2>Track Rules</h2>
-        <div class="value">128 gates</div>
-        <div class="note">Each gate is one requested output record. The track starts unknown and only resolves where the scanner has passed.</div>
+        <h2>Raw Speed Rank</h2>
+        <div class="value">1. Gemma E2B</div>
+        <div class="note">84.49 t/s, but FORMAT tier because only 86/128 records were recovered.</div>
       </article>
       <article class="panel">
-        <h2>Nuance</h2>
-        <div class="value">Not binary</div>
-        <div class="note">Green is accepted. Amber is recoverable but not accepted. Red is parseable but wrong. Dark means the output ran out.</div>
+        <h2>Audit Rank</h2>
+        <div class="value">Qwen3.6 Dynamic</div>
+        <div class="note">PASS tier, 117/128 strict JSONL records recovered, fastest clean lane.</div>
       </article>
       <article class="panel">
-        <h2>Timing</h2>
-        <div class="value">No loop</div>
-        <div class="note">The broadcast stretches the raw speed race so the fastest lane takes over two minutes to finish.</div>
+        <h2>27B Result</h2>
+        <div class="value">DFlash+PFlash</div>
+        <div class="note">PASS tier, 102/128 records, 17.37 t/s rerun long TG and 17.032 t/s delta estimate.</div>
       </article>
       <article class="panel">
-        <h2>Finish</h2>
-        <div class="value">Verdict unlocks</div>
-        <div class="note">A lane's PASS, FORMAT, or CONTENT label appears only after that lane completes its scan.</div>
+        <h2>Failure Story</h2>
+        <div class="value">Mistral CONTENT</div>
+        <div class="note">It completed the sprint but missed restore-token/content checks, so speed stays visible while answer quality is marked wrong.</div>
       </article>
     </section>
 
     <section class="panel source">
       <h2>Source Files</h2>
-      <p>Race inputs were copied from <span class="mono">/srv/llm/runs/20260512-225739-tg-decode-sprint-extra-lanes/</span>. PFlash audit data came from the rerun under <span class="mono">/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/</span>.</p>
+      <p>Race inputs were copied from <span class="mono">/srv/llm/runs/20260512-225739-tg-decode-sprint-extra-lanes/</span>. PFlash 102/128 audit data came from the rerun under <span class="mono">/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/</span>.</p>
       <ul>
         <li><a href="tg-decode-sprint-race-inputs.json">tg-decode-sprint-race-inputs.json</a></li>
         <li><a href="tg-decode-sprint-race-lanes.tsv">tg-decode-sprint-race-lanes.tsv</a></li>
@@ -751,9 +663,7 @@
 
   <script>
     const TARGET_TOKENS = 8192;
-    const TARGET_RECORDS = 128;
-    const LEADER_REPLAY_SECONDS = 130;
-    const FIELD_SPREAD_SECONDS = 190;
+    const REPLAY_SECONDS = 70;
     const LANES = [
       {
         id: "gemma-e2b",
@@ -761,11 +671,14 @@
         tier: "FORMAT",
         speed: 84.49,
         promptSeconds: 6.9423,
-        accepted: 0,
-        format: 86,
-        content: 0,
+        records: 86,
+        strict: 86,
+        sequential: 86,
+        marker: 86,
+        restore: 86,
+        tile: "format",
         color: "#f6c046",
-        summary: "0/128 accepted; 86/128 recoverable format records before the missing tail."
+        note: "Fastest raw TG, but below the 96-record floor."
       },
       {
         id: "qwen-dynamic",
@@ -773,11 +686,14 @@
         tier: "PASS",
         speed: 59.42,
         promptSeconds: 15.31136,
-        accepted: 117,
-        format: 0,
-        content: 0,
+        records: 117,
+        strict: 117,
+        sequential: 117,
+        marker: 117,
+        restore: 117,
+        tile: "clean",
         color: "#20d1a2",
-        summary: "117/128 accepted; fastest lane that clears the 96-record floor."
+        note: "Fastest PASS lane; enough strict JSONL records."
       },
       {
         id: "gemma-26b",
@@ -785,11 +701,14 @@
         tier: "FORMAT",
         speed: 47.85,
         promptSeconds: 13.77087,
-        accepted: 0,
-        format: 87,
-        content: 0,
+        records: 87,
+        strict: 86,
+        sequential: 86,
+        marker: 87,
+        restore: 87,
+        tile: "format",
         color: "#f59e0b",
-        summary: "0/128 accepted; 87/128 recoverable format or sequence near-misses."
+        note: "Close shape, but too few strict records and sequence drift."
       },
       {
         id: "qwen-pflash",
@@ -798,11 +717,14 @@
         speed: 17.37,
         speedSub: "17.032 delta estimate; 18.47 t/s at 2048",
         promptSeconds: 14.113,
-        accepted: 102,
-        format: 0,
-        content: 0,
+        records: 102,
+        strict: 102,
+        sequential: 102,
+        marker: 102,
+        restore: 102,
+        tile: "clean",
         color: "#39d0ff",
-        summary: "102/128 accepted; clean 27B lane after rerun, above the 96-record floor."
+        note: "Best clean 27B lane after rerun; 102/128 passes the 96-record floor."
       },
       {
         id: "baseline",
@@ -810,11 +732,14 @@
         tier: "FORMAT",
         speed: 12.04,
         promptSeconds: 58.36574,
-        accepted: 0,
-        format: 128,
-        content: 0,
+        records: 128,
+        strict: 0,
+        sequential: 128,
+        marker: 128,
+        restore: 128,
+        tile: "format",
         color: "#a78bfa",
-        summary: "0/128 accepted as strict JSONL; 128/128 recoverable records in the wrong envelope."
+        note: "Timed, but pretty-printed JSON objects instead of strict JSONL."
       },
       {
         id: "mistral-119b",
@@ -822,11 +747,14 @@
         tier: "CONTENT",
         speed: 11.91,
         promptSeconds: 57.64905,
-        accepted: 0,
-        format: 0,
-        content: 102,
+        records: 102,
+        strict: 102,
+        sequential: 102,
+        marker: 102,
+        restore: 0,
+        tile: "content",
         color: "#ff4e6e",
-        summary: "0/128 accepted; 102/128 parseable records carry the wrong answer token."
+        note: "Parseable shape, but restore token/content is wrong."
       }
     ];
 
@@ -835,144 +763,110 @@
       minimumFractionDigits: digits,
       maximumFractionDigits: digits
     });
-    const pct = (value) => `${Math.round(value * 1000) / 10}%`;
+    const seconds = (value) => `${fmt(value, 0)}s`;
+    const pct = (value) => `${Math.round(value * 100)}%`;
 
-    function timeLabel(value) {
-      const total = Math.max(0, Math.round(value));
-      const minutes = Math.floor(total / 60);
-      const seconds = String(total % 60).padStart(2, "0");
-      return `${minutes}:${seconds}`;
-    }
+    const maxFinish = Math.max(...LANES.map((lane) => finishTime(lane)));
+    const start = performance.now();
 
     function finishTime(lane) {
+      if (!lane.speed) return maxFinish || 760;
       return lane.promptSeconds + (TARGET_TOKENS / lane.speed);
     }
 
-    const actualFinishes = LANES.map(finishTime);
-    const fastestActual = Math.min(...actualFinishes);
-    const slowestActual = Math.max(...actualFinishes);
-
-    function broadcastFinish(lane) {
-      const actual = finishTime(lane);
-      const span = Math.max(1, slowestActual - fastestActual);
-      const normalized = Math.max(0, (actual - fastestActual) / span);
-      return LEADER_REPLAY_SECONDS + Math.pow(normalized, 0.68) * FIELD_SPREAD_SECONDS;
+    function tileClass(lane, index) {
+      if (lane.tier === "FAIL") return "fail";
+      if (index >= lane.records) return "missing";
+      return lane.tile;
     }
 
-    const maxBroadcastFinish = Math.max(...LANES.map(broadcastFinish));
-    const start = performance.now();
-
-    function missingCount(lane) {
-      return Math.max(0, TARGET_RECORDS - lane.accepted - lane.format - lane.content);
-    }
-
-    function statusFor(lane, index) {
-      if (index < lane.accepted) return "clean";
-      if (index < lane.accepted + lane.format) return "format";
-      if (index < lane.accepted + lane.format + lane.content) return "content";
-      return "missing";
-    }
-
-    function countsThrough(lane, reached) {
-      const counts = { clean: 0, format: 0, content: 0, missing: 0 };
-      for (let index = 0; index < reached; index += 1) {
-        counts[statusFor(lane, index)] += 1;
-      }
-      return counts;
+    function auditScore(lane) {
+      const total = 128;
+      const score = (
+        (lane.records / total) * 38 +
+        (lane.strict / total) * 18 +
+        (lane.sequential / total) * 14 +
+        (lane.marker / total) * 14 +
+        (lane.restore / total) * 16
+      );
+      return Math.round(score);
     }
 
     function renderLane(lane) {
-      const gates = Array.from({ length: TARGET_RECORDS }, (_, index) => (
-        `<span class="gate" data-status="${statusFor(lane, index)}" aria-hidden="true"></span>`
-      )).join("");
+      const tiles = Array.from({ length: 128 }, (_, index) => `<span class="tile" data-kind="tile" data-result="${tileClass(lane, index)}"></span>`).join("");
+      const hurdles = Array.from({ length: 128 }, (_, index) => `<span class="hurdle" data-kind="hurdle" data-result="${tileClass(lane, index)}"></span>`).join("");
       const badge = lane.tier.toLowerCase().replace(/\s+/g, "-");
       return `
-        <article class="lane" data-lane="${lane.id}" data-tier="${badge}" style="--lane-color:${lane.color}">
+        <article class="lane ${badge}" data-lane="${lane.id}" style="--lane-color:${lane.color}">
           <div class="lane-title">
             <strong>${lane.display}</strong>
-            <div class="sub">${fmt(lane.speed, 2)} tok/s${lane.speedSub ? ` • ${lane.speedSub}` : ""}</div>
-            <span class="badge locked" data-role="tier">AUDITING</span>
+            <div class="sub">${lane.speed ? `${fmt(lane.speed, 2)} tok/s` : "load failed"}${lane.speedSub ? ` • ${lane.speedSub}` : ""}</div>
+            <span class="badge ${badge}">${lane.tier}</span>
           </div>
           <div class="track">
             <div class="track-bar">
-              <div class="sweep"></div>
-              <div class="audit-rail">${gates}</div>
-              <div class="runner"></div>
+              <div class="track-hurdles">${hurdles}</div>
+              <div class="fill"></div>
+              <div class="pod"></div>
               <div class="finish-line"></div>
             </div>
             <div class="lane-readout">
-              <span class="tokens">0 / 8,192 tokens</span>
-              <span class="phase">scanner armed</span>
+              <span class="tokens">0 / 8,192</span>
+              <span class="phase">${lane.speed ? "prompt/compress" : "load fail"}</span>
             </div>
           </div>
-          <div class="audit-card">
-            <div class="live-audit">
-              <span class="score">0/128 checked</span>
-              <span class="detail">accepted 0 • near 0 • wrong 0 • missing 0</span>
+          <div class="audit">
+            <div class="audit-strip">${tiles}</div>
+            <div class="audit-meta live-audit">
+              0/128 audit checkpoints reached
             </div>
-            <div class="audit-breakdown">
-              <span class="audit-count clean"><b>0/128</b>Accepted</span>
-              <span class="audit-count format"><b>0/128</b>Near miss</span>
-              <span class="audit-count content"><b>0/128</b>Wrong</span>
-              <span class="audit-count missing"><b>0/128</b>Missing</span>
+            <div class="audit-meta">
+              ${lane.records}/128 records • ${lane.strict}/128 strict JSONL • marker ${lane.marker}/128 • restore ${lane.restore}/128 • audit ${auditScore(lane)}/100<br>
+              ${lane.note}
             </div>
-            <span class="audit-summary">Final verdict locked until this lane finishes.</span>
           </div>
         </article>
       `;
     }
 
-    function updateInspection(node, lane, reached) {
-      const gates = node.querySelectorAll(".gate");
-      gates.forEach((gate, index) => {
-        const scanned = index < reached;
-        gate.className = `gate${scanned ? ` scanned ${gate.dataset.status}` : ""}${index === reached ? " current" : ""}`;
+    function updateReveal(node, lane, reached) {
+      const collections = [node.querySelectorAll(".tile"), node.querySelectorAll(".hurdle")];
+      collections.forEach((items) => {
+        items.forEach((item, index) => {
+          const revealed = index < reached;
+          item.className = `${item.dataset.kind} ${revealed ? `revealed ${item.dataset.result}` : ""}${index === reached ? " current" : ""}`;
+        });
       });
 
-      const checked = Math.min(reached, TARGET_RECORDS);
-      const counts = countsThrough(lane, checked);
-      node.querySelector(".live-audit .score").textContent = `${checked}/128 checked`;
-      node.querySelector(".live-audit .detail").textContent =
-        `accepted ${counts.clean} • near ${counts.format} • wrong ${counts.content} • missing ${counts.missing}`;
-      node.querySelector(".audit-count.clean b").textContent = `${counts.clean}/128`;
-      node.querySelector(".audit-count.format b").textContent = `${counts.format}/128`;
-      node.querySelector(".audit-count.content b").textContent = `${counts.content}/128`;
-      node.querySelector(".audit-count.missing b").textContent = `${counts.missing}/128`;
+      const visible = Math.min(reached, 128);
+      const clean = Math.min(visible, lane.tile === "clean" ? lane.records : 0);
+      const damaged = Math.min(visible, lane.tile === "format" ? lane.records : 0);
+      const wrong = Math.min(visible, lane.tile === "content" ? lane.records : 0);
+      const missing = Math.max(0, visible - lane.records);
+      node.querySelector(".live-audit").textContent =
+        `${visible}/128 checkpoints reached • clean ${clean} • messy ${damaged} • wrong ${wrong} • missing ${missing}`;
     }
 
     function setLaneState(lane, elapsed) {
       const node = document.querySelector(`[data-lane="${lane.id}"]`);
       if (!node) return;
-      const finish = broadcastFinish(lane);
-      const progress = Math.min(1, elapsed / finish);
+      const finish = finishTime(lane);
+      const progress = lane.speed ? Math.min(1, elapsed / finish) : 0;
       const tokens = Math.min(TARGET_TOKENS, Math.round(TARGET_TOKENS * progress));
-      const reached = Math.min(TARGET_RECORDS, Math.floor(progress * TARGET_RECORDS));
-      node.querySelector(".sweep").style.width = pct(progress);
-      node.querySelector(".runner").style.left = pct(progress);
-      node.querySelector(".tokens").textContent = `${fmt(tokens)} / 8,192 tokens`;
-      const phase = progress >= 1 ? "finished" : (reached === 0 ? "opening scan" : `gate ${Math.min(reached + 1, TARGET_RECORDS)}`);
-      node.querySelector(".phase").textContent = `${phase} • broadcast finish ${timeLabel(finish)}`;
-      const tierBadge = node.querySelector("[data-role='tier']");
-      const summary = node.querySelector(".audit-summary");
-      if (progress >= 1) {
-        tierBadge.textContent = lane.tier;
-        tierBadge.className = `badge ${node.dataset.tier}`;
-        summary.textContent = lane.summary;
-      } else {
-        tierBadge.textContent = "AUDITING";
-        tierBadge.className = "badge locked";
-        summary.textContent = "Final verdict locked until this lane finishes.";
-      }
-      updateInspection(node, lane, reached);
+      const reached = Math.min(128, Math.floor(progress * 128));
+      node.querySelector(".fill").style.width = pct(progress);
+      node.querySelector(".pod").style.left = pct(progress);
+      node.querySelector(".tokens").textContent = `${fmt(tokens)} / 8,192`;
+      const phase = !lane.speed ? "load fail" : (elapsed < lane.promptSeconds ? "prompt/compress" : (progress >= 1 ? "done" : "decode"));
+      node.querySelector(".phase").textContent = `${phase} • finish ${lane.speed ? seconds(finish) : "n/a"}`;
+      updateReveal(node, lane, reached);
     }
 
     function animate() {
-      const elapsed = Math.min((performance.now() - start) / 1000, maxBroadcastFinish + 4);
-      byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxBroadcastFinish)}`;
+      const elapsed = (((performance.now() - start) / 1000) * (maxFinish / REPLAY_SECONDS)) % (maxFinish + 3);
+      byId("clockReadout").textContent = `${seconds(Math.min(elapsed, maxFinish))} / ${seconds(maxFinish)}`;
       LANES.forEach((lane) => setLaneState(lane, elapsed));
-      if (elapsed < maxBroadcastFinish + 4) {
-        requestAnimationFrame(animate);
-      }
+      requestAnimationFrame(animate);
     }
 
     byId("lanes").innerHTML = LANES.map(renderLane).join("");
