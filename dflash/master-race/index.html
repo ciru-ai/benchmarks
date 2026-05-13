@@ -385,7 +385,7 @@
       position: relative;
       align-self: end;
       min-width: 2px;
-      height: 18px;
+      height: 48px;
       border-radius: 3px 3px 1px 1px;
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -396,72 +396,36 @@
     }
 
     .gate.scanned.clean {
-      height: 54px;
+      height: 48px;
       background: linear-gradient(180deg, #8affdf, rgba(32, 209, 162, 0.86));
       box-shadow: 0 0 13px rgba(32, 209, 162, 0.44);
       opacity: 0.98;
-      transform: translateY(-7px);
-    }
-
-    .gate.scanned.clean::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: -10px;
-      width: 9px;
-      height: 9px;
-      border-top: 2px solid rgba(168, 255, 230, 0.95);
-      border-right: 2px solid rgba(168, 255, 230, 0.95);
-      transform: translateX(-50%) rotate(-45deg);
+      transform: none;
     }
 
     .gate.scanned.format {
-      height: 43px;
+      height: 48px;
       background: linear-gradient(180deg, #ffe29a, rgba(246, 192, 70, 0.88));
       box-shadow: 0 0 12px rgba(246, 192, 70, 0.36);
       opacity: 0.96;
-      transform: rotate(-10deg) translateY(2px);
-    }
-
-    .gate.scanned.format::after {
-      content: "";
-      position: absolute;
-      inset: 3px 45% 4px auto;
-      width: 2px;
-      background: rgba(54, 33, 0, 0.42);
-      transform: rotate(24deg);
+      transform: none;
     }
 
     .gate.scanned.content {
-      height: 47px;
+      height: 48px;
       background: linear-gradient(180deg, #ff9cae, rgba(255, 78, 110, 0.9));
       box-shadow: 0 0 13px rgba(255, 78, 110, 0.38);
       opacity: 0.98;
-      transform: rotate(15deg) translateY(7px);
+      transform: none;
     }
-
-    .gate.scanned.content::before,
-    .gate.scanned.content::after {
-      content: "";
-      position: absolute;
-      left: 48%;
-      top: 5px;
-      width: 2px;
-      height: 78%;
-      background: rgba(72, 0, 16, 0.58);
-      border-radius: 999px;
-    }
-
-    .gate.scanned.content::before { transform: rotate(42deg); }
-    .gate.scanned.content::after { transform: rotate(-42deg); }
 
     .gate.scanned.missing {
-      height: 18px;
+      height: 48px;
       background: #000;
       border-color: rgba(255, 255, 255, 0.36);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 8px rgba(255, 255, 255, 0.12);
       opacity: 1;
-      transform: scaleY(0.92);
+      transform: none;
     }
 
     .gate.current {
@@ -804,7 +768,7 @@
 
     <section class="panel explainer">
       <h2>How To Read This</h2>
-      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The race speed is measured from the decode run. The colored gates are the output audit: as the scanner reaches each requested record position, that position is checked for whether the model produced the right record, in the right line format, in the right order, with the right task content.</p>
+      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The race speed is measured from the decode run. The colored gates are the output audit: as the scanner reaches each requested record position, that specific step is checked for whether the model produced the right record, in the right line format, in the right order, with the right task content.</p>
       <div class="explainer-grid">
         <article class="explain-card">
           <h3>Color Key</h3>
@@ -821,11 +785,11 @@
         </article>
         <article class="explain-card">
           <h3>Format Near-Miss Example</h3>
-          <p>Gemma 4 E2B produced 86 recognizable records, then missed the rest of the requested 128. Gemma 4 26B produced 87 recognizable records but also drifted in sequence. Those are yellow because the model is close to the requested task shape, but the final output is not the clean 128-line JSONL contract. The Qwen baseline is another yellow example: it produced JSON objects in a pretty-printed shape instead of one JSON object per line.</p>
+          <p>Gemma 4 E2B produced perfect records for steps 1-86, then skipped the remaining requested steps. Gemma 4 26B had a yellow first step because extra channel text was attached before the JSON object, then steps 2-87 were perfect, then the rest were missing. The Qwen baseline is the broad format example: it produced JSON objects in a pretty-printed shape instead of one JSON object per line, so those records are yellow.</p>
         </article>
         <article class="explain-card">
           <h3>Wrong-Content Example</h3>
-          <p>Mistral Small 4 produced 102 parseable records, so it was not simply blank or unreadable. The problem is that the records used the wrong task content, including the restore token expected by this benchmark. That is why those gates turn red rather than yellow.</p>
+          <p>Mistral Small 4 produced parseable records for steps 1-102, so it was not simply blank or unreadable. The problem is that those records used the wrong task content, including the restore token expected by this benchmark. That is why steps 1-102 are red, then the remaining requested steps are black.</p>
         </article>
       </div>
     </section>
@@ -836,6 +800,7 @@
     const TARGET_RECORDS = 128;
     const LEADER_REPLAY_SECONDS = 130;
     const FIELD_SPREAD_SECONDS = 190;
+    const seq = (status, count) => Array.from({ length: count }, () => status);
     const LANES = [
       {
         id: "gemma-e2b",
@@ -843,9 +808,7 @@
         tier: "FORMAT",
         speed: 84.49,
         promptSeconds: 6.9423,
-        accepted: 0,
-        format: 86,
-        content: 0,
+        statuses: [...seq("clean", 86), ...seq("missing", 42)],
         color: "#f6c046"
       },
       {
@@ -854,9 +817,7 @@
         tier: "PASS",
         speed: 59.42,
         promptSeconds: 15.31136,
-        accepted: 117,
-        format: 0,
-        content: 0,
+        statuses: [...seq("clean", 117), ...seq("missing", 11)],
         color: "#20d1a2"
       },
       {
@@ -865,9 +826,7 @@
         tier: "FORMAT",
         speed: 47.85,
         promptSeconds: 13.77087,
-        accepted: 0,
-        format: 87,
-        content: 0,
+        statuses: ["format", ...seq("clean", 86), ...seq("missing", 41)],
         color: "#f59e0b"
       },
       {
@@ -877,9 +836,7 @@
         speed: 17.37,
         speedSub: "17.032 delta estimate; 18.47 t/s at 2048",
         promptSeconds: 14.113,
-        accepted: 102,
-        format: 0,
-        content: 0,
+        statuses: [...seq("clean", 102), ...seq("missing", 26)],
         color: "#39d0ff"
       },
       {
@@ -888,9 +845,7 @@
         tier: "FORMAT",
         speed: 12.04,
         promptSeconds: 58.36574,
-        accepted: 0,
-        format: 128,
-        content: 0,
+        statuses: [...seq("format", 128)],
         color: "#a78bfa"
       },
       {
@@ -899,9 +854,7 @@
         tier: "CONTENT",
         speed: 11.91,
         promptSeconds: 57.64905,
-        accepted: 0,
-        format: 0,
-        content: 102,
+        statuses: [...seq("content", 102), ...seq("missing", 26)],
         color: "#ff4e6e"
       }
     ];
@@ -939,10 +892,7 @@
     const start = performance.now();
 
     function statusFor(lane, index) {
-      if (index < lane.accepted) return "clean";
-      if (index < lane.accepted + lane.format) return "format";
-      if (index < lane.accepted + lane.format + lane.content) return "content";
-      return "missing";
+      return lane.statuses[index] || "missing";
     }
 
     function countsThrough(lane, reached) {
