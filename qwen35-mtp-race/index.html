@@ -74,6 +74,75 @@
     button { cursor: pointer; font-family: inherit; }
     button:hover, .chip:hover { border-color: rgba(70,216,255,.6); }
 
+    .platform {
+      display: grid;
+      grid-template-columns: minmax(220px, .8fr) repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .platform-card {
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(18,20,25,.86);
+    }
+    .platform-card span {
+      display: block;
+      color: var(--muted);
+      font-size: .64rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .platform-card strong {
+      display: block;
+      margin-top: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .92rem;
+    }
+    .amd-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.08), transparent 54%),
+        rgba(18,20,25,.9);
+    }
+    .amd-mark {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font-weight: 900;
+      font-size: .82rem;
+      letter-spacing: -.02em;
+      position: relative;
+      overflow: hidden;
+    }
+    .amd-mark::after {
+      content: "";
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      width: 13px;
+      height: 13px;
+      border-top: 4px solid #111;
+      border-right: 4px solid #111;
+    }
+    .amd-title strong {
+      white-space: normal;
+      line-height: 1.18;
+      font-size: .98rem;
+    }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -241,6 +310,8 @@
       .app { width: min(100% - 12px, 1500px); padding-top: 8px; }
       .hero { grid-template-columns: 1fr; padding: 13px; }
       .hero-actions { justify-content: flex-start; }
+      .platform { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .amd-card { grid-column: 1 / -1; }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .race-head { display: none; }
       .lane {
@@ -263,6 +334,7 @@
     @media (max-width: 560px) {
       h1 { font-size: 1.75rem; }
       .subtitle { font-size: .9rem; }
+      .platform { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: 1fr; }
       .track { height: 29px; }
       .quality { height: 7px; }
@@ -285,6 +357,28 @@
       </div>
     </section>
 
+    <section class="platform" aria-label="Hardware and benchmark settings">
+      <article class="platform-card amd-card">
+        <div class="amd-mark" aria-label="AMD">AMD</div>
+        <div class="amd-title">
+          <span>Hardware</span>
+          <strong>AMD Ryzen AI Max+ 395 / Radeon 8060S Strix Halo</strong>
+        </div>
+      </article>
+      <article class="platform-card">
+        <span>Host</span>
+        <strong>ciru, 128 GiB UMA</strong>
+      </article>
+      <article class="platform-card">
+        <span>Runtime</span>
+        <strong>llama.cpp Vulkan, PR22673 MTP</strong>
+      </article>
+      <article class="platform-card">
+        <span>Race Case</span>
+        <strong>TG64, 16.7K prompt, 8192 max gen</strong>
+      </article>
+    </section>
+
     <section class="metrics" id="metrics"></section>
 
     <section class="race">
@@ -305,11 +399,19 @@
     <section class="notes">
       <article class="card">
         <h2>What This Race Measures</h2>
-        <p>The Qwen lanes use the completed <span class="mono">race2</span> TG64 summaries from <span class="mono">20260513-qwen36-35b-mtp-unsloth-strix</span>. Each model received the same fixed decode task: emit 64 JSONL records with the required marker, ordered step, subsystem, observation, action, and restore token.</p>
+        <p>The Qwen lanes use the completed <span class="mono">race2</span> TG64 summaries from <span class="mono">20260513-qwen36-35b-mtp-unsloth-strix</span>. Each model received the same fixed decode task from <span class="mono">fixed_decode_tg64_v1.jsonl</span>: emit 64 JSONL records with the required marker, ordered step, subsystem, observation, action, and restore token.</p>
+      </article>
+      <article class="card">
+        <h2>Benchmark Settings</h2>
+        <p>Qwen MTP lanes used Vulkan on the AMD Strix Halo iGPU with <span class="mono">-ngl 999</span>, flash attention, row split, <span class="mono">q8_0/q8_0</span> KV, <span class="mono">batch 2048</span>, and <span class="mono">ubatch 1024</span>. The context sweep covered 2K, 8K, 32K, and 64K; the animated race uses the live TG64 server run with about 16.7K prompt tokens and per-lane completion tokens shown in the lane labels.</p>
       </article>
       <article class="card">
         <h2>How To Read It</h2>
         <p>The main race is speed. The 64-cell strip is quality. Most Qwen misses here are not catastrophic: the records are generally parseable and semantically close, but the observation/action word-count contract is often missed. Q3 is the cleanest Qwen lane by this audit.</p>
+      </article>
+      <article class="card">
+        <h2>Reference Lanes</h2>
+        <p>Dynamic Strix and Codex GPT-5.5 Low are included as reference lanes, not MTP quant sweep members. Their speed numbers come from the same TG64-style race timing where available, while MTP acceptance and llama-bench prefill are only shown for the Qwen MTP quant lanes.</p>
       </article>
     </section>
   </main>
