@@ -4,12 +4,16 @@ This file tracks prior LLM benchmark runs or related test commands found on this
 
 ## Agent quick recall
 
-Last consolidated: `2026-05-08`
+Last consolidated: `2026-05-12`
 
 This file is the canonical local benchmark memory for agents. New entries should keep exact model paths, engine paths, settings, active context size, validity notes, and service-restore status. Older benchmark history is preserved below this quick recall section.
 
 Current high-signal conclusions:
 
+- New durable llama benchmark location from the `llama-benchmark` Codex skill is `/home/crown/bench-results/llama/`. Use `/home/crown/.codex/skills/llama-benchmark/scripts/llama_benchmark.py query` and prefer the `llama_bench_strict` view for published claims. The current store contains `593` rows in `results.sqlite3` plus mirrored `results.jsonl` / `results.ledger.jsonl`. New rows use `pg` for combined prompt+generation and `tg` for standalone generation; do not label `pg` as pure prefill.
+- New 2026-05-12 DFlash/PFlash Strix run succeeded from `/srv/llm/runs/20260512-203510-qwen36-27b-dflash-pflash-strix-full`: Qwen3.6 27B Q4_K_M target plus `dflash-draft-3.6-q8_0.gguf`, 10 HumanEval-style prompts, `n_gen=128`, mode `fast`, mean acceptance `39.2%`, mean decode `30.33 t/s`, peak sampled VRAM `21.50 GiB`. This is +151.9% decode vs the current Qwen3.6 27B Q4 dashboard baseline (`12.04 -> 30.33 TG`), but it is not a clean llama-bench context row.
+- 2026-05-12 clean roster refresh added missing dashboard rows for Qwen3.6 27B Q3/Q4/Q5/Q8, Carnice V2 27B Q8, Qwen3.6/HauhauCS/Qwopus 35B 4k refreshes, and Mistral Small 4 119B. Highlights: Qwen3.6 27B Q5 at 131072 was `148.23 PG / 10.66 TG` with `25.42 GiB` peak VRAM; Qwen3.6 35B Q8 at 131072 was `383.31 PG / 53.67 TG` with `39.96 GiB` peak VRAM; Mistral Small 4 119B reached `440.80 PG / 41.22 TG` at 4k and completed 131072 prompt processing at `110.57 PG` with `63.59 GiB` peak VRAM, but no representative standalone 131072 TG was recorded.
+- 2026-05-10 b8995 q8-KV Dynamic Strix import supersedes the older main-dashboard Dynamic q8 prompt curve where `PG` is available: `799.76 PG / 66.27 TG` at 4k, `940.68 PG / 66.27 TG` at 16k, `839.70 PG / 66.27 TG` at 32k, and `438.90 PG / 66.27 TG` at 131072. Qwopus3.6 Q5 b8995 at 131072 was `421.60 PG / 68.02 TG`.
 - Qwen3.6 35B A3B MTP matrix in `/home/crown/machine-setup/mtpbench.md` was run on `2026-05-06` with the isolated llama.cpp PR #22673 `mtp-clean` Vulkan binary at `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin`. On long real chat workloads, MTP improved decode but slowed prompt ingestion: Q4_1 MTP draft-3 was `66.8 TG` vs `59.3 TG` same-file MTP-off at 65k (+12.6%) and `53.42 TG` vs `48.86 TG` at 128k (+9.3%); Q8 MTP was `56.28 TG` vs `47.04 TG` at 65k (+19.7%) and `44.97 TG` vs `40.16 TG` at 128k (+12.0%). These are server-side multi-turn weighted generation rows, not clean `llama-bench` context rows.
 - Strix-specific `0xSero/Qwen3.6-35B-A3B-GGUF-Strix` Dynamic quant was tested from the same MTP workspace. With `-b 2048 -ub 1024`, `q8_0/q8_0` KV produced `1055.10 PP / 66.17 TG` at 16k and `454.16 / 66.16` at 128k; `f16/f16` won short 16k (`1133.59 / 67.15`) but regressed true 128k prefill (`387.94 / 67.15`). Keep Dynamic Strix on q8 KV for long-context use.
 - Qwen3.6 35B Q4 128k prompt batch sweep found `-b 2048 -ub 1024` best for the 96,112-token prompt: `526.41 tok/s`, about +8.9% over `-b 2048 -ub 512`; `-ub 2048` regressed.
@@ -23,7 +27,7 @@ Current high-signal conclusions:
 - Long occupied context result: at `32768` max context with about `24035` prompt tokens already active, baseline Q8 decode was `6.13 t/s`; speculative Qwen3-1.7B Q8 fell to `3.55 t/s`. Do not use this draft setup for long active context.
 - Invalid result warning: standalone `llama-speculative` / `llama-speculative-simple` runs on Qwen3.6 emitted M-RoPE/KV position errors such as `inconsistent sequence positions`, `failed to decode`, or `non-consecutive token position`. Treat their throughput numbers as invalid even when tok/s looked high.
 - Installed `/home/crown/.local/llama-current` was too old for valid Qwen3.6 server speculative checkpointing on `2026-04-24`: it disabled speculative decoding with `target context does not support partial sequence removal`. Fresh upstream llama.cpp fixed this by falling back to checkpoints.
-- DFlash was not useful on this AMD/Vulkan host in the tested state. Acceptance stayed around `1-3%`, decode was slower than baseline, and buun fork paths needed workarounds. Keep DFlash isolated from production until backend/runtime support changes.
+- Older April DFlash tests were not useful on this AMD/Vulkan host: acceptance stayed around `1-3%`, decode was slower than baseline, and buun fork paths needed workarounds. The newer 2026-05-12 DFlash/PFlash Strix run is the first useful local DFlash result, but keep it separate from clean llama-bench context planning until a comparable long-context service run exists.
 - Qwen3.6 27B Q8 is slower but preferred when quality/accuracy matters and RAM allows. Q4_XL is much faster for plain baseline decode, but the user explicitly prefers Q8 when feasible.
 - HauhauCS Qwen3.6 35B A3B Uncensored Aggressive Q4/Q6/Q8 profiles should use `f16/f16` KV on this Vulkan stack. On `2026-04-29`, `f16/f16` beat the previous `q8_0/q8_0` defaults at 16k and 32k, and Q8 also held the gain at 128k. Profiles were updated accordingly.
 - Official Qwen3.6 27B Q8 dense should keep `q8_0/q8_0` KV for the stable profile. Clean 32k rerun on `2026-04-29`: current build `q8_0/q8_0` was `223.82 PP / 6.11 TG`; upstream b8971 `q8_0/q8_0` was `223.54 / 6.12`; `q4_0/q4_0` was effectively tied (`223.37 / 6.11`) with slightly less memory but more quality risk; TheTom TurboQuant Vulkan `turbo3/turbo3` loaded and generated coherently but was slower at 32k (`201.48 / 6.12`).
@@ -50,6 +54,91 @@ Important local paths:
 | Qwen3.6 speculative benchmark harness | `/home/crown/machine-setup/bench-qwen36-spec.sh` |
 | DFlash-specific benchmark harness | `/home/crown/machine-setup/bench-spec-qwen27b.sh` |
 | Run logs | `/srv/llm/runs` |
+
+## 2026-05-12 durable benchmark store import
+
+Source skill: `/home/crown/.codex/skills/llama-benchmark/SKILL.md`.
+
+Durable store:
+
+- Root: `/home/crown/bench-results/llama/`
+- Query helper: `/home/crown/.codex/skills/llama-benchmark/scripts/llama_benchmark.py`
+- Database: `/home/crown/bench-results/llama/results.sqlite3`
+- JSONL mirror: `/home/crown/bench-results/llama/results.jsonl`
+- Ledger: `/home/crown/bench-results/llama/results.ledger.jsonl`
+- Integrity at import time: `593` rows, `593` ledger rows, `ok: true`
+
+Dashboard import notes:
+
+- The dashboard backup was saved before import at local `backups/20260512-203401`, including the local page/history files and remote `results.sqlite3` / `results.jsonl`.
+- The new store records `pg` as combined prompt+generation throughput and `tg` as standalone generation throughput. Published summaries should say `PG` or `PP+TG`, not pure prefill, when the source column is `pg`.
+- `llama_bench_strict` is the claims view. `llama_bench_comparable` is broader and should be treated as exploratory.
+
+Imported rows:
+
+| Model / label | Context | Metric | TG | Notes |
+| --- | ---: | ---: | ---: | --- |
+| Qwen3.6 27B Q3_K_M | 4096 | `153.68 PG` | `13.41` | Clean roster refresh, b8864 Vulkan |
+| Qwen3.6 27B UD Q4_K_XL | 4096 | `147.04 PG` | `11.35` | Clean roster refresh |
+| Qwen3.6 27B Q5_K_M | 4096 / 16384 / 32768 / 131072 | `163.38 / 227.93 / 223.72 / 148.23 PG` | `10.67 / 10.67 / 10.67 / 10.66` | 131072 peak: `25.42 GiB` VRAM, `12.17 GiB` RAM, `1.61 GiB` GTT |
+| Qwen3.6 27B UD Q8_K_XL | 4096 / 131072 | `101.48 / 142.01 PG` | `5.93 / 6.28` | 131072 peak: `37.73 GiB` VRAM, `13.57 GiB` RAM, `3.00 GiB` GTT |
+| Carnice V2 27B Q8_0 | 4096 | `118.96 PG` | `7.26` | Peak: `28.48 GiB` VRAM |
+| Qwen3.6 35B A3B Q4/Q8 | 4096 / 131072 | Q4 `730.32 PG`; Q8 `725.50 PG` at 4k and `383.31 PG` at 131072 | Q4 `57.76`; Q8 `54.48` and `53.67` | Q8 131072 peak: `39.96 GiB` VRAM |
+| HauhauCS Qwen3.6 35B Q4/Q6/Q8 | 4096 | `791.85 / 722.54 / 616.99 PG` | `73.76 / 61.98 / 42.29` | Clean roster refresh |
+| Qwopus MoE 35B Q8_0 | 4096 | `734.28 PG` | `54.20` | Clean roster refresh |
+| Qwopus3.6 35B Q5_K_M | 131072 | `421.60 PG` | `68.02` | b8995 q8 KV |
+| Qwen3.6 35B Dynamic Strix q8 KV | 4096 / 16384 / 32768 / 131072 | `799.76 / 940.68 / 839.70 / 438.90 PG` | `66.27` | b8995 q8 KV; dashboard keeps older pure-PP rows where they are the only pure-prefill source |
+| Qwen3.6 35B Dynamic Strix f16 KV | 4096 / 131072 | `804.45 / 387.27 PG` | `66.87` | b8864 f16 KV |
+| Mistral Small 4 119B UD Q4_K_M | 4096 / 32768 / 65536 / 131072 | `440.80 / 284.03 / 189.89 / 110.57 PG` | `41.22 / 40.70 / 41.16 / n/a` | 131072 completed prompt+generation with `gen=16`; no representative standalone 131072 TG row recorded. Peak: `63.59 GiB` VRAM, `24.09 GiB` RAM, `12.36 GiB` GTT |
+
+## 2026-05-12 Qwen3.6 27B DFlash/PFlash Strix run
+
+Source run directory: `/srv/llm/runs/20260512-203510-qwen36-27b-dflash-pflash-strix-full`.
+
+Runtime:
+
+- Script state: `bench_strix_qwen36_dflash.sh` untracked in the DFlash workspace at run time.
+- Commit: `7c67e8b457bdabeaa6f80967297b1d417dba76f0`.
+- Binary: `/srv/llm/bench/lucebox-hub/dflash/build-hip-gcc14x64/test_dflash`.
+- Target: `/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf`.
+- Draft: `/srv/llm/models/Qwen3.6-27B-DFlash-GGUF/dflash-draft-3.6-q8_0.gguf`.
+- Tokenizer: `Qwen/Qwen3.6-27B`.
+- Mode: `fast`, `n_gen=128`.
+- Prompt set: 10 HumanEval-style coding prompts from `has_close_elements` through `rolling_max`, prompt lengths `86` to `139` tokens.
+- Exit code: `0`.
+
+Summary:
+
+| Metric | Value |
+| --- | ---: |
+| Mean accepted length | `6.28` |
+| Mean acceptance | `39.2%` |
+| Mean decode | `30.33 t/s` |
+| Decode range | `22.36 - 43.87 t/s` |
+| Commit/step range | `4.57 - 9.14` |
+| Peak sampled VRAM | `21.50 GiB` |
+| Peak sampled GTT | `0.10 GiB` |
+
+Per-prompt decode:
+
+| Prompt | Steps | AL | Acceptance | Decode |
+| --- | ---: | ---: | ---: | ---: |
+| `has_close_elements` | `15` | `8.53` | `53.3%` | `40.80` |
+| `separate_paren_groups` | `14` | `9.14` | `57.1%` | `43.87` |
+| `truncate_number` | `28` | `4.57` | `28.6%` | `22.36` |
+| `below_zero` | `16` | `8.00` | `50.0%` | `38.79` |
+| `mean_absolute_deviation` | `21` | `6.10` | `38.1%` | `29.68` |
+| `intersperse` | `26` | `4.92` | `30.8%` | `23.72` |
+| `parse_nested_parens` | `21` | `6.10` | `38.1%` | `29.42` |
+| `filter_by_substring` | `23` | `5.57` | `34.8%` | `27.07` |
+| `sum_product` | `25` | `5.12` | `32.0%` | `24.91` |
+| `rolling_max` | `27` | `4.74` | `29.6%` | `22.69` |
+
+Interpretation:
+
+- This is the first locally useful DFlash/PFlash result on Strix Halo: `30.33 t/s` mean decode is +151.9% vs the current Qwen3.6 27B Q4 clean-dashboard baseline (`12.04 -> 30.33 TG`).
+- It also reverses the April DFlash conclusion for short coding prompts: the older DFlash Q8-on-Q4 experiment was `3.90 t/s` vs `12.2 t/s` baseline with `2.18%` acceptance, while this run reached `30.33 t/s` with `39.2%` acceptance.
+- It should stay out of the clean context frontier because it is a DFlash-specific HumanEval-style server/test harness run, not a `llama-bench` `pg`/`tg` context row.
 
 ## 2026-05-06 Qwen3.6 35B MTP matrix and Strix Dynamic quant notes
 

@@ -293,6 +293,48 @@
       text-transform: uppercase;
     }
 
+    .browser-controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(150px, 0.75fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .control-field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .control-field span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .control-field input,
+    .control-field select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(12, 12, 14, 0.9);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .control-field input:focus,
+    .control-field select:focus {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.55);
+      box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.14);
+    }
+
     .segmented {
       display: flex;
       gap: 10px;
@@ -760,6 +802,10 @@
         min-width: 0;
       }
 
+      .browser-controls {
+        grid-template-columns: 1fr;
+      }
+
       .topbar {
         padding: 16px;
       }
@@ -849,7 +895,7 @@
         <div class="panel-head">
           <div>
             <h2>VRAM / Speed Frontier</h2>
-            <p>GPU memory on x and decode speed on y. Bubble size shows parameter count, color shows prefill speed, and labels keep the model tradeoffs readable.</p>
+            <p>GPU memory on x and decode speed on y. Bubble size shows parameter count, color shows prompt or combined PG speed, and labels keep the model tradeoffs readable.</p>
           </div>
         </div>
         <div class="control-panel">
@@ -887,8 +933,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>Prefill vs Decode</h2>
-            <p>Raw throughput balance at the active context. Symbol size tracks model size.</p>
+            <h2>Prompt vs Decode</h2>
+            <p>Raw throughput balance at the active context. New durable-store rows use combined PP+TG, while older rows use standalone prefill.</p>
           </div>
         </div>
         <div id="throughputChart" class="chart chart-md"></div>
@@ -898,10 +944,64 @@
         <div class="panel-head">
           <div>
             <h2>Scaling Curves</h2>
-            <p>Prompt-processing throughput across tested contexts. Long-context survivors stay high to the right.</p>
+            <p>Prompt-processing or combined PG throughput across tested contexts. Long-context survivors stay high to the right.</p>
           </div>
         </div>
         <div id="trendChart" class="chart chart-md"></div>
+      </article>
+    </section>
+
+    <section class="single">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Model Browser</h2>
+            <p>Search and sort the full curated result set across every recorded context.</p>
+          </div>
+        </div>
+        <div class="control-panel browser-controls">
+          <label class="control-field">
+            <span>Search</span>
+            <input id="modelSearch" type="search" placeholder="model, family, KV, runtime">
+          </label>
+          <label class="control-field">
+            <span>Sort</span>
+            <select id="modelSort">
+              <option value="decode">Fastest decode</option>
+              <option value="prompt">Fastest prompt / PG</option>
+              <option value="context">Largest context</option>
+              <option value="gpu">Lowest GPU memory</option>
+              <option value="size">Smallest model</option>
+              <option value="name">Model name</option>
+            </select>
+          </label>
+          <label class="control-field">
+            <span>Tier</span>
+            <select id="modelTier">
+              <option value="all">All tiers</option>
+              <option value="Compact">Compact</option>
+              <option value="Large">Large</option>
+              <option value="Flagship">Flagship</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Family</th>
+                <th>Tier</th>
+                <th>Context</th>
+                <th>Prompt / PG</th>
+                <th>TG</th>
+                <th>GPU GiB</th>
+                <th>KV / Runtime</th>
+              </tr>
+            </thead>
+            <tbody id="modelBrowserBody"></tbody>
+          </table>
+        </div>
       </article>
     </section>
 
@@ -909,8 +1009,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>MTP Results</h2>
-            <p>Qwen3.6 and Gemma MTP server tests from <span class="mono">mtpbench.md</span> and the Gemma assistant sweep, with the chart above kept for backend and KV comparisons.</p>
+            <h2>Speculative Results</h2>
+            <p>MTP and DFlash server-style tests from <span class="mono">mtpbench.md</span>, the Gemma assistant sweep, and recent DFlash runs. Baseline comparisons are kept in the interpretation column.</p>
           </div>
         </div>
         <div id="labChart" class="chart chart-md"></div>
@@ -999,6 +1099,16 @@
                 <td>70.5%</td>
                 <td>+77.1% decode vs Gemma 31B base (10.35 -> 18.33 TG); largest relative Gemma MTP gain.</td>
               </tr>
+              <tr>
+                <td><span class="tag">DFlash</span></td>
+                <td><strong>Qwen3.6 27B Q4_K_M + DFlash Q8 draft</strong></td>
+                <td>HumanEval-style 10-prompt sweep, n128</td>
+                <td class="mono">fast</td>
+                <td>n/a</td>
+                <td>30.33 mean</td>
+                <td>39.2%</td>
+                <td>+151.9% decode vs current Qwen3.6 27B Q4 baseline (12.04 -> 30.33 TG); peak sampled VRAM was 21.50 GiB.</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1070,7 +1180,7 @@
                 <th>Family</th>
                 <th>Size</th>
                 <th>Context</th>
-                <th>PP t/s</th>
+                <th>PP / PG t/s</th>
                 <th>TG t/s</th>
                 <th>GPU GiB</th>
                 <th>RAM</th>
@@ -1294,6 +1404,22 @@
         ]
       },
       {
+        id: "mistral-small4-119b-q4",
+        name: "Mistral Small 4 119B UD Q4_K_M",
+        short: "Mistral Small 4 119B",
+        family: "Mistral",
+        color: "#f472b6",
+        sizeB: 119,
+        sizeLabel: "119B",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 440.8, tg: 41.22, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 32768, pg: 284.03, tg: 40.7, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 65536, pg: 189.89, tg: 41.16, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 110.57, tg: null, ram: 24.09, vram: 63.59, gtt: 12.36, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Peak sampled; generation-only TG not recorded" }
+        ]
+      },
+      {
         id: "qwen-next-q4",
         name: "Qwen Coder Next Q4_K_M Official",
         short: "Qwen Coder Next Q4",
@@ -1376,7 +1502,37 @@
         sizeLabel: "27B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 147.04, tg: 11.35, ram: null, vram: null, gtt: null, kv: "q4_0/q4_0", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-23", context: 32768, pp: 211.65, tg: 12.04, ram: 17.32, vram: 24.46, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwen36-27b-q3",
+        name: "Qwen3.6 27B Q3_K_M",
+        short: "Qwen3.6 27B Q3",
+        family: "Qwen 3.6 Dense",
+        color: "#f59e0b",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 153.68, tg: 13.41, ram: null, vram: null, gtt: null, kv: "q4_0/q4_0", runtime: "b8864 Vulkan", memSource: "Not recorded" }
+        ]
+      },
+      {
+        id: "qwen36-27b-q5",
+        name: "Qwen3.6 27B Q5_K_M",
+        short: "Qwen3.6 27B Q5",
+        family: "Qwen 3.6 Dense",
+        color: "#fb923c",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-10", context: 4096, pg: 163.38, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 16384, pg: 227.93, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 32768, pg: 223.72, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 148.23, tg: 10.66, ram: 12.17, vram: 25.42, gtt: 1.61, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
         ]
       },
       {
@@ -1389,7 +1545,22 @@
         sizeLabel: "27B",
         tier: "Large",
         runs: [
-          { date: "2026-04-30", context: 32768, pp: 226.89, tg: 6.27, ram: null, vram: 35.23, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
+          { date: "2026-05-12", context: 4096, pg: 101.48, tg: 5.93, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-30", context: 32768, pp: 226.89, tg: 6.27, ram: null, vram: 35.23, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-12", context: 131072, pg: 142.01, tg: 6.28, ram: 13.57, vram: 37.73, gtt: 3.0, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "carnice-v2-27b-q8",
+        name: "Carnice V2 27B Q8_0",
+        short: "Carnice V2 27B",
+        family: "Carnice Dense",
+        color: "#38bdf8",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 118.96, tg: 7.26, ram: 14.26, vram: 28.48, gtt: 1.41, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
         ]
       },
       {
@@ -1430,6 +1601,7 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 730.32, tg: 57.76, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-16", context: 32768, pp: 807.81, tg: 57.62, ram: 19.21, vram: 27.24, gtt: 0.64 },
           { date: "2026-04-17", context: 65536, pp: 645.58, tg: 57.59, ram: null, vram: 27.93, gtt: 0.7, memSource: "Mid-run VRAM sample" },
           { date: "2026-04-16", context: 131072, pp: 435.41, tg: 56.67, ram: 19.59, vram: 29.32, gtt: 0.83 }
@@ -1445,8 +1617,10 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 725.5, tg: 54.48, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-30", context: 32768, pp: 912.4, tg: 54.46, ram: null, vram: 36.24, gtt: null, kv: "f16/f16", runtime: "current Vulkan", memSource: "Peak GPU" },
-          { date: "2026-04-24", context: 128000, pp: 454.13, tg: 53.05, ram: null, vram: null, gtt: null, runtime: "Vulkan" }
+          { date: "2026-04-24", context: 128000, pp: 454.13, tg: 53.05, ram: null, vram: null, gtt: null, runtime: "Vulkan" },
+          { date: "2026-05-12", context: 131072, pg: 383.31, tg: 53.67, ram: 11.67, vram: 39.96, gtt: 1.12, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
         ]
       },
       {
@@ -1459,6 +1633,7 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 791.85, tg: 73.76, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-29", context: 32768, pp: 802.67, tg: 71.83, ram: null, vram: 21.78, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
         ]
       },
@@ -1472,6 +1647,7 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 722.54, tg: 61.98, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-29", context: 32768, pp: 764.56, tg: 60.94, ram: null, vram: 30.49, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
         ]
       },
@@ -1485,6 +1661,7 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 616.99, tg: 42.29, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-30", context: 32768, pp: 789.5, tg: 43.5, ram: null, vram: 42.48, gtt: null, kv: "f16/f16", memSource: "Peak GPU" },
           { date: "2026-04-29", context: 128000, pp: 420.95, tg: 41.25, ram: null, vram: 44.75, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
         ]
@@ -1503,7 +1680,8 @@
           { date: "2026-05-07", context: 16384, pp: 886.21, tg: 67.98, ram: 13.39, vram: 24.98, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
           { date: "2026-05-07", context: 32768, pp: 755.5, tg: 68.08, ram: 13.41, vram: 25.17, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
           { date: "2026-05-07", context: 100000, pp: 464.25, tg: 57.45, ram: 15.49, vram: 54.01, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU; high TG variance" },
-          { date: "2026-05-07", context: 128000, pp: 400.94, tg: 68.2, ram: 13.81, vram: 26.52, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
+          { date: "2026-05-07", context: 128000, pp: 400.94, tg: 68.2, ram: 13.81, vram: 26.52, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-10", context: 131072, pg: 421.6, tg: 68.02, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" }
         ]
       },
       {
@@ -1516,8 +1694,11 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
-          { date: "2026-05-06", context: 16384, pp: 1055.1, tg: 66.17, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
-          { date: "2026-05-06", context: 128000, pp: 454.16, tg: 66.16, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" }
+          { date: "2026-05-10", context: 4096, pg: 799.76, tg: 66.27, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-06", context: 16384, pp: 1055.1, pg: 940.68, tg: 66.17, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan / b8995", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 32768, pg: 839.7, tg: 66.27, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-06", context: 128000, pp: 454.16, tg: 66.16, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 131072, pg: 438.9, tg: 66.27, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" }
         ]
       },
       {
@@ -1530,8 +1711,10 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 804.45, tg: 66.87, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-05-06", context: 16384, pp: 1133.59, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
-          { date: "2026-05-06", context: 128000, pp: 387.94, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" }
+          { date: "2026-05-06", context: 128000, pp: 387.94, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 387.27, tg: 66.87, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" }
         ]
       },
       {
@@ -1561,6 +1744,7 @@
         sizeLabel: "35B A3B",
         tier: "Large",
         runs: [
+          { date: "2026-05-12", context: 4096, pg: 734.28, tg: 54.2, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
           { date: "2026-04-07", context: 16384, pp: 941.79, tg: 50.27, ram: 13.48, vram: 36.46, gtt: 0.7 },
           { date: "2026-04-07", context: 32768, pp: 828.12, tg: 53.08, ram: 13.47, vram: 36.77, gtt: 0.73 },
           { date: "2026-04-07", context: 65536, pp: 661.07, tg: 53.16, ram: 13.49, vram: 37.46, gtt: 0.8 },
@@ -1632,6 +1816,9 @@
     const fmtMem = (value) => isNumber(value) ? `${fmt(value, 2)} GiB` : "n/a";
     const ctx = (value) => Number(value).toLocaleString();
     const gpuMem = (run) => isNumber(run.vram) ? Number(run.vram) : null;
+    const promptMetric = (run) => isNumber(run.pg) ? Number(run.pg) : (isNumber(run.pp) ? Number(run.pp) : null);
+    const promptMetricLabel = (run) => isNumber(run.pg) ? "PG" : (isNumber(run.pp) ? "PP" : "Prompt");
+    const promptMetricName = (run) => isNumber(run.pg) ? "Combined PP+TG" : (isNumber(run.pp) ? "Prefill" : "Prompt");
     const totalMeasuredMem = (run) => [run.ram, run.vram, run.gtt].filter(isNumber).reduce((sum, value) => sum + Number(value), 0);
     const memoryBasis = (run) => run.memSource || "Peak VRAM";
 
@@ -1675,7 +1862,7 @@
           <td><span class="tag">${run.family}</span></td>
           <td>${run.sizeLabel}</td>
           <td class="mono">${ctx(run.context)}</td>
-          <td>${fmt(run.pp, 2)}</td>
+          <td>${fmt(promptMetric(run), 2)} <span class="tag">${promptMetricLabel(run)}</span></td>
           <td>${fmt(run.tg, 2)}</td>
           <td>${fmtMem(run.vram)}</td>
           <td>${fmtMem(run.ram)}</td>
@@ -1687,6 +1874,10 @@
 
     const contextSwitch = document.getElementById("contextSwitch");
     const frontierSelection = document.getElementById("frontierSelection");
+    const modelSearch = document.getElementById("modelSearch");
+    const modelSort = document.getElementById("modelSort");
+    const modelTier = document.getElementById("modelTier");
+    const modelBrowserBody = document.getElementById("modelBrowserBody");
     let frontierVisibleRuns = [];
     let selectedFrontierDataIndex = null;
     let frontierMaxParams = 1;
@@ -1703,6 +1894,51 @@
         '"': "&quot;",
         "'": "&#39;"
       })[char]);
+    }
+
+    function renderModelBrowser() {
+      if (!modelBrowserBody) return;
+      const term = (modelSearch?.value || "").trim().toLowerCase();
+      const tier = modelTier?.value || "all";
+      const sort = modelSort?.value || "decode";
+      const haystack = (run) => [
+        run.name,
+        run.short,
+        run.family,
+        run.sizeLabel,
+        run.kv,
+        run.runtime,
+        run.memSource
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      const rows = allRuns
+        .filter((run) => tier === "all" || run.tier === tier)
+        .filter((run) => !term || haystack(run).includes(term))
+        .sort((a, b) => {
+          if (sort === "prompt") return (promptMetric(b) ?? -Infinity) - (promptMetric(a) ?? -Infinity);
+          if (sort === "context") return b.context - a.context || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "gpu") return (gpuMem(a) ?? Infinity) - (gpuMem(b) ?? Infinity) || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "size") return a.sizeB - b.sizeB || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "name") return a.name.localeCompare(b.name) || a.context - b.context;
+          return (b.tg ?? -Infinity) - (a.tg ?? -Infinity) || (promptMetric(b) ?? -Infinity) - (promptMetric(a) ?? -Infinity);
+        });
+
+      modelBrowserBody.innerHTML = rows.map((run) => `
+        <tr>
+          <td><strong>${escapeHtml(run.short)}</strong><br><span class="mono">${escapeHtml(run.date)}</span></td>
+          <td><span class="tag">${escapeHtml(run.family)}</span></td>
+          <td>${escapeHtml(run.tier)}</td>
+          <td class="mono">${ctx(run.context)}</td>
+          <td>${fmtSpeed(promptMetric(run))} <span class="tag">${promptMetricLabel(run)}</span></td>
+          <td>${fmtSpeed(run.tg)}</td>
+          <td>${fmtMem(gpuMem(run))}</td>
+          <td>${escapeHtml(run.kv || "n/a")}${run.runtime ? `<br><span class="mono">${escapeHtml(run.runtime)}</span>` : ""}</td>
+        </tr>
+      `).join("") || `
+        <tr>
+          <td colspan="8">No matching benchmark rows.</td>
+        </tr>
+      `;
     }
 
     function renderFrontierSelection(run) {
@@ -1725,7 +1961,7 @@
         </div>
         <div class="chart-selection-grid">
           <div class="chart-selection-stat"><span>Decode</span><strong>${fmtSpeed(run.tg)}</strong></div>
-          <div class="chart-selection-stat"><span>Prefill</span><strong>${fmtSpeed(run.pp)}</strong></div>
+          <div class="chart-selection-stat"><span>${promptMetricName(run)}</span><strong>${fmtSpeed(promptMetric(run))}</strong></div>
           <div class="chart-selection-stat"><span>GPU</span><strong>${fmtMem(gpuMem(run))}</strong></div>
           <div class="chart-selection-stat"><span>Memory basis</span><strong>${escapeHtml(memoryBasis(run))}</strong></div>
         </div>
@@ -1754,23 +1990,24 @@
     function runsAtContext(context) {
       return allRuns
         .filter((run) => run.context === context)
-        .sort((a, b) => b.tg - a.tg || a.sizeB - b.sizeB);
+        .sort((a, b) => (b.tg ?? -Infinity) - (a.tg ?? -Infinity) || a.sizeB - b.sizeB);
     }
 
     function setKpis(runs) {
-      const compact = runs.filter((run) => run.sizeB <= 10).sort((a, b) => b.tg - a.tg)[0];
-      const larger = runs.filter((run) => run.sizeB >= 25 && run.sizeB < 60).sort((a, b) => b.tg - a.tg)[0];
-      const flagship = runs.filter((run) => run.sizeB >= 60).sort((a, b) => b.tg - a.tg)[0];
+      const rankedRuns = runs.filter((run) => isNumber(run.tg)).sort((a, b) => b.tg - a.tg);
+      const compact = rankedRuns.filter((run) => run.sizeB <= 10)[0];
+      const larger = rankedRuns.filter((run) => run.sizeB >= 25 && run.sizeB < 60)[0];
+      const flagship = rankedRuns.filter((run) => run.sizeB >= 60)[0];
       const efficient = runs
-        .filter((run) => isNumber(gpuMem(run)) && gpuMem(run) > 0)
+        .filter((run) => isNumber(run.tg) && isNumber(gpuMem(run)) && gpuMem(run) > 0)
         .sort((a, b) => (b.tg / gpuMem(b)) - (a.tg / gpuMem(a)))[0];
 
       document.getElementById("kpiRow").innerHTML = [
         {
           k: "Fastest at context",
-          v: fmt(runs[0].tg, 2),
+          v: rankedRuns[0] ? fmt(rankedRuns[0].tg, 2) : "n/a",
           s: "t/s",
-          d: `${runs[0].short} • ${runs[0].sizeLabel} • ${fmtMem(gpuMem(runs[0]))} GPU`
+          d: rankedRuns[0] ? `${rankedRuns[0].short} • ${rankedRuns[0].sizeLabel} • ${fmtMem(gpuMem(rankedRuns[0]))} GPU` : "No decode run"
         },
         {
           k: "Best compact lane",
@@ -1806,7 +2043,7 @@
 
       document.getElementById("tierBoard").innerHTML = tiers
         .map((tier) => {
-          const winner = runs.filter(tier.test).sort((a, b) => b.tg - a.tg)[0];
+          const winner = rankedRuns.filter(tier.test)[0];
           if (!winner) return "";
           return `
             <div class="mini-row">
@@ -1815,7 +2052,7 @@
                 <span class="tag">${winner.sizeLabel}</span>
               </div>
               <div class="mini-model">${winner.short}</div>
-              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(winner.pp)} PP • ${fmtMem(gpuMem(winner))} GPU</div>
+              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(promptMetric(winner))} ${promptMetricLabel(winner)} • ${fmtMem(gpuMem(winner))} GPU</div>
             </div>
           `;
         })
@@ -1878,11 +2115,11 @@
 
     function renderFrontier(runs) {
       if (!frontierChart) return;
-      const visible = runs.filter((run) => isNumber(gpuMem(run)) && isNumber(run.sizeB) && isNumber(run.tg) && isNumber(run.pp));
+      const visible = runs.filter((run) => isNumber(gpuMem(run)) && isNumber(run.sizeB) && isNumber(run.tg) && isNumber(promptMetric(run)));
       frontierVisibleRuns = visible;
       selectedFrontierDataIndex = null;
       renderFrontierSelection(null);
-      const ppValues = visible.map((run) => run.pp);
+      const promptValues = visible.map((run) => promptMetric(run));
       frontierMaxParams = Math.max(...visible.map((run) => run.sizeB), 1);
       frontierChart.setOption({
         backgroundColor: "transparent",
@@ -1891,11 +2128,11 @@
         visualMap: {
           type: "continuous",
           dimension: 2,
-          min: Math.min(...ppValues),
-          max: Math.max(...ppValues),
+          min: Math.min(...promptValues),
+          max: Math.max(...promptValues),
           right: 0,
           top: 22,
-          text: ["High prefill", "Low prefill"],
+          text: ["High prompt", "Low prompt"],
           textStyle,
           calculable: true,
           itemHeight: 210,
@@ -1911,13 +2148,13 @@
           textStyle,
           formatter: ({ data, value }) => {
             const row = data || {};
-            const values = Array.isArray(row.value) ? row.value : (Array.isArray(value) ? value : [row.gpu, row.decode, row.prefill, row.params]);
+            const values = Array.isArray(row.value) ? row.value : (Array.isArray(value) ? value : [row.gpu, row.decode, row.prompt, row.params]);
             return [
               `<strong>${row.name}</strong>`,
               `${row.family} • ${row.sizeLabel}`,
               `GPU memory: ${fmtMem(values[0])}`,
               `Decode: ${fmtSpeed(values[1])}`,
-              `Prefill: ${fmtSpeed(values[2])}`,
+              `Prompt metric: ${fmtSpeed(values[2])}`,
               `Parameters: ${fmt(values[3], 0)}B`,
               `System RAM: ${fmtMem(row.ram)}`,
               `GTT: ${fmtMem(row.gtt)}`,
@@ -1932,7 +2169,7 @@
           { type: "inside", yAxisIndex: 0, filterMode: "none" }
         ],
         dataset: {
-          dimensions: ["gpu", "decode", "prefill", "params", "totalMemory"],
+          dimensions: ["gpu", "decode", "prompt", "params", "totalMemory"],
           source: visible.map((run) => ({
             name: run.short,
             family: run.family,
@@ -1944,7 +2181,7 @@
             memSource: memoryBasis(run),
             gpu: gpuMem(run),
             decode: run.tg,
-            prefill: run.pp,
+            prompt: promptMetric(run),
             params: run.sizeB,
             totalMemory: totalMeasuredMem(run),
             itemStyle: {
@@ -1989,7 +2226,7 @@
         series: [{
           type: "scatter",
           cursor: "pointer",
-          encode: { x: "gpu", y: "decode", tooltip: ["gpu", "decode", "prefill", "params"] },
+          encode: { x: "gpu", y: "decode", tooltip: ["gpu", "decode", "prompt", "params"] },
           symbolSize: (value) => frontierSymbolSize(value[3]),
           labelLayout: { hideOverlap: true },
           markLine: {
@@ -2160,6 +2397,7 @@
     function renderThroughput(runs) {
       if (!throughputChart) return;
       const families = [...new Set(runs.map((run) => run.family))];
+      const visible = runs.filter((run) => isNumber(run.tg) && isNumber(promptMetric(run)));
       throughputChart.setOption({
         animationDuration: 450,
         legend: {
@@ -2174,7 +2412,7 @@
           textStyle,
           formatter: ({ data }) => [
             `<strong>${data.name}</strong>`,
-            `PP: ${fmtSpeed(data.value[0])}`,
+            `${data.promptLabel}: ${fmtSpeed(data.value[0])}`,
             `TG: ${fmtSpeed(data.value[1])}`,
             `Size: ${data.sizeLabel}`,
             `GPU: ${fmtMem(data.gpu)}`,
@@ -2183,7 +2421,7 @@
         },
         xAxis: {
           type: "value",
-          name: "PP tokens/s",
+          name: "Prompt / PG tokens/s",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
@@ -2200,12 +2438,13 @@
         series: families.map((family) => ({
           name: family,
           type: "scatter",
-          data: runs.filter((run) => run.family === family).map((run) => ({
+          data: visible.filter((run) => run.family === family).map((run) => ({
             name: run.short,
             sizeLabel: run.sizeLabel,
             gpu: gpuMem(run),
             memSource: memoryBasis(run),
-            value: [run.pp, run.tg],
+            promptLabel: promptMetricName(run),
+            value: [promptMetric(run), run.tg],
             symbolSize: Math.max(14, Math.sqrt(run.sizeB) * 6),
             itemStyle: {
               color: run.color,
@@ -2253,13 +2492,13 @@
         },
         yAxis: {
           type: "value",
-          name: "PP tokens/s",
+          name: "Prompt / PG tokens/s",
           nameTextStyle: textStyle,
           axisLabel: { color: "#8ea3bb" },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
         },
         series: trendSeries.map((series) => {
-          const runMap = new Map(series.runs.map((run) => [run.context, run.pp]));
+          const runMap = new Map(series.runs.map((run) => [run.context, promptMetric(run)]));
           return {
             name: series.short,
             type: "line",
@@ -2289,14 +2528,14 @@
           formatter: ({ data }) => [
             `<strong>${data.model}</strong>`,
             data.variant,
-            `Prefill: ${fmtSpeed(data.value[0])}`,
+            `Prompt / PP: ${fmtSpeed(data.value[0])}`,
             `Decode: ${fmtSpeed(data.value[1])}`,
             `GPU: ${fmtMem(data.gpu)}`
           ].join("<br>")
         },
         xAxis: {
           type: "value",
-          name: "Prefill tokens/s",
+          name: "Prompt / PP tokens/s",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
@@ -2347,8 +2586,14 @@
       renderEfficiency(runs);
       renderThroughput(runs);
       renderTrend();
+      renderModelBrowser();
       renderLab();
     }
+
+    [modelSearch, modelSort, modelTier].filter(Boolean).forEach((control) => {
+      control.addEventListener("input", renderModelBrowser);
+      control.addEventListener("change", renderModelBrowser);
+    });
 
     render();
 
