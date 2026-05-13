@@ -13,6 +13,7 @@ Current high-signal conclusions:
 - New durable llama benchmark location from the `llama-benchmark` Codex skill is `/home/crown/bench-results/llama/`. Use `/home/crown/.codex/skills/llama-benchmark/scripts/llama_benchmark.py query` and prefer the `llama_bench_strict` view for published claims. The current store contains `593` rows in `results.sqlite3` plus mirrored `results.jsonl` / `results.ledger.jsonl`. New rows use `pg` for combined prompt+generation and `tg` for standalone generation; do not label `pg` as pure prefill.
 - New 2026-05-12 DFlash/PFlash Strix run succeeded from `/srv/llm/runs/20260512-203510-qwen36-27b-dflash-pflash-strix-full` using Luce-Org's `lucebox-hub` (`https://github.com/Luce-Org/lucebox-hub`): Qwen3.6 27B Q4_K_M target plus `dflash-draft-3.6-q8_0.gguf`, 10 HumanEval-style prompts, `n_gen=128`, mode `fast`, mean acceptance `39.2%`, mean decode `30.33 t/s`, peak sampled VRAM `21.50 GiB`. This is +151.9% decode vs the current Qwen3.6 27B Q4 dashboard baseline (`12.04 -> 30.33 TG`), but it is not a clean llama-bench context row.
 - New 2026-05-12 PFlash 8192-token TG race from `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline`: PFlash long TG `16.95 tok/s` from harness, `17.40 tok/s` from C++ log, and `17.02 tok/s` delta TG; baseline long TG `12.04 tok/s` and delta TG `12.01 tok/s`. Decode speedup is about `1.42x`; end-to-end long request is about `495s` including compression vs baseline `739s`, about `1.49x`. PFlash passed the long-output validator; baseline failed the pinned JSONL validator by pretty-printing JSON objects instead of newline-delimited JSON objects.
+- PFlash audit rerun on `2026-05-12 23:54` saved full output for the 8192-token TG lane. Rerun speeds: `18.47 tok/s` at 2048 tokens, `17.37 tok/s` at 8192 tokens, and `17.032 tok/s` harness delta estimate. Audit summary: `/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/qwen36-27b-dflash-pflash-output-audit-summary.json`; full 8192 output: `/srv/llm/runs/20260512-235444-qwen36-27b-pflash-output-audit-rerun/qwen36-27b-dflash-pflash-artifacts-2/pflash-chat_decode_timeline_12k_words_128_jsonl-8192-de9d4a05c5d8.txt`. The master gauntlet page uses PFlash `102/128` as the record strip.
 - 2026-05-12 clean roster refresh added missing dashboard rows for Qwen3.6 27B Q3/Q4/Q5/Q8, Carnice V2 27B Q8, Qwen3.6/HauhauCS/Qwopus 35B 4k refreshes, and Mistral Small 4 119B. Highlights: Qwen3.6 27B Q5 at 131072 was `148.23 PG / 10.66 TG` with `25.42 GiB` peak VRAM; Qwen3.6 35B Q8 at 131072 was `383.31 PG / 53.67 TG` with `39.96 GiB` peak VRAM; Mistral Small 4 119B reached `440.80 PG / 41.22 TG` at 4k and completed 131072 prompt processing at `110.57 PG` with `63.59 GiB` peak VRAM, but no representative standalone 131072 TG was recorded.
 - 2026-05-10 b8995 q8-KV Dynamic Strix import supersedes the older main-dashboard Dynamic q8 prompt curve where `PG` is available: `799.76 PG / 66.27 TG` at 4k, `940.68 PG / 66.27 TG` at 16k, `839.70 PG / 66.27 TG` at 32k, and `438.90 PG / 66.27 TG` at 131072. Qwopus3.6 Q5 b8995 at 131072 was `421.60 PG / 68.02 TG`.
 - Qwen3.6 35B A3B MTP matrix in `/home/crown/machine-setup/mtpbench.md` was run on `2026-05-06` with the isolated llama.cpp PR #22673 `mtp-clean` Vulkan binary at `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin`. On long real chat workloads, MTP improved decode but slowed prompt ingestion: Q4_1 MTP draft-3 was `66.8 TG` vs `59.3 TG` same-file MTP-off at 65k (+12.6%) and `53.42 TG` vs `48.86 TG` at 128k (+9.3%); Q8 MTP was `56.28 TG` vs `47.04 TG` at 65k (+19.7%) and `44.97 TG` vs `40.16 TG` at 128k (+12.0%). These are server-side multi-turn weighted generation rows, not clean `llama-bench` context rows.
@@ -170,6 +171,25 @@ Interpretation:
 - This is the clearest decode-specific PFlash win so far on the local Strix Halo setup.
 - It should be presented as a fixed-workload race, not a clean llama-bench context row.
 - Baseline speed is measurable, but the baseline correctness failure must be disclosed next to the speed comparison.
+
+## 2026-05-13 128-record master gauntlet page
+
+Static page: `/dflash/master-race/`.
+
+Goal: represent the master TG sprint without flattening quality into a binary pass/fail. The page uses speed as horizontal race progress and a 128-tile audit strip per measured lane. Tiles are aggregate record outcomes, not per-token timestamps.
+
+Lane audit representation:
+
+| Lane | TG used | Tier | Record strip |
+| --- | ---: | --- | --- |
+| Gemma 4 E2B Q4_K_M | `84.49 tok/s` | `FORMAT` | `86/128` recovered, fast but below the 96-record floor |
+| Qwen3.6 35B-A3B Dynamic | `59.42 tok/s` | `PASS` | `117/128` strict JSONL records, fastest clean lane |
+| Gemma 4 26B-A4B Q4_K_M | `47.85 tok/s` | `FORMAT` | `87/128` parseable, `86/128` strict, sequence drift noted |
+| Qwen3.6 27B DFlash+PFlash | `17.37 tok/s` rerun long TG | `PASS` | `102/128` strict JSONL records, best clean 27B lane |
+| Qwen3.6 27B baseline | `12.04 tok/s` | `FORMAT` | Semantically close but strict JSONL `0/128` because it pretty-printed objects |
+| Mistral Small 4 119B Q4_K_M | `11.91 tok/s` | `CONTENT` | `102/128` parseable, restore token wrong |
+
+MTP load failures are deliberately omitted from the race lanes because the user requested no load-fail lane.
 
 ## 2026-05-06 Qwen3.6 35B MTP matrix and Strix Dynamic quant notes
 
