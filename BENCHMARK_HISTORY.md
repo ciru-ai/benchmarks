@@ -89,8 +89,8 @@ Imported rows:
 | HauhauCS Qwen3.6 35B Q4/Q6/Q8 | 4096 | `791.85 / 722.54 / 616.99 PG` | `73.76 / 61.98 / 42.29` | Clean roster refresh |
 | Qwopus MoE 35B Q8_0 | 4096 | `734.28 PG` | `54.20` | Clean roster refresh |
 | Qwopus3.6 35B Q5_K_M | 131072 | `421.60 PG` | `68.02` | b8995 q8 KV |
-| Qwen3.6 35B Dynamic Strix q8 KV | 4096 / 16384 / 32768 / 131072 | `799.76 / 940.68 / 839.70 / 438.90 PG` | `66.27` | b8995 q8 KV; dashboard keeps older pure-PP rows where they are the only pure-prefill source |
-| Qwen3.6 35B Dynamic Strix f16 KV | 4096 / 131072 | `804.45 / 387.27 PG` | `66.87` | b8864 f16 KV |
+| Qwen3.6 35B Dynamic Strix q8 KV | 4096 / 16384 / 32768 / 131072 | `799.76 / 940.68 / 839.70 / 438.90 PG` | `66.27` | b8995 q8 KV; peak sampled memory from copied ciru results: `20.74 GiB` RAM, `23.27 GiB` VRAM, `1.60 GiB` GTT |
+| Qwen3.6 35B Dynamic Strix f16 KV | 4096 / 131072 | `804.45 / 387.27 PG` | `66.87` | b8864 f16 KV; peak sampled memory from copied ciru results: `11.80 GiB` RAM, `24.66 GiB` VRAM, `1.11 GiB` GTT |
 | Mistral Small 4 119B UD Q4_K_M | 4096 / 32768 / 65536 / 131072 | `440.80 / 284.03 / 189.89 / 110.57 PG` | `41.22 / 40.70 / 41.16 / n/a` | 131072 completed prompt+generation with `gen=16`; no representative standalone 131072 TG row recorded. Peak: `63.59 GiB` VRAM, `24.09 GiB` RAM, `12.36 GiB` GTT |
 
 ## 2026-05-12 Qwen3.6 27B DFlash/PFlash Strix run
