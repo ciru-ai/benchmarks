@@ -651,6 +651,28 @@
       border: 1px solid rgba(255, 255, 255, 0.22);
     }
 
+    .contract-list {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .example-code {
+      margin: 10px 0 0;
+      padding: 10px;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.45);
+      color: #f4f7fb;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
     @media (max-width: 1160px) {
       .lane {
         grid-template-columns: 1fr;
@@ -768,28 +790,59 @@
 
     <section class="panel explainer">
       <h2>How To Read This</h2>
-      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The race speed is measured from the decode run. The colored gates are the output audit: as the scanner reaches each requested record position, that specific step is checked for whether the model produced the right record, in the right line format, in the right order, with the right task content.</p>
+      <p>The benchmark asks each model to keep generating until the 8192-token decode target while producing 128 ordered JSONL records for the same fixed task. The colored gates are not vibes or a generic pass/fail label: each gate is one requested step from 1 through 128, checked against the exact output contract below.</p>
       <div class="explainer-grid">
+        <article class="explain-card">
+          <h3>The Actual Instructions</h3>
+          <p>The model had to write exactly 128 newline-delimited JSON objects. No array, no Markdown, no preamble, no hidden-thought channel text, and no pretty-printed multi-line objects.</p>
+          <ul class="contract-list">
+            <li>Every object needed keys: marker, step, subsystem, observation, action, restore_token.</li>
+            <li>marker had to be DECODE_MARKER_TIMELINE_RIVER_41729 every time.</li>
+            <li>restore_token had to be RIVER-41729-CYAN every time.</li>
+            <li>step had to count 1, 2, 3 ... 128 in order.</li>
+            <li>subsystem had to cycle scheduler, billing, workspace_export, notification_digest, audit_log, restore_console.</li>
+          </ul>
+        </article>
         <article class="explain-card">
           <h3>Color Key</h3>
           <div class="color-list">
-            <div class="color-row"><i style="background: rgba(32, 209, 162, 0.92)"></i><span><strong>Green:</strong> perfect record. The line is valid JSONL, in the expected order, and contains the expected task content.</span></div>
-            <div class="color-row"><i style="background: rgba(246, 192, 70, 0.92)"></i><span><strong>Yellow:</strong> near miss. The model produced something recognizable, but the output contract was wrong, incomplete, or drifted from the requested line structure.</span></div>
-            <div class="color-row"><i style="background: rgba(255, 78, 110, 0.92)"></i><span><strong>Red:</strong> wrong answer. The record can be parsed well enough to inspect, but the task content is wrong.</span></div>
+            <div class="color-row"><i style="background: rgba(32, 209, 162, 0.92)"></i><span><strong>Green:</strong> perfect record. One complete JSON object on one line, right step, right subsystem, right marker, right restore_token.</span></div>
+            <div class="color-row"><i style="background: rgba(246, 192, 70, 0.92)"></i><span><strong>Yellow:</strong> near miss. The answer is recognizable, but the output contract is wrong, such as extra text before JSON or pretty-printed JSON instead of JSONL.</span></div>
+            <div class="color-row"><i style="background: rgba(255, 78, 110, 0.92)"></i><span><strong>Red:</strong> wrong record content. The JSON can be inspected, but a required task field or value is wrong or missing.</span></div>
             <div class="color-row"><i style="background: #000"></i><span><strong>Black:</strong> skipped or missing. That requested record position never appeared in usable form before the generation ended.</span></div>
           </div>
         </article>
         <article class="explain-card">
-          <h3>What Was Tested</h3>
-          <p>This is a long-decode discipline test, not just a tokens-per-second chart. The model has to stay in a strict record-by-record JSONL format while continuing through a long output. The audit checks whether the requested records are present, whether they remain sequential, whether each line is valid JSONL, and whether the task-specific content stays correct.</p>
+          <h3>Perfect Example</h3>
+          <p>A green gate looks like this: one full object, one line, correct step, correct subsystem for that step, and the required restore token as its own field.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Scheduler initialization sequence begins with standard configuration parameters loaded into memory for processing.","action":"Verify scheduler configuration parameters match the expected baseline values for the current deployment environment.","restore_token":"RIVER-41729-CYAN"}</pre>
         </article>
         <article class="explain-card">
-          <h3>Format Near-Miss Example</h3>
-          <p>Gemma 4 E2B produced perfect records for steps 1-86, then skipped the remaining requested steps. Gemma 4 26B had a yellow first step because extra channel text was attached before the JSON object, then steps 2-87 were perfect, then the rest were missing. The Qwen baseline is the broad format example: it produced JSON objects in a pretty-printed shape instead of one JSON object per line, so those records are yellow.</p>
+          <h3>Gemma 26B Yellow Example</h3>
+          <p>Gemma 26B got the content right, but its first output line had extra channel text before the JSON object. That makes step 1 yellow. Steps 2-87 are green, then steps 88-128 are black because they never appeared.</p>
+          <pre class="example-code">&lt;|channel&gt;thought
+&lt;channel|&gt;{"marker": "DECODE_MARKER_TIMELINE_RIVER_41729", "step": 1, "subsystem": "scheduler", "observation": "The scheduler service is currently experiencing high latency during the peak morning traffic period.", "action": "Increase the resource allocation for the scheduler to handle the incoming request load effectively.", "restore_token": "RIVER-41729-CYAN"}</pre>
         </article>
         <article class="explain-card">
-          <h3>Wrong-Content Example</h3>
-          <p>Mistral Small 4 produced parseable records for steps 1-102, so it was not simply blank or unreadable. The problem is that those records used the wrong task content, including the restore token expected by this benchmark. That is why steps 1-102 are red, then the remaining requested steps are black.</p>
+          <h3>Baseline Yellow Example</h3>
+          <p>The Qwen baseline produced JSON objects, but it pretty-printed them across several lines. The instruction was newline-delimited JSON, meaning each record must be one complete object on one line. So the baseline is yellow across the track rather than green.</p>
+          <pre class="example-code">{
+  "marker": "DECODE_MARKER_TIMELINE_RIVER_41729",
+  "step": 1,
+  "subsystem": "scheduler",
+  "observation": "Scheduler service initialized successfully with standard configuration parameters for the multi-tenant planning product environment.",
+  "action": "Verify scheduler connectivity and ensure all tenant queues are properly registered and active.",
+  "restore_token": "RIVER-41729-CYAN"
+}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Mistral Red Example</h3>
+          <p>Mistral produced parseable records for steps 1-102, but the required restore_token key was missing. It mentioned the token inside prose, but the benchmark required a separate JSON field. That is why those gates are red, not yellow.</p>
+          <pre class="example-code">{"marker":"DECODE_MARKER_TIMELINE_RIVER_41729","step":1,"subsystem":"scheduler","observation":"Frozen audit checkpoint indicates active restore token RIVER-41729-CYAN.","action":"Verify no obsolete tokens like RIVER-18820-GRAY or RIVER-39002-AMBER are used."}</pre>
+        </article>
+        <article class="explain-card">
+          <h3>Black Missing Example</h3>
+          <p>Black does not mean the existing lines were bad. It means the model did not reach that requested step before the 8192-token decode ended. Gemma 4 E2B reached step 86 and then stopped. PFlash reached step 102. Qwen Dynamic reached step 117.</p>
         </article>
       </div>
     </section>
