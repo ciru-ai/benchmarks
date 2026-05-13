@@ -563,6 +563,11 @@
       return timeline[timeline.length - 1];
     }
 
+    function finishTimeFor(key) {
+      const row = timeline.find((entry) => Number(entry[key]) >= TARGET_TOKENS);
+      return row ? row.time_s : timeline[timeline.length - 1].time_s;
+    }
+
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
@@ -668,11 +673,16 @@
       drawTrack(286, "Baseline", "#f6c046", bProgress, baselineTokens, row.baseline_phase, performance.now());
 
       const lead = Math.max(0, pflashTokens - baselineTokens);
+      const pflashFinishTime = finishTimeFor("pflash_generated");
+      const baselineFinishTime = finishTimeFor("baseline_generated");
+      const finishAdvantage = Math.max(0, baselineFinishTime - pflashFinishTime);
       byId("pflashReadout").textContent = `${fmt(pflashTokens)} / 8,192`;
       byId("baselineReadout").textContent = `${fmt(baselineTokens)} / 8,192`;
       byId("pflashSub").textContent = `${row.pflash_phase.replace("_", " ")} • ${pct(pProgress)} complete`;
       byId("baselineSub").textContent = `${row.baseline_phase.replace("_", " ")} • ${pct(bProgress)} complete`;
-      byId("advantage").textContent = lead > 0 ? `+${fmt(lead)} tokens` : "neck and neck";
+      byId("advantage").textContent = pProgress >= 1
+        ? `${seconds(finishAdvantage)} sooner`
+        : (lead > 0 ? `+${fmt(lead)} tokens` : "neck and neck");
 
       requestAnimationFrame(render);
     }
