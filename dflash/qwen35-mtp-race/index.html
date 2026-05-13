@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen3.6 35B MTP Quant Race</title>
+  <meta name="description" content="Compact TG64 race for Qwen3.6 35B MTP quants with Codex GPT-5.5 reference lane.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0d;
+      --panel: #121419;
+      --panel2: #181b21;
+      --text: #f5f7fb;
+      --muted: #a9b0bd;
+      --line: rgba(255,255,255,.12);
+      --green: #25d49b;
+      --yellow: #ffd45a;
+      --red: #ff5574;
+      --cyan: #46d8ff;
+      --orange: #ff9f43;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 18% -10%, rgba(70,216,255,.18), transparent 34%),
+        linear-gradient(135deg, #0a0b0f 0%, #15171d 56%, #090a0d 100%);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+    }
+
+    a { color: inherit; }
+    .app { width: min(1500px, calc(100% - 24px)); margin: 0 auto; padding: 18px 0 38px; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(12,14,18,.84);
+      box-shadow: 0 22px 70px rgba(0,0,0,.3);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.85rem, 4vw, 4.2rem); line-height: .96; letter-spacing: 0; }
+    .subtitle { max-width: 920px; margin: 12px 0 0; color: var(--muted); line-height: 1.45; }
+    .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip, button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 8px 11px;
+      font-weight: 800;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    button { cursor: pointer; font-family: inherit; }
+    button:hover, .chip:hover { border-color: rgba(70,216,255,.6); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .metric {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(18,20,25,.85);
+    }
+    .metric span { display: block; color: var(--muted); font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 5px; font-family: "IBM Plex Mono", monospace; font-size: 1.06rem; }
+
+    .race {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(10,11,14,.75);
+    }
+    .race-head, .lane {
+      display: grid;
+      grid-template-columns: minmax(190px, .7fr) minmax(390px, 2.2fr) minmax(240px, .8fr);
+      gap: 8px;
+      align-items: center;
+    }
+    .race-head {
+      padding: 9px 10px;
+      background: rgba(255,255,255,.055);
+      color: var(--muted);
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .lanes { display: grid; gap: 1px; background: rgba(255,255,255,.09); }
+    .lane {
+      min-height: 58px;
+      padding: 5px 8px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.035), transparent 45%),
+        rgba(16,18,23,.96);
+    }
+    .label { min-width: 0; display: flex; align-items: center; gap: 8px; }
+    .logo-mini {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 8px;
+      background: rgba(255,255,255,.94);
+    }
+    .logo-mini img { width: 25px; height: 25px; object-fit: contain; }
+    .name { min-width: 0; }
+    .name strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
+    .name span { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .68rem; }
+
+    .track-wrap { min-width: 0; }
+    .track {
+      position: relative;
+      height: 31px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 6px;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.1) 0 1px, transparent 1px 12.5%),
+        linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.035));
+    }
+    .fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, transparent), rgba(255,255,255,.02));
+      transition: width 80ms linear;
+    }
+    .runner {
+      position: absolute;
+      top: 3px;
+      left: 0%;
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.55);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 0 16px var(--accent);
+      transform: translateX(-12px);
+      transition: left 80ms linear;
+      z-index: 4;
+    }
+    .runner img { width: 18px; height: 18px; object-fit: contain; }
+    .finish {
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 8px;
+      background: repeating-linear-gradient(45deg, #fff 0 4px, #111 4px 8px);
+      opacity: .65;
+    }
+    .quality {
+      display: grid;
+      grid-template-columns: repeat(64, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 3px;
+      height: 8px;
+    }
+    .cell { border-radius: 1px; background: rgba(255,255,255,.1); }
+    .cell.clean.on { background: var(--green); }
+    .cell.near.on { background: var(--yellow); }
+    .cell.wrong.on { background: var(--red); }
+
+    .numbers {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+      align-items: center;
+      font-family: "IBM Plex Mono", monospace;
+      min-width: 0;
+    }
+    .num {
+      min-width: 0;
+      padding: 5px 6px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 5px;
+      background: rgba(0,0,0,.22);
+    }
+    .num b { display: block; font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .num span { display: block; color: var(--muted); font-size: .56rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .key { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 14px; height: 8px; border-radius: 2px; }
+    .swatch.clean { background: var(--green); }
+    .swatch.near { background: var(--yellow); }
+    .swatch.wrong { background: var(--red); }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .card {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(18,20,25,.86);
+      color: var(--muted);
+      line-height: 1.42;
+    }
+    .card h2 { margin: 0 0 7px; color: var(--text); font-size: 1rem; letter-spacing: 0; }
+    .mono { font-family: "IBM Plex Mono", monospace; color: #dce3ee; }
+
+    @media (max-width: 980px) {
+      .app { width: min(100% - 12px, 1500px); padding-top: 8px; }
+      .hero { grid-template-columns: 1fr; padding: 13px; }
+      .hero-actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .race-head { display: none; }
+      .lane {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        min-height: 84px;
+        padding: 6px;
+      }
+      .label { gap: 7px; }
+      .logo-mini { width: 27px; height: 27px; border-radius: 6px; }
+      .logo-mini img { width: 20px; height: 20px; }
+      .name strong { font-size: .82rem; }
+      .name span { font-size: .62rem; }
+      .numbers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .num { padding: 4px 5px; }
+      .num b { font-size: .74rem; }
+      .notes { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      h1 { font-size: 1.75rem; }
+      .subtitle { font-size: .9rem; }
+      .metrics { grid-template-columns: 1fr; }
+      .track { height: 29px; }
+      .quality { height: 7px; }
+      .num span { font-size: .5rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Qwen3.6 35B MTP quant race</p>
+        <h1>Unsloth MTP TG64 Sprint</h1>
+        <p class="subtitle">Eight Qwen3.6 35B MTP quants race the same 64-record decode-quality task, with Codex GPT-5.5 Low included as a reference lane. The track shows measured completion progress; the thin strip below each lane shows how much of the 64-record contract was clean versus near-miss.</p>
+      </div>
+      <div class="hero-actions">
+        <button id="restart">Restart</button>
+        <a class="chip" href="../master-race/">TG64 master race</a>
+        <a class="chip" href="../../">Dashboard</a>
+      </div>
+    </section>
+
+    <section class="metrics" id="metrics"></section>
+
+    <section class="race">
+      <div class="race-head">
+        <div>Lane</div>
+        <div>Measured race progress</div>
+        <div>Speed / prefill / acceptance</div>
+      </div>
+      <div class="lanes" id="lanes"></div>
+    </section>
+
+    <div class="legend">
+      <span class="key"><span class="swatch clean"></span>Clean record</span>
+      <span class="key"><span class="swatch near"></span>Near miss, usually word-count contract</span>
+      <span class="key"><span class="swatch wrong"></span>Wrong content or missing required shape</span>
+    </div>
+
+    <section class="notes">
+      <article class="card">
+        <h2>What This Race Measures</h2>
+        <p>The Qwen lanes use the completed <span class="mono">race2</span> TG64 summaries from <span class="mono">20260513-qwen36-35b-mtp-unsloth-strix</span>. Each model received the same fixed decode task: emit 64 JSONL records with the required marker, ordered step, subsystem, observation, action, and restore token.</p>
+      </article>
+      <article class="card">
+        <h2>How To Read It</h2>
+        <p>The main race is speed. The 64-cell strip is quality. Most Qwen misses here are not catastrophic: the records are generally parseable and semantically close, but the observation/action word-count contract is often missed. Q3 is the cleanest Qwen lane by this audit.</p>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const LANES = [
+      { id: "iq1", name: "Qwen 3.6 35B IQ1_M MTP", file: "UD-IQ1_M", logo: "../master-race/assets/qwen.png", accent: "#35e0b0", seconds: 66.1909, tps: 104.885, prefill: 786.43, accept: 91.737, tokens: 4718, clean: 0, near: 64, wrong: 0 },
+      { id: "q2", name: "Qwen 3.6 35B Q2_K_XL MTP", file: "UD-Q2_K_XL", logo: "../master-race/assets/qwen.png", accent: "#53d8ff", seconds: 67.53177, tps: 93.71, prefill: 847.89, accept: 77.895, tokens: 4485, clean: 0, near: 64, wrong: 0 },
+      { id: "q3", name: "Qwen 3.6 35B Q3_K_XL MTP", file: "UD-Q3_K_XL", logo: "../master-race/assets/qwen.png", accent: "#a7f36f", seconds: 78.96914, tps: 85.04, prefill: 817.25, accept: 89.86, tokens: 4980, clean: 62, near: 2, wrong: 0 },
+      { id: "q4", name: "Qwen 3.6 35B Q4_K_XL MTP", file: "UD-Q4_K_XL", logo: "../master-race/assets/qwen.png", accent: "#ffd45a", seconds: 77.56608, tps: 73.512, prefill: 820.12, accept: 82.098, tokens: 4207, clean: 0, near: 64, wrong: 0 },
+      { id: "mxfp4", name: "Qwen 3.6 35B MXFP4_MOE MTP", file: "MXFP4_MOE", logo: "../master-race/assets/qwen.png", accent: "#ffb15b", seconds: 93.05295, tps: 78.796, prefill: 845.61, accept: 92.783, tokens: 5778, clean: 0, near: 64, wrong: 0 },
+      { id: "q5", name: "Qwen 3.6 35B Q5_K_XL MTP", file: "UD-Q5_K_XL", logo: "../master-race/assets/qwen.png", accent: "#ff8d5a", seconds: 86.93575, tps: 69.1, prefill: 794.14, accept: 79.846, tokens: 4556, clean: 0, near: 64, wrong: 0 },
+      { id: "q6", name: "Qwen 3.6 35B Q6_K_XL MTP", file: "UD-Q6_K_XL", logo: "../master-race/assets/qwen.png", accent: "#c994ff", seconds: 87.81737, tps: 70.653, prefill: 787.95, accept: 89.125, tokens: 4709, clean: 11, near: 53, wrong: 0 },
+      { id: "q8", name: "Qwen 3.6 35B Q8_K_XL MTP", file: "UD-Q8_K_XL", logo: "../master-race/assets/qwen.png", accent: "#8db4ff", seconds: 101.01993, tps: 56.971, prefill: 798.37, accept: 79.512, tokens: 4565, clean: 1, near: 63, wrong: 0 },
+      { id: "codex", name: "Codex GPT-5.5 Low", file: "reference", logo: "../master-race/assets/openai.svg", accent: "#ffffff", seconds: 82.562753, tps: 51.597, prefill: null, accept: null, tokens: 4260, clean: 2, near: 62, wrong: 0 }
+    ];
+
+    const maxSeconds = Math.max(...LANES.map((lane) => lane.seconds));
+    const fmt = (n, d = 1) => n == null ? "n/a" : Number(n).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+    const time = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+    let start = performance.now();
+
+    function qualityCells(lane) {
+      const cells = [];
+      for (let i = 0; i < lane.clean; i++) cells.push("clean");
+      for (let i = 0; i < lane.near; i++) cells.push("near");
+      for (let i = 0; i < lane.wrong; i++) cells.push("wrong");
+      while (cells.length < 64) cells.push("near");
+      return cells.slice(0, 64).map((kind, i) => `<span class="cell ${kind}" data-index="${i}"></span>`).join("");
+    }
+
+    function renderLane(lane) {
+      return `
+        <article class="lane" data-lane="${lane.id}" style="--accent:${lane.accent}">
+          <div class="label">
+            <div class="logo-mini"><img src="${lane.logo}" alt=""></div>
+            <div class="name"><strong>${lane.name}</strong><span>${lane.file} / ${fmt(lane.tokens, 0)} output tokens</span></div>
+          </div>
+          <div class="track-wrap">
+            <div class="track">
+              <div class="fill"></div>
+              <div class="runner"><img src="${lane.logo}" alt=""></div>
+              <div class="finish"></div>
+            </div>
+            <div class="quality">${qualityCells(lane)}</div>
+          </div>
+          <div class="numbers">
+            <div class="num"><b>${fmt(lane.tps, 1)}</b><span>tok/s</span></div>
+            <div class="num"><b>${lane.prefill == null ? "n/a" : fmt(lane.prefill, 0)}</b><span>prefill</span></div>
+            <div class="num"><b>${lane.accept == null ? "n/a" : fmt(lane.accept, 1) + "%"}</b><span>MTP accept</span></div>
+          </div>
+        </article>`;
+    }
+
+    function renderMetrics() {
+      const fastest = [...LANES].sort((a, b) => b.tps - a.tps)[0];
+      const cleanest = [...LANES].sort((a, b) => b.clean - a.clean)[0];
+      const bestPrefill = [...LANES].filter((lane) => lane.prefill != null).sort((a, b) => b.prefill - a.prefill)[0];
+      const bestAccept = [...LANES].filter((lane) => lane.accept != null).sort((a, b) => b.accept - a.accept)[0];
+      document.getElementById("metrics").innerHTML = [
+        ["Fastest decode", `${fastest.name.replace("Qwen 3.6 35B ", "")} ${fmt(fastest.tps, 1)} tok/s`],
+        ["Cleanest Qwen", `${cleanest.name.replace("Qwen 3.6 35B ", "")} ${cleanest.clean}/64 clean`],
+        ["Best prefill", `${bestPrefill.file} ${fmt(bestPrefill.prefill, 0)} tok/s`],
+        ["Best MTP accept", `${bestAccept.file} ${fmt(bestAccept.accept, 1)}%`],
+        ["Race field", `${LANES.length} lanes / ${time(maxSeconds)}`]
+      ].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
+    }
+
+    function update() {
+      const elapsed = Math.min((performance.now() - start) / 1000, maxSeconds);
+      for (const lane of LANES) {
+        const node = document.querySelector(`[data-lane="${lane.id}"]`);
+        const progress = Math.min(1, elapsed / lane.seconds);
+        node.querySelector(".fill").style.width = `${progress * 100}%`;
+        node.querySelector(".runner").style.left = `${progress * 100}%`;
+        const shown = Math.floor(progress * 64);
+        node.querySelectorAll(".cell").forEach((cell, i) => cell.classList.toggle("on", i < shown));
+      }
+      if (elapsed < maxSeconds) requestAnimationFrame(update);
+    }
+
+    document.getElementById("lanes").innerHTML = LANES.map(renderLane).join("");
+    renderMetrics();
+    requestAnimationFrame(update);
+    document.getElementById("restart").addEventListener("click", () => {
+      start = performance.now();
+      requestAnimationFrame(update);
+    });
+  </script>
+</body>
+</html>
