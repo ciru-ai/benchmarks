@@ -275,6 +275,57 @@
       font-family: "IBM Plex Mono", monospace;
     }
 
+    .jump-nav {
+      position: sticky;
+      top: 8px;
+      z-index: 12;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 0 0 16px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(9, 9, 10, 0.82);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(16px);
+    }
+
+    .jump-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      transition: 140ms ease;
+    }
+
+    .jump-nav a:hover,
+    .jump-nav a:focus-visible {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.6);
+      background: rgba(237, 28, 36, 0.18);
+      transform: translateY(-1px);
+    }
+
+    #kpiRow,
+    #frontier,
+    #throughput,
+    #model-browser,
+    #mtp-results,
+    #notes,
+    #raw-matrix {
+      scroll-margin-top: 74px;
+    }
+
     .control-panel {
       min-width: 0;
       margin: 0 0 14px;
@@ -802,6 +853,18 @@
         min-width: 0;
       }
 
+      .jump-nav {
+        top: 6px;
+        gap: 6px;
+        padding: 8px;
+      }
+
+      .jump-nav a {
+        min-height: 32px;
+        padding: 8px 9px;
+        font-size: 0.78rem;
+      }
+
       .browser-controls {
         grid-template-columns: 1fr;
       }
@@ -856,7 +919,7 @@
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
+    <header class="topbar" id="top">
       <div class="brand">
         <div class="brand-copy">
           <p class="eyebrow">Crown Citadel Performance Lab</p>
@@ -888,9 +951,20 @@
       </div>
     </header>
 
+    <nav class="jump-nav" aria-label="Page sections">
+      <a href="#top">Top</a>
+      <a href="#kpiRow">Summary</a>
+      <a href="#frontier">Frontier</a>
+      <a href="#throughput">Prompt / Decode</a>
+      <a href="#model-browser">Models</a>
+      <a href="#mtp-results">Speculative</a>
+      <a href="#notes">Notes</a>
+      <a href="#raw-matrix">Raw Matrix</a>
+    </nav>
+
     <section id="kpiRow" class="kpi-row"></section>
 
-    <section class="dashboard">
+    <section class="dashboard" id="frontier">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -929,7 +1003,7 @@
       </aside>
     </section>
 
-    <section class="double">
+    <section class="double" id="throughput">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -951,7 +1025,7 @@
       </article>
     </section>
 
-    <section class="single">
+    <section class="single" id="model-browser">
       <article class="panel">
         <div class="panel-head">
           <div>
@@ -1115,7 +1189,7 @@
       </article>
     </section>
 
-    <details class="fold">
+    <details class="fold" id="notes">
       <summary>
         <div>
           Setup and caveats
@@ -1162,7 +1236,7 @@
       </div>
     </details>
 
-    <details class="fold">
+    <details class="fold" id="raw-matrix">
       <summary>
         <div>
           Raw result matrix
