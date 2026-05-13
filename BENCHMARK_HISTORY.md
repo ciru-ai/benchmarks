@@ -12,6 +12,7 @@ Current high-signal conclusions:
 
 - New durable llama benchmark location from the `llama-benchmark` Codex skill is `/home/crown/bench-results/llama/`. Use `/home/crown/.codex/skills/llama-benchmark/scripts/llama_benchmark.py query` and prefer the `llama_bench_strict` view for published claims. The current store contains `593` rows in `results.sqlite3` plus mirrored `results.jsonl` / `results.ledger.jsonl`. New rows use `pg` for combined prompt+generation and `tg` for standalone generation; do not label `pg` as pure prefill.
 - New 2026-05-12 DFlash/PFlash Strix run succeeded from `/srv/llm/runs/20260512-203510-qwen36-27b-dflash-pflash-strix-full` using Luce-Org's `lucebox-hub` (`https://github.com/Luce-Org/lucebox-hub`): Qwen3.6 27B Q4_K_M target plus `dflash-draft-3.6-q8_0.gguf`, 10 HumanEval-style prompts, `n_gen=128`, mode `fast`, mean acceptance `39.2%`, mean decode `30.33 t/s`, peak sampled VRAM `21.50 GiB`. This is +151.9% decode vs the current Qwen3.6 27B Q4 dashboard baseline (`12.04 -> 30.33 TG`), but it is not a clean llama-bench context row.
+- New 2026-05-12 PFlash 8192-token TG race from `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline`: PFlash long TG `16.95 tok/s` from harness, `17.40 tok/s` from C++ log, and `17.02 tok/s` delta TG; baseline long TG `12.04 tok/s` and delta TG `12.01 tok/s`. Decode speedup is about `1.42x`; end-to-end long request is about `495s` including compression vs baseline `739s`, about `1.49x`. PFlash passed the long-output validator; baseline failed the pinned JSONL validator by pretty-printing JSON objects instead of newline-delimited JSON objects.
 - 2026-05-12 clean roster refresh added missing dashboard rows for Qwen3.6 27B Q3/Q4/Q5/Q8, Carnice V2 27B Q8, Qwen3.6/HauhauCS/Qwopus 35B 4k refreshes, and Mistral Small 4 119B. Highlights: Qwen3.6 27B Q5 at 131072 was `148.23 PG / 10.66 TG` with `25.42 GiB` peak VRAM; Qwen3.6 35B Q8 at 131072 was `383.31 PG / 53.67 TG` with `39.96 GiB` peak VRAM; Mistral Small 4 119B reached `440.80 PG / 41.22 TG` at 4k and completed 131072 prompt processing at `110.57 PG` with `63.59 GiB` peak VRAM, but no representative standalone 131072 TG was recorded.
 - 2026-05-10 b8995 q8-KV Dynamic Strix import supersedes the older main-dashboard Dynamic q8 prompt curve where `PG` is available: `799.76 PG / 66.27 TG` at 4k, `940.68 PG / 66.27 TG` at 16k, `839.70 PG / 66.27 TG` at 32k, and `438.90 PG / 66.27 TG` at 131072. Qwopus3.6 Q5 b8995 at 131072 was `421.60 PG / 68.02 TG`.
 - Qwen3.6 35B A3B MTP matrix in `/home/crown/machine-setup/mtpbench.md` was run on `2026-05-06` with the isolated llama.cpp PR #22673 `mtp-clean` Vulkan binary at `/srv/llm/bench/qwen36-mtp-bench/src/llama.cpp-mtp/build-vulkan/bin`. On long real chat workloads, MTP improved decode but slowed prompt ingestion: Q4_1 MTP draft-3 was `66.8 TG` vs `59.3 TG` same-file MTP-off at 65k (+12.6%) and `53.42 TG` vs `48.86 TG` at 128k (+9.3%); Q8 MTP was `56.28 TG` vs `47.04 TG` at 65k (+19.7%) and `44.97 TG` vs `40.16 TG` at 128k (+12.0%). These are server-side multi-turn weighted generation rows, not clean `llama-bench` context rows.
@@ -140,6 +141,35 @@ Interpretation:
 - This is the first locally useful DFlash/PFlash result on Strix Halo: `30.33 t/s` mean decode is +151.9% vs the current Qwen3.6 27B Q4 clean-dashboard baseline (`12.04 -> 30.33 TG`).
 - It also reverses the April DFlash conclusion for short coding prompts: the older DFlash Q8-on-Q4 experiment was `3.90 t/s` vs `12.2 t/s` baseline with `2.18%` acceptance, while this run reached `30.33 t/s` with `39.2%` acceptance.
 - It should stay out of the clean context frontier because it is a DFlash-specific HumanEval-style server/test harness run, not a `llama-bench` `pg`/`tg` context row.
+
+## 2026-05-12 PFlash 8192-token TG race
+
+Source run directory: `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline`.
+
+Static race page: `/dflash/tg-race/`.
+
+Race graphic inputs:
+
+- `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/pflash-live-events.tsv`
+- `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/baseline-live-metrics-nostream-jsonl.tsv`
+- `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/race-timeline-long-synthetic.tsv`
+- `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/decode-tg-summary.json`
+
+Key numbers:
+
+| Metric | PFlash | Baseline | Note |
+| --- | ---: | ---: | --- |
+| Long TG | `16.95 tok/s` harness, `17.40 tok/s` C++ log | `12.04 tok/s` llama-server timing | Decode-focused 8192-token run |
+| Delta TG | `17.02 tok/s` | `12.01 tok/s` | Short/long delta estimate |
+| End-to-end long request | `~495s` | `~739s` | PFlash includes compression |
+| Speedup | `~1.42x` decode, `~1.49x` wall | baseline | Wall speedup includes compression |
+| Correctness | passed long-output validator | failed pinned JSONL validator | Baseline pretty-printed JSON objects instead of JSONL |
+
+Interpretation:
+
+- This is the clearest decode-specific PFlash win so far on the local Strix Halo setup.
+- It should be presented as a fixed-workload race, not a clean llama-bench context row.
+- Baseline speed is measurable, but the baseline correctness failure must be disclosed next to the speed comparison.
 
 ## 2026-05-06 Qwen3.6 35B MTP matrix and Strix Dynamic quant notes
 

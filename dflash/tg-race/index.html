@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-Flash 8192-Token TG Race</title>
+  <meta name="description" content="PFlash vs baseline 8192-token decode race on Qwen3.6 27B.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(14, 15, 18, 0.9);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --amd-2: #ff5a36;
+      --cyan: #39d0ff;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --rose: #ff4e6e;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1360px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+    }
+
+    a {
+      color: #9ee8ff;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(190px, 280px);
+      gap: 22px;
+      align-items: stretch;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      max-width: 940px;
+      font-size: clamp(2.25rem, 5.4vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 0.92;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 88ch;
+    }
+
+    .hero-badge {
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 210px;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .hero-badge img {
+      display: block;
+      width: min(100%, 220px);
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    .chips,
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .chip,
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 9px 13px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .metric,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border-left: 3px solid var(--accent, var(--cyan));
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent),
+        rgba(14, 15, 18, 0.88);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 1.18rem;
+      line-height: 1.08;
+    }
+
+    .race-panel {
+      margin-top: 16px;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .race-head {
+      display: flex;
+      gap: 14px;
+      align-items: start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .race-head h2,
+    .panel h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0;
+    }
+
+    .race-head p,
+    .panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .status {
+      min-width: min(100%, 300px);
+      padding: 12px;
+      border: 1px solid rgba(32, 209, 162, 0.34);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(32, 209, 162, 0.16), rgba(0, 0, 0, 0.18));
+    }
+
+    .status span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status strong {
+      display: block;
+      margin-top: 7px;
+      font-size: clamp(1.5rem, 4vw, 2.6rem);
+      line-height: 1;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 18% 20%, rgba(57, 208, 255, 0.18), transparent 22%),
+        radial-gradient(circle at 82% 80%, rgba(32, 209, 162, 0.16), transparent 24%),
+        rgba(0, 0, 0, 0.3);
+      min-height: 430px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 430px;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .hud-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .hud-card .label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hud-card .value {
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .hud-card .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .source-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .truth-table {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .truth-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .truth-row strong {
+      color: #ffffff;
+    }
+
+    .truth-row span {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hud {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      canvas {
+        height: 360px;
+      }
+
+      .canvas-wrap {
+        min-height: 360px;
+      }
+
+      .truth-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Decode-focused race</p>
+        <h1>P-Flash 8192-Token TG Race</h1>
+        <p class="subtitle">A long fixed decode workload on Qwen3.6 27B Q4_K_M. The animation follows wall-clock progress to 8192 generated tokens; TG numbers are shown as harness/C++ log measurements and delta estimates where labeled.</p>
+        <div class="chips">
+          <span class="chip">PFlash passed validator</span>
+          <span class="chip">Baseline timed but failed JSONL validator</span>
+          <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
+        </div>
+      </div>
+      <div class="hero-badge">
+        <img src="../../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+      </div>
+    </section>
+
+    <nav class="nav" aria-label="Page navigation">
+      <a href="../">DFlash overview</a>
+      <a href="../../">Main dashboard</a>
+      <a href="race-timeline-long-synthetic.tsv">Timeline TSV</a>
+      <a href="decode-tg-summary.json">Summary JSON</a>
+    </nav>
+
+    <section class="metric-grid" aria-label="Race headline metrics">
+      <div class="metric" style="--accent: var(--teal)"><span>PFlash long TG</span><strong>16.95 t/s</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>PFlash C++ log TG</span><strong>17.40 t/s</strong></div>
+      <div class="metric" style="--accent: var(--teal)"><span>PFlash delta TG</span><strong>17.02 t/s</strong></div>
+      <div class="metric" style="--accent: var(--amber)"><span>Baseline long TG</span><strong>12.04 t/s</strong></div>
+      <div class="metric" style="--accent: var(--amber)"><span>Baseline delta TG</span><strong>12.01 t/s</strong></div>
+      <div class="metric" style="--accent: var(--cyan)"><span>Decode speedup</span><strong>1.42x</strong></div>
+    </section>
+
+    <section class="panel race-panel">
+      <div class="race-head">
+        <div>
+          <h2>Live 8192-Token Race</h2>
+          <p>PFlash includes compression time, then starts decoding early. Baseline spends longer in prefill and finishes later. The moving counters replay the saved long-request timeline.</p>
+        </div>
+        <div class="status">
+          <span>PFlash finish advantage</span>
+          <strong id="advantage">n/a</strong>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="raceCanvas" width="1200" height="430" aria-label="Animated Baseline vs PFlash token race"></canvas>
+      </div>
+      <div class="hud">
+        <div class="hud-card" style="--accent: var(--teal)">
+          <div class="label">PFlash</div>
+          <div class="value" id="pflashReadout">0 / 8192</div>
+          <div class="sub" id="pflashSub">compress/prefill</div>
+        </div>
+        <div class="hud-card" style="--accent: var(--amber)">
+          <div class="label">Baseline</div>
+          <div class="value" id="baselineReadout">0 / 8192</div>
+          <div class="sub" id="baselineSub">prefill</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-grid">
+      <article class="panel">
+        <h2>Correctness</h2>
+        <p>The speed story is strongest when the output shape still passes. This run records that distinction explicitly.</p>
+        <div class="truth-table">
+          <div class="truth-row"><strong>PFlash</strong><span>Passed the long-output validator for the 8192-token run.</span></div>
+          <div class="truth-row"><strong>Baseline</strong><span>Failed the pinned JSONL validator because it pretty-printed JSON objects instead of newline-delimited JSON objects.</span></div>
+          <div class="truth-row"><strong>Scope</strong><span>Decode race page, not a clean llama-bench context row.</span></div>
+        </div>
+      </article>
+      <article class="panel">
+        <h2>Source Inputs</h2>
+        <p>Race graphics are built from the saved run bundle on <span class="mono">ciru</span>, copied into this static page for upload.</p>
+        <ul class="source-list">
+          <li><a href="pflash-live-events.tsv">pflash-live-events.tsv</a></li>
+          <li><a href="baseline-live-metrics-nostream-jsonl.tsv">baseline-live-metrics-nostream-jsonl.tsv</a></li>
+          <li><a href="race-timeline-long-synthetic.tsv">race-timeline-long-synthetic.tsv</a></li>
+          <li><a href="decode-tg-summary.json">decode-tg-summary.json</a></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const TARGET_TOKENS = 8192;
+    const FALLBACK_TIMELINE = [
+      { time_s: 0, pflash_generated: 0, baseline_generated: 0, pflash_phase: "compress_prefill", baseline_phase: "prefill" },
+      { time_s: 15, pflash_generated: 50, baseline_generated: 0, pflash_phase: "decode", baseline_phase: "prefill" },
+      { time_s: 60, pflash_generated: 812, baseline_generated: 20, pflash_phase: "decode", baseline_phase: "decode" },
+      { time_s: 120, pflash_generated: 1831, baseline_generated: 742, pflash_phase: "decode", baseline_phase: "decode" },
+      { time_s: 240, pflash_generated: 3869, baseline_generated: 2183, pflash_phase: "decode", baseline_phase: "decode" },
+      { time_s: 360, pflash_generated: 5912, baseline_generated: 3624, pflash_phase: "decode", baseline_phase: "decode" },
+      { time_s: 495, pflash_generated: 8192, baseline_generated: 5245, pflash_phase: "done", baseline_phase: "decode" },
+      { time_s: 620, pflash_generated: 8192, baseline_generated: 6746, pflash_phase: "done", baseline_phase: "decode" },
+      { time_s: 740, pflash_generated: 8192, baseline_generated: 8192, pflash_phase: "done", baseline_phase: "done" }
+    ];
+    const METRICS = {
+      pflashTotal: 495,
+      baselineTotal: 739,
+      pflashLongTg: 16.95,
+      pflashCppTg: 17.40,
+      pflashDeltaTg: 17.02,
+      baselineLongTg: 12.04,
+      baselineDeltaTg: 12.01,
+      speedup: 1.42
+    };
+
+    const canvas = document.getElementById("raceCanvas");
+    const ctx = canvas.getContext("2d");
+    const byId = (id) => document.getElementById(id);
+    const fmt = (value, digits = 0) => Number(value).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+    const seconds = (value) => `${fmt(value, 0)}s`;
+    const pct = (value) => `${Math.round(value * 100)}%`;
+
+    let timeline = FALLBACK_TIMELINE;
+    let start = performance.now();
+
+    function parseTimeline(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines.shift().split("\t");
+      return lines.map((line) => {
+        const cols = line.split("\t");
+        const row = Object.fromEntries(header.map((key, index) => [key, cols[index]]));
+        return {
+          time_s: Number(row.time_s),
+          pflash_generated: Number(row.pflash_generated),
+          baseline_generated: Number(row.baseline_generated),
+          pflash_phase: row.pflash_phase,
+          baseline_phase: row.baseline_phase
+        };
+      }).filter((row) => Number.isFinite(row.time_s));
+    }
+
+    function sample(t) {
+      if (t <= timeline[0].time_s) return timeline[0];
+      for (let i = 1; i < timeline.length; i += 1) {
+        const prev = timeline[i - 1];
+        const next = timeline[i];
+        if (t <= next.time_s) {
+          const span = Math.max(1e-6, next.time_s - prev.time_s);
+          const r = (t - prev.time_s) / span;
+          return {
+            time_s: t,
+            pflash_generated: prev.pflash_generated + (next.pflash_generated - prev.pflash_generated) * r,
+            baseline_generated: prev.baseline_generated + (next.baseline_generated - prev.baseline_generated) * r,
+            pflash_phase: r < 0.5 ? prev.pflash_phase : next.pflash_phase,
+            baseline_phase: r < 0.5 ? prev.baseline_phase : next.baseline_phase
+          };
+        }
+      }
+      return timeline[timeline.length - 1];
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(800, Math.floor(rect.width * dpr));
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function drawTrack(y, label, color, progress, tokens, phase, now) {
+      const w = canvas.clientWidth;
+      const left = 72;
+      const right = w - 52;
+      const width = right - left;
+      const x = left + width * progress;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      roundRect(left, y - 30, width, 60, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      for (let i = 0; i <= 16; i += 1) {
+        const gx = left + (width * i / 16);
+        ctx.strokeStyle = i % 4 === 0 ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.08)";
+        ctx.beginPath();
+        ctx.moveTo(gx, y - 30);
+        ctx.lineTo(gx, y + 30);
+        ctx.stroke();
+      }
+
+      const gradient = ctx.createLinearGradient(left, 0, x, 0);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, "rgba(255,255,255,0.14)");
+      ctx.fillStyle = gradient;
+      roundRect(left, y - 30, Math.max(0, x - left), 60, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      for (let i = 0; i < 7; i += 1) {
+        const px = left + ((now / 18 + i * 137) % width);
+        const py = y - 20 + ((i * 19) % 40);
+        ctx.globalAlpha = 0.24 + i * 0.045;
+        ctx.fillRect(px, py, 14, 2);
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = color;
+      roundRect(x - 21, y - 22, 42, 44, 7);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.stroke();
+      ctx.fillStyle = "#070707";
+      ctx.fillRect(x - 13, y - 6, 26, 4);
+      ctx.fillRect(x - 13, y + 6, 26, 4);
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "700 15px Space Grotesk, sans-serif";
+      ctx.fillText(label, left, y - 44);
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      ctx.fillText(`${fmt(tokens)} / 8,192 tokens`, Math.min(x + 28, right - 172), y - 38);
+      ctx.fillStyle = "rgba(255,255,255,0.62)";
+      ctx.fillText(phase.replace("_", " "), left, y + 51);
+
+      ctx.restore();
+    }
+
+    function roundRect(x, y, w, h, r) {
+      const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function render() {
+      const maxTime = timeline[timeline.length - 1].time_s;
+      const simSeconds = ((performance.now() - start) / 1000) * (maxTime / 14);
+      const t = simSeconds % (maxTime + 1.5);
+      const row = sample(Math.min(t, maxTime));
+      const pflashTokens = Math.min(TARGET_TOKENS, row.pflash_generated);
+      const baselineTokens = Math.min(TARGET_TOKENS, row.baseline_generated);
+      const pProgress = pflashTokens / TARGET_TOKENS;
+      const bProgress = baselineTokens / TARGET_TOKENS;
+
+      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      ctx.fillText(`wall clock replay: ${seconds(Math.min(t, maxTime))} / ${seconds(maxTime)}`, 24, 32);
+      ctx.fillText(`finish line: 8,192 tokens`, canvas.clientWidth - 222, 32);
+
+      drawTrack(144, "PFlash", "#20d1a2", pProgress, pflashTokens, row.pflash_phase, performance.now());
+      drawTrack(286, "Baseline", "#f6c046", bProgress, baselineTokens, row.baseline_phase, performance.now());
+
+      const lead = Math.max(0, pflashTokens - baselineTokens);
+      byId("pflashReadout").textContent = `${fmt(pflashTokens)} / 8,192`;
+      byId("baselineReadout").textContent = `${fmt(baselineTokens)} / 8,192`;
+      byId("pflashSub").textContent = `${row.pflash_phase.replace("_", " ")} • ${pct(pProgress)} complete`;
+      byId("baselineSub").textContent = `${row.baseline_phase.replace("_", " ")} • ${pct(bProgress)} complete`;
+      byId("advantage").textContent = lead > 0 ? `+${fmt(lead)} tokens` : "neck and neck";
+
+      requestAnimationFrame(render);
+    }
+
+    async function loadTimeline() {
+      try {
+        const response = await fetch("race-timeline-long-synthetic.tsv", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        timeline = parseTimeline(await response.text());
+      } catch (error) {
+        console.warn("Using embedded fallback timeline.", error);
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      render();
+    }
+
+    loadTimeline();
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+{
+  "baseline": {
+    "delta_metrics": {
+      "effective_prompt_tps_est": 296.114,
+      "prompt_side_seconds_est": 56.336,
+      "tg_delta_tps": 12.006
+    },
+    "end_to_end_pg_tps_long": 33.674,
+    "harness_log": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/decode-tg-baseline-nocache-nostream-jsonl.log",
+    "llama_server_timings": [
+      {
+        "eval_ms": 168881.2,
+        "eval_tokens": 2048,
+        "prompt_ms": 58000.72,
+        "prompt_tokens": 16682,
+        "prompt_tps": 287.62,
+        "tg_tps": 12.13,
+        "total_ms": 226881.92,
+        "total_tokens": 18730
+      },
+      {
+        "eval_ms": 680271.24,
+        "eval_tokens": 8192,
+        "prompt_ms": 58365.74,
+        "prompt_tokens": 16682,
+        "prompt_tps": 285.82,
+        "tg_tps": 12.04,
+        "total_ms": 738636.97,
+        "total_tokens": 24874
+      }
+    ],
+    "metrics_tsv": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/baseline-live-metrics-nostream-jsonl.tsv",
+    "runs": [
+      {
+        "content_excerpt": "<think>\n\n</think>\n\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":1,\"subsystem\":\"scheduler\",\"observation\":\"Scheduler initializes the multi-tenant planning product environment for the current operational cycle and checks system readiness.\",\"action\":\"Verify scheduler configuration parameters and ensure all tenant scheduling queues are properly initialized and ready for processing.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":2,\"subsystem\":\"billing\",\"observation\":\"Billing system processes pending invoices for active tenants within the multi-tenant planning product environment during this cycle.\",\"action\":\"Validate billing records against current subscription plans and ensure accurate charge calculations for all active accounts.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":3,\"subsystem\":\"worksp",
+        "generate_seconds": 226.918946,
+        "generated_tokens": 2048,
+        "generated_tps_raw": 9.025,
+        "n_gen": 2048,
+        "ok": false,
+        "ttfp_seconds": 226.918946,
+        "usage": {
+          "completion_tokens": 2048,
+          "prompt_tokens": 16682,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 18730
+        },
+        "validation_notes": [
+          "too_few_jsonl_records:24"
+        ]
+      },
+      {
+        "content_excerpt": "<think>\n\n</think>\n\n{\n  \"marker\": \"DECODE_MARKER_TIMELINE_RIVER_41729\",\n  \"step\": 1,\n  \"subsystem\": \"scheduler\",\n  \"observation\": \"Scheduler service initialized successfully with standard configuration parameters for the multi-tenant planning product environment.\",\n  \"action\": \"Verify scheduler connectivity and ensure all tenant queues are properly registered and active.\",\n  \"restore_token\": \"RIVER-41729-CYAN\"\n}\n{\n  \"marker\": \"DECODE_MARKER_TIMELINE_RIVER_41729\",\n  \"step\": 2,\n  \"subsystem\": \"billing\",\n  \"observation\": \"Billing module detected pending invoice generation tasks for active customer accounts within the system.\",\n  \"action\": \"Process outstanding billing records and update financial status for affected tenant accounts.\",\n  \"restore_token\": \"RIVER-41729-CYAN\"\n}\n{\n  \"marker\": \"DECODE_MARKER_TIMELINE_RIVER_41729\",\n  \"step\": 3,\n  \"subsystem\": \"workspace_export\",\n  \"observation\": \"Wo",
+        "generate_seconds": 738.666295,
+        "generated_tokens": 8192,
+        "generated_tps_raw": 11.09,
+        "n_gen": 8192,
+        "ok": false,
+        "ttfp_seconds": 738.666295,
+        "usage": {
+          "completion_tokens": 8192,
+          "prompt_tokens": 16682,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "total_tokens": 24874
+        },
+        "validation_notes": [
+          "too_few_jsonl_records:0"
+        ]
+      }
+    ],
+    "server_log": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/baseline-qwen36-27b-server-nocache-nostream-jsonl.log",
+    "source_tokens_target": 16682
+  },
+  "case_file": "/srv/llm/bench/lucebox-hub/pflash/cases/fixed_decode_tg_v1.jsonl",
+  "case_id": "chat_decode_timeline_12k_words_128_jsonl",
+  "case_sha256": "1f6509f567051016c7fa3e433e9689bdcdde8da997122f8b0a7eee28b11aae3a",
+  "local_bundle": "/srv/llm/models/local-bundles/Qwen3.6-27B-Q4_K_M-dflash-pflash",
+  "notes": [
+    "Baseline server was started with --no-cache-prompt --cache-ram 0 --ctx-checkpoints 0 --checkpoint-every-n-tokens -1.",
+    "Server log shows both requests started from n_tokens = 0 with memory_seq_rm [0, end).",
+    "Baseline speed is measurable, but long-output correctness failed the pinned JSONL validator because the model pretty-printed JSON objects instead of emitting newline-delimited JSON objects.",
+    "The earlier response_format=json_object baseline attempt was discarded because it suppresses JSONL and fails the test shape."
+  ],
+  "pflash": {
+    "compressed_tokens_drafter": 1012,
+    "compression_ratio": 16.304,
+    "delta_metrics": {
+      "effective_prompt_tps_est": 1169.165,
+      "prompt_side_seconds_est": 2.047,
+      "tg_delta_tps": 17.023
+    },
+    "end_to_end_pg_tps_long": 49.848,
+    "live_events_tsv": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/pflash-live-events.tsv",
+    "log": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/decode-tg-pflash.log",
+    "runs": [
+      {
+        "content_excerpt": "{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":1,\"subsystem\":\"scheduler\",\"observation\":\"Scheduler initialization sequence begins with standard configuration parameters loaded into memory for processing.\",\"action\":\"Verify scheduler configuration parameters match the expected baseline values for the current deployment environment.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":2,\"subsystem\":\"billing\",\"observation\":\"Billing module checks for outstanding invoices and pending payment transactions within the system database.\",\"action\":\"Review billing records to ensure all pending transactions are processed correctly without errors.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":3,\"subsystem\":\"workspace_export\",\"observation\":\"Workspace export function prepares data packages for external transfer based",
+        "generate_seconds": 122.356614,
+        "generated_tokens": 2048,
+        "generated_tps_raw": 16.738,
+        "n_gen": 2048,
+        "ok": false,
+        "validation_notes": [
+          "too_few_jsonl_records:25"
+        ]
+      },
+      {
+        "content_excerpt": "{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":1,\"subsystem\":\"scheduler\",\"observation\":\"Scheduler initialization sequence begins with standard configuration parameters loaded into memory for processing.\",\"action\":\"Verify scheduler configuration parameters match the expected baseline values for the current deployment environment.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":2,\"subsystem\":\"billing\",\"observation\":\"Billing module checks for outstanding invoices and pending payment transactions within the system database.\",\"action\":\"Review billing records to ensure all pending transactions are processed correctly without errors.\",\"restore_token\":\"RIVER-41729-CYAN\"}\n{\"marker\":\"DECODE_MARKER_TIMELINE_RIVER_41729\",\"step\":3,\"subsystem\":\"workspace_export\",\"observation\":\"Workspace export function prepares data packages for external transfer based",
+        "generate_seconds": 483.285112,
+        "generated_tokens": 8192,
+        "generated_tps_raw": 16.951,
+        "n_gen": 8192,
+        "ok": true,
+        "validation_notes": []
+      }
+    ],
+    "score_seconds": 12.066,
+    "source_tokens_drafter": 16500,
+    "target_prompt_tokens_after_compress": 1194
+  },
+  "race_graphic_inputs": {
+    "baseline_metrics_tsv": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/baseline-live-metrics-nostream-jsonl.tsv",
+    "pflash_live_events_tsv": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/pflash-live-events.tsv",
+    "synthetic_long_request_timeline_tsv": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/race-timeline-long-synthetic.tsv"
+  },
+  "run_dir": "/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline",
+  "target": "/srv/llm/models/Qwen3.6-27B-GGUF/Qwen3.6-27B-Q4_K_M.gguf"
+}

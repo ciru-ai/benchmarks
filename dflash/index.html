@@ -491,6 +491,38 @@
       font-weight: 700;
     }
 
+    .race-link-panel {
+      margin-top: 16px;
+      border: 1px solid rgba(57, 208, 255, 0.28);
+      background:
+        linear-gradient(120deg, rgba(57, 208, 255, 0.14), transparent 46%),
+        var(--panel);
+    }
+
+    .race-link-head {
+      display: flex;
+      gap: 14px;
+      align-items: start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .race-link-head a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(57, 208, 255, 0.42);
+      background: rgba(57, 208, 255, 0.1);
+      font-weight: 700;
+    }
+
+    .race-link-panel .metric-grid {
+      margin-top: 14px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
     @media (max-width: 900px) {
       .hero,
       .grid {
@@ -504,6 +536,10 @@
       .lane-grid,
       .metric-grid,
       .speed-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .race-link-panel .metric-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -531,6 +567,22 @@
       <a href="../">Dashboard</a>
       <a href="fixed-workloads-summary-nocache.json">Source JSON</a>
     </nav>
+
+    <section class="panel race-link-panel">
+      <div class="race-link-head">
+        <div>
+          <h2>P-Flash 8192-Token TG Race</h2>
+          <p>A separate decode-focused race using fixed 8192-token generation. PFlash passes the long-output validator; baseline is timed but fails the pinned JSONL validator by pretty-printing objects.</p>
+        </div>
+        <a href="tg-race/">Watch 8192-token race</a>
+      </div>
+      <div class="metric-grid">
+        <div class="metric" style="--accent: var(--teal)"><span>PFlash long TG</span><strong>16.95 t/s</strong></div>
+        <div class="metric" style="--accent: var(--teal)"><span>PFlash delta TG</span><strong>17.02 t/s</strong></div>
+        <div class="metric" style="--accent: var(--amber)"><span>Baseline long TG</span><strong>12.04 t/s</strong></div>
+        <div class="metric" style="--accent: var(--cyan)"><span>Decode speedup</span><strong>1.42x</strong></div>
+      </div>
+    </section>
 
     <section class="grid">
       <article class="panel">
