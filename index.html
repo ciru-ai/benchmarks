@@ -2024,14 +2024,16 @@
       }
     ];
 
+    const hasNumber = (value) => value != null && Number.isFinite(Number(value));
+    const isPlottableContextRun = (run) => hasNumber(run.vram) && hasNumber(run.tg) && (hasNumber(run.pg) || hasNumber(run.pp));
     const CONTEXTS = [...new Set(SERIES.flatMap((series) => series.runs.map((run) => run.context)))].sort((a, b) => a - b);
     const CONTEXT_COUNTS = CONTEXTS.map((context) => ({
       context,
-      count: SERIES.reduce((sum, series) => sum + (series.runs.some((run) => run.context === context) ? 1 : 0), 0)
+      count: SERIES.reduce((sum, series) => sum + (series.runs.some((run) => run.context === context && isPlottableContextRun(run)) ? 1 : 0), 0)
     }));
     let activeContext = CONTEXT_COUNTS.slice().sort((a, b) => b.count - a.count || b.context - a.context)[0].context;
 
-    const isNumber = (value) => value != null && Number.isFinite(Number(value));
+    const isNumber = hasNumber;
     const fmt = (value, digits = 2) => {
       if (!isNumber(value)) return "n/a";
       return Number(value).toLocaleString(undefined, {
