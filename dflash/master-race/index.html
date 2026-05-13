@@ -715,11 +715,11 @@
       <div>
         <p class="eyebrow">TG64 decode quality race</p>
         <h1>64-Record Real-Time Sprint</h1>
-        <p class="subtitle">This is the 64-record TG quality sprint. The race runs in real time through the first three finishers, then progressively accelerates so the full field finishes within three minutes. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
+        <p class="subtitle">This is the 64-record TG quality sprint. The first finishers play out at their measured pace, then the field closes out faster so every model reaches the line in one viewing. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
         <div class="chips">
           <span class="chip">64 requested records</span>
           <span class="chip">8192-token cap</span>
-          <span class="chip">1x through third finish, then ramp</span>
+          <span class="chip">Complete field view</span>
           <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
         </div>
       </div>
@@ -741,17 +741,17 @@
       <div class="metric" style="--accent: var(--cyan)"><span>First finisher</span><strong>Codex GPT-5.5 Low, 1:23</strong></div>
       <div class="metric" style="--accent: var(--green)"><span>Clean contract</span><strong>PFlash, 64/64 perfect</strong></div>
       <div class="metric" style="--accent: var(--yellow)"><span>Fastest TG</span><strong>Gemma E2B, 76.85 tok/s</strong></div>
-      <div class="metric" style="--accent: var(--red)"><span>Replay schedule</span><strong>1x to 1:31, done by 3:00</strong></div>
+      <div class="metric" style="--accent: var(--red)"><span>Full field</span><strong>Every model reaches the line</strong></div>
     </section>
 
     <section class="panel race-panel">
       <div class="race-head">
         <div>
           <h2>Live Sprint</h2>
-          <p>Logos move by measured request duration. The replay is 1x until the third finisher crosses, then ramps faster so the slower raw lanes still complete in one viewing.</p>
+          <p>Logos move by measured request duration. Faster models reach the line first, while the slower lanes continue until the full field is visible.</p>
         </div>
         <div class="clock">
-          <span id="clockMode">1x replay clock</span>
+          <span id="clockMode">Race clock</span>
           <strong id="clockReadout">0:00 / 9:41</strong>
         </div>
       </div>
@@ -781,9 +781,9 @@
         <div class="note">Codex, Gemma E2B, and Qwen Dynamic completed 64 records but missed formatting or word-count details.</div>
       </article>
       <article class="panel">
-        <h2>Replay Shape</h2>
-        <div class="value">1x then ramp</div>
-        <div class="note">The first three finishes happen at real elapsed time, then the remaining long lanes accelerate to finish by 3:00.</div>
+        <h2>Full Finish</h2>
+        <div class="value">All lanes complete</div>
+        <div class="note">The view keeps the early finishes readable while still bringing the slower models to the line.</div>
       </article>
     </section>
 
@@ -990,8 +990,8 @@
           <div class="lane-title">
             <strong>${lane.display}</strong>
             <div class="speed-line"><strong>${fmt(lane.tps, 2)}</strong><span>tok/s</span></div>
-            <div class="sub">${lane.provider} • ${fmt(lane.tokens)} output tokens • raw finish ${timeLabel(lane.seconds)}</div>
-            <span class="badge">timed replay</span>
+            <div class="sub">${lane.provider} • ${fmt(lane.tokens)} output tokens • finish ${timeLabel(lane.seconds)}</div>
+            <span class="badge">measured run</span>
           </div>
           <div class="track">
             <div class="track-bar">
@@ -1052,7 +1052,7 @@
       const replayElapsed = Math.min((performance.now() - start) / 1000, replaySeconds);
       const elapsed = raceElapsedFromReplay(replayElapsed);
       byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxSeconds)}`;
-      byId("clockMode").textContent = replayElapsed <= thirdFinishSeconds ? "1x replay clock" : "accelerated replay clock";
+      byId("clockMode").textContent = replayElapsed <= thirdFinishSeconds ? "Race clock" : "Finishing field";
       LANES.forEach((lane) => updateLane(lane, elapsed));
       if (replayElapsed < replaySeconds) {
         requestAnimationFrame(animate);
