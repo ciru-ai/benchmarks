@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PFlash vs Baseline Fixed Workloads</title>
+  <meta name="description" content="PFlash vs baseline fixed workload wall-clock progress on Qwen3.6 27B.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(14, 15, 18, 0.92);
+      --panel-2: rgba(20, 20, 23, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-strong: rgba(255, 255, 255, 0.24);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --amd-2: #ff5a36;
+      --cyan: #39d0ff;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1240px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+    }
+
+    a {
+      color: #9ee8ff;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 280px);
+      gap: 22px;
+      align-items: stretch;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .hero-copy,
+    .hero-badge {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      max-width: 900px;
+      font-size: clamp(2.2rem, 5vw, 5rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 0.94;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 82ch;
+    }
+
+    .hero-badge {
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 210px;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .hero-badge img {
+      width: min(100%, 220px);
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    .chips,
+    .case-tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .chip,
+    .case-tabs button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      gap: 8px;
+      padding: 9px 13px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .case-tabs button {
+      cursor: pointer;
+      background: rgba(12, 12, 14, 0.9);
+      transition: 140ms ease;
+    }
+
+    .case-tabs button.active,
+    .case-tabs button:hover,
+    .case-tabs button:focus-visible {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.72);
+      background: rgba(237, 28, 36, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .race {
+      margin-top: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .lane {
+      display: grid;
+      gap: 9px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .lane-head {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .lane-name {
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .lane-time {
+      color: #dff8ff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .track {
+      position: relative;
+      height: 58px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px) 0 0 / 8.333% 100%,
+        rgba(255, 255, 255, 0.045);
+      overflow: hidden;
+    }
+
+    .track::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+      transform: translateX(-100%);
+      animation: sweep 1.8s linear infinite;
+      opacity: 0.5;
+    }
+
+    .fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 20%),
+        linear-gradient(90deg, var(--lane-color), rgba(255, 255, 255, 0.06));
+      transition: width 80ms linear;
+    }
+
+    .finish-line {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 12px;
+      background:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.85) 0 5px, rgba(0, 0, 0, 0.8) 5px 10px);
+      opacity: 0.72;
+    }
+
+    .marker {
+      position: absolute;
+      top: 9px;
+      left: 0%;
+      width: 42px;
+      height: 38px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08));
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 22px var(--lane-color);
+      transform: translateX(-21px);
+      transition: left 80ms linear;
+      z-index: 2;
+    }
+
+    .marker::before {
+      content: "";
+      position: absolute;
+      inset: 9px 6px;
+      border-top: 3px solid var(--lane-color);
+      border-bottom: 3px solid var(--lane-color);
+    }
+
+    .marker::after {
+      content: "";
+      position: absolute;
+      right: 100%;
+      top: 10px;
+      width: 52px;
+      height: 16px;
+      background: linear-gradient(90deg, transparent, var(--lane-color));
+      filter: blur(6px);
+      opacity: 0.75;
+    }
+
+    .speed-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .speed-pill {
+      min-width: 0;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .speed-pill span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .speed-pill strong {
+      display: block;
+      margin-top: 5px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .lead-board {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(32, 209, 162, 0.38);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(32, 209, 162, 0.18), transparent),
+        rgba(0, 0, 0, 0.28);
+    }
+
+    .lead-board span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .lead-board strong {
+      display: block;
+      margin-top: 6px;
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      line-height: 1;
+    }
+
+    @keyframes sweep {
+      to {
+        transform: translateX(100%);
+      }
+    }
+
+    .lane-grid,
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent, var(--cyan));
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 1.2rem;
+      line-height: 1.08;
+    }
+
+    .source {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      margin-top: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(13, 24, 39, 0.98);
+      color: #dff8ff;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.32);
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-badge {
+        min-height: 140px;
+      }
+
+      .lane-grid,
+      .metric-grid,
+      .speed-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">PFlash fixed workload race</p>
+        <h1>Qwen3.6 27B wall-clock progress</h1>
+        <p class="subtitle">Baseline and PFlash run the same fixed prompts with prompt cache disabled for the no-cache baseline. The page leads with elapsed wall-clock time; TG is labeled as an estimate from short/long delta.</p>
+        <div class="chips">
+          <span class="chip">Mean wall speedup <strong id="meanWall">n/a</strong></span>
+          <span class="chip">Mean prompt estimate <strong id="meanPrompt">n/a</strong></span>
+          <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
+        </div>
+      </div>
+      <div class="hero-badge">
+        <img src="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+      </div>
+    </section>
+
+    <nav class="nav" aria-label="Page navigation">
+      <a href="../">Dashboard</a>
+      <a href="fixed-workloads-summary-nocache.json">Source JSON</a>
+    </nav>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>Wall-Clock Race</h2>
+        <p id="caseSummary">Loading fixed workload summary.</p>
+        <div class="case-tabs" id="caseTabs"></div>
+        <div class="lead-board">
+          <span>PFlash lead</span>
+          <strong id="leadReadout">n/a</strong>
+        </div>
+        <div class="race">
+          <div class="lane" style="--lane-color: var(--amber)">
+            <div class="lane-head">
+              <div class="lane-name">Baseline</div>
+              <div class="lane-time"><span id="baselineClock">0.0</span>s / <span id="baselineTotal">0.0</span>s</div>
+            </div>
+            <div class="speed-strip">
+              <div class="speed-pill"><span>Wall progress</span><strong id="baselineProgress">0%</strong></div>
+              <div class="speed-pill"><span>PG live</span><strong id="baselineLivePg">0.00 t/s</strong></div>
+              <div class="speed-pill"><span>TG est live</span><strong id="baselineLiveTg">0.00 t/s</strong></div>
+            </div>
+            <div class="track">
+              <div class="fill" id="baselineFill"></div>
+              <div class="marker" id="baselineMarker"></div>
+              <div class="finish-line"></div>
+            </div>
+            <div class="lane-grid">
+              <div class="metric" style="--accent: var(--amber)"><span>Wall time</span><strong id="baselineWall">n/a</strong></div>
+              <div class="metric" style="--accent: var(--amber)"><span>PG measured</span><strong id="baselinePg">n/a</strong></div>
+              <div class="metric" style="--accent: var(--amber)"><span>TG est from delta</span><strong id="baselineTg">n/a</strong></div>
+            </div>
+          </div>
+
+          <div class="lane" style="--lane-color: var(--teal)">
+            <div class="lane-head">
+              <div class="lane-name">PFlash</div>
+              <div class="lane-time"><span id="pflashClock">0.0</span>s / <span id="pflashTotal">0.0</span>s</div>
+            </div>
+            <div class="speed-strip">
+              <div class="speed-pill"><span>Wall progress</span><strong id="pflashProgress">0%</strong></div>
+              <div class="speed-pill"><span>PG live</span><strong id="pflashLivePg">0.00 t/s</strong></div>
+              <div class="speed-pill"><span>TG est live</span><strong id="pflashLiveTg">0.00 t/s</strong></div>
+            </div>
+            <div class="track">
+              <div class="fill" id="pflashFill"></div>
+              <div class="marker" id="pflashMarker"></div>
+              <div class="finish-line"></div>
+            </div>
+            <div class="lane-grid">
+              <div class="metric" style="--accent: var(--teal)"><span>Wall time</span><strong id="pflashWall">n/a</strong></div>
+              <div class="metric" style="--accent: var(--teal)"><span>PG measured</span><strong id="pflashPg">n/a</strong></div>
+              <div class="metric" style="--accent: var(--teal)"><span>TG est from delta</span><strong id="pflashTg">n/a</strong></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel">
+        <h2>Selected Case</h2>
+        <p id="caseName" class="mono">n/a</p>
+        <div class="metric-grid" style="margin-top: 16px">
+          <div class="metric" style="--accent: var(--cyan)"><span>Wall speedup</span><strong id="wallSpeedup">n/a</strong></div>
+          <div class="metric" style="--accent: var(--cyan)"><span>Prompt speedup est</span><strong id="promptSpeedup">n/a</strong></div>
+          <div class="metric" style="--accent: var(--cyan)"><span>Compression</span><strong id="compression">n/a</strong></div>
+        </div>
+        <div class="source">
+          Runtime source: <span class="mono">/srv/llm/runs/20260512-210603-qwen36-27b-fixed-workloads-pflash-vs-baseline/fixed-workloads-summary-nocache.json</span><br>
+          Local page data: <a href="fixed-workloads-summary-nocache.json">fixed-workloads-summary-nocache.json</a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel" style="margin-top: 16px">
+      <h2>Workload Rows</h2>
+      <p>PG is measured by the run. TG is estimated from short/long delta and should not be read as a clean standalone llama-bench TG row.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Baseline wall</th>
+              <th>PFlash wall</th>
+              <th>Wall speedup</th>
+              <th>Prompt speedup est</th>
+              <th>Baseline TG est</th>
+              <th>PFlash TG est</th>
+              <th>Compression</th>
+            </tr>
+          </thead>
+          <tbody id="rowsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const FALLBACK_DATA = {
+      "baseline_cached_discarded_results": "/srv/llm/runs/20260512-210603-qwen36-27b-fixed-workloads-pflash-vs-baseline/fixed-workloads-results.jsonl",
+      "baseline_nocache_results": "/srv/llm/runs/20260512-210603-qwen36-27b-fixed-workloads-pflash-vs-baseline/fixed-workloads-baseline-nocache.jsonl",
+      "cache_validation": "baseline_nocache server used --no-cache-prompt --cache-ram 0 --ctx-checkpoints 0 --checkpoint-every-n-tokens -1; server log reported prompt cache disabled and each no-cache request processed full prompt tokens",
+      "mean_prompt_tps_speedup_est": 2.58,
+      "mean_wall_speedup": 2.668,
+      "pflash_results": "/srv/llm/runs/20260512-210603-qwen36-27b-fixed-workloads-pflash-vs-baseline/fixed-workloads-results.jsonl",
+      "rows": [
+        {
+          "baseline_effective_prompt_tps_est": 234.69,
+          "baseline_long_generated_tokens": 37,
+          "baseline_long_ok": true,
+          "baseline_long_pg_tps": 228.53,
+          "baseline_long_total_seconds": 209.701179,
+          "baseline_source_tokens": 47886,
+          "baseline_tg_delta_tps": 6.535,
+          "case_id": "mirofish_surge_short_action_twitter_1849_35k_words",
+          "pflash_compressed_tokens": 2368,
+          "pflash_compression_ratio": 20.176,
+          "pflash_effective_prompt_tps_est": 631.764,
+          "pflash_long_generate_seconds": 11.790252,
+          "pflash_long_generated_tokens": 36,
+          "pflash_long_ok": true,
+          "pflash_long_pg_tps": 627.999,
+          "pflash_long_total_seconds": 76.134252,
+          "pflash_score_seconds": 64.344,
+          "pflash_source_tokens": 47776,
+          "pflash_tg_delta_tps": 70.482,
+          "prompt_tps_speedup_est": 2.692,
+          "wall_speedup_pflash_vs_baseline": 2.754
+        },
+        {
+          "baseline_effective_prompt_tps_est": 287.111,
+          "baseline_long_generated_tokens": 41,
+          "baseline_long_ok": true,
+          "baseline_long_pg_tps": 271.277,
+          "baseline_long_total_seconds": 61.192086,
+          "baseline_source_tokens": 16559,
+          "baseline_tg_delta_tps": 11.656,
+          "case_id": "chat_qa_restore_token_12k_words",
+          "pflash_compressed_tokens": 993,
+          "pflash_compression_ratio": 16.597,
+          "pflash_effective_prompt_tps_est": 708.441,
+          "pflash_long_generate_seconds": 11.735098,
+          "pflash_long_generated_tokens": 41,
+          "pflash_long_ok": true,
+          "pflash_long_pg_tps": 697.409,
+          "pflash_long_total_seconds": 23.690098,
+          "pflash_score_seconds": 11.955,
+          "pflash_source_tokens": 16481,
+          "pflash_tg_delta_tps": 96.065,
+          "prompt_tps_speedup_est": 2.467,
+          "wall_speedup_pflash_vs_baseline": 2.583
+        }
+      ],
+      "run_dir": "/srv/llm/runs/20260512-210603-qwen36-27b-fixed-workloads-pflash-vs-baseline"
+    };
+    const DATA_URL = "fixed-workloads-summary-nocache.json";
+    const fmt = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    }) : "n/a";
+    const seconds = (value) => `${fmt(value, 1)}s`;
+    const tps = (value) => `${fmt(value, 2)} t/s`;
+    const ratio = (value) => `${fmt(value, 2)}x`;
+    const pct = (value) => `${fmt(value * 100, 0)}%`;
+    const byId = (id) => document.getElementById(id);
+
+    let data = null;
+    let activeIndex = 0;
+    let startedAt = performance.now();
+    let rafId = null;
+
+    function caseLabel(caseId) {
+      return caseId
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+        .replace("Mirofish", "Mirofish")
+        .replace("Qa", "QA");
+    }
+
+    function setLane(prefix, elapsed, total) {
+      const progress = total > 0 ? Math.min(1, elapsed / total) : 0;
+      byId(`${prefix}Clock`).textContent = fmt(Math.min(elapsed, total), 1);
+      byId(`${prefix}Total`).textContent = fmt(total, 1);
+      byId(`${prefix}Fill`).style.width = pct(progress);
+      byId(`${prefix}Marker`).style.left = pct(progress);
+      byId(`${prefix}Progress`).textContent = pct(progress);
+    }
+
+    function liveValue(target, progress, wobble) {
+      const ramp = 0.22 + Math.min(1, progress * 1.35) * 0.78;
+      return target * ramp * (1 + wobble);
+    }
+
+    function activeRow() {
+      return data.rows[activeIndex];
+    }
+
+    function renderStatic() {
+      const row = activeRow();
+      byId("caseSummary").textContent = `${caseLabel(row.case_id)}: PFlash finishes in ${seconds(row.pflash_long_total_seconds)} vs baseline ${seconds(row.baseline_long_total_seconds)}.`;
+      byId("caseName").textContent = row.case_id;
+      byId("baselineWall").textContent = seconds(row.baseline_long_total_seconds);
+      byId("pflashWall").textContent = seconds(row.pflash_long_total_seconds);
+      byId("baselinePg").textContent = tps(row.baseline_long_pg_tps);
+      byId("pflashPg").textContent = tps(row.pflash_long_pg_tps);
+      byId("baselineTg").textContent = tps(row.baseline_tg_delta_tps);
+      byId("pflashTg").textContent = tps(row.pflash_tg_delta_tps);
+      byId("wallSpeedup").textContent = ratio(row.wall_speedup_pflash_vs_baseline);
+      byId("promptSpeedup").textContent = ratio(row.prompt_tps_speedup_est);
+      byId("compression").textContent = ratio(row.pflash_compression_ratio);
+      byId("leadReadout").textContent = `${seconds(row.baseline_long_total_seconds - row.pflash_long_total_seconds)} sooner at ${ratio(row.wall_speedup_pflash_vs_baseline)} wall speed`;
+      [...byId("caseTabs").querySelectorAll("button")].forEach((button, index) => {
+        button.classList.toggle("active", index === activeIndex);
+      });
+      startedAt = performance.now();
+    }
+
+    function renderRows() {
+      byId("rowsBody").innerHTML = data.rows.map((row) => `
+        <tr>
+          <td><strong>${caseLabel(row.case_id)}</strong><br><span class="mono">${row.case_id}</span></td>
+          <td>${seconds(row.baseline_long_total_seconds)}</td>
+          <td>${seconds(row.pflash_long_total_seconds)}</td>
+          <td>${ratio(row.wall_speedup_pflash_vs_baseline)}</td>
+          <td>${ratio(row.prompt_tps_speedup_est)}</td>
+          <td>${tps(row.baseline_tg_delta_tps)}</td>
+          <td>${tps(row.pflash_tg_delta_tps)}</td>
+          <td>${fmt(row.pflash_source_tokens, 0)} -> ${fmt(row.pflash_compressed_tokens, 0)} tokens<br>${ratio(row.pflash_compression_ratio)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function animate() {
+      const row = activeRow();
+      const maxTotal = Math.max(row.baseline_long_total_seconds, row.pflash_long_total_seconds);
+      const elapsed = ((performance.now() - startedAt) / 1000) * (maxTotal / 10);
+      const cycle = elapsed % (maxTotal + 1.4);
+      setLane("baseline", cycle, row.baseline_long_total_seconds);
+      setLane("pflash", cycle, row.pflash_long_total_seconds);
+      const baselineProgress = row.baseline_long_total_seconds > 0 ? Math.min(1, cycle / row.baseline_long_total_seconds) : 0;
+      const pflashProgress = row.pflash_long_total_seconds > 0 ? Math.min(1, cycle / row.pflash_long_total_seconds) : 0;
+      const wobble = Math.sin(performance.now() / 260) * 0.018;
+      byId("baselineLivePg").textContent = tps(liveValue(row.baseline_long_pg_tps, baselineProgress, wobble));
+      byId("baselineLiveTg").textContent = tps(liveValue(row.baseline_tg_delta_tps, baselineProgress, -wobble));
+      byId("pflashLivePg").textContent = tps(liveValue(row.pflash_long_pg_tps, pflashProgress, -wobble));
+      byId("pflashLiveTg").textContent = tps(liveValue(row.pflash_tg_delta_tps, pflashProgress, wobble));
+      rafId = requestAnimationFrame(animate);
+    }
+
+    function mountTabs() {
+      byId("caseTabs").innerHTML = data.rows.map((row, index) => `
+        <button type="button" data-index="${index}">${caseLabel(row.case_id)}</button>
+      `).join("");
+      byId("caseTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-index]");
+        if (!button) return;
+        activeIndex = Number(button.dataset.index);
+        renderStatic();
+      });
+    }
+
+    async function init() {
+      try {
+        const response = await fetch(DATA_URL, { cache: "no-store" });
+        data = await response.json();
+      } catch (error) {
+        data = FALLBACK_DATA;
+        console.warn("Using embedded fallback data because JSON fetch failed.", error);
+      }
+      try {
+        byId("meanWall").textContent = ratio(data.mean_wall_speedup);
+        byId("meanPrompt").textContent = ratio(data.mean_prompt_tps_speedup_est);
+        mountTabs();
+        renderRows();
+        renderStatic();
+        if (rafId) cancelAnimationFrame(rafId);
+        animate();
+      } catch (error) {
+        console.error(error);
+        byId("caseSummary").textContent = "Could not render fixed workload summary.";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
