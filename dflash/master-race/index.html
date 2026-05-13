@@ -317,6 +317,28 @@
       line-height: 1.35;
     }
 
+    .speed-line {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 9px;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .speed-line strong {
+      font-size: 1.55rem;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .speed-line span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .badge {
       display: inline-flex;
       align-items: center;
@@ -630,11 +652,11 @@
       <div>
         <p class="eyebrow">TG64 decode quality race</p>
         <h1>64-Record Real-Time Sprint</h1>
-        <p class="subtitle">This is the archived 128-record template rebuilt with the 64-record rerun. The race runs at measured wall-clock time, and each model logo is the progress token. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
+        <p class="subtitle">This is the archived 128-record template rebuilt with the 64-record rerun. The race runs in real time through the first three finishers, then progressively accelerates so the full field finishes within three minutes. Green is perfect output, yellow is a near miss, red is wrong, and black is skipped or missing output.</p>
         <div class="chips">
           <span class="chip">64 requested records</span>
           <span class="chip">8192-token cap</span>
-          <span class="chip">1x real-time replay</span>
+          <span class="chip">1x through third finish, then ramp</span>
           <span class="chip">Credit <a href="https://github.com/Luce-Org/lucebox-hub">Luce-Org/lucebox-hub</a></span>
         </div>
       </div>
@@ -653,20 +675,20 @@
     </nav>
 
     <section class="metric-grid">
-      <div class="metric" style="--accent: var(--cyan)"><span>Real-time leader</span><strong>Codex GPT-5.5 Low, 1:23</strong></div>
+      <div class="metric" style="--accent: var(--cyan)"><span>First finisher</span><strong>Codex GPT-5.5 Low, 1:23</strong></div>
       <div class="metric" style="--accent: var(--green)"><span>Clean contract</span><strong>PFlash, 64/64 perfect</strong></div>
       <div class="metric" style="--accent: var(--yellow)"><span>Fastest TG</span><strong>Gemma E2B, 76.85 tok/s</strong></div>
-      <div class="metric" style="--accent: var(--red)"><span>Longest lane</span><strong>Qwen baseline, 9:41</strong></div>
+      <div class="metric" style="--accent: var(--red)"><span>Replay schedule</span><strong>1x to 1:31, done by 3:00</strong></div>
     </section>
 
     <section class="panel race-panel">
       <div class="race-head">
         <div>
           <h2>Live Sprint</h2>
-          <p>Elapsed time is real wall-clock time from the saved run. Logos move by measured request duration; bars reveal each audited record position as that lane progresses.</p>
+          <p>Logos move by measured request duration. The replay is 1x until the third finisher crosses, then ramps faster so the slower raw lanes still complete in one viewing.</p>
         </div>
         <div class="clock">
-          <span>Real-time clock</span>
+          <span id="clockMode">1x replay clock</span>
           <strong id="clockReadout">0:00 / 9:41</strong>
         </div>
       </div>
@@ -696,9 +718,9 @@
         <div class="note">Codex, Gemma E2B, and Qwen Dynamic completed 64 records but missed formatting or word-count details.</div>
       </article>
       <article class="panel">
-        <h2>No Token Tail</h2>
-        <div class="value">0 black bars</div>
-        <div class="note">The 64-record version avoids the 128-run issue where several models hit the token cap before finishing.</div>
+        <h2>Replay Shape</h2>
+        <div class="value">1x then ramp</div>
+        <div class="note">The first three finishes happen at real elapsed time, then the remaining long lanes accelerate to finish by 3:00.</div>
       </article>
     </section>
 
@@ -739,7 +761,7 @@
         </article>
         <article class="explain-card">
           <h3>Baseline Yellow Example</h3>
-          <p>The Qwen baseline produced JSON objects, but each object was pretty-printed across several lines. The task required newline-delimited JSON: one complete object per line.</p>
+          <p>The Qwen 3.6 27B Q4_K_M baseline run produced JSON objects, but each object was pretty-printed across several lines. The task required newline-delimited JSON: one complete object per line.</p>
           <pre class="example-code">{
   "marker": "DECODE_MARKER_TIMELINE_RIVER_41729",
   "step": 1,
@@ -767,16 +789,40 @@
     const STATUS_MAP = { G: "clean", Y: "format", R: "content", B: "missing" };
     const LANES = [
       {
-        id: "codex-gpt-5-5-low",
-        display: "Codex GPT-5.5 Low",
-        provider: "OpenAI",
-        logo: "assets/openai.svg",
-        seconds: 82.562753,
-        tps: 51.597,
-        tokens: 4260,
-        color: "#8dd6ff",
+        id: "qwen36-dynamic",
+        display: "Qwen 3.6 35B-A3B Dynamic",
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 91.487316,
+        tps: 49.679,
+        tokens: 4545,
+        color: "#20d1a2",
         statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-        note: "64 strict JSONL records; word-count misses on most observation/action fields."
+        note: "64 strict JSONL records; hidden think preamble and word-count misses."
+      },
+      {
+        id: "qwen36-pflash",
+        display: "Qwen 3.6 27B Q4_K_M DFlash+PFlash",
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 306.598348,
+        tps: 16.269,
+        tokens: 4988,
+        color: "#39d0ff",
+        statusChars: "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        note: "64/64 perfect records under the strict TG64 contract."
+      },
+      {
+        id: "qwen36-baseline",
+        display: "Qwen 3.6 27B Q4_K_M",
+        provider: "Qwen",
+        logo: "assets/qwen.png",
+        seconds: 581.328824,
+        tps: 10.86,
+        tokens: 6313,
+        color: "#a78bfa",
+        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+        note: "64 loose objects; pretty-printed JSON instead of one object per line."
       },
       {
         id: "gemma4-e2b",
@@ -791,18 +837,6 @@
         note: "64 loose objects; pretty-printed/multi-line shape and a few word-count misses."
       },
       {
-        id: "qwen36-dynamic",
-        display: "Qwen3.6 35B-A3B Dynamic",
-        provider: "Qwen",
-        logo: "assets/qwen.png",
-        seconds: 91.487316,
-        tps: 49.679,
-        tokens: 4545,
-        color: "#20d1a2",
-        statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-        note: "64 strict JSONL records; hidden think preamble and word-count misses."
-      },
-      {
         id: "gemma4-26b",
         display: "Gemma 4 26B-A4B Q4_K_M",
         provider: "Gemma",
@@ -813,18 +847,6 @@
         color: "#f59e0b",
         statusChars: "YGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
         note: "Step 1 has channel text before JSON; steps 2-64 are perfect."
-      },
-      {
-        id: "qwen36-pflash",
-        display: "Qwen3.6 27B DFlash+PFlash",
-        provider: "Qwen",
-        logo: "assets/qwen.png",
-        seconds: 306.598348,
-        tps: 16.269,
-        tokens: 4988,
-        color: "#39d0ff",
-        statusChars: "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-        note: "64/64 perfect records under the strict TG64 contract."
       },
       {
         id: "mistral-119b",
@@ -839,21 +861,23 @@
         note: "64 parseable JSONL records, but all omit the required restore_token key."
       },
       {
-        id: "qwen36-baseline",
-        display: "Qwen3.6 27B Baseline Filtered",
-        provider: "Qwen",
-        logo: "assets/qwen.png",
-        seconds: 581.328824,
-        tps: 10.86,
-        tokens: 6313,
-        color: "#a78bfa",
+        id: "codex-gpt-5-5-low",
+        display: "Codex GPT-5.5 Low",
+        provider: "OpenAI",
+        logo: "assets/openai.svg",
+        seconds: 82.562753,
+        tps: 51.597,
+        tokens: 4260,
+        color: "#8dd6ff",
         statusChars: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-        note: "64 loose objects; pretty-printed JSON instead of one object per line."
+        note: "64 strict JSONL records; word-count misses on most observation/action fields."
       }
     ];
 
     const byId = (id) => document.getElementById(id);
     const maxSeconds = Math.max(...LANES.map((lane) => lane.seconds));
+    const thirdFinishSeconds = [...LANES].map((lane) => lane.seconds).sort((a, b) => a - b)[2];
+    const replaySeconds = 180;
     const start = performance.now();
     const fmt = (value, digits = 0) => Number(value).toLocaleString(undefined, {
       minimumFractionDigits: digits,
@@ -866,6 +890,14 @@
       const minutes = Math.floor(total / 60);
       const seconds = String(total % 60).padStart(2, "0");
       return `${minutes}:${seconds}`;
+    }
+
+    function raceElapsedFromReplay(replayElapsed) {
+      if (replayElapsed <= thirdFinishSeconds) return replayElapsed;
+      const availableReplay = Math.max(1, replaySeconds - thirdFinishSeconds);
+      const remainingRace = maxSeconds - thirdFinishSeconds;
+      const p = Math.min(1, (replayElapsed - thirdFinishSeconds) / availableReplay);
+      return thirdFinishSeconds + remainingRace * Math.pow(p, 1.85);
     }
 
     function statuses(lane) {
@@ -894,8 +926,9 @@
         <article class="lane" data-lane="${lane.id}" style="--lane-color:${lane.color}">
           <div class="lane-title">
             <strong>${lane.display}</strong>
-            <div class="sub">${lane.provider} • ${fmt(lane.tps, 2)} tok/s • ${fmt(lane.tokens)} output tokens</div>
-            <span class="badge">1x real-time</span>
+            <div class="speed-line"><strong>${fmt(lane.tps, 2)}</strong><span>tok/s</span></div>
+            <div class="sub">${lane.provider} • ${fmt(lane.tokens)} output tokens • raw finish ${timeLabel(lane.seconds)}</div>
+            <span class="badge">timed replay</span>
           </div>
           <div class="track">
             <div class="track-bar">
@@ -953,10 +986,12 @@
     }
 
     function animate() {
-      const elapsed = Math.min((performance.now() - start) / 1000, maxSeconds);
+      const replayElapsed = Math.min((performance.now() - start) / 1000, replaySeconds);
+      const elapsed = raceElapsedFromReplay(replayElapsed);
       byId("clockReadout").textContent = `${timeLabel(elapsed)} / ${timeLabel(maxSeconds)}`;
+      byId("clockMode").textContent = replayElapsed <= thirdFinishSeconds ? "1x replay clock" : "accelerated replay clock";
       LANES.forEach((lane) => updateLane(lane, elapsed));
-      if (elapsed < maxSeconds) {
+      if (replayElapsed < replaySeconds) {
         requestAnimationFrame(animate);
       }
     }
