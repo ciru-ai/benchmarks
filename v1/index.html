@@ -1,0 +1,3111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks</title>
+  <meta name="description" content="AMD Ryzen AI Max+ 395 128GB local LLM benchmark dashboard for llama.cpp Vulkan on Strix Halo.">
+  <meta name="theme-color" content="#0a0808">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks">
+  <meta property="og:description" content="Local LLM benchmark dashboard for Strix Halo using llama.cpp Vulkan.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../ccglogo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="AMD Ryzen AI Max+ 395 128GB Local LLM Benchmarks">
+  <meta name="twitter:description" content="Local LLM benchmark dashboard for Strix Halo using llama.cpp Vulkan.">
+  <meta name="twitter:image" content="../ccglogo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../ccglogo.png">
+  <link rel="shortcut icon" href="../ccglogo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="../benchv2/data/benchv2-data.js"></script>
+  <style>
+    :root {
+      --bg: #070707;
+      --bg-2: #121111;
+      --panel: rgba(14, 15, 18, 0.9);
+      --panel-2: rgba(20, 20, 23, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-strong: rgba(255, 255, 255, 0.24);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --amd-2: #ff5a36;
+      --cyan: #39d0ff;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --rose: #ff4e6e;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius-xl: 10px;
+      --radius-lg: 8px;
+      --radius-md: 8px;
+      --max: 1540px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 0 62%, rgba(237, 28, 36, 0.08) 62% 62.3%, transparent 62.3%),
+        linear-gradient(135deg, transparent 0 70%, rgba(255, 255, 255, 0.06) 70% 70.4%, transparent 70.4%);
+      opacity: 0.72;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 16px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .topbar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .title {
+      margin: 8px 0 0;
+      max-width: 920px;
+      font-size: clamp(2.15rem, 4vw, 4.8rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 0.94;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 78ch;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .hero-stat {
+      min-width: 112px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-left: 3px solid var(--amd);
+      border-radius: var(--radius-md);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .meta-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: start;
+      align-content: start;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand .meta-strip {
+      justify-content: flex-start;
+      margin-top: 14px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.36);
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: 700;
+      backdrop-filter: blur(14px);
+    }
+
+    .chip-link {
+      text-decoration: none;
+      transition: 140ms ease;
+    }
+
+    .chip-link:hover,
+    .chip-link:focus-visible {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.62);
+      background: rgba(237, 28, 36, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .badge-card {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 220px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.08), transparent 34%),
+        rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .badge-card::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+      border: 1px solid rgba(237, 28, 36, 0.34);
+      clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
+    }
+
+    .badge-card img {
+      width: min(100%, 240px);
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    .badge-caption {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #f2f3f1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .jump-nav {
+      position: sticky;
+      top: 8px;
+      z-index: 12;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 0 0 16px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(9, 9, 10, 0.82);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(16px);
+    }
+
+    .jump-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      transition: 140ms ease;
+    }
+
+    .jump-nav a:hover,
+    .jump-nav a:focus-visible {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.6);
+      background: rgba(237, 28, 36, 0.18);
+      transform: translateY(-1px);
+    }
+
+    #kpiRow,
+    #frontier,
+    #throughput,
+    #model-browser,
+    #mtp-results,
+    #notes,
+    #raw-matrix {
+      scroll-margin-top: 74px;
+    }
+
+    .control-panel {
+      min-width: 0;
+      margin: 0 0 14px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--line);
+    }
+
+    .control-panel .label {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .browser-controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(150px, 0.75fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .control-field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .control-field span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .control-field input,
+    .control-field select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(12, 12, 14, 0.9);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .control-field input:focus,
+    .control-field select:focus {
+      outline: none;
+      border-color: rgba(237, 28, 36, 0.55);
+      box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.14);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .segmented button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: rgba(12, 12, 14, 0.9);
+      color: var(--text);
+      border-radius: var(--radius-md);
+      padding: 10px 13px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: 140ms ease;
+    }
+
+    .segmented button:hover,
+    .segmented button:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(237, 28, 36, 0.55);
+    }
+
+    .segmented button.active {
+      background: linear-gradient(180deg, rgba(237, 28, 36, 0.32), rgba(237, 28, 36, 0.12));
+      border-color: rgba(255, 90, 54, 0.75);
+      color: #fff6f3;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .segmented button span {
+      color: var(--muted);
+      font-size: 0.78em;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      padding: 16px 18px;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.12), transparent 48%),
+        rgba(13, 13, 15, 0.92);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-top: 2px solid rgba(237, 28, 36, 0.52);
+    }
+
+    .kpi .k {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .kpi .v {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .kpi .d {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      position: relative;
+      padding: 18px;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.08), transparent 34%),
+        var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 25%),
+        linear-gradient(90deg, rgba(237, 28, 36, 0.34), transparent 26%);
+      height: 3px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .panel-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 58ch;
+    }
+
+    .chart {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .chart-lg {
+      height: 620px;
+    }
+
+    .chart-md {
+      height: 400px;
+    }
+
+    .chart-sm {
+      height: 290px;
+    }
+
+    .chart-selection {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .chart-selection[hidden] {
+      display: none;
+    }
+
+    .chart-selection-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .chart-selection-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .chart-selection-meta {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chart-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .chart-selection-stat {
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .chart-selection-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .chart-selection-stat strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.98rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .chart-selection-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .fallback {
+      display: grid;
+      place-items: center;
+      min-height: 260px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--line-strong);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.55;
+    }
+
+    .mini-board {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mini-row {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+
+    .mini-row:first-child {
+      border-top: 0;
+      padding-top: 2px;
+    }
+
+    .mini-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .mini-label {
+      color: var(--cyan);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .mini-model {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .mini-meta {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .double {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .single {
+      margin-bottom: 16px;
+    }
+
+    details.fold {
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background: rgba(13, 13, 15, 0.9);
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    details.fold summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      font-weight: 700;
+    }
+
+    details.fold summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .fold-body {
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .info {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--line);
+    }
+
+    .info h3 {
+      margin: 0 0 10px;
+      font-size: 0.98rem;
+    }
+
+    .bullets {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+    }
+
+    .bullets li {
+      position: relative;
+      padding-left: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .bullets li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.73em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      transform: translateY(-50%);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      margin-top: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(13, 24, 39, 0.98);
+      color: #dff8ff;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:hover {
+      background: rgba(237, 28, 36, 0.07);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: #d7e9ff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1180px) {
+      .dashboard,
+      .double,
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .badge-card {
+        min-height: 180px;
+      }
+
+      .kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .meta-strip {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(calc(100% - 14px), var(--max));
+      }
+
+      .control-panel {
+        min-width: 0;
+      }
+
+      .jump-nav {
+        top: 6px;
+        gap: 6px;
+        padding: 8px;
+      }
+
+      .jump-nav a {
+        min-height: 32px;
+        padding: 8px 9px;
+        font-size: 0.78rem;
+      }
+
+      .browser-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        padding: 16px;
+      }
+
+      .title {
+        font-size: clamp(2rem, 13vw, 3.15rem);
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .badge-card {
+        min-height: 160px;
+      }
+
+      .badge-card img {
+        max-height: 112px;
+        width: auto;
+      }
+
+      .kpi-row {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-lg {
+        height: 440px;
+      }
+
+      .chart-md {
+        height: 320px;
+      }
+
+      .chart-selection-head {
+        flex-direction: column;
+      }
+
+      .chart-selection-meta {
+        justify-content: flex-start;
+      }
+
+      .chart-selection-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar" id="top">
+      <div class="brand">
+        <div class="brand-copy">
+          <p class="eyebrow">Crown Citadel Performance Lab</p>
+          <div class="title">Ryzen AI Max+ 395 local LLM battle station</div>
+          <p class="subtitle">Strix Halo, 128 GiB UMA, RADV Vulkan, and local model benchmarks from a compact AMD AI workstation.</p>
+          <div class="hero-stats">
+            <div class="hero-stat"><strong>128 GiB</strong><span>UMA memory</span></div>
+            <div class="hero-stat"><strong>16C / 32T</strong><span>Zen 5 CPU</span></div>
+            <div class="hero-stat"><strong>Radeon 8060S</strong><span>Strix Halo GPU</span></div>
+            <div class="hero-stat"><strong>llama.cpp</strong><span>Vulkan bench</span></div>
+          </div>
+          <div class="meta-strip">
+            <a class="chip chip-link" href="../">Current dashboard</a>
+            <a class="chip chip-link" href="../qwen35-mtp-race/">Races</a>
+            <span class="chip" id="latestRunChip">Latest</span>
+            <span class="chip">NixOS • Linux 7.0.1</span>
+            <span class="chip">RADV STRIX_HALO</span>
+            <span class="chip mono">-ngl 999 -fa 1</span>
+          </div>
+        </div>
+      </div>
+      <div class="badge-card" aria-label="AMD Ryzen AI Max+ badge">
+        <picture>
+          <source srcset="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" type="image/avif">
+          <img src="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+        </picture>
+        <div class="badge-caption">
+          <span>AI Max+ 395</span>
+          <span>Local AI Server</span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="jump-nav" aria-label="Page sections">
+      <a href="#top">Top</a>
+      <a href="#kpiRow">Summary</a>
+      <a href="#frontier">Frontier</a>
+      <a href="#throughput">Prompt / Decode</a>
+      <a href="#model-browser">Models</a>
+      <a href="../qwen35-mtp-race/">Races</a>
+      <a href="#mtp-results">Speculative</a>
+      <a href="#notes">Notes</a>
+      <a href="#raw-matrix">Raw Matrix</a>
+    </nav>
+
+    <section id="kpiRow" class="kpi-row"></section>
+
+    <section class="dashboard" id="frontier">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>VRAM / Speed Frontier</h2>
+            <p>GPU memory on x and decode speed on y. Bubble size shows parameter count, color shows prompt or combined PG speed, and labels keep the model tradeoffs readable.</p>
+          </div>
+        </div>
+        <div class="control-panel">
+          <p class="label">Comparison context</p>
+          <div id="contextSwitch" class="segmented"></div>
+        </div>
+        <div id="frontierChart" class="chart chart-lg"></div>
+        <div id="frontierSelection" class="chart-selection" aria-live="polite" hidden></div>
+      </article>
+
+      <aside class="stack">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Tier Winners</h2>
+              <p>Best generation speed at the active context, split by size tier so 4B and 80B-class are not treated like the same lane.</p>
+            </div>
+          </div>
+          <div id="tierBoard" class="mini-board"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Decode per GiB</h2>
+              <p>Generation throughput normalized by measured GPU memory at the active context.</p>
+            </div>
+          </div>
+          <div id="efficiencyChart" class="chart chart-sm"></div>
+        </article>
+      </aside>
+    </section>
+
+    <section class="double" id="throughput">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Prompt vs Decode</h2>
+            <p>Raw throughput balance at the active context. New durable-store rows use combined PP+TG, while older rows use standalone prefill.</p>
+          </div>
+        </div>
+        <div id="throughputChart" class="chart chart-md"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Context Curves</h2>
+            <p>Only models with at least four measured prompt/PG context points and one 64K+ result are drawn. Sparse long-context checks stay out of this chart.</p>
+          </div>
+        </div>
+        <div id="trendChart" class="chart chart-md"></div>
+      </article>
+    </section>
+
+    <section class="single" id="model-browser">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Model Browser</h2>
+            <p>Search and sort the full curated result set across every recorded context.</p>
+          </div>
+        </div>
+        <div class="control-panel browser-controls">
+          <label class="control-field">
+            <span>Search</span>
+            <input id="modelSearch" type="search" placeholder="model, family, KV, runtime">
+          </label>
+          <label class="control-field">
+            <span>Sort</span>
+            <select id="modelSort">
+              <option value="decode">Fastest decode</option>
+              <option value="prompt">Fastest prompt / PG</option>
+              <option value="context">Largest context</option>
+              <option value="gpu">Lowest GPU memory</option>
+              <option value="size">Smallest model</option>
+              <option value="name">Model name</option>
+            </select>
+          </label>
+          <label class="control-field">
+            <span>Tier</span>
+            <select id="modelTier">
+              <option value="all">All tiers</option>
+              <option value="Compact">Compact</option>
+              <option value="Large">Large</option>
+              <option value="Flagship">Flagship</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Family</th>
+                <th>Tier</th>
+                <th>Context</th>
+                <th>Prompt / PG</th>
+                <th>TG</th>
+                <th>GPU GiB</th>
+                <th>KV / Runtime</th>
+              </tr>
+            </thead>
+            <tbody id="modelBrowserBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="single" id="mtp-results">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Speculative Results</h2>
+            <p>The chart uses the durable-store MTP server sweeps: draft settings, request latency, decode speed, acceptance, and memory deltas. Older MTP and DFlash notes remain below as interpretation history.</p>
+          </div>
+        </div>
+        <div id="labChart" class="chart chart-md"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Model</th>
+                <th>Workload</th>
+                <th>Mode</th>
+                <th>Prompt / PP t/s</th>
+                <th>TG t/s</th>
+                <th>Acceptance</th>
+                <th>Interpretation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q4_1 MTP</strong></td>
+                <td>65K, 3-turn long chat</td>
+                <td class="mono">draft 3</td>
+                <td>648.10 prompt</td>
+                <td>66.80 weighted</td>
+                <td>66.98% / 51.56% / 80.22%</td>
+                <td>+12.6% generation vs same-file MTP-off baseline (59.30 -> 66.80 TG); prompt ingestion slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q4_1 MTP</strong></td>
+                <td>128K, 96K-token first prompt</td>
+                <td class="mono">draft 3</td>
+                <td>427.48 prompt</td>
+                <td>53.42 weighted</td>
+                <td>67.62% / 52.93% / 73.80%</td>
+                <td>+9.3% generation vs same-file MTP-off baseline (48.86 -> 53.42 TG); prompt processing still slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q8 MTP</strong></td>
+                <td>65K, 3-turn long chat</td>
+                <td class="mono">draft 3</td>
+                <td>645.82 prompt</td>
+                <td>56.28 weighted</td>
+                <td>52.42% / 53.52% / 79.47%</td>
+                <td>+19.7% generation vs existing Q8 baseline (47.04 -> 56.28 TG), but includes model/file differences.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">mtpbench.md</span></td>
+                <td><strong>Qwen3.6 35B Q8 MTP</strong></td>
+                <td>128K, 96K-token first prompt</td>
+                <td class="mono">draft 3</td>
+                <td>416.19 prompt</td>
+                <td>44.97 weighted</td>
+                <td>60.47% / 50.66% / 80.22%</td>
+                <td>+12.0% generation vs existing Q8 baseline (40.16 -> 44.97 TG); prompt ingestion slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">MTP quant race</span><br><a href="../qwen35-mtp-race/">Race page</a></td>
+                <td><strong>Qwen3.6 35B MTP every-quant sweep</strong></td>
+                <td>64K context sweep plus TG64 race</td>
+                <td class="mono">PR22673 MTP</td>
+                <td>522.25-556.42 at 64K</td>
+                <td>54.75-84.05 at 64K</td>
+                <td>96.8%-98.6% at 64K</td>
+                <td>All IQ1/Q2/Q3/Q4/MXFP4/Q5/Q6/Q8 quants are now in the main charts; IQ1 and Q2 lead decode, while Q3 is the cleanest Qwen race lane.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 E4B + assistant</strong></td>
+                <td>16K, p512/n256 server run</td>
+                <td class="mono">lift</td>
+                <td>1053.21 PP</td>
+                <td>67.03</td>
+                <td>46.2%</td>
+                <td>+20.3% decode vs Gemma E4B base (55.74 -> 67.03 TG); best E4B MTP setting.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 26B A4B + assistant</strong></td>
+                <td>16K, p512/n256 server run</td>
+                <td class="mono">throughput</td>
+                <td>865.60 PP</td>
+                <td>59.43</td>
+                <td>74.0%</td>
+                <td>+6.0% decode vs Gemma 26B base (56.04 -> 59.43 TG); deeper lift mode was slower.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">Gemma MTP</span></td>
+                <td><strong>Gemma 4 31B Dense + assistant</strong></td>
+                <td>16K, p512/n128 server run</td>
+                <td class="mono">lift</td>
+                <td>210.76 PP</td>
+                <td>18.33</td>
+                <td>70.5%</td>
+                <td>+77.1% decode vs Gemma 31B base (10.35 -> 18.33 TG); largest relative Gemma MTP gain.</td>
+              </tr>
+              <tr>
+                <td><span class="tag">DFlash</span><br><a href="../dflash/">Wall race</a><br><a href="../dflash/tg-race/">8192 TG race</a><br><a href="../dflash/master-race/">TG64 master race</a><br><a href="https://github.com/Luce-Org/lucebox-hub">lucebox-hub</a></td>
+                <td><strong>Qwen3.6 27B Q4_K_M + DFlash Q8 draft</strong></td>
+                <td>HumanEval-style 10-prompt sweep, n128</td>
+                <td class="mono">fast</td>
+                <td>n/a</td>
+                <td>30.33 mean</td>
+                <td>39.2%</td>
+                <td>+151.9% decode vs current Qwen3.6 27B Q4 baseline (12.04 -> 30.33 TG); peak sampled VRAM was 21.50 GiB.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <details class="fold" id="notes">
+      <summary>
+        <div>
+          Setup and caveats
+          <div class="summary-meta">Machine details, runtime settings, and the benchmark notes that meaningfully affect interpretation.</div>
+        </div>
+        <div>+</div>
+      </summary>
+      <div class="fold-body">
+        <div class="info-grid">
+          <section class="info">
+            <h3>System</h3>
+            <ul class="bullets">
+              <li>Host <span class="mono">ciru</span>, NixOS, Linux 7.0.1</li>
+              <li>AMD Ryzen AI Max+ 395, 16 cores / 32 threads</li>
+              <li>AMD Radeon 8060S-class Strix Halo iGPU, RADV STRIX_HALO</li>
+              <li>128 GiB total UMA memory, benchmarked with large GPU aperture available</li>
+              <li>Reported pools include 64 GiB VRAM and about 31.2 GiB GTT on the tested setup</li>
+            </ul>
+          </section>
+          <section class="info">
+            <h3>Runtime</h3>
+            <ul class="bullets">
+              <li><span class="mono">llama.cpp</span> with Vulkan, plus isolated ROCm comparisons where noted</li>
+              <li>Current system benchmark build <span class="mono">8864</span>; b8672 used for refreshed Gemma 4 rows; upstream b8971 used for checkpointed speculative tests</li>
+              <li>Common benchmark flags <span class="mono">-ngl 999 -fa 1 -n 128 -o md</span>, usually <span class="mono">-r 1</span> or <span class="mono">-r 2</span></li>
+              <li>Guard reserves: 8 GiB RAM, 2 GiB VRAM, 4 GiB GTT</li>
+              <li>Typical contexts: 4096, 16384, 32768, with long checks to 100000+</li>
+            </ul>
+          </section>
+          <section class="info">
+            <h3>Important notes</h3>
+            <ul class="bullets">
+              <li>Some later April tables report only peak GPU memory; those points use that value as GPU footprint and leave system RAM/GTT blank.</li>
+              <li>Speculative decoding points are separated from the llama-bench frontier because active prompt occupancy changes the meaning of the context number.</li>
+              <li>Older Qwen3.6 MTP rows in the KV/backend lab are server-side multi-turn chat timings from <span class="mono">mtpbench.md</span>; the 2026-05-13 Qwen3.6 35B every-quant MTP rows use the local context sweep and TG64 race summaries.</li>
+              <li>Dynamic Strix quant rows are clean prompt/decode checks from the MTP workspace and are included in the main context charts.</li>
+              <li>Gemma 4 E2B 16K uses the refreshed b8672 f16 KV row from 2026-05-07; the older 2026-04-02 16K row was superseded.</li>
+              <li>Gemma 4 MTP server tests are recorded in the history, but clean llama-bench rows remain the chart source for context-planning comparisons.</li>
+              <li>Gemma 4 31B Dense was manually stopped at 32768, so it is excluded beyond measured contexts.</li>
+              <li>Qwen Coder Next is plotted as 80B-class on the parameter axis to match the benchmark notes in this repo.</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </details>
+
+    <details class="fold" id="raw-matrix">
+      <summary>
+        <div>
+          Raw result matrix
+          <div class="summary-meta">Every benchmark point used in the curated charts, including the larger long-context runs.</div>
+        </div>
+        <div>+</div>
+      </summary>
+      <div class="fold-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Model</th>
+                <th>Family</th>
+                <th>Size</th>
+                <th>Context</th>
+                <th>PP / PG t/s</th>
+                <th>TG t/s</th>
+                <th>GPU GiB</th>
+                <th>RAM</th>
+                <th>GTT</th>
+                <th>Memory basis</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    const SERIES = [
+      {
+        id: "gemma-e2b",
+        name: "Gemma 4 E2B Q4_K_M",
+        short: "Gemma E2B",
+        family: "Gemma 4",
+        color: "#21c7a8",
+        sizeB: 2,
+        sizeLabel: "2B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 3027.12, tg: 107.0, ram: 10.28, vram: 8.38, gtt: 3.89 },
+          { date: "2026-05-07", context: 16384, pp: 2490.02, tg: 107.74, ram: null, vram: 6.76, gtt: null, kv: "f16/f16", runtime: "b8672 Vulkan", memSource: "Peak VRAM" },
+          { date: "2026-04-02", context: 32768, pp: 1805.97, tg: 106.6, ram: 10.72, vram: 8.55, gtt: 3.94 },
+          { date: "2026-05-07", context: 128000, pp: 764.21, tg: 108.1, ram: null, vram: 7.58, gtt: null, kv: "f16/f16", runtime: "b8672 Vulkan", memSource: "Peak VRAM" }
+        ]
+      },
+      {
+        id: "medpsy-4b-q5",
+        name: "MedPsy 4B Q5_K_M imatrix",
+        short: "MedPsy 4B",
+        family: "MedPsy",
+        color: "#14b8a6",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-05-08", context: 4096, pp: 1773.47, tg: 66.83, ram: null, vram: 4.66, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-08", context: 16384, pp: 941.72, tg: 67.31, ram: null, vram: 5.58, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-08", context: 32768, pp: 581.8, tg: 67.12, ram: null, vram: 6.8, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "gemma-e4b",
+        name: "Gemma 4 E4B Q4_K_M",
+        short: "Gemma E4B",
+        family: "Gemma 4",
+        color: "#39d0ff",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 1734.97, tg: 56.74, ram: 10.65, vram: 10.27, gtt: 4.25 },
+          { date: "2026-04-02", context: 16384, pp: 1508.68, tg: 57.73, ram: 11.07, vram: 10.53, gtt: 4.27 },
+          { date: "2026-04-02", context: 32768, pp: 1276.91, tg: 57.25, ram: 10.65, vram: 10.7, gtt: 4.3 }
+        ]
+      },
+      {
+        id: "qwen35-4b",
+        name: "Qwen3.5-4B Q4_K_M",
+        short: "Qwen3.5 4B",
+        family: "Qwen 3.5 Small",
+        color: "#f3b14a",
+        sizeB: 4,
+        sizeLabel: "4B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 1782.74, tg: 61.32, ram: 4.35, vram: 3.9, gtt: 0.58 },
+          { date: "2026-03-30", context: 16384, pp: 1428.8, tg: 62.41, ram: 4.44, vram: 4.28, gtt: 0.61 },
+          { date: "2026-03-30", context: 32768, pp: 1064.36, tg: 60.97, ram: 4.49, vram: 4.78, gtt: 0.64 }
+        ]
+      },
+      {
+        id: "hermes-8b",
+        name: "Hermes 3 Llama 3.1 8B Q5_K_M",
+        short: "Hermes 8B",
+        family: "Hermes",
+        color: "#95a6be",
+        sizeB: 8,
+        sizeLabel: "8B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 945.35, tg: 38.63, ram: 4.31, vram: 6.34, gtt: 0.51 },
+          { date: "2026-03-30", context: 16384, pp: 564.73, tg: 38.29, ram: 4.32, vram: 7.84, gtt: 0.53 },
+          { date: "2026-03-30", context: 32768, pp: 292.48, tg: 38.53, ram: 4.34, vram: 9.84, gtt: 0.56 }
+        ]
+      },
+      {
+        id: "qwen35-9b",
+        name: "Qwen3.5-9B Q4_K_M",
+        short: "Qwen3.5 9B",
+        family: "Qwen 3.5 Small",
+        color: "#a66bff",
+        sizeB: 9,
+        sizeLabel: "9B",
+        tier: "Compact",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 969.44, tg: 37.21, ram: 4.94, vram: 5.99, gtt: 0.88 },
+          { date: "2026-03-30", context: 16384, pp: 854.99, tg: 38.52, ram: 5.0, vram: 6.37, gtt: 0.91 },
+          { date: "2026-03-30", context: 32768, pp: 704.8, tg: 37.24, ram: 4.82, vram: 6.87, gtt: 0.94 }
+        ]
+      },
+      {
+        id: "gemma-26b",
+        name: "Gemma 4 26B A4B Q4_K_M",
+        short: "Gemma 26B",
+        family: "Gemma 4",
+        color: "#ff8a3d",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 1161.6, tg: 60.57, ram: 9.16, vram: 21.38, gtt: 2.66 },
+          { date: "2026-04-02", context: 16384, pp: 1016.14, tg: 60.57, ram: 8.96, vram: 21.6, gtt: 2.69 },
+          { date: "2026-04-02", context: 32768, pp: 853.77, tg: 60.74, ram: 9.04, vram: 21.99, gtt: 2.72 }
+        ]
+      },
+      {
+        id: "gemma-26b-q6",
+        name: "Gemma 4 26B A4B Q6_K",
+        short: "Gemma 26B Q6",
+        family: "Gemma 4",
+        color: "#ffb067",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-06", context: 16384, pp: 965.33, tg: 55.52, ram: 13.09, vram: 23.84, gtt: 0.77 }
+        ]
+      },
+      {
+        id: "gemma-26b-uncensored-q4",
+        name: "Gemma 4 26B A4B Uncensored Q4_K_M",
+        short: "Gemma 26B UQ4",
+        family: "Gemma 4 Uncensored",
+        color: "#ff5f7a",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-06", context: 16384, pp: 1012.67, tg: 65.85, ram: 13.09, vram: 18.4, gtt: 0.77 }
+        ]
+      },
+      {
+        id: "gemma-26b-uncensored-q8",
+        name: "Gemma 4 26B A4B Uncensored Q8_0",
+        short: "Gemma 26B UQ8",
+        family: "Gemma 4 Uncensored",
+        color: "#ffcf5a",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-06", context: 16384, pp: 1054.8, tg: 47.16, ram: 13.53, vram: 27.77, gtt: 0.94 }
+        ]
+      },
+      {
+        id: "qwopus-q4",
+        name: "Qwopus3.5-27B-v3 Q4_K_M",
+        short: "Qwopus Q4",
+        family: "Qwopus",
+        color: "#4a8dff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 305.26, tg: 12.86, ram: 6.88, vram: 15.76, gtt: 1.02 },
+          { date: "2026-04-07", context: 16384, pp: 264.73, tg: 12.94, ram: 13.87, vram: 18.16, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 210.91, tg: 12.97, ram: 13.91, vram: 19.03, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwopus-q5",
+        name: "Qwopus3.5-27B-v3 Q5_K_M",
+        short: "Qwopus Q5",
+        family: "Qwopus",
+        color: "#7b63ff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 296.35, tg: 11.26, ram: 6.89, vram: 18.11, gtt: 1.02 },
+          { date: "2026-04-07", context: 16384, pp: 260.2, tg: 11.32, ram: 13.86, vram: 20.52, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 208.78, tg: 11.32, ram: 13.94, vram: 21.39, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwen-30b",
+        name: "Qwen 3.5 30B A3B Q5_K_M",
+        short: "Qwen 3.5 30B A3B",
+        family: "Qwen Coder",
+        color: "#ff6f91",
+        sizeB: 30,
+        sizeLabel: "30B",
+        tier: "Large",
+        runs: [
+          { date: "2026-03-30", context: 4096, pp: 973.97, tg: 79.82, ram: 4.01, vram: 21.29, gtt: 0.34 },
+          { date: "2026-03-30", context: 16384, pp: 576.85, tg: 80.46, ram: 4.09, vram: 22.43, gtt: 0.36 },
+          { date: "2026-03-30", context: 32768, pp: 352.39, tg: 80.43, ram: 4.1, vram: 23.91, gtt: 0.39 },
+          { date: "2026-03-30", context: 65536, pp: 163.29, tg: 80.11, ram: 4.15, vram: 26.91, gtt: 0.45 },
+          { date: "2026-03-30", context: 100000, pp: 74.41, tg: 80.41, ram: 4.23, vram: 30.09, gtt: 0.52 }
+        ]
+      },
+      {
+        id: "gemma-31b",
+        name: "Gemma 4 31B Dense Q4_K_M",
+        short: "Gemma 31B Dense",
+        family: "Gemma 4",
+        color: "#c96a2c",
+        sizeB: 31,
+        sizeLabel: "31B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-02", context: 4096, pp: 233.88, tg: 10.69, ram: 9.45, vram: 24.87, gtt: 3.19 },
+          { date: "2026-04-02", context: 16384, pp: 202.89, tg: 10.69, ram: 9.53, vram: 25.86, gtt: 3.21 }
+        ]
+      },
+      {
+        id: "mistral-small4-119b-q4",
+        name: "Mistral Small 4 119B UD Q4_K_M",
+        short: "Mistral Small 4 119B",
+        family: "Mistral",
+        color: "#f472b6",
+        sizeB: 119,
+        sizeLabel: "119B",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 440.8, tg: 41.22, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 32768, pg: 284.03, tg: 40.7, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 65536, pg: 189.89, tg: 41.16, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 110.57, tg: null, ram: 24.09, vram: 63.59, gtt: 12.36, kv: "f16/f16", runtime: "b8864 Vulkan layer split", memSource: "Peak sampled; generation-only TG not recorded" }
+        ]
+      },
+      {
+        id: "qwen-next-q4",
+        name: "Qwen Coder Next Q4_K_M Official",
+        short: "Qwen Coder Next Q4",
+        family: "Qwen Coder Next",
+        color: "#36d17e",
+        sizeB: 80,
+        sizeLabel: "80B-class",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-03-31", context: 4096, pp: 608.49, tg: 55.77, ram: 3.73, vram: 45.54, gtt: 0.45 },
+          { date: "2026-03-31", context: 16384, pp: 574.03, tg: 55.8, ram: 3.74, vram: 45.85, gtt: 0.47 },
+          { date: "2026-03-31", context: 32768, pp: 527.51, tg: 55.6, ram: 3.86, vram: 46.19, gtt: 0.5 },
+          { date: "2026-03-31", context: 80000, pp: 412.62, tg: 55.77, ram: 3.92, vram: 47.35, gtt: 0.6 }
+        ]
+      },
+      {
+        id: "qwen-next-q5",
+        name: "Qwen Coder Next Q5_K_M",
+        short: "Qwen Coder Next Q5",
+        family: "Qwen Coder Next",
+        color: "#9ddc3b",
+        sizeB: 80,
+        sizeLabel: "80B-class",
+        tier: "Flagship",
+        runs: [
+          { date: "2026-03-31", context: 4096, pp: 576.82, tg: 51.21, ram: 3.74, vram: 53.23, gtt: 0.45 },
+          { date: "2026-03-31", context: 16384, pp: 550.93, tg: 51.18, ram: 3.79, vram: 53.54, gtt: 0.47 },
+          { date: "2026-03-31", context: 32768, pp: 511.88, tg: 51.39, ram: 3.8, vram: 53.89, gtt: 0.5 },
+          { date: "2026-03-31", context: 80000, pp: 404.03, tg: 51.18, ram: 3.9, vram: 55.05, gtt: 0.6 }
+        ]
+      },
+      {
+        id: "supergemma-26b-q4",
+        name: "SuperGemma4 26B Uncensored Fast v2 Q4_K_M",
+        short: "SuperGemma 26B",
+        family: "Gemma 4 Uncensored",
+        color: "#e85d75",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-13", context: 16384, pp: 982.28, tg: 66.07, ram: 8.45, vram: 22.26, gtt: 0.66 }
+        ]
+      },
+      {
+        id: "gemopus-26b-q4",
+        name: "Gemopus 4 26B A4B Preview Q4_K_M",
+        short: "Gemopus Q4",
+        family: "Gemopus",
+        color: "#22b8a3",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-16", context: 32768, pp: 814.13, tg: 64.27, ram: 19.35, vram: 22.82, gtt: 0.71 },
+          { date: "2026-04-16", context: 128000, pp: 313.21, tg: 64.07, ram: 19.57, vram: 24.57, gtt: 0.9 }
+        ]
+      },
+      {
+        id: "gemopus-26b-q8",
+        name: "Gemopus 4 26B A4B Preview Q8_0",
+        short: "Gemopus Q8",
+        family: "Gemopus",
+        color: "#7cd5ff",
+        sizeB: 26,
+        sizeLabel: "26B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-16", context: 32768, pp: 841.0, tg: 45.7, ram: 19.53, vram: 32.2, gtt: 0.89 },
+          { date: "2026-04-16", context: 128000, pp: 317.71, tg: 45.96, ram: 19.73, vram: 33.95, gtt: 1.07 }
+        ]
+      },
+      {
+        id: "qwen36-27b-q4",
+        name: "Qwen3.6 27B UD Q4_K_XL",
+        short: "Qwen3.6 27B Q4",
+        family: "Qwen 3.6 Dense",
+        color: "#ff9f43",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 147.04, tg: 11.35, ram: null, vram: null, gtt: null, kv: "q4_0/q4_0", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-23", context: 32768, pp: 211.65, tg: 12.04, ram: 17.32, vram: 24.46, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwen36-27b-q3",
+        name: "Qwen3.6 27B Q3_K_M",
+        short: "Qwen3.6 27B Q3",
+        family: "Qwen 3.6 Dense",
+        color: "#f59e0b",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 153.68, tg: 13.41, ram: null, vram: null, gtt: null, kv: "q4_0/q4_0", runtime: "b8864 Vulkan", memSource: "Not recorded" }
+        ]
+      },
+      {
+        id: "qwen36-27b-q5",
+        name: "Qwen3.6 27B Q5_K_M",
+        short: "Qwen3.6 27B Q5",
+        family: "Qwen 3.6 Dense",
+        color: "#fb923c",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-10", context: 4096, pg: 163.38, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 16384, pg: 227.93, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 32768, pg: 223.72, tg: 10.67, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 148.23, tg: 10.66, ram: 12.17, vram: 25.42, gtt: 1.61, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-27b-q8",
+        name: "Qwen3.6 27B UD Q8_K_XL",
+        short: "Qwen3.6 27B Q8",
+        family: "Qwen 3.6 Dense",
+        color: "#ffcf5a",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 101.48, tg: 5.93, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-30", context: 32768, pp: 226.89, tg: 6.27, ram: null, vram: 35.23, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-12", context: 131072, pg: 142.01, tg: 6.28, ram: 13.57, vram: 37.73, gtt: 3.0, kv: "q8_0/q8_0", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "carnice-v2-27b-q8",
+        name: "Carnice V2 27B Q8_0",
+        short: "Carnice V2 27B",
+        family: "Carnice Dense",
+        color: "#38bdf8",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 118.96, tg: 7.26, ram: 14.26, vram: 28.48, gtt: 1.41, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwopus-27b-q6",
+        name: "Qwopus3.5-27B-v3 Q6_K",
+        short: "Qwopus Q6",
+        family: "Qwopus",
+        color: "#b58cff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-07", context: 16384, pp: 256.51, tg: 9.85, ram: 13.87, vram: 23.01, gtt: 1.18 },
+          { date: "2026-04-07", context: 32768, pp: 205.94, tg: 9.86, ram: 13.91, vram: 24.04, gtt: 1.22 }
+        ]
+      },
+      {
+        id: "qwopus-27b-q8",
+        name: "Qwopus3.5-27B-v3 Q8_0",
+        short: "Qwopus Q8",
+        family: "Qwopus",
+        color: "#dca8ff",
+        sizeB: 27,
+        sizeLabel: "27B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-07", context: 16384, pp: 277.0, tg: 7.85, ram: 14.2, vram: 28.79, gtt: 1.47 },
+          { date: "2026-04-07", context: 32768, pp: 215.47, tg: 7.84, ram: 14.25, vram: 29.66, gtt: 1.51 }
+        ]
+      },
+      {
+        id: "qwen36-35b-q4",
+        name: "Qwen3.6 35B A3B UD Q4_K_XL",
+        short: "Qwen3.6 35B Q4",
+        family: "Qwen 3.6 A3B",
+        color: "#33d17a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 730.32, tg: 57.76, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-16", context: 32768, pp: 807.81, tg: 57.62, ram: 19.21, vram: 27.24, gtt: 0.64 },
+          { date: "2026-04-17", context: 65536, pp: 645.58, tg: 57.59, ram: null, vram: 27.93, gtt: 0.7, memSource: "Mid-run VRAM sample" },
+          { date: "2026-04-16", context: 131072, pp: 435.41, tg: 56.67, ram: 19.59, vram: 29.32, gtt: 0.83 }
+        ]
+      },
+      {
+        id: "qwen36-35b-q8",
+        name: "Qwen3.6 35B A3B Q8_0",
+        short: "Qwen3.6 35B Q8",
+        family: "Qwen 3.6 A3B",
+        color: "#67e8f9",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 725.5, tg: 54.48, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-30", context: 32768, pp: 912.4, tg: 54.46, ram: null, vram: 36.24, gtt: null, kv: "f16/f16", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-04-24", context: 128000, pp: 454.13, tg: 53.05, ram: null, vram: null, gtt: null, runtime: "Vulkan" },
+          { date: "2026-05-12", context: 131072, pg: 383.31, tg: 53.67, ram: 11.67, vram: 39.96, gtt: 1.12, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-iq1",
+        name: "Qwen3.6 35B A3B MTP UD IQ1_M",
+        short: "Qwen3.6 MTP IQ1",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#35e0b0",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 861.724, tg: 122.805, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 889.727, tg: 120.078, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 727.131, tg: 101.433, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 556.42, tg: 84.049, ram: null, vram: 17.223, gtt: 4.331, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q2",
+        name: "Qwen3.6 35B A3B MTP UD Q2_K_XL",
+        short: "Qwen3.6 MTP Q2",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#53d8ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 833.051, tg: 121.045, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 873.385, tg: 116.926, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 717.117, tg: 98.956, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 551.376, tg: 82.768, ram: null, vram: 18.347, gtt: 4.317, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q3",
+        name: "Qwen3.6 35B A3B MTP UD Q3_K_XL",
+        short: "Qwen3.6 MTP Q3",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#a7f36f",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 749.271, tg: 99.509, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 853.895, tg: 96.394, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 700.114, tg: 83.86, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 540.3, tg: 71.907, ram: null, vram: 22.337, gtt: 4.461, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q4",
+        name: "Qwen3.6 35B A3B MTP UD Q4_K_XL",
+        short: "Qwen3.6 MTP Q4",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ffd45a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 804.766, tg: 89.595, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 843.776, tg: 87.124, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 694.682, tg: 75.896, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 538.182, tg: 66.469, ram: null, vram: 27.27, gtt: 4.582, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-mxfp4",
+        name: "Qwen3.6 35B A3B MTP MXFP4_MOE",
+        short: "Qwen3.6 MTP MXFP4",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ffb15b",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 830.18, tg: 89.867, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 876.048, tg: 87.577, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 716.166, tg: 77.591, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 550.606, tg: 66.619, ram: null, vram: 27.237, gtt: 4.578, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q5",
+        name: "Qwen3.6 35B A3B MTP UD Q5_K_XL",
+        short: "Qwen3.6 MTP Q5",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#ff8d5a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 770.449, tg: 85.26, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 814.709, tg: 82.97, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 674.499, tg: 73.909, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 526.227, tg: 64.35, ram: null, vram: 31.682, gtt: 4.577, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q6",
+        name: "Qwen3.6 35B A3B MTP UD Q6_K_XL",
+        short: "Qwen3.6 MTP Q6",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#c994ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 760.855, tg: 81.286, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 805.252, tg: 79.481, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 666.326, tg: 71.088, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 522.248, tg: 61.775, ram: null, vram: 36.938, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "qwen36-35b-mtp-q8",
+        name: "Qwen3.6 35B A3B MTP UD Q8_K_XL",
+        short: "Qwen3.6 MTP Q8",
+        family: "Qwen 3.6 A3B MTP",
+        color: "#8db4ff",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-13", context: 2048, pp: 775.613, tg: 69.208, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 8192, pp: 821.274, tg: 67.782, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 32768, pp: 683.263, tg: 61.39, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" },
+          { date: "2026-05-13", context: 65536, pp: 531.651, tg: 54.751, ram: null, vram: 43.666, gtt: 4.554, kv: "q8_0/q8_0", runtime: "PR22673 MTP Vulkan", memSource: "Peak sampled" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q4",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q4_K_M",
+        short: "HauhauCS Q4",
+        family: "HauhauCS A3B",
+        color: "#2dd4bf",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 791.85, tg: 73.76, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-29", context: 32768, pp: 802.67, tg: 71.83, ram: null, vram: 21.78, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q6",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q6_K_P",
+        short: "HauhauCS Q6",
+        family: "HauhauCS A3B",
+        color: "#60a5fa",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 722.54, tg: 61.98, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-29", context: 32768, pp: 764.56, tg: 60.94, ram: null, vram: 30.49, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "hauhaucs-35b-q8",
+        name: "HauhauCS Qwen3.6 35B A3B Aggressive Q8_K_P",
+        short: "HauhauCS Q8",
+        family: "HauhauCS A3B",
+        color: "#a78bfa",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 616.99, tg: 42.29, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-30", context: 32768, pp: 789.5, tg: 43.5, ram: null, vram: 42.48, gtt: null, kv: "f16/f16", memSource: "Peak GPU" },
+          { date: "2026-04-29", context: 128000, pp: 420.95, tg: 41.25, ram: null, vram: 44.75, gtt: null, kv: "f16/f16", memSource: "Peak GPU" }
+        ]
+      },
+      {
+        id: "qwopus36-35b-q5",
+        name: "Qwopus3.6 35B A3B v1 Q5_K_M",
+        short: "Qwopus3.6 Q5",
+        family: "Qwopus3.6 A3B",
+        color: "#22c55e",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-07", context: 4096, pp: 996.23, tg: 68.14, ram: 13.36, vram: 24.76, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 16384, pp: 886.21, tg: 67.98, ram: 13.39, vram: 24.98, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 32768, pp: 755.5, tg: 68.08, ram: 13.41, vram: 25.17, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-07", context: 100000, pp: 464.25, tg: 57.45, ram: 15.49, vram: 54.01, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU; high TG variance" },
+          { date: "2026-05-07", context: 128000, pp: 400.94, tg: 68.2, ram: 13.81, vram: 26.52, gtt: null, kv: "q8_0/q8_0", runtime: "current Vulkan", memSource: "Peak GPU" },
+          { date: "2026-05-10", context: 131072, pg: 421.6, tg: 68.02, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Not recorded" }
+        ]
+      },
+      {
+        id: "qwen36-35b-dynamic-strix-q8kv",
+        name: "Qwen3.6 35B A3B Dynamic Strix q8 KV",
+        short: "Qwen3.6 Dynamic q8KV",
+        family: "Qwen 3.6 A3B Strix",
+        color: "#10b981",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-10", context: 4096, pg: 799.76, tg: 66.27, ram: 20.74, vram: 23.27, gtt: 1.6, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Peak sampled from copied ciru-results" },
+          { date: "2026-05-06", context: 16384, pp: 1055.1, pg: 940.68, tg: 66.17, ram: 20.74, vram: 23.27, gtt: 1.6, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan / b8995", memSource: "Peak sampled from copied ciru-results" },
+          { date: "2026-05-10", context: 32768, pg: 839.7, tg: 66.27, ram: 20.74, vram: 23.27, gtt: 1.6, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Peak sampled from copied ciru-results" },
+          { date: "2026-05-06", context: 128000, pp: 454.16, tg: 66.16, ram: null, vram: null, gtt: null, kv: "q8_0/q8_0", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-10", context: 131072, pg: 438.9, tg: 66.27, ram: 20.74, vram: 23.27, gtt: 1.6, kv: "q8_0/q8_0", runtime: "b8995 Vulkan", memSource: "Peak sampled from copied ciru-results" }
+        ]
+      },
+      {
+        id: "qwen36-35b-dynamic-strix-f16kv",
+        name: "Qwen3.6 35B A3B Dynamic Strix f16 KV",
+        short: "Qwen3.6 Dynamic f16KV",
+        family: "Qwen 3.6 A3B Strix",
+        color: "#86efac",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 804.45, tg: 66.87, ram: 11.8, vram: 24.66, gtt: 1.11, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled from copied ciru-results" },
+          { date: "2026-05-06", context: 16384, pp: 1133.59, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-06", context: 128000, pp: 387.94, tg: 67.15, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "MTP workspace Vulkan", memSource: "Not recorded" },
+          { date: "2026-05-12", context: 131072, pg: 387.27, tg: 66.87, ram: 11.8, vram: 24.66, gtt: 1.11, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Peak sampled from copied ciru-results" }
+        ]
+      },
+      {
+        id: "qwopus-moe-q4",
+        name: "Qwopus MoE 35B A3B Q4_K_M",
+        short: "Qwopus MoE Q4",
+        family: "Qwopus MoE",
+        color: "#f97316",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-06", context: 16384, pp: 909.34, tg: 72.41, ram: 13.95, vram: 22.04, gtt: 0.59 },
+          { date: "2026-04-15", context: 32768, pp: 804.57, tg: 73.81, ram: 17.31, vram: 26.38, gtt: 0.53 },
+          { date: "2026-04-06", context: 65536, pp: 641.58, tg: 72.51, ram: 13.95, vram: 23.04, gtt: 0.69 },
+          { date: "2026-04-06", context: 80000, pp: 586.28, tg: 72.43, ram: 13.98, vram: 23.34, gtt: 0.71 },
+          { date: "2026-04-15", context: 128000, pp: 442.31, tg: 73.75, ram: 17.53, vram: 28.38, gtt: 0.71 }
+        ]
+      },
+      {
+        id: "qwopus-moe-q8",
+        name: "Qwopus MoE 35B A3B Q8_0",
+        short: "Qwopus MoE Q8",
+        family: "Qwopus MoE",
+        color: "#fb7185",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-05-12", context: 4096, pg: 734.28, tg: 54.2, ram: null, vram: null, gtt: null, kv: "f16/f16", runtime: "b8864 Vulkan", memSource: "Not recorded" },
+          { date: "2026-04-07", context: 16384, pp: 941.79, tg: 50.27, ram: 13.48, vram: 36.46, gtt: 0.7 },
+          { date: "2026-04-07", context: 32768, pp: 828.12, tg: 53.08, ram: 13.47, vram: 36.77, gtt: 0.73 },
+          { date: "2026-04-07", context: 65536, pp: 661.07, tg: 53.16, ram: 13.49, vram: 37.46, gtt: 0.8 },
+          { date: "2026-04-07", context: 80000, pp: 602.47, tg: 53.14, ram: 13.53, vram: 37.77, gtt: 0.83 }
+        ]
+      },
+      {
+        id: "carnice-moe-q4",
+        name: "Carnice MoE 35B A3B Q4_K_M",
+        short: "Carnice Q4",
+        family: "Carnice MoE",
+        color: "#38bdf8",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-10", context: 16384, pp: 934.44, tg: 72.58, ram: 8.29, vram: 25.25, gtt: 0.48 },
+          { date: "2026-04-10", context: 32768, pp: 816.34, tg: 72.59, ram: 8.35, vram: 25.56, gtt: 0.51 },
+          { date: "2026-04-10", context: 65536, pp: 651.2, tg: 72.64, ram: 8.41, vram: 26.25, gtt: 0.58 },
+          { date: "2026-04-10", context: 80000, pp: 593.08, tg: 72.71, ram: 8.41, vram: 26.55, gtt: 0.6 }
+        ]
+      },
+      {
+        id: "ornstein-saber-q4",
+        name: "Ornstein3.6 35B A3B SABER Q4_K_M",
+        short: "Ornstein Q4",
+        family: "Ornstein SABER",
+        color: "#facc15",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-26", context: 32768, pp: 809.65, tg: 73.84, ram: null, vram: 19.7, gtt: null, memSource: "Model file size" },
+          { date: "2026-04-26", context: 128000, pp: 446.3, tg: 74.36, ram: null, vram: 19.7, gtt: null, memSource: "Model file size" }
+        ]
+      },
+      {
+        id: "ornstein-saber-q8",
+        name: "Ornstein3.6 35B A3B SABER Q8_0",
+        short: "Ornstein Q8",
+        family: "Ornstein SABER",
+        color: "#fde68a",
+        sizeB: 35,
+        sizeLabel: "35B A3B",
+        tier: "Large",
+        runs: [
+          { date: "2026-04-26", context: 32768, pp: 842.25, tg: 52.77, ram: null, vram: 34.36, gtt: null, memSource: "Model file size" },
+          { date: "2026-04-26", context: 128000, pp: 454.2, tg: 52.83, ram: null, vram: 34.36, gtt: null, memSource: "Model file size" }
+        ]
+      }
+    ];
+
+    const DB_COLORS = ["#20d1a2", "#39d0ff", "#f6c046", "#ff9f43", "#ff4e6e", "#c994ff", "#78a8ff", "#a7f36f"];
+
+    function dateFromStamp(stamp) {
+      if (!stamp || String(stamp).length < 8) return "2026-05-17";
+      const value = String(stamp);
+      return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+    }
+
+    function slug(value) {
+      return String(value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+
+    function inferSizeB(row) {
+      if (row.modelParamsB != null && Number.isFinite(Number(row.modelParamsB))) return Number(row.modelParamsB);
+      const text = [row.modelName, row.modelType, row.label, row.model].filter(Boolean).join(" ");
+      const matches = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:b|a3b)(?=$|[^a-z0-9])/gi)]
+        .map((match) => Number(match[1]))
+        .filter((value) => Number.isFinite(value) && value > 0);
+      return matches.length ? Math.max(...matches) : 0;
+    }
+
+    function tierFromSize(sizeB, fallback) {
+      if (fallback) return fallback;
+      if (!Number.isFinite(Number(sizeB)) || Number(sizeB) <= 0) return "Large";
+      if (Number(sizeB) <= 10) return "Compact";
+      if (Number(sizeB) >= 60) return "Flagship";
+      return "Large";
+    }
+
+    function shortModelName(name) {
+      return String(name || "unknown")
+        .replace(/^google\s+/i, "")
+        .replace(/[-_]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 30);
+    }
+
+    function dbProfileKey(row) {
+      return [
+        row.modelName,
+        row.backend || "backend?",
+        row.kv || "kv?",
+        row.batch || "b?",
+        row.ubatch || "u?",
+        row.splitMode || "split?",
+        row.buildCommit || row.buildNumber || "build?",
+        row.modelType || ""
+      ].join("|");
+    }
+
+    function buildDbSeries() {
+      const rows = window.BENCHV2_DATA?.strictRows || [];
+      const groups = new Map();
+      for (const row of rows) {
+        if (!row || row.tps == null) continue;
+        const key = dbProfileKey(row);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      }
+      let colorIndex = 0;
+      return [...groups.entries()].map(([key, rowsForProfile]) => {
+        const first = rowsForProfile.find((row) => row.modelName) || rowsForProfile[0];
+        const sizeB = inferSizeB(first);
+        const bestTg = rowsForProfile
+          .filter((row) => row.mode === "tg" && Number.isFinite(Number(row.tps)))
+          .sort((a, b) => Number(b.tps) - Number(a.tps))[0] || null;
+        const byContext = new Map();
+        for (const row of rowsForProfile) {
+          const context = Number(row.ctx);
+          if (!Number.isFinite(context) || context <= 0 || !["pg", "pp"].includes(row.mode)) continue;
+          if (!byContext.has(context)) {
+            const memoryValue = row.vramGiB ?? bestTg?.vramGiB ?? row.modelSizeGiB ?? bestTg?.modelSizeGiB ?? null;
+            byContext.set(context, {
+              date: dateFromStamp(row.timestamp),
+              context,
+              pp: null,
+              pg: null,
+              tg: bestTg ? Number(bestTg.tps) : null,
+              ram: row.sysGiB ?? bestTg?.sysGiB ?? null,
+              vram: memoryValue,
+              gtt: row.gttGiB ?? bestTg?.gttGiB ?? null,
+              kv: row.kv || bestTg?.kv || "n/a",
+              runtime: `${row.backend || bestTg?.backend || "llama.cpp"} ${row.buildCommit || row.buildNumber || ""}`.trim(),
+              memSource: row.vramGiB != null || bestTg?.vramGiB != null ? "Durable DB peak sample" : "Model file size",
+              sourceLabel: row.label || row.sourcePath || "durable store"
+            });
+          }
+          const run = byContext.get(context);
+          if (row.mode === "pg" && (!Number.isFinite(Number(run.pg)) || Number(row.tps) > Number(run.pg))) run.pg = Number(row.tps);
+          if (row.mode === "pp" && (!Number.isFinite(Number(run.pp)) || Number(row.tps) > Number(run.pp))) run.pp = Number(row.tps);
+          if (row.vramGiB != null) run.vram = row.vramGiB;
+          if (run.vram == null && row.modelSizeGiB != null) {
+            run.vram = row.modelSizeGiB;
+            run.memSource = "Model file size";
+          }
+          if (row.gttGiB != null) run.gtt = row.gttGiB;
+          if (row.sysGiB != null) run.ram = row.sysGiB;
+          if (row.timestamp && dateFromStamp(row.timestamp) > run.date) run.date = dateFromStamp(row.timestamp);
+        }
+        const runs = [...byContext.values()]
+          .filter((run) => run.pg != null || run.pp != null)
+          .sort((a, b) => a.context - b.context);
+        if (!runs.length) return null;
+        const color = DB_COLORS[colorIndex++ % DB_COLORS.length];
+        return {
+          id: `db-${slug(key)}`,
+          name: first.modelName || first.label || "Durable store model",
+          short: shortModelName(first.modelName || first.label),
+          family: first.family || "Durable DB",
+          color,
+          sizeB,
+          sizeLabel: sizeB ? `${Number(sizeB).toLocaleString(undefined, { maximumFractionDigits: 1 })}B` : (first.modelType || "n/a"),
+          tier: tierFromSize(sizeB, first.tier),
+          runs
+        };
+      }).filter(Boolean);
+    }
+
+    SERIES.push(...buildDbSeries());
+
+    const hasNumber = (value) => value != null && Number.isFinite(Number(value));
+    const isPlottableContextRun = (run) => hasNumber(run.vram) && hasNumber(run.tg) && (hasNumber(run.pg) || hasNumber(run.pp));
+    const CONTEXTS = [...new Set(SERIES.flatMap((series) => series.runs.map((run) => run.context)))].sort((a, b) => a - b);
+    const CONTEXT_COUNTS = CONTEXTS.map((context) => ({
+      context,
+      count: SERIES.reduce((sum, series) => sum + (series.runs.some((run) => run.context === context && isPlottableContextRun(run)) ? 1 : 0), 0)
+    }));
+    let activeContext = CONTEXT_COUNTS.slice().sort((a, b) => b.count - a.count || b.context - a.context)[0].context;
+
+    const isNumber = hasNumber;
+    const fmt = (value, digits = 2) => {
+      if (!isNumber(value)) return "n/a";
+      return Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    };
+    const fmtSpeed = (value) => isNumber(value) ? `${fmt(value, 2)} t/s` : "n/a";
+    const fmtMem = (value) => isNumber(value) ? `${fmt(value, 2)} GiB` : "n/a";
+    const ctx = (value) => Number(value).toLocaleString();
+    const gpuMem = (run) => isNumber(run.vram) ? Number(run.vram) : null;
+    const promptMetric = (run) => isNumber(run.pg) ? Number(run.pg) : (isNumber(run.pp) ? Number(run.pp) : null);
+    const promptMetricLabel = (run) => isNumber(run.pg) ? "PG" : (isNumber(run.pp) ? "PP" : "Prompt");
+    const promptMetricName = (run) => isNumber(run.pg) ? "Combined PP+TG" : (isNumber(run.pp) ? "Prefill" : "Prompt");
+    const totalMeasuredMem = (run) => [run.ram, run.vram, run.gtt].filter(isNumber).reduce((sum, value) => sum + Number(value), 0);
+    const memoryBasis = (run) => run.memSource || "Peak VRAM";
+
+    function alpha(hex, opacity) {
+      const clean = hex.replace("#", "");
+      const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+      const int = parseInt(full, 16);
+      const r = (int >> 16) & 255;
+      const g = (int >> 8) & 255;
+      const b = int & 255;
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+
+    const allRuns = SERIES.flatMap((series) => series.runs.map((run) => ({
+      ...run,
+      id: series.id,
+      name: series.name,
+      short: series.short,
+      family: series.family,
+      color: series.color,
+      sizeB: series.sizeB,
+      sizeLabel: series.sizeLabel,
+      tier: series.tier,
+      maxContext: Math.max(...series.runs.map((entry) => entry.context))
+    })));
+
+    document.getElementById("latestRunChip").textContent = `Latest ${allRuns.reduce((latest, run) => run.date > latest ? run.date : latest, allRuns[0].date)}`;
+
+    const resultsBody = document.getElementById("resultsBody");
+    resultsBody.innerHTML = allRuns
+      .slice()
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        if (a.sizeB !== b.sizeB) return a.sizeB - b.sizeB;
+        return a.context - b.context;
+      })
+      .map((run) => `
+        <tr>
+          <td>${run.date}</td>
+          <td><strong>${run.short}</strong></td>
+          <td><span class="tag">${run.family}</span></td>
+          <td>${run.sizeLabel}</td>
+          <td class="mono">${ctx(run.context)}</td>
+          <td>${fmt(promptMetric(run), 2)} <span class="tag">${promptMetricLabel(run)}</span></td>
+          <td>${fmt(run.tg, 2)}</td>
+          <td>${fmtMem(run.vram)}</td>
+          <td>${fmtMem(run.ram)}</td>
+          <td>${fmtMem(run.gtt)}</td>
+          <td>${memoryBasis(run)}</td>
+        </tr>
+      `)
+      .join("");
+
+    const contextSwitch = document.getElementById("contextSwitch");
+    const frontierSelection = document.getElementById("frontierSelection");
+    const modelSearch = document.getElementById("modelSearch");
+    const modelSort = document.getElementById("modelSort");
+    const modelTier = document.getElementById("modelTier");
+    const modelBrowserBody = document.getElementById("modelBrowserBody");
+    let frontierVisibleRuns = [];
+    let selectedFrontierDataIndex = null;
+    let frontierMaxParams = 1;
+
+    function frontierSymbolSize(params, maxParams = frontierMaxParams) {
+      return Math.max(16, Math.min(56, 14 + Math.sqrt((params || 4) / maxParams) * 42));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function renderModelBrowser() {
+      if (!modelBrowserBody) return;
+      const term = (modelSearch?.value || "").trim().toLowerCase();
+      const tier = modelTier?.value || "all";
+      const sort = modelSort?.value || "decode";
+      const haystack = (run) => [
+        run.name,
+        run.short,
+        run.family,
+        run.sizeLabel,
+        run.kv,
+        run.runtime,
+        run.memSource
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      const rows = allRuns
+        .filter((run) => tier === "all" || run.tier === tier)
+        .filter((run) => !term || haystack(run).includes(term))
+        .sort((a, b) => {
+          if (sort === "prompt") return (promptMetric(b) ?? -Infinity) - (promptMetric(a) ?? -Infinity);
+          if (sort === "context") return b.context - a.context || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "gpu") return (gpuMem(a) ?? Infinity) - (gpuMem(b) ?? Infinity) || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "size") return a.sizeB - b.sizeB || (b.tg ?? -Infinity) - (a.tg ?? -Infinity);
+          if (sort === "name") return a.name.localeCompare(b.name) || a.context - b.context;
+          return (b.tg ?? -Infinity) - (a.tg ?? -Infinity) || (promptMetric(b) ?? -Infinity) - (promptMetric(a) ?? -Infinity);
+        });
+
+      modelBrowserBody.innerHTML = rows.map((run) => `
+        <tr>
+          <td><strong>${escapeHtml(run.short)}</strong><br><span class="mono">${escapeHtml(run.date)}</span></td>
+          <td><span class="tag">${escapeHtml(run.family)}</span></td>
+          <td>${escapeHtml(run.tier)}</td>
+          <td class="mono">${ctx(run.context)}</td>
+          <td>${fmtSpeed(promptMetric(run))} <span class="tag">${promptMetricLabel(run)}</span></td>
+          <td>${fmtSpeed(run.tg)}</td>
+          <td>${fmtMem(gpuMem(run))}</td>
+          <td>${escapeHtml(run.kv || "n/a")}${run.runtime ? `<br><span class="mono">${escapeHtml(run.runtime)}</span>` : ""}</td>
+        </tr>
+      `).join("") || `
+        <tr>
+          <td colspan="8">No matching benchmark rows.</td>
+        </tr>
+      `;
+    }
+
+    function renderFrontierSelection(run) {
+      if (!frontierSelection) return;
+      if (!run) {
+        frontierSelection.hidden = true;
+        frontierSelection.innerHTML = "";
+        return;
+      }
+
+      frontierSelection.hidden = false;
+      frontierSelection.innerHTML = `
+        <div class="chart-selection-head">
+          <p class="chart-selection-title">${escapeHtml(run.name)}</p>
+          <div class="chart-selection-meta">
+            <span class="tag">${escapeHtml(run.family)}</span>
+            <span class="tag">${escapeHtml(run.sizeLabel)}</span>
+            <span class="tag mono">${ctx(run.context)}</span>
+          </div>
+        </div>
+        <div class="chart-selection-grid">
+          <div class="chart-selection-stat"><span>Decode</span><strong>${fmtSpeed(run.tg)}</strong></div>
+          <div class="chart-selection-stat"><span>${promptMetricName(run)}</span><strong>${fmtSpeed(promptMetric(run))}</strong></div>
+          <div class="chart-selection-stat"><span>GPU</span><strong>${fmtMem(gpuMem(run))}</strong></div>
+          <div class="chart-selection-stat"><span>Memory basis</span><strong>${escapeHtml(memoryBasis(run))}</strong></div>
+        </div>
+        <p class="chart-selection-note">
+          Date ${escapeHtml(run.date)} • System RAM ${fmtMem(run.ram)} • GTT ${fmtMem(run.gtt)}${run.kv ? ` • KV ${escapeHtml(run.kv)}` : ""}${run.runtime ? ` • Runtime ${escapeHtml(run.runtime)}` : ""}
+        </p>
+      `;
+    }
+
+    contextSwitch.innerHTML = CONTEXTS.map((value) => `
+      <button type="button" data-context="${value}" class="${value === activeContext ? "active" : ""}">
+        ${ctx(value)} <span class="mono">${CONTEXT_COUNTS.find((entry) => entry.context === value)?.count || 0}</span>
+      </button>
+    `).join("");
+
+    contextSwitch.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-context]");
+      if (!button) return;
+      activeContext = Number(button.dataset.context);
+      [...contextSwitch.querySelectorAll("button")].forEach((node) => {
+        node.classList.toggle("active", Number(node.dataset.context) === activeContext);
+      });
+      render();
+    });
+
+    function runsAtContext(context) {
+      return allRuns
+        .filter((run) => run.context === context)
+        .sort((a, b) => (b.tg ?? -Infinity) - (a.tg ?? -Infinity) || a.sizeB - b.sizeB);
+    }
+
+    function setKpis(runs) {
+      const rankedRuns = runs.filter((run) => isNumber(run.tg)).sort((a, b) => b.tg - a.tg);
+      const compact = rankedRuns.filter((run) => run.sizeB <= 10)[0];
+      const larger = rankedRuns.filter((run) => run.sizeB >= 25 && run.sizeB < 60)[0];
+      const flagship = rankedRuns.filter((run) => run.sizeB >= 60)[0];
+      const efficient = runs
+        .filter((run) => isNumber(run.tg) && isNumber(gpuMem(run)) && gpuMem(run) > 0)
+        .sort((a, b) => (b.tg / gpuMem(b)) - (a.tg / gpuMem(a)))[0];
+
+      document.getElementById("kpiRow").innerHTML = [
+        {
+          k: "Fastest at context",
+          v: rankedRuns[0] ? fmt(rankedRuns[0].tg, 2) : "n/a",
+          s: "t/s",
+          d: rankedRuns[0] ? `${rankedRuns[0].short} • ${rankedRuns[0].sizeLabel} • ${fmtMem(gpuMem(rankedRuns[0]))} GPU` : "No decode run"
+        },
+        {
+          k: "Best compact lane",
+          v: compact ? fmt(compact.tg, 2) : "n/a",
+          s: compact ? "t/s" : "",
+          d: compact ? `${compact.short} • ${compact.sizeLabel}` : "No compact run"
+        },
+        {
+          k: "Best 25B+ lane",
+          v: larger ? fmt(larger.tg, 2) : "n/a",
+          s: larger ? "t/s" : "",
+          d: larger ? `${larger.short} • ${larger.sizeLabel}` : "No larger-model run"
+        },
+        {
+          k: "Best TG / GPU GiB",
+          v: efficient ? fmt(efficient.tg / gpuMem(efficient), 2) : "n/a",
+          s: efficient ? "x" : "",
+          d: efficient ? `${efficient.short} • ${fmtMem(gpuMem(efficient))} for ${fmtSpeed(efficient.tg)}` : "No measured GPU result"
+        }
+      ].map((card) => `
+        <article class="kpi">
+          <p class="k">${card.k}</p>
+          <p class="v">${card.v}${card.s ? ` <span style="font-size:0.56em">${card.s}</span>` : ""}</p>
+          <p class="d">${card.d}</p>
+        </article>
+      `).join("");
+
+      const tiers = [
+        { label: "Compact", test: (run) => run.sizeB <= 10 },
+        { label: "Large", test: (run) => run.sizeB >= 25 && run.sizeB < 60 },
+        { label: "Flagship", test: (run) => run.sizeB >= 60 }
+      ];
+
+      document.getElementById("tierBoard").innerHTML = tiers
+        .map((tier) => {
+          const winner = rankedRuns.filter(tier.test)[0];
+          if (!winner) return "";
+          return `
+            <div class="mini-row">
+              <div class="mini-top">
+                <span class="mini-label">${tier.label}</span>
+                <span class="tag">${winner.sizeLabel}</span>
+              </div>
+              <div class="mini-model">${winner.short}</div>
+              <div class="mini-meta">${fmtSpeed(winner.tg)} TG • ${fmtSpeed(promptMetric(winner))} ${promptMetricLabel(winner)} • ${fmtMem(gpuMem(winner))} GPU</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function mountFallback(id, message) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `<div class="fallback">${message}</div>`;
+    }
+
+    function makeChart(id) {
+      if (typeof echarts === "undefined") {
+        mountFallback(id, "Apache ECharts did not load. Open over HTTP or verify the CDN request succeeded.");
+        return null;
+      }
+      try {
+        return echarts.init(document.getElementById(id));
+      } catch (error) {
+        console.error(error);
+        mountFallback(id, "Chart failed to initialize.");
+        return null;
+      }
+    }
+
+    const frontierChart = makeChart("frontierChart");
+    const efficiencyChart = makeChart("efficiencyChart");
+    const throughputChart = makeChart("throughputChart");
+    const trendChart = makeChart("trendChart");
+    const labChart = makeChart("labChart");
+
+    const textStyle = { fontFamily: "Space Grotesk, sans-serif", color: "#edf5ff" };
+
+    const LAB_RESULTS = [
+      { model: "Qwen3.6 27B Q8", variant: "Vulkan q8/q8", pp: 226.89, tg: 6.27, gpu: 35.23, color: "#ffcf5a" },
+      { model: "Qwen3.6 27B Q8", variant: "ROCm hipBLASLt", pp: 280.94, tg: 6.42, gpu: 34.77, color: "#39d0ff" },
+      { model: "Qwen3.6 27B Q8", variant: "Vulkan f16/f16", pp: 194.29, tg: 6.15, gpu: 36.25, color: "#f97316" },
+      { model: "Qwen3.6 27B Q8", variant: "Turbo3 KV", pp: 201.48, tg: 6.12, gpu: 34.65, color: "#a78bfa" },
+      { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan f16/f16", pp: 912.4, tg: 54.46, gpu: 36.24, color: "#67e8f9" },
+      { model: "Qwen3.6 35B A3B Q8", variant: "Vulkan q8/q8", pp: 739.18, tg: 52.32, gpu: 36.05, color: "#60a5fa" },
+      { model: "Qwen3.6 35B Q4_1 MTP", variant: "65k draft 3", pp: 648.1, tg: 66.8, gpu: null, color: "#34d399" },
+      { model: "Qwen3.6 35B Q4_1 MTP", variant: "128k draft 3", pp: 427.48, tg: 53.42, gpu: null, color: "#22c55e" },
+      { model: "Qwen3.6 35B Q8 MTP", variant: "65k draft 3", pp: 645.82, tg: 56.28, gpu: null, color: "#93c5fd" },
+      { model: "Qwen3.6 35B Q8 MTP", variant: "128k draft 3", pp: 416.19, tg: 44.97, gpu: null, color: "#60a5fa" },
+      { model: "Qwen3.6 35B MTP IQ1_M", variant: "64k PR22673", pp: 556.42, tg: 84.05, gpu: 17.22, color: "#35e0b0" },
+      { model: "Qwen3.6 35B MTP Q2_K_XL", variant: "64k PR22673", pp: 551.38, tg: 82.77, gpu: 18.35, color: "#53d8ff" },
+      { model: "Qwen3.6 35B MTP Q3_K_XL", variant: "64k PR22673", pp: 540.3, tg: 71.91, gpu: 22.34, color: "#a7f36f" },
+      { model: "Qwen3.6 35B MTP Q4_K_XL", variant: "64k PR22673", pp: 538.18, tg: 66.47, gpu: 27.27, color: "#ffd45a" },
+      { model: "Qwen3.6 35B MTP MXFP4_MOE", variant: "64k PR22673", pp: 550.61, tg: 66.62, gpu: 27.24, color: "#ffb15b" },
+      { model: "Qwen3.6 35B MTP Q5_K_XL", variant: "64k PR22673", pp: 526.23, tg: 64.35, gpu: 31.68, color: "#ff8d5a" },
+      { model: "Qwen3.6 35B MTP Q6_K_XL", variant: "64k PR22673", pp: 522.25, tg: 61.78, gpu: 36.94, color: "#c994ff" },
+      { model: "Qwen3.6 35B MTP Q8_K_XL", variant: "64k PR22673", pp: 531.65, tg: 54.75, gpu: 43.67, color: "#8db4ff" },
+      { model: "Qwen3.6 35B Dynamic", variant: "16k q8/q8", pp: 1055.1, tg: 66.17, gpu: null, color: "#10b981" },
+      { model: "Qwen3.6 35B Dynamic", variant: "128k q8/q8", pp: 454.16, tg: 66.16, gpu: null, color: "#059669" },
+      { model: "Qwen3.6 35B Dynamic", variant: "16k f16/f16", pp: 1133.59, tg: 67.15, gpu: null, color: "#86efac" },
+      { model: "Qwen3.6 35B Dynamic", variant: "128k f16/f16", pp: 387.94, tg: 67.15, gpu: null, color: "#bbf7d0" },
+      { model: "MedPsy 4B Q5", variant: "Vulkan f16/f16", pp: 310.97, tg: 67.12, gpu: 8.92, color: "#2dd4bf" },
+      { model: "MedPsy 4B Q5", variant: "Vulkan q8/q8", pp: 581.8, tg: 67.12, gpu: 6.8, color: "#14b8a6" },
+      { model: "Gemma 4 E2B", variant: "Vulkan f16/f16", pp: 2490.02, tg: 107.74, gpu: 6.76, color: "#21c7a8" },
+      { model: "Gemma 4 E2B", variant: "Vulkan q8/q8", pp: 2026.97, tg: 106.41, gpu: 6.71, color: "#fbbf24" },
+      { model: "Gemma 4 E4B", variant: "MTP lift", pp: 1053.21, tg: 67.03, gpu: null, color: "#39d0ff" },
+      { model: "Gemma 4 26B", variant: "MTP throughput", pp: 865.6, tg: 59.43, gpu: null, color: "#ff8a3d" },
+      { model: "Gemma 4 31B Dense", variant: "MTP lift", pp: 210.76, tg: 18.33, gpu: null, color: "#c96a2c" },
+      { model: "HauhauCS 35B Q8", variant: "f16/f16", pp: 789.5, tg: 43.5, gpu: 42.48, color: "#a78bfa" },
+      { model: "HauhauCS 35B Q8", variant: "q8/q8", pp: 665.13, tg: 40.8, gpu: 42.28, color: "#c084fc" }
+    ];
+
+    const MTP_SERVER_RESULTS = (window.BENCHV2_DATA?.mtpServer || [])
+      .filter((row) => isNumber(row.decodeTps) || isNumber(row.promptTps) || isNumber(row.avgTotalMs))
+      .sort((a, b) => (Number(b.decodeTps) || 0) - (Number(a.decodeTps) || 0))
+      .map((row, index) => ({
+        ...row,
+        color: DB_COLORS[index % DB_COLORS.length],
+        shortConfig: row.configId || row.label || `run ${index + 1}`,
+        totalGiB: [row.vramGiB, row.gttGiB, row.sysGiB].filter(isNumber).reduce((sum, value) => sum + Number(value), 0)
+      }));
+
+    function renderFrontier(runs) {
+      if (!frontierChart) return;
+      const visible = runs.filter((run) => isNumber(gpuMem(run)) && isNumber(run.sizeB) && isNumber(run.tg) && isNumber(promptMetric(run)));
+      frontierVisibleRuns = visible;
+      selectedFrontierDataIndex = null;
+      renderFrontierSelection(null);
+      const promptValues = visible.map((run) => promptMetric(run));
+      frontierMaxParams = Math.max(...visible.map((run) => run.sizeB), 1);
+      frontierChart.setOption({
+        backgroundColor: "transparent",
+        animationDuration: 450,
+        grid: { top: 24, right: 112, bottom: 58, left: 68 },
+        visualMap: {
+          type: "continuous",
+          dimension: 2,
+          min: Math.min(...promptValues),
+          max: Math.max(...promptValues),
+          right: 0,
+          top: 22,
+          text: ["High prompt", "Low prompt"],
+          textStyle,
+          calculable: true,
+          itemHeight: 210,
+          inRange: {
+            color: ["#4b5563", "#38bdf8", "#22c55e", "#facc15"]
+          }
+        },
+        tooltip: {
+          trigger: "item",
+          triggerOn: "mousemove|click",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data, value }) => {
+            const row = data || {};
+            const values = Array.isArray(row.value) ? row.value : (Array.isArray(value) ? value : [row.gpu, row.decode, row.prompt, row.params]);
+            return [
+              `<strong>${row.name}</strong>`,
+              `${row.family} • ${row.sizeLabel}`,
+              `GPU memory: ${fmtMem(values[0])}`,
+              `Decode: ${fmtSpeed(values[1])}`,
+              `Prompt metric: ${fmtSpeed(values[2])}`,
+              `Parameters: ${fmt(values[3], 0)}B`,
+              `System RAM: ${fmtMem(row.ram)}`,
+              `GTT: ${fmtMem(row.gtt)}`,
+              `Memory basis: ${row.memSource}`,
+              row.kv ? `KV: ${row.kv}` : null,
+              row.runtime ? `Runtime: ${row.runtime}` : null
+            ].filter(Boolean).join("<br>");
+          }
+        },
+        dataZoom: [
+          { type: "inside", xAxisIndex: 0, filterMode: "none" },
+          { type: "inside", yAxisIndex: 0, filterMode: "none" }
+        ],
+        dataset: {
+          dimensions: ["gpu", "decode", "prompt", "params", "totalMemory"],
+          source: visible.map((run) => ({
+            name: run.short,
+            family: run.family,
+            sizeLabel: run.sizeLabel,
+            ram: run.ram,
+            gtt: run.gtt,
+            kv: run.kv,
+            runtime: run.runtime,
+            memSource: memoryBasis(run),
+            gpu: gpuMem(run),
+            decode: run.tg,
+            prompt: promptMetric(run),
+            params: run.sizeB,
+            totalMemory: totalMeasuredMem(run),
+            itemStyle: {
+              borderColor: run.color,
+              borderWidth: 2.5,
+              shadowBlur: 18,
+              shadowColor: alpha(run.color, 0.34)
+            },
+            label: {
+              show: true,
+              formatter: run.short,
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700,
+              position: "top"
+            }
+          }))
+        },
+        xAxis: {
+          type: "value",
+          min: 0,
+          max: Math.max(64, Math.ceil(Math.max(...visible.map((run) => gpuMem(run))) / 8) * 8),
+          name: "GPU memory required (GiB)",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: {
+            color: "#8ea3bb",
+            formatter: (value) => `${value}`
+          },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Decode tokens/s",
+          nameLocation: "middle",
+          nameGap: 48,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: [{
+          type: "scatter",
+          cursor: "pointer",
+          encode: { x: "gpu", y: "decode", tooltip: ["gpu", "decode", "prompt", "params"] },
+          symbolSize: (value) => frontierSymbolSize(value[3]),
+          labelLayout: { hideOverlap: true },
+          markLine: {
+            symbol: "none",
+            silent: true,
+            label: {
+              color: "#8ea3bb",
+              formatter: ({ name }) => name,
+              position: "insideEndTop"
+            },
+            lineStyle: {
+              type: "dashed",
+              color: alpha("#8ea3bb", 0.28)
+            },
+            data: [
+              { name: "24 GiB", xAxis: 24 },
+              { name: "32 GiB", xAxis: 32 },
+              { name: "48 GiB", xAxis: 48 },
+              { name: "64 GiB", xAxis: 64 }
+            ]
+          },
+          emphasis: {
+            focus: "self",
+            scale: true,
+            label: { show: true },
+            itemStyle: {
+              borderColor: "#ffffff",
+              borderWidth: 3.5
+            }
+          }
+        }]
+      });
+    }
+
+    function clearFrontierSelection() {
+      if (!frontierChart) return;
+      if (selectedFrontierDataIndex != null) {
+        frontierChart.dispatchAction({
+          type: "downplay",
+          seriesIndex: 0,
+          dataIndex: selectedFrontierDataIndex
+        });
+      }
+      selectedFrontierDataIndex = null;
+      frontierChart.dispatchAction({ type: "hideTip" });
+      renderFrontierSelection(null);
+    }
+
+    function selectFrontierRun(dataIndex) {
+      if (!frontierChart) return;
+      const run = frontierVisibleRuns[dataIndex];
+      if (!run) return;
+
+      if (selectedFrontierDataIndex != null && selectedFrontierDataIndex !== dataIndex) {
+        frontierChart.dispatchAction({
+          type: "downplay",
+          seriesIndex: 0,
+          dataIndex: selectedFrontierDataIndex
+        });
+      }
+
+      selectedFrontierDataIndex = dataIndex;
+      frontierChart.dispatchAction({
+        type: "highlight",
+        seriesIndex: 0,
+        dataIndex
+      });
+      frontierChart.dispatchAction({
+        type: "showTip",
+        seriesIndex: 0,
+        dataIndex
+      });
+      renderFrontierSelection(run);
+    }
+
+    function frontierPointAt(clientX, clientY) {
+      if (!frontierChart || !frontierVisibleRuns.length) return null;
+      const rect = frontierChart.getDom().getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      let closest = null;
+
+      frontierVisibleRuns.forEach((run, dataIndex) => {
+        const point = frontierChart.convertToPixel({ seriesIndex: 0 }, [gpuMem(run), run.tg]);
+        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
+
+        const distance = Math.hypot(point[0] - localX, point[1] - localY);
+        const hitRadius = (frontierSymbolSize(run.sizeB) / 2) + 8;
+        if (distance <= hitRadius && (!closest || distance < closest.distance)) {
+          closest = { dataIndex, distance };
+        }
+      });
+
+      return closest;
+    }
+
+    if (frontierChart) {
+      frontierChart.getDom().addEventListener("click", (event) => {
+        const hit = frontierPointAt(event.clientX, event.clientY);
+        if (!hit) {
+          clearFrontierSelection();
+          return;
+        }
+        selectFrontierRun(hit.dataIndex);
+      });
+    }
+
+    function renderEfficiency(runs) {
+      if (!efficiencyChart) return;
+      const ranked = runs
+        .filter((run) => isNumber(gpuMem(run)) && gpuMem(run) > 0)
+        .map((run) => ({ ...run, eff: run.tg / gpuMem(run) }))
+        .sort((a, b) => b.eff - a.eff)
+        .slice(0, 12);
+      efficiencyChart.setOption({
+        animationDuration: 450,
+        grid: { top: 4, right: 42, bottom: 16, left: 128 },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: (params) => {
+            const run = ranked[params[0].dataIndex];
+            return [
+              `<strong>${run.short}</strong>`,
+              `Decode / GPU GiB: ${fmt(run.eff, 2)}`,
+              `Decode: ${fmtSpeed(run.tg)}`,
+              `GPU: ${fmtMem(gpuMem(run))}`,
+              `Memory basis: ${memoryBasis(run)}`
+            ].join("<br>");
+          }
+        },
+        xAxis: {
+          type: "value",
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "category",
+          inverse: true,
+          data: ranked.map((run) => run.short),
+          axisLabel: { color: "#edf5ff", fontWeight: 700 }
+        },
+        series: [{
+          type: "bar",
+          data: ranked.map((run) => ({
+            value: run.eff,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                { offset: 0, color: run.color },
+                { offset: 1, color: alpha(run.color, 0.45) }
+              ]),
+              borderRadius: [999, 999, 999, 999]
+            }
+          })),
+          label: {
+            show: true,
+            position: "right",
+            color: "#edf5ff",
+            formatter: ({ dataIndex }) => fmt(ranked[dataIndex].eff, 2)
+          }
+        }]
+      });
+    }
+
+    function renderThroughput(runs) {
+      if (!throughputChart) return;
+      const families = [...new Set(runs.map((run) => run.family))];
+      const visible = runs.filter((run) => isNumber(run.tg) && isNumber(promptMetric(run)));
+      throughputChart.setOption({
+        animationDuration: 450,
+        legend: {
+          type: "scroll",
+          left: 10,
+          right: 10,
+          bottom: 0,
+          textStyle
+        },
+        grid: { top: 18, right: 18, bottom: 74, left: 58 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${data.name}</strong>`,
+            `${data.promptLabel}: ${fmtSpeed(data.value[0])}`,
+            `TG: ${fmtSpeed(data.value[1])}`,
+            `Size: ${data.sizeLabel}`,
+            `GPU: ${fmtMem(data.gpu)}`,
+            `Memory basis: ${data.memSource}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: "Prompt / PG tokens/s",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "TG tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: families.map((family) => ({
+          name: family,
+          type: "scatter",
+          data: visible.filter((run) => run.family === family).map((run) => ({
+            name: run.short,
+            sizeLabel: run.sizeLabel,
+            gpu: gpuMem(run),
+            memSource: memoryBasis(run),
+            promptLabel: promptMetricName(run),
+            value: [promptMetric(run), run.tg],
+            symbolSize: Math.max(14, Math.sqrt(run.sizeB) * 6),
+            itemStyle: {
+              color: run.color,
+              shadowBlur: 14,
+              shadowColor: alpha(run.color, 0.3)
+            },
+            label: {
+              show: runs.length <= 12,
+              formatter: run.short,
+              position: "top",
+              color: "#edf5ff",
+              fontWeight: 700
+            }
+          }))
+        }))
+      });
+    }
+
+    function renderTrend() {
+      if (!trendChart) return;
+      const minCurveCells = 4;
+      const minLongContext = 64000;
+      const trendSeries = SERIES
+        .map((series) => {
+          const rows = series.runs
+            .filter((run) => isNumber(run.context) && isNumber(promptMetric(run)))
+            .sort((a, b) => Number(a.context) - Number(b.context));
+          return {
+            ...series,
+            curveRuns: rows,
+            maxContext: Math.max(0, ...rows.map((run) => Number(run.context))),
+            bestPrompt: Math.max(0, ...rows.map((run) => Number(promptMetric(run))))
+          };
+        })
+        .filter((series) => series.curveRuns.length >= minCurveCells && series.maxContext >= minLongContext)
+        .sort((a, b) => b.maxContext - a.maxContext || b.curveRuns.length - a.curveRuns.length || b.bestPrompt - a.bestPrompt)
+        .slice(0, 16);
+      const sparseLongProfiles = SERIES
+        .map((series) => {
+          const rows = series.runs.filter((run) => isNumber(run.context) && isNumber(promptMetric(run)));
+          return { rows, maxContext: Math.max(0, ...rows.map((run) => Number(run.context))) };
+        })
+        .filter((series) => series.maxContext >= minLongContext && series.rows.length < minCurveCells)
+        .length;
+      const ctxLabel = (value) => value >= 1000 ? `${Math.round(Number(value) / 1024)}k` : String(value);
+      trendChart.clear();
+      trendChart.setOption({
+        animationDuration: 450,
+        title: {
+          text: `${trendSeries.length} complete curves shown • ${sparseLongProfiles} sparse long-context profiles excluded`,
+          left: 4,
+          top: 0,
+          textStyle: { ...textStyle, color: "#c9d8ea", fontSize: 12, fontWeight: 700 }
+        },
+        legend: {
+          type: "scroll",
+          top: 24,
+          textStyle
+        },
+        grid: { top: 78, right: 18, bottom: 34, left: 58 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ seriesName, data }) => {
+            const run = data?.run;
+            if (!run) return "";
+            return [
+              `<strong>${seriesName}</strong>`,
+              `${ctxLabel(run.context)} • ${promptMetricLabel(run)}: ${fmtSpeed(promptMetric(run))}`,
+              `TG: ${fmtSpeed(run.tg)}`,
+              `GPU: ${fmtMem(gpuMem(run))}`,
+              `Runtime: ${escapeHtml(run.runtime || "n/a")}`
+            ].join("<br>");
+          }
+        },
+        xAxis: {
+          type: "log",
+          logBase: 2,
+          min: 2048,
+          max: Math.max(131072, ...trendSeries.flatMap((series) => series.curveRuns.map((run) => Number(run.context)))),
+          axisLabel: { color: "#8ea3bb", formatter: ctxLabel },
+          splitLine: { show: true, lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Prompt / PG tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        graphic: trendSeries.length ? [] : [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "No complete long-context curves match the current data.",
+            fill: "#c9d8ea",
+            font: "700 14px Space Grotesk, sans-serif"
+          }
+        }],
+        series: trendSeries.map((series) => ({
+          name: series.short,
+          type: "line",
+          smooth: false,
+          symbol: "circle",
+          symbolSize: 7,
+          lineStyle: { width: 2.5, color: series.color },
+          itemStyle: { color: series.color },
+          emphasis: { focus: "series" },
+          data: series.curveRuns.map((run) => ({
+            value: [Number(run.context), Number(promptMetric(run))],
+            run
+          }))
+        }))
+      });
+    }
+
+    function renderLab() {
+      if (!labChart) return;
+      if (MTP_SERVER_RESULTS.length) {
+        const rows = MTP_SERVER_RESULTS.slice(0, 18);
+        labChart.clear();
+        labChart.setOption({
+          animationDuration: 450,
+          legend: {
+            bottom: 0,
+            textStyle
+          },
+          grid: { top: 22, right: 56, bottom: 82, left: 58 },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            backgroundColor: "rgba(5, 10, 16, 0.95)",
+            borderColor: alpha("#39d0ff", 0.2),
+            textStyle,
+            formatter: (params) => {
+              const row = rows[params[0].dataIndex];
+              return [
+                `<strong>${escapeHtml(row.shortConfig)}</strong>`,
+                `${escapeHtml(row.modelName || "model n/a")}`,
+                `Decode: ${fmtSpeed(row.decodeTps)}`,
+                `Prompt: ${fmtSpeed(row.promptTps)}`,
+                `Avg total: ${isNumber(row.avgTotalMs) ? `${fmt(row.avgTotalMs, 0)} ms` : "n/a"}`,
+                `Acceptance: ${isNumber(row.acceptRate) ? `${fmt(row.acceptRate * 100, 1)}%` : "n/a"}`,
+                `Memory: ${fmtMem(row.totalGiB)}`
+              ].join("<br>");
+            }
+          },
+          xAxis: {
+            type: "category",
+            data: rows.map((row) => row.shortConfig.replace(/^mtp-/, "")),
+            axisLabel: { color: "#8ea3bb", interval: 0, rotate: 32, width: 86, overflow: "truncate" },
+            axisTick: { alignWithLabel: true }
+          },
+          yAxis: [
+            {
+              type: "value",
+              name: "Decode t/s",
+              nameTextStyle: textStyle,
+              axisLabel: { color: "#8ea3bb" },
+              splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+            },
+            {
+              type: "value",
+              name: "Acceptance",
+              min: 0,
+              max: 1,
+              nameTextStyle: textStyle,
+              axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` },
+              splitLine: { show: false }
+            }
+          ],
+          series: [
+            {
+              name: "Decode t/s",
+              type: "bar",
+              data: rows.map((row) => ({
+                value: row.decodeTps,
+                itemStyle: {
+                  color: new echarts.graphic.LinearGradient(0, 1, 0, 0, [
+                    { offset: 0, color: alpha(row.color, 0.52) },
+                    { offset: 1, color: row.color }
+                  ]),
+                  borderRadius: [6, 6, 0, 0]
+                }
+              }))
+            },
+            {
+              name: "Acceptance",
+              type: "line",
+              yAxisIndex: 1,
+              data: rows.map((row) => isNumber(row.acceptRate) ? row.acceptRate : null),
+              connectNulls: false,
+              symbolSize: 8,
+              lineStyle: { width: 2, color: "#20d1a2" },
+              itemStyle: { color: "#20d1a2", borderColor: "#ffffff", borderWidth: 1 }
+            }
+          ]
+        });
+        return;
+      }
+      labChart.setOption({
+        animationDuration: 450,
+        grid: { top: 18, right: 20, bottom: 46, left: 58 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.2),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${data.model}</strong>`,
+            data.variant,
+            `Prompt / PP: ${fmtSpeed(data.value[0])}`,
+            `Decode: ${fmtSpeed(data.value[1])}`,
+            `GPU: ${fmtMem(data.gpu)}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: "Prompt / PP tokens/s",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Decode tokens/s",
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.12) } }
+        },
+        series: [{
+          type: "scatter",
+          data: LAB_RESULTS.map((run) => ({
+            model: run.model,
+            variant: run.variant,
+            gpu: run.gpu,
+            value: [run.pp, run.tg],
+            symbolSize: Math.max(18, Math.sqrt(run.gpu) * 7),
+            itemStyle: {
+              color: run.color,
+              borderColor: alpha("#ffffff", 0.7),
+              borderWidth: 1.2,
+              shadowBlur: 16,
+              shadowColor: alpha(run.color, 0.34)
+            },
+            label: {
+              show: true,
+              formatter: run.variant,
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700,
+              position: "top"
+            }
+          })),
+          labelLayout: { hideOverlap: true },
+          emphasis: { focus: "self", scale: true }
+        }]
+      });
+    }
+
+    function render() {
+      const runs = runsAtContext(activeContext);
+      setKpis(runs);
+      renderFrontier(runs);
+      renderEfficiency(runs);
+      renderThroughput(runs);
+      renderTrend();
+      renderModelBrowser();
+      renderLab();
+    }
+
+    [modelSearch, modelSort, modelTier].filter(Boolean).forEach((control) => {
+      control.addEventListener("input", renderModelBrowser);
+      control.addEventListener("change", renderModelBrowser);
+    });
+
+    render();
+
+    window.addEventListener("resize", () => {
+      [frontierChart, efficiencyChart, throughputChart, trendChart, labChart]
+        .filter(Boolean)
+        .forEach((chart) => chart.resize());
+    });
+  </script>
+</body>
+</html>
