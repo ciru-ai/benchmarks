@@ -681,13 +681,19 @@
       padding-top: 10px;
     }
 
-    .source-details h4 {
-      margin: 0 0 10px;
+    .source-details summary {
+      width: max-content;
+      max-width: 100%;
+      cursor: pointer;
       color: #c9d8ea;
       font-size: 0.82rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .source-details[open] summary {
+      margin-bottom: 10px;
     }
 
     .source-details .context-strip {
@@ -1308,6 +1314,7 @@
     let profiles = [];
     let atlasRows = [];
     let selectedProfile = null;
+    let inspectorDetailsOpen = true;
     const chartRefs = [];
 
     const $ = (id) => document.getElementById(id);
@@ -1573,8 +1580,8 @@
             `).join("")}
           </div>
         </div>
-        <div class="source-details">
-          <h4>Measured Context Cells and Run Details</h4>
+        <details class="source-details" ${inspectorDetailsOpen ? "open" : ""}>
+          <summary>Measured Context Cells and Run Details</summary>
           <div class="context-strip" aria-label="Measured context cells">
             ${BAND_KEYS.map((band) => {
               const row = cellMetric(profile.cells[band], "context");
@@ -1600,8 +1607,14 @@
               </div>
             `).join("")}
           </div>
-        </div>
+        </details>
       `;
+      const details = el.querySelector(".source-details");
+      if (details) {
+        details.addEventListener("toggle", () => {
+          inspectorDetailsOpen = details.open;
+        });
+      }
     }
 
     function chart(id) {
