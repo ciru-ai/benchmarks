@@ -374,6 +374,10 @@
       gap: 12px;
     }
 
+    .chart-grid .wide-panel {
+      grid-column: 1 / -1;
+    }
+
     .control-row {
       display: grid;
       grid-template-columns: minmax(220px, 1.25fr) repeat(4, minmax(140px, 0.5fr));
@@ -606,10 +610,14 @@
       display: grid;
       grid-template-columns: repeat(8, minmax(76px, 1fr));
       gap: 8px;
+      min-height: 96px;
     }
 
     .context-cell {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
       min-width: 0;
+      min-height: 84px;
       padding: 8px 9px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius);
@@ -637,14 +645,19 @@
       margin-top: 2px;
       color: var(--subtle);
       font-size: 0.7rem;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
     }
 
     .mini-list {
       display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+      min-height: 176px;
     }
 
     .mini-row {
+      min-height: 84px;
       padding: 9px 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius);
@@ -668,17 +681,13 @@
       padding-top: 10px;
     }
 
-    .source-details summary {
-      width: max-content;
-      max-width: 100%;
-      cursor: pointer;
+    .source-details h4 {
+      margin: 0 0 10px;
       color: #c9d8ea;
       font-size: 0.82rem;
       font-weight: 700;
-    }
-
-    .source-details[open] summary {
-      margin-bottom: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .source-details .context-strip {
@@ -878,6 +887,10 @@
       .context-strip {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
+
+      .mini-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 720px) {
@@ -906,6 +919,10 @@
 
       .context-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .mini-list {
+        grid-template-columns: 1fr;
       }
 
       .badge-card {
@@ -943,13 +960,54 @@
     </header>
 
     <nav class="nav" aria-label="Page sections">
-      <a href="#atlas">Atlas</a>
       <a href="#frontier">Frontier</a>
+      <a href="#atlas">Atlas</a>
       <a href="#server">Serving Lab</a>
       <a href="#quality">Quality</a>
       <a href="#races">Races</a>
       <a href="#notes">Notes</a>
     </nav>
+
+    <section class="section chart-grid" id="frontier">
+      <article class="panel wide-panel">
+        <div class="panel-head">
+          <div>
+            <h2>VRAM / Speed Frontier</h2>
+            <p>GPU memory on x, standalone decode on y, and selected context speed as color.</p>
+          </div>
+          <label class="field" style="max-width:170px">
+            <span>Context</span>
+            <select id="frontierContext">
+              <option value="32k">32k</option>
+              <option value="64k">64k</option>
+              <option value="128k">128k</option>
+              <option value="4k">4k</option>
+            </select>
+          </label>
+        </div>
+        <div id="frontierChart" class="chart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Prompt / Prefill vs Decode</h2>
+            <p>Context-side prompt processing on x and standalone decode on y, grouped by model family.</p>
+          </div>
+        </div>
+        <div id="throughputChart" class="chart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Context Curves</h2>
+            <p>Only models with at least four measured context points and one 64k+ result are drawn, so the lines represent real scaling behavior rather than one-off tests.</p>
+          </div>
+        </div>
+        <div id="curveChart" class="chart"></div>
+      </article>
+    </section>
 
     <section class="section atlas-section" id="atlas">
       <article class="panel atlas-panel">
@@ -1025,37 +1083,6 @@
             <tbody id="atlasBody"></tbody>
           </table>
         </div>
-      </article>
-    </section>
-
-    <section class="section chart-grid" id="frontier">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>VRAM / Speed Frontier</h2>
-            <p>GPU memory on x, standalone decode on y, and selected context speed as color.</p>
-          </div>
-          <label class="field" style="max-width:170px">
-            <span>Context</span>
-            <select id="frontierContext">
-              <option value="32k">32k</option>
-              <option value="64k">64k</option>
-              <option value="128k">128k</option>
-              <option value="4k">4k</option>
-            </select>
-          </label>
-        </div>
-        <div id="frontierChart" class="chart"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Context Curves</h2>
-            <p>Only models with at least four measured context points and one 64k+ result are drawn, so the lines represent real scaling behavior rather than one-off tests.</p>
-          </div>
-        </div>
-        <div id="curveChart" class="chart"></div>
       </article>
     </section>
 
@@ -1514,6 +1541,7 @@
         .sort((a, b) => Number(b.row.tps) - Number(a.row.tps))[0] || null;
       const rowSource = (row) => row ? (row.label || `measurement ${row.seq}`) : "";
       const sourceRows = profile.rows.slice().sort((a, b) => b.seq - a.seq).slice(0, 6);
+      while (sourceRows.length < 6) sourceRows.push(null);
       const metricCards = [
         ["Decode", profile.tg ? speed(profile.tg.tps) : "No TG row", profile.tg ? "standalone TG" : "not recorded"],
         ["Best context", bestMeasured ? `${bestMeasured.band} ${speed(bestMeasured.row.tps)}` : "No context row", bestMeasured ? `${bestMeasured.row.mode.toUpperCase()} measurement` : "not recorded"],
@@ -1545,8 +1573,8 @@
             `).join("")}
           </div>
         </div>
-        <details class="source-details">
-          <summary>Measured context cells and run details</summary>
+        <div class="source-details">
+          <h4>Measured Context Cells and Run Details</h4>
           <div class="context-strip" aria-label="Measured context cells">
             ${BAND_KEYS.map((band) => {
               const row = cellMetric(profile.cells[band], "context");
@@ -1560,14 +1588,19 @@
             }).join("")}
           </div>
           <div class="mini-list">
-            ${sourceRows.map((row) => `
+            ${sourceRows.map((row) => row ? `
               <div class="mini-row">
                 <strong>${row.mode?.toUpperCase() || "row"} ${row.ctx ? intFmt(row.ctx) : "standalone"} • ${speed(row.tps)}</strong>
                 <small>${latestDate(row.timestamp)} • ${escapeHtml(row.label || `measurement ${row.seq}`)}</small>
               </div>
+            ` : `
+              <div class="mini-row">
+                <strong>No additional row</strong>
+                <small>Fewer source measurements are available for this profile.</small>
+              </div>
             `).join("")}
           </div>
-        </details>
+        </div>
       `;
     }
 
@@ -1583,6 +1616,7 @@
     }
 
     const frontierChart = chart("frontierChart");
+    const throughputChart = chart("throughputChart");
     const curveChart = chart("curveChart");
     const serverChart = chart("serverChart");
     const qualityChart = chart("qualityChart");
@@ -1591,6 +1625,7 @@
 
     function renderCharts() {
       renderFrontierChart();
+      renderThroughputChart();
       renderCurveChart();
     }
 
@@ -1679,6 +1714,113 @@
           labelLayout: { hideOverlap: true },
           emphasis: { focus: "self", scale: true }
         }]
+      });
+    }
+
+    function renderThroughputChart() {
+      if (!throughputChart) return;
+      const band = $("frontierContext").value;
+      const rows = profiles.map((profile) => {
+        const contextRow = cellMetric(profile.cells[band], "context");
+        return {
+          profile,
+          contextRow,
+          tg: profile.tg,
+          mem: profile.memory?.vramGiB
+        };
+      }).filter((item) => item.contextRow && item.tg && isNum(item.contextRow.tps) && isNum(item.tg.tps));
+      const families = [...new Set(rows.map((item) => item.profile.family || "Other"))].sort();
+      throughputChart.clear();
+      throughputChart.setOption({
+        backgroundColor: "transparent",
+        legend: {
+          type: "scroll",
+          left: 10,
+          right: 10,
+          bottom: 0,
+          textStyle
+        },
+        grid: { top: 20, right: 24, bottom: 78, left: 64 },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5, 10, 16, 0.95)",
+          borderColor: alpha("#39d0ff", 0.25),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${escapeHtml(data.name)}</strong>`,
+            `${escapeHtml(data.family)} • ${escapeHtml(data.backend || "n/a")}`,
+            `${escapeHtml(data.promptLabel)}: ${speed(data.value[0])}`,
+            `Standalone TG: ${speed(data.value[1])}`,
+            `Memory: ${mem(data.mem)}`,
+            `KV: ${escapeHtml(data.kv || "n/a")}`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: `${band} prompt / prefill t/s`,
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Standalone TG t/s",
+          nameLocation: "middle",
+          nameGap: 44,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        graphic: rows.length ? [] : [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: `No ${band} prompt/decode pairs match the selected result set.`,
+            fill: "#c9d8ea",
+            font: "700 14px Inter, sans-serif"
+          }
+        }],
+        series: families.map((family) => ({
+          name: family,
+          type: "scatter",
+          data: rows.filter((item) => (item.profile.family || "Other") === family).map((item) => ({
+            name: item.profile.name,
+            family: item.profile.family || "Other",
+            backend: item.profile.backend,
+            kv: item.profile.kv,
+            mem: item.mem,
+            promptLabel: item.contextRow.mode === "pg" ? "PG combined prompt+generation" : "PP prompt processing",
+            value: [item.contextRow.tps, item.tg.tps],
+            profileKey: item.profile.key,
+            symbolSize: Math.max(9, Math.min(28, 8 + Math.sqrt(item.mem || 4) * 2.2)),
+            itemStyle: {
+              color: item.profile.color,
+              shadowBlur: 12,
+              shadowColor: alpha(item.profile.color, 0.28)
+            },
+            label: {
+              show: rows.length <= 16,
+              formatter: item.profile.name.slice(0, 24),
+              position: "top",
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700
+            }
+          })),
+          labelLayout: { hideOverlap: true },
+          emphasis: { focus: "series", scale: true }
+        }))
+      });
+      throughputChart.off("click");
+      throughputChart.on("click", (params) => {
+        const key = params.data?.profileKey;
+        if (!key) return;
+        selectedProfile = key;
+        renderInspector();
+        renderAtlas();
       });
     }
 
