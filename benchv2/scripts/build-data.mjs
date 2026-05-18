@@ -317,6 +317,34 @@ def summarize_aux_eval():
         by_run[row.get("run_id") or "unknown"] += 1
     candidates = []
     categories = []
+    def infrastructure_invalid(row):
+        error = str(row.get("error") or "").lower()
+        failures = " ".join(str(x).lower() for x in (row.get("failures") or []))
+        text = f"{error} {failures}"
+        infra_needles = (
+            "timed out", "timeout", "server", "harness", "config", "launch",
+            "connection", "refused", "oom", "out of memory", "no slot",
+            "failed to load", "not loaded", "vulkan device", "compiled without"
+        )
+        if any(needle in text for needle in infra_needles):
+            return True
+        if row.get("error") and (row.get("total_ms") is None or row.get("ttfp_ms") is None or row.get("output_chars") in (None, 0)):
+            return True
+        return False
+
+    def invalid_reason(row):
+        if row.get("error"):
+            return str(row.get("error"))
+        for failure in row.get("failures") or []:
+            low = str(failure).lower()
+            if "timed out" in low or "timeout" in low:
+                return "timed out"
+            if "config" in low:
+                return "config"
+            if "harness" in low:
+                return "harness"
+        return "infrastructure"
+
     for candidate, group in sorted(by_candidate.items()):
         scores = [r.get("score") for r in group]
         total_ms = [r.get("total_ms") for r in group]
@@ -329,11 +357,20 @@ def summarize_aux_eval():
                 failures[str(failure).split(":")[0]] += 1
         cat_summary = {}
         for cat, crs in cats.items():
+            invalid = [r for r in crs if infrastructure_invalid(r)]
+            scored = [r for r in crs if not infrastructure_invalid(r)]
+            invalid_reasons = collections.Counter(invalid_reason(r) for r in invalid)
             cat_summary[cat] = {
                 "rows": len(crs),
                 "passRate": round(sum(1 for r in crs if r.get("pass")) / len(crs), 3) if crs else None,
                 "avgScore": mean([r.get("score") for r in crs]),
                 "avgTotalMs": mean([r.get("total_ms") for r in crs]),
+                "scoredRows": len(scored),
+                "invalidRows": len(invalid),
+                "adjustedPassRate": round(sum(1 for r in scored if r.get("pass")) / len(scored), 3) if scored else None,
+                "adjustedAvgScore": mean([r.get("score") for r in scored]),
+                "adjustedAvgTotalMs": mean([r.get("total_ms") for r in scored]),
+                "invalidReasons": [{"reason": k, "count": v} for k, v in invalid_reasons.most_common(5)],
             }
             categories.append({
                 "candidate": candidate,

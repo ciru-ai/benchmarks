@@ -236,8 +236,10 @@ Rules:
 - Present it as coding quality, not raw throughput.
 - Make clear that these are code review security tasks from the Hermes aux benchmark suite.
 - Show correctness and latency together: pass rate, average score, average task time, and coverage.
+- Exclude harness/config invalid rows from model scoring. The data builder marks these with `invalidRows`, `scoredRows`, and adjusted metrics on the category summary.
+- Keep raw coverage visible so readers can see that excluded rows existed.
 - Use candidate/family labels, not server paths.
-- Keep the ranking table sorted by pass rate, then score, then latency.
+- Keep the ranking table sorted by adjusted pass rate, then adjusted score, then adjusted latency.
 - If future benchmark categories are added for bug fixing, repo edits, test writing, or code generation, either extend `codingQualityRows()` to include those suites or add a generated `codingQuality` object in `build-data.mjs`.
 
 ### Race Gallery

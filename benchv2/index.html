@@ -1271,7 +1271,7 @@
         <div class="panel-head">
           <div>
             <h2>Coding Quality Lab</h2>
-            <p>Code review security tasks from the Hermes auxiliary model suite. This is a correctness-first view: it shows which local candidates can find actionable code issues while staying responsive enough to use as helper models.</p>
+            <p>Code review security tasks from the Hermes auxiliary model suite. Harness or launch/config invalid rows are excluded from model scoring and shown as excluded coverage.</p>
           </div>
         </div>
         <div class="coding-summary" id="codingSummary"></div>
@@ -1282,7 +1282,7 @@
         <div class="panel-head">
           <div>
             <h2>Code Review Ranking</h2>
-            <p>Ranked by pass rate, then score, then latency. Coverage shows how many code-review tasks support each row.</p>
+            <p>Ranked by adjusted pass rate, then score, then latency. Coverage shows scored code-review tasks separately from harness/config rows.</p>
           </div>
         </div>
         <div class="table-wrap" style="max-height:600px">
@@ -2179,9 +2179,15 @@
             modelName: row.modelName,
             family: candidateFamily(row),
             rows: code.rows,
-            passRate: code.passRate,
-            avgScore: code.avgScore,
-            avgTotalMs: code.avgTotalMs,
+            scoredRows: code.scoredRows ?? Math.max(0, (code.rows || 0) - (code.invalidRows || 0)),
+            invalidRows: code.invalidRows || 0,
+            invalidReasons: code.invalidReasons || [],
+            rawPassRate: code.passRate,
+            passRate: code.adjustedPassRate ?? code.passRate,
+            avgScore: code.adjustedAvgScore ?? code.avgScore,
+            avgTotalMs: code.adjustedAvgTotalMs ?? code.avgTotalMs,
+            rawAvgScore: code.avgScore,
+            rawAvgTotalMs: code.avgTotalMs,
             p95TotalMs: row.p95TotalMs,
             avgTtfpMs: row.avgTtfpMs,
             sizeClass: row.sizeClass,
@@ -2190,22 +2196,32 @@
           } : null;
         })
         .filter(Boolean)
-        .sort((a, b) => (b.passRate - a.passRate) || (b.avgScore - a.avgScore) || (a.avgTotalMs - b.avgTotalMs));
+        .sort((a, b) => (
+          (Number(b.scoredRows > 0) - Number(a.scoredRows > 0)) ||
+          ((b.passRate ?? -1) - (a.passRate ?? -1)) ||
+          ((b.avgScore ?? -1) - (a.avgScore ?? -1)) ||
+          ((a.avgTotalMs ?? Infinity) - (b.avgTotalMs ?? Infinity))
+        ));
     }
 
     function renderCodingQuality() {
       const rows = codingQualityRows();
       const totalTasks = rows.reduce((sum, row) => sum + (row.rows || 0), 0);
-      const bestPass = rows[0] || null;
-      const bestScore = rows.slice().sort((a, b) => (b.avgScore - a.avgScore) || (b.passRate - a.passRate) || (a.avgTotalMs - b.avgTotalMs))[0] || null;
-      const reliable = rows.filter((row) => Number(row.passRate) >= 0.5);
+      const scoredTasks = rows.reduce((sum, row) => sum + (row.scoredRows || 0), 0);
+      const invalidTasks = rows.reduce((sum, row) => sum + (row.invalidRows || 0), 0);
+      const scoredRows = rows.filter((row) => row.scoredRows > 0);
+      const summaryRows = scoredRows.some((row) => row.scoredRows >= 3) ? scoredRows.filter((row) => row.scoredRows >= 3) : scoredRows;
+      const bestPass = summaryRows[0] || null;
+      const bestScore = summaryRows.slice().sort((a, b) => ((b.avgScore ?? -1) - (a.avgScore ?? -1)) || ((b.passRate ?? -1) - (a.passRate ?? -1)) || ((a.avgTotalMs ?? Infinity) - (b.avgTotalMs ?? Infinity)))[0] || null;
+      const reliable = summaryRows.filter((row) => Number(row.passRate) >= 0.5);
       const fastestReliable = reliable.slice().sort((a, b) => (a.avgTotalMs - b.avgTotalMs) || (b.passRate - a.passRate))[0] || null;
       const familyCount = new Set(rows.map((row) => row.family)).size;
 
       $("codingSummary").innerHTML = [
-        ["Suite", "Code review security", `${intFmt(totalTasks)} task rows across ${intFmt(rows.length)} candidates`],
-        ["Best pass rate", bestPass ? `${escapeHtml(bestPass.candidate)} • ${pct(bestPass.passRate)}` : "n/a", bestPass ? `${fmt(bestPass.avgScore, 2)} score • ${ms(bestPass.avgTotalMs)}` : "No coding rows"],
-        ["Best score", bestScore ? `${escapeHtml(bestScore.candidate)} • ${fmt(bestScore.avgScore, 2)}` : "n/a", bestScore ? `${pct(bestScore.passRate)} pass • ${intFmt(bestScore.rows)} rows` : "No coding rows"],
+        ["Suite", "Code review security", `${intFmt(scoredTasks)} scored / ${intFmt(totalTasks)} raw task rows`],
+        ["Excluded", `${intFmt(invalidTasks)} harness/config rows`, "Timeouts or launch/config failures are not scored as model misses"],
+        ["Best pass rate", bestPass ? `${escapeHtml(bestPass.candidate)} • ${pct(bestPass.passRate)}` : "n/a", bestPass ? `${fmt(bestPass.avgScore, 2)} score • ${intFmt(bestPass.scoredRows)} scored rows` : "No scored coding rows"],
+        ["Best score", bestScore ? `${escapeHtml(bestScore.candidate)} • ${fmt(bestScore.avgScore, 2)}` : "n/a", bestScore ? `${pct(bestScore.passRate)} pass • ${intFmt(bestScore.scoredRows)} scored rows` : "No scored coding rows"],
         ["Fast reliable", fastestReliable ? `${escapeHtml(fastestReliable.candidate)} • ${ms(fastestReliable.avgTotalMs)}` : "n/a", fastestReliable ? `${pct(fastestReliable.passRate)} pass • ${escapeHtml(fastestReliable.family)}` : `${familyCount} families measured`]
       ].map(([label, value, note]) => `
         <div class="coding-card">
@@ -2218,15 +2234,16 @@
       $("codingBody").innerHTML = rows.map((row) => `
         <tr>
           <td class="profile-cell"><strong>${escapeHtml(row.candidate)}</strong><small>${escapeHtml(row.modelName || row.family)}${row.kv ? ` • KV ${escapeHtml(row.kv)}` : ""}</small></td>
-          <td>${pct(row.passRate)}</td>
+          <td>${row.scoredRows ? pct(row.passRate) : "not scored"}<small class="muted">${row.invalidRows ? `raw ${pct(row.rawPassRate)}` : "adjusted"}</small></td>
           <td>${fmt(row.avgScore, 2)}</td>
-          <td>${ms(row.avgTotalMs)}<small class="muted">p95 all aux ${ms(row.p95TotalMs)}</small></td>
-          <td>${intFmt(row.rows)} code tasks<small class="muted">${escapeHtml(row.family)}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}</small></td>
+          <td>${ms(row.avgTotalMs)}<small class="muted">${row.invalidRows ? `raw ${ms(row.rawAvgTotalMs)}` : `p95 all aux ${ms(row.p95TotalMs)}`}</small></td>
+          <td>${intFmt(row.scoredRows)} scored / ${intFmt(row.rows)} raw<small class="muted">${row.invalidRows ? `${intFmt(row.invalidRows)} excluded: ${escapeHtml(row.invalidReasons.map((item) => `${item.reason} x${item.count}`).join(", "))}` : `${escapeHtml(row.family)}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}`}</small></td>
         </tr>
       `).join("");
 
       if (!codingChart) return;
-      const families = [...new Set(rows.map((row) => row.family))].sort();
+      const chartRows = scoredRows;
+      const families = [...new Set(chartRows.map((row) => row.family))].sort();
       codingChart.clear();
       codingChart.setOption({
         grid: { top: 24, right: 24, bottom: 58, left: 58 },
@@ -2242,7 +2259,8 @@
             `Code review pass: ${pct(data.value[1])}`,
             `Code review score: ${fmt(data.score, 2)}`,
             `Avg total: ${ms(data.value[0])}`,
-            `Coverage: ${intFmt(data.rows)} tasks`
+            `Coverage: ${intFmt(data.rows)} scored / ${intFmt(data.rawRows)} raw tasks`,
+            data.invalidRows ? `Excluded harness/config rows: ${intFmt(data.invalidRows)}` : "No harness/config exclusions"
           ].join("<br>")
         },
         xAxis: {
@@ -2262,7 +2280,7 @@
           axisLabel: { color: "#8ea3bb", formatter: (v) => `${Math.round(v * 100)}%` },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
         },
-        graphic: rows.length ? [] : [{
+        graphic: chartRows.length ? [] : [{
           type: "text",
           left: "center",
           top: "middle",
@@ -2275,12 +2293,14 @@
         series: families.map((family, familyIndex) => ({
           name: family,
           type: "scatter",
-          data: rows.filter((row) => row.family === family).map((row) => ({
+          data: chartRows.filter((row) => row.family === family).map((row) => ({
             name: row.candidate,
             family: row.family,
             modelName: row.modelName,
             score: row.avgScore,
-            rows: row.rows,
+            rows: row.scoredRows,
+            rawRows: row.rows,
+            invalidRows: row.invalidRows,
             value: [row.avgTotalMs, row.passRate],
             symbolSize: Math.max(9, Math.min(25, 7 + Math.sqrt(row.rows || 0) * 3)),
             itemStyle: {
