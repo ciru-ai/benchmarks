@@ -223,6 +223,23 @@ Messaging:
 - Loadouts test Hermes main and auxiliary models together as a routing plan.
 - Explain that an agent loadout must be correct, responsive at p95, and small enough to coexist in memory beside the main model.
 
+### Coding Quality Lab
+
+Function: `renderCodingQuality()`
+
+Data: `DATA.auxEval.candidates[*].categories.code_review`
+
+This section appears toward the bottom of v2, after the race gallery and before method notes. It is currently based on the `code_review` / security-review task family in the Hermes auxiliary model suite.
+
+Rules:
+
+- Present it as coding quality, not raw throughput.
+- Make clear that these are code review security tasks from the Hermes aux benchmark suite.
+- Show correctness and latency together: pass rate, average score, average task time, and coverage.
+- Use candidate/family labels, not server paths.
+- Keep the ranking table sorted by pass rate, then score, then latency.
+- If future benchmark categories are added for bug fixing, repo edits, test writing, or code generation, either extend `codingQualityRows()` to include those suites or add a generated `codingQuality` object in `build-data.mjs`.
+
 ### Race Gallery
 
 Functions/data:

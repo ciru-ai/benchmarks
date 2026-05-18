@@ -724,6 +724,55 @@
       gap: 12px;
     }
 
+    .coding-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+      gap: 12px;
+    }
+
+    .coding-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .coding-card {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(57, 208, 255, 0.08), transparent 76%),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .coding-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .coding-card strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .coding-card small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
     .race-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -872,6 +921,7 @@
       .hero,
       .two-col,
       .lab-grid,
+      .coding-grid,
       .chart-grid {
         grid-template-columns: 1fr;
       }
@@ -882,6 +932,10 @@
       }
 
       .control-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .coding-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -918,6 +972,7 @@
       .race-grid,
       .note-grid,
       .control-row,
+      .coding-summary,
       .selected-top,
       .inspector-grid {
         grid-template-columns: 1fr;
@@ -972,6 +1027,7 @@
       <a href="#server">Serving Lab</a>
       <a href="#quality">Quality</a>
       <a href="#races">Races</a>
+      <a href="#coding">Coding</a>
       <a href="#notes">Notes</a>
     </nav>
 
@@ -1206,6 +1262,42 @@
         </div>
         <div class="panel-pad">
           <div class="race-grid" id="raceGrid"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="section coding-grid" id="coding">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Coding Quality Lab</h2>
+            <p>Code review security tasks from the Hermes auxiliary model suite. This is a correctness-first view: it shows which local candidates can find actionable code issues while staying responsive enough to use as helper models.</p>
+          </div>
+        </div>
+        <div class="coding-summary" id="codingSummary"></div>
+        <div id="codingChart" class="chart short"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Code Review Ranking</h2>
+            <p>Ranked by pass rate, then score, then latency. Coverage shows how many code-review tasks support each row.</p>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:600px">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Pass</th>
+                <th>Score</th>
+                <th>Total</th>
+                <th>Coverage</th>
+              </tr>
+            </thead>
+            <tbody id="codingBody"></tbody>
+          </table>
         </div>
       </article>
     </section>
@@ -1635,6 +1727,7 @@
     const serverChart = chart("serverChart");
     const qualityChart = chart("qualityChart");
     const loadoutChart = chart("loadoutChart");
+    const codingChart = chart("codingChart");
     const textStyle = { color: "#edf5ff", fontFamily: "Space Grotesk, sans-serif" };
 
     function renderCharts() {
@@ -2063,6 +2156,153 @@
       }
     }
 
+    function candidateFamily(row) {
+      const text = `${row.modelName || ""} ${row.candidate || ""}`.toLowerCase();
+      if (text.includes("qwen3.6") || text.includes("qwen36") || text.includes("crown") || text.includes("mxfp")) return "Qwen3.6";
+      if (text.includes("qwen")) return "Qwen";
+      if (text.includes("gemma")) return "Gemma";
+      if (text.includes("qwopus")) return "Qwopus";
+      if (text.includes("gestalt")) return "Gestalt";
+      if (text.includes("ornstein")) return "Ornstein";
+      if (text.includes("llama")) return "Llama";
+      if (text.includes("phi")) return "Phi";
+      if (text.includes("medpsy")) return "MedPsy";
+      return "Other";
+    }
+
+    function codingQualityRows() {
+      return DATA.auxEval.candidates
+        .map((row) => {
+          const code = row.categories?.code_review;
+          return code ? {
+            candidate: row.candidate,
+            modelName: row.modelName,
+            family: candidateFamily(row),
+            rows: code.rows,
+            passRate: code.passRate,
+            avgScore: code.avgScore,
+            avgTotalMs: code.avgTotalMs,
+            p95TotalMs: row.p95TotalMs,
+            avgTtfpMs: row.avgTtfpMs,
+            sizeClass: row.sizeClass,
+            kv: row.kv,
+            ctx: row.ctx
+          } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => (b.passRate - a.passRate) || (b.avgScore - a.avgScore) || (a.avgTotalMs - b.avgTotalMs));
+    }
+
+    function renderCodingQuality() {
+      const rows = codingQualityRows();
+      const totalTasks = rows.reduce((sum, row) => sum + (row.rows || 0), 0);
+      const bestPass = rows[0] || null;
+      const bestScore = rows.slice().sort((a, b) => (b.avgScore - a.avgScore) || (b.passRate - a.passRate) || (a.avgTotalMs - b.avgTotalMs))[0] || null;
+      const reliable = rows.filter((row) => Number(row.passRate) >= 0.5);
+      const fastestReliable = reliable.slice().sort((a, b) => (a.avgTotalMs - b.avgTotalMs) || (b.passRate - a.passRate))[0] || null;
+      const familyCount = new Set(rows.map((row) => row.family)).size;
+
+      $("codingSummary").innerHTML = [
+        ["Suite", "Code review security", `${intFmt(totalTasks)} task rows across ${intFmt(rows.length)} candidates`],
+        ["Best pass rate", bestPass ? `${escapeHtml(bestPass.candidate)} • ${pct(bestPass.passRate)}` : "n/a", bestPass ? `${fmt(bestPass.avgScore, 2)} score • ${ms(bestPass.avgTotalMs)}` : "No coding rows"],
+        ["Best score", bestScore ? `${escapeHtml(bestScore.candidate)} • ${fmt(bestScore.avgScore, 2)}` : "n/a", bestScore ? `${pct(bestScore.passRate)} pass • ${intFmt(bestScore.rows)} rows` : "No coding rows"],
+        ["Fast reliable", fastestReliable ? `${escapeHtml(fastestReliable.candidate)} • ${ms(fastestReliable.avgTotalMs)}` : "n/a", fastestReliable ? `${pct(fastestReliable.passRate)} pass • ${escapeHtml(fastestReliable.family)}` : `${familyCount} families measured`]
+      ].map(([label, value, note]) => `
+        <div class="coding-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${value}</strong>
+          <small>${escapeHtml(note)}</small>
+        </div>
+      `).join("");
+
+      $("codingBody").innerHTML = rows.map((row) => `
+        <tr>
+          <td class="profile-cell"><strong>${escapeHtml(row.candidate)}</strong><small>${escapeHtml(row.modelName || row.family)}${row.kv ? ` • KV ${escapeHtml(row.kv)}` : ""}</small></td>
+          <td>${pct(row.passRate)}</td>
+          <td>${fmt(row.avgScore, 2)}</td>
+          <td>${ms(row.avgTotalMs)}<small class="muted">p95 all aux ${ms(row.p95TotalMs)}</small></td>
+          <td>${intFmt(row.rows)} code tasks<small class="muted">${escapeHtml(row.family)}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}</small></td>
+        </tr>
+      `).join("");
+
+      if (!codingChart) return;
+      const families = [...new Set(rows.map((row) => row.family))].sort();
+      codingChart.clear();
+      codingChart.setOption({
+        grid: { top: 24, right: 24, bottom: 58, left: 58 },
+        legend: { type: "scroll", bottom: 0, textStyle },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5,10,16,.95)",
+          borderColor: alpha("#39d0ff", 0.24),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${escapeHtml(data.name)}</strong>`,
+            `${escapeHtml(data.family)} • ${escapeHtml(data.modelName || "")}`,
+            `Code review pass: ${pct(data.value[1])}`,
+            `Code review score: ${fmt(data.score, 2)}`,
+            `Avg total: ${ms(data.value[0])}`,
+            `Coverage: ${intFmt(data.rows)} tasks`
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: "Avg task time ms",
+          nameLocation: "middle",
+          nameGap: 34,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "Pass rate",
+          min: 0,
+          max: 1,
+          axisLabel: { color: "#8ea3bb", formatter: (v) => `${Math.round(v * 100)}%` },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        graphic: rows.length ? [] : [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "No coding quality rows are present in this benchmark bundle.",
+            fill: "#c9d8ea",
+            font: "700 14px Inter, sans-serif"
+          }
+        }],
+        series: families.map((family, familyIndex) => ({
+          name: family,
+          type: "scatter",
+          data: rows.filter((row) => row.family === family).map((row) => ({
+            name: row.candidate,
+            family: row.family,
+            modelName: row.modelName,
+            score: row.avgScore,
+            rows: row.rows,
+            value: [row.avgTotalMs, row.passRate],
+            symbolSize: Math.max(9, Math.min(25, 7 + Math.sqrt(row.rows || 0) * 3)),
+            itemStyle: {
+              color: colors[familyIndex % colors.length],
+              shadowBlur: 14,
+              shadowColor: alpha(colors[familyIndex % colors.length], 0.3)
+            },
+            label: {
+              show: row.passRate >= 0.67 || row.avgScore >= 0.95,
+              formatter: row.candidate,
+              position: "top",
+              color: "#edf5ff",
+              fontSize: 11,
+              fontWeight: 700
+            }
+          })),
+          labelLayout: { hideOverlap: true },
+          emphasis: { focus: "series", scale: true }
+        }))
+      });
+    }
+
     function numericPayloadList(payload) {
       if (Array.isArray(payload)) return payload;
       if (!payload || typeof payload !== "object") return [];
@@ -2278,6 +2518,7 @@
     renderServerLab();
     renderQuality();
     renderRacesAndNotes();
+    renderCodingQuality();
   </script>
 </body>
 </html>
