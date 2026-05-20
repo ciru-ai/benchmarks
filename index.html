@@ -332,6 +332,39 @@
       padding: 16px;
     }
 
+    .articles-panel > summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .articles-panel > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .articles-toggle {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.34);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .articles-toggle::before {
+      content: "Expand";
+    }
+
+    .articles-panel[open] .articles-toggle::before {
+      content: "Collapse";
+    }
+
     .article-card {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -1089,13 +1122,14 @@
     </nav>
 
     <section class="section" id="articles">
-      <article class="panel">
-        <div class="panel-head">
+      <details class="panel articles-panel">
+        <summary class="panel-head">
           <div>
             <h2>Articles</h2>
             <p>Short-form writeups that explain what the benchmark rows mean in practice.</p>
           </div>
-        </div>
+          <span class="articles-toggle" aria-hidden="true"></span>
+        </summary>
         <div class="article-grid">
           <article class="article-card">
             <div>
@@ -1110,7 +1144,7 @@
             <a class="ghost-button" href="llama-tuning-report.html">Read article</a>
           </article>
         </div>
-      </article>
+      </details>
     </section>
 
     <section class="section chart-grid" id="frontier">
