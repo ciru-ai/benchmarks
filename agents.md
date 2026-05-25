@@ -1,6 +1,6 @@
 # Benchmark Site Agent Guide
 
-This repository publishes the Crown Citadel benchmark site at `bench.crownbitcoin.net`.
+This repository publishes the Crown Citadel benchmark site at `bench.ciru.ai`.
 
 The current public page is v2 at `index.html`. The archived original page is `v1/index.html`. A direct v2 copy is kept at `benchv2/index.html`; when changing v2, update root first, then sync the `benchv2/` copy with adjusted relative paths.
 
@@ -12,6 +12,7 @@ The current public page is v2 at `index.html`. The archived original page is `v1
 - `benchv2/scripts/build-data.mjs`: pulls benchmark data from `ciru` over SSH and writes the v2 data bundle.
 - `benchv2/data/benchv2-data.json`: generated structured data.
 - `benchv2/data/benchv2-data.js`: generated browser bundle, assigned to `window.BENCHV2_DATA`.
+- `coding-quality/index.html`: standalone coding quality comparison page for EvalPlus and related coding benchmark suites.
 - `BENCHMARK_HISTORY.md`: historical notes, run directories, method notes, and benchmark context.
 - Race pages:
   - `dflash/`
@@ -38,6 +39,7 @@ Primary source locations on `ciru`:
 - MTP serving sweeps: `/home/crown/bench-results/llama/mtp-server/*/results.jsonl`
 - Hermes auxiliary model evals: `/home/crown/bench-results/hermes-aux-eval/results.jsonl`
 - Hermes loadout evals: `/home/crown/bench-results/hermes-aux-loadout/loadout-results.jsonl`
+- Coding quality lab runs: `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/*`
 - Race summaries:
   - `/srv/llm/runs/20260512-203510-qwen36-27b-dflash-pflash-strix-full/summary.json`
   - `/srv/llm/runs/20260512-213418-qwen36-27b-fixed-decode-tg-pflash-vs-baseline/decode-tg-summary.json`
@@ -48,6 +50,91 @@ Primary source locations on `ciru`:
   - `/srv/llm/runs/20260514-084001-crown-vs-mxfp4-mtp-draft4-mirofish-filter/mirofish-draft4-filter-summary.json`
 
 Do not expose these server paths in public cards unless the page is explicitly for internal operators. Public visitors cannot access `/srv/llm/...` or `/home/crown/...`.
+
+## Benchmark And Quality Lab Inventory
+
+Use this section when a task asks where benchmark data, quality data, harnesses, or generated artifacts live.
+
+### Local Site Repo
+
+- Public v2 site files: `index.html`, `benchv2/index.html`, `coding-quality/index.html`.
+- Generated public data bundle: `benchv2/data/benchv2-data.json` and `benchv2/data/benchv2-data.js`.
+- Data collector: `benchv2/scripts/build-data.mjs`.
+- Historical notes and benchmark context: `BENCHMARK_HISTORY.md`.
+
+### `ciru` Benchmark Harnesses
+
+- Machine setup and benchmark scripts: `/home/crown/machine-setup`
+- Hermes aux harness source: `/home/crown/machine-setup/hermes-aux-eval/hermes_aux_eval.py`
+- Older benchmark notes/state: `/home/crown/machine-setup/state`
+- Local model/service profiles: `/home/crown/machine-setup/model-profiles`
+- Real coding harness copy in the result area: `/home/crown/bench-results/llama/run_real_coding_workloads_20260518.py`
+- General user benchmark checkouts: `/home/crown/benchmarks`
+
+### `ciru` Throughput And Serving Results
+
+- Main llama benchmark result root: `/home/crown/bench-results/llama`
+- Structured DB: `/home/crown/bench-results/llama/results.sqlite3`
+- JSONL mirrors: `/home/crown/bench-results/llama/results.jsonl` and `/home/crown/bench-results/llama/results.ledger.jsonl`
+- Raw llama-bench outputs and sample files: `/home/crown/bench-results/llama/*-llama-bench.raw` and `/home/crown/bench-results/llama/*-samples.json`
+- Prompt fixtures: `/home/crown/bench-results/llama/prompts`
+- MTP serving sweeps: `/home/crown/bench-results/llama/mtp-server/*/results.jsonl`
+- Real-coding long-context patch workload runs: `/home/crown/bench-results/llama/real-coding/*/results.jsonl`
+- Real-coding candidate rosters: `/home/crown/bench-results/llama/real-coding*.json`
+- Usage recordings: `/home/crown/bench-results/llama/usage-recordings`
+- Mirofish quality data: `/home/crown/bench-results/llama/mirofish/quality`
+
+### `ciru` Hermes Behavior Results
+
+- Hermes aux behavior results: `/home/crown/bench-results/hermes-aux-eval/results.jsonl`
+- Per-run Hermes aux outputs: `/home/crown/bench-results/hermes-aux-eval/<run-id>/`
+- Hermes main+aux loadout results: `/home/crown/bench-results/hermes-aux-loadout/loadout-results.jsonl`
+- Related replay/eval roots, when needed for context: `/home/crown/bench-results/hermes-session-replay`, `/home/crown/bench-results/hermes-title-replay`, `/home/crown/bench-results/hermes-vision-replay`
+
+### External SSD Quality Lab
+
+The richer coding quality lab is on the external SSD mounted at:
+
+```text
+/srv/ssd/p3700ba/data/llm-benchmarking-lab
+```
+
+Important subpaths:
+
+- Run root: `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs`
+- Tool wrappers: `/srv/ssd/p3700ba/data/llm-benchmarking-lab/bin/quality-*`
+- Benchmark tool clones: `/srv/ssd/p3700ba/data/llm-benchmarking-lab/tools/clones`
+- EvalPlus completed summaries: `runs/<run-id>/outputs/evalplus/summary.json`
+- EvalPlus per-profile summaries: `runs/<run-id>/outputs/evalplus/*-summary.json`
+- Live llama.cpp metrics summaries: `runs/<run-id>/outputs/metrics/summary.json`
+- Human-readable run reports: `runs/<run-id>/reports/*.md`
+- EvalPlus raw and sanitized samples: `runs/<run-id>/raw/evalplus/<profile>/<suite>/`
+- EvalPlus generation and evaluation logs: `runs/<run-id>/logs/evalplus/<profile>/`
+- Per-run scripts and summarizers: `runs/<run-id>/work/`
+- Sandbox notes for generated-code execution: `runs/<run-id>/sandbox-notes/`
+
+Known quality lab run examples:
+
+- `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260522T205318Z-full-coding-benchmark-large`
+- `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T070002Z-nemotron3-nano-omni-evalplus`
+- `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics`
+- `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260524T051816Z-quick-coding-test-small`
+
+The SSD also has scratch/build trees under `/srv/ssd/p3700b/scratch/crown/tmp`. Those are useful for compiler or llama.cpp build provenance, but public pages should consume normalized result summaries rather than build-tree files.
+
+### Quality Lab Tooling Names
+
+The SSD lab currently exposes wrappers for common quality benchmarks:
+
+- EvalPlus: `quality-evalplus`, `quality-evalplus-generate`
+- BigCodeBench: `quality-bigcodebench`, `quality-bigcodebench-generate`
+- LiveCodeBench: `quality-livecodebench`
+- Aider and SWE-bench style repo edits: `quality-aider`, `quality-swebench`, `quality-mini-swe-agent`
+- Function calling and general evals: `quality-bfcl`, `quality-livebench`, `quality-lighteval`, `quality-opencompass`
+- Long-context RULER: `quality-ruler`
+- Lab inspection/runtime helpers: `quality-env`, `quality-python`, `quality-lm-eval`, `quality-promptfoo`, `quality-inspect`
+
+When publishing quality data, prefer summary JSON or generated public bundles. Avoid copying raw prompts, raw completions, absolute paths, logs with environment details, or generated-code execution traces into visible public UI.
 
 ## Data Build
 
@@ -83,6 +170,7 @@ If a new source type is added, extend the embedded Python in `build-data.mjs` fi
 - `mtpServer`: summarized speculative/MTP server sweeps.
 - `auxEval`: Hermes auxiliary model behavior tests.
 - `loadouts`: Hermes main+aux loadout behavior tests.
+- `codingLab`: external SSD coding quality lab summaries, currently EvalPlus HumanEval+ and MBPP+ with wall-clock generation speed and live metrics where captured.
 - `races`: race summary JSON payloads.
 - `notes`: generated method notes; v2 currently uses hand-authored `METHOD_NOTES` in `index.html`.
 
@@ -240,7 +328,22 @@ Rules:
 - Keep raw coverage visible so readers can see that excluded rows existed.
 - Use candidate/family labels, not server paths.
 - Keep the ranking table sorted by adjusted pass rate, then adjusted score, then adjusted latency.
-- If future benchmark categories are added for bug fixing, repo edits, test writing, or code generation, either extend `codingQualityRows()` to include those suites or add a generated `codingQuality` object in `build-data.mjs`.
+- If future benchmark categories are added for bug fixing, repo edits, test writing, or code generation, either extend `codingQualityRows()` to include those suites or add/extend a generated object in `build-data.mjs`.
+
+### Standalone Coding Quality Page
+
+File: `coding-quality/index.html`
+
+Data: `DATA.codingLab`
+
+Rules:
+
+- Keep this as the public coding quality page linked from the main homepage.
+- Default ranking uses newest completed EvalPlus summary per profile.
+- Compare correctness and speed without collapsing them into one opaque score.
+- Show EvalPlus+ pass@1, base pass@1, suite coverage, wall-clock codegen samples/min, and live decode metrics where captured.
+- Do not expose SSD, `/srv/...`, or `/home/crown/...` paths in visible UI or in `DATA.codingLab`.
+- When adding new coding suites such as BigCodeBench, LiveCodeBench, SWE-bench, or repo-edit tests, extend `summarize_coding_lab()` first so the page receives normalized public data.
 
 ### Race Gallery
 
@@ -315,6 +418,8 @@ $content = $content.Replace('href="ccglogo.png"', 'href="../ccglogo.png"')
 $content = $content.Replace('src="benchv2/data/benchv2-data.js"', 'src="data/benchv2-data.js"')
 $content = $content.Replace('srcset="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif"', 'srcset="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif"')
 $content = $content.Replace('src="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif"', 'src="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif"')
+$content = $content.Replace('href="coding-quality/"', 'href="../coding-quality/"')
+$content = $content.Replace('href="llama-tuning-report.html"', 'href="../llama-tuning-report.html"')
 Set-Content -LiteralPath $path -Value $content -NoNewline
 ```
 
@@ -325,7 +430,7 @@ Run script parse checks after edits:
 ```powershell
 @'
 const fs = require('fs');
-for (const file of ['index.html', 'benchv2/index.html', 'v1/index.html']) {
+for (const file of ['index.html', 'benchv2/index.html', 'v1/index.html', 'coding-quality/index.html']) {
   const html = fs.readFileSync(file, 'utf8');
   for (const [i, m] of [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].entries()) {
     new Function(m[1]);
@@ -341,7 +446,7 @@ Check local references:
 @'
 const fs = require('fs');
 const path = require('path');
-const files = ['index.html', 'benchv2/index.html', 'v1/index.html'];
+const files = ['index.html', 'benchv2/index.html', 'v1/index.html', 'coding-quality/index.html'];
 const attrs = [/<(?:script|img|source)[^>]+(?:src|srcset)="([^"]+)"/g, /<link[^>]+href="([^"]+)"/g, /<a[^>]+href="([^"]+)"/g];
 const missing = [];
 for (const file of files) {
@@ -377,15 +482,17 @@ Before committing:
   - `benchv2/data/benchv2-data.js`
   - `benchv2/data/benchv2-data.json`
   - `benchv2/scripts/build-data.mjs`
+  - `coding-quality/index.html`
   - `v1/index.html` only when intentionally changing v1
   - `agents.md` when updating this guide
 
 After push, poll:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.crownbitcoin.net/' -Headers @{ 'Cache-Control'='no-cache' }
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.crownbitcoin.net/v1/' -Headers @{ 'Cache-Control'='no-cache' }
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.crownbitcoin.net/benchv2/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/v1/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/benchv2/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/coding-quality/' -Headers @{ 'Cache-Control'='no-cache' }
 ```
 
 Vercel may lag briefly after GitHub accepts the push.

@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coding Quality Lab | Crown Citadel Benchmarks</title>
+  <meta name="description" content="EvalPlus coding quality results for local models on the Crown Citadel Strix Halo benchmark host, comparing correctness and speed evidence.">
+  <link rel="canonical" href="https://bench.ciru.ai/coding-quality/">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="../benchv2/data/benchv2-data.js"></script>
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(14, 15, 18, 0.94);
+      --panel-2: rgba(22, 23, 28, 0.96);
+      --line: rgba(255, 255, 255, 0.14);
+      --line-strong: rgba(255, 255, 255, 0.25);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #747c89;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1760px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(118deg, rgba(237, 28, 36, 0.2), transparent 31%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 34%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 46%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a {
+      color: #9ee8ff;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 22px;
+      align-items: stretch;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      max-width: 1060px;
+      font-size: 4.1rem;
+      line-height: 0.98;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .subtitle {
+      max-width: 96ch;
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      line-height: 1.5;
+    }
+
+    .hero-actions,
+    .chips,
+    .nav,
+    .segmented {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-actions {
+      margin-top: 18px;
+    }
+
+    .chip,
+    .nav a,
+    .segmented button,
+    .ghost-button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .chip strong {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.9rem;
+    }
+
+    .ghost-button {
+      border-color: rgba(57, 208, 255, 0.42);
+      background:
+        linear-gradient(180deg, rgba(57, 208, 255, 0.13), rgba(57, 208, 255, 0.04)),
+        rgba(0, 0, 0, 0.36);
+      text-decoration: none;
+    }
+
+    .hero-card {
+      min-height: 230px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 12px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 50%),
+        rgba(0, 0, 0, 0.32);
+    }
+
+    .hero-card img {
+      width: min(100%, 210px);
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.32));
+    }
+
+    .hero-card strong {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.35rem;
+    }
+
+    .hero-card span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 12px 0;
+      padding: 8px;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+        rgba(7, 7, 7, 0.9);
+      backdrop-filter: blur(16px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 14px 34px rgba(0, 0, 0, 0.32);
+    }
+
+    .nav a {
+      min-height: 42px;
+      padding: 10px 16px;
+      border-color: rgba(255, 255, 255, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.03)),
+        rgba(0, 0, 0, 0.42);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+        0 8px 18px rgba(0, 0, 0, 0.22);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.72rem;
+      user-select: none;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible,
+    .segmented button:hover,
+    .segmented button:focus-visible {
+      border-color: rgba(57, 208, 255, 0.72);
+      background:
+        linear-gradient(180deg, rgba(57, 208, 255, 0.22), rgba(57, 208, 255, 0.075)),
+        rgba(0, 0, 0, 0.42);
+      text-decoration: none;
+    }
+
+    .section {
+      margin-top: 12px;
+      scroll-margin-top: 92px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-pad {
+      padding: 16px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07), transparent 54%),
+        rgba(0, 0, 0, 0.18);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .panel-head p {
+      max-width: 96ch;
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(57, 208, 255, 0.08), transparent 76%),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .stat span,
+    .mini-label,
+    th {
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.1rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .stat small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(420px, 0.88fr);
+      gap: 12px;
+    }
+
+    .chart-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .chart {
+      height: 430px;
+      min-height: 280px;
+    }
+
+    .chart.short {
+      height: 350px;
+    }
+
+    .chart-fallback {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .segmented {
+      justify-content: flex-end;
+    }
+
+    .segmented button {
+      min-height: 34px;
+      color: var(--muted);
+    }
+
+    .segmented button[aria-pressed="true"] {
+      color: var(--text);
+      border-color: rgba(32, 209, 162, 0.72);
+      background:
+        linear-gradient(180deg, rgba(32, 209, 162, 0.18), rgba(32, 209, 162, 0.06)),
+        rgba(0, 0, 0, 0.42);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 620px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1040px;
+      font-size: 0.87rem;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    td {
+      color: #e8edf3;
+    }
+
+    td strong {
+      display: block;
+      font-weight: 700;
+    }
+
+    td small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .bar-cell {
+      min-width: 140px;
+    }
+
+    .bar-track {
+      height: 8px;
+      margin-top: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #d5dde8;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .note-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 10px;
+    }
+
+    .note {
+      min-height: 150px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--accent, var(--cyan));
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .note strong {
+      display: block;
+      margin-top: 8px;
+    }
+
+    .note p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--subtle);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1200px) {
+      .hero,
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(calc(100% - 18px), var(--max));
+        margin-top: 9px;
+      }
+
+      .hero {
+        padding: 16px;
+      }
+
+      h1 {
+        max-width: 12ch;
+        font-size: 2.18rem;
+        line-height: 1.04;
+      }
+
+      .panel-head,
+      .panel-pad {
+        padding: 13px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart {
+        height: 360px;
+      }
+
+      .nav {
+        position: relative;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero" id="top">
+      <div>
+        <p class="eyebrow">Crown Citadel Coding Quality Lab</p>
+        <h1>Model coding ability and speed</h1>
+        <p class="subtitle">EvalPlus HumanEval+ and MBPP+ pass@1 results for local coding models, paired with wall-clock generation speed and live llama.cpp metrics where the run captured them.</p>
+        <div class="hero-actions">
+          <span class="chip"><strong id="latestRun">Updated</strong></span>
+          <span class="chip">EvalPlus • pass@1</span>
+          <span class="chip" title="Linux ciru 7.0.1 #1-NixOS SMP PREEMPT_DYNAMIC Wed Apr 22 11:32:23 UTC 2026 x86_64">NixOS • Linux 7.0.1</span>
+          <a class="ghost-button" href="../">Benchmark Home</a>
+        </div>
+      </div>
+      <div class="hero-card" aria-label="AMD Ryzen AI Max+ benchmark host">
+        <img src="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
+        <strong id="heroBest">n/a</strong>
+        <span>top EvalPlus+ pass@1</span>
+      </div>
+    </header>
+
+    <nav class="nav" aria-label="Page sections">
+      <a href="#frontier">Ability vs Speed</a>
+      <a href="#suites">Suites</a>
+      <a href="#ranking">Ranking</a>
+      <a href="#runs">Runs</a>
+      <a href="#method">Method</a>
+    </nav>
+
+    <section class="section" id="summary">
+      <div class="stats-grid" id="summaryStats"></div>
+    </section>
+
+    <section class="section chart-grid" id="frontier">
+      <article class="panel wide">
+        <div class="panel-head">
+          <div>
+            <h2>Coding Ability vs Speed</h2>
+            <p>The vertical axis is aggregate EvalPlus+ pass@1. The horizontal axis can use suite wall-clock generation speed for every model, or live decode throughput for runs that recorded server metrics.</p>
+          </div>
+          <div class="segmented" aria-label="Speed metric">
+            <button type="button" data-speed="wall" aria-pressed="true">Wall Clock</button>
+            <button type="button" data-speed="decode" aria-pressed="false">Live Decode</button>
+          </div>
+        </div>
+        <div id="abilityChart" class="chart"></div>
+      </article>
+    </section>
+
+    <section class="section chart-grid" id="suites">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Suite Pass Rates</h2>
+            <p>HumanEval+ and MBPP+ are shown separately because a model can be strong on one task shape and weaker on the other.</p>
+          </div>
+        </div>
+        <div id="suiteChart" class="chart short"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Speed Evidence</h2>
+            <p>Wall-clock samples per minute come from EvalPlus codegen logs. Live decode throughput appears only for runs that sampled llama.cpp metrics during active requests.</p>
+          </div>
+        </div>
+        <div id="speedChart" class="chart short"></div>
+      </article>
+    </section>
+
+    <section class="section" id="ranking">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Current Ranking</h2>
+            <p>Sorted by EvalPlus+ pass@1, then base pass@1, then available generation speed. Coverage is kept visible so partial speed evidence is not mistaken for full token telemetry.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>EvalPlus+</th>
+                <th>Base</th>
+                <th>HumanEval+</th>
+                <th>MBPP+</th>
+                <th>Wall Clock</th>
+                <th>Live Decode</th>
+                <th>Run</th>
+              </tr>
+            </thead>
+            <tbody id="rankingBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="section" id="runs">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Run Coverage</h2>
+            <p>Completed EvalPlus runs are included when they have generated summary JSON. Repeated profiles use the newest completed run in the ranking, while the run table keeps the coverage history visible.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Date</th>
+                <th>Profiles</th>
+                <th>Rows</th>
+                <th>Tasks</th>
+                <th>Metrics</th>
+              </tr>
+            </thead>
+            <tbody id="runBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="section" id="method">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Method Notes</h2>
+            <p>How to read the lab without mixing quality, speed, and run completeness into one opaque score.</p>
+          </div>
+        </div>
+        <div class="panel-pad">
+          <div class="note-grid" id="methodNotes"></div>
+        </div>
+      </article>
+    </section>
+
+    <footer class="footer" id="footerText">Coding quality snapshot</footer>
+  </main>
+
+  <script>
+    const DATA = window.BENCHV2_DATA?.codingLab || { meta: {}, profiles: [], runs: [], rows: [] };
+    const colors = ["#20d1a2", "#39d0ff", "#f6c046", "#ff9f43", "#ff4e5f", "#c994ff", "#78a8ff"];
+    const chartRefs = [];
+    let speedMode = "wall";
+
+    const $ = (id) => document.getElementById(id);
+    const isNum = (value) => value != null && Number.isFinite(Number(value));
+    const fmt = (value, digits = 2) => isNum(value) ? Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : "n/a";
+    const intFmt = (value) => isNum(value) ? Number(value).toLocaleString() : "n/a";
+    const pct = (value, digits = 1) => isNum(value) ? `${(Number(value) * 100).toFixed(digits)}%` : "n/a";
+    const dateFmt = (value) => value ? value.slice(0, 10) : "n/a";
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+    const alpha = (hex, amount) => {
+      const value = hex.replace("#", "");
+      const r = parseInt(value.slice(0, 2), 16);
+      const g = parseInt(value.slice(2, 4), 16);
+      const b = parseInt(value.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${amount})`;
+    };
+    const textStyle = { color: "#dce6f2", fontFamily: "Space Grotesk, sans-serif" };
+
+    function chart(id) {
+      const el = $(id);
+      if (!el) return null;
+      if (typeof echarts === "undefined") {
+        el.innerHTML = '<div class="chart-fallback">Apache ECharts did not load. Tables remain available.</div>';
+        return null;
+      }
+      const instance = echarts.init(el);
+      chartRefs.push(instance);
+      return instance;
+    }
+
+    const abilityChart = chart("abilityChart");
+    const suiteChart = chart("suiteChart");
+    const speedChart = chart("speedChart");
+
+    function sortedProfiles() {
+      return (DATA.profiles || []).slice().sort((a, b) => (
+        ((b.plusRate ?? -1) - (a.plusRate ?? -1)) ||
+        ((b.baseRate ?? -1) - (a.baseRate ?? -1)) ||
+        ((b.samplesPerMinute ?? -1) - (a.samplesPerMinute ?? -1))
+      ));
+    }
+
+    function suite(profile, suiteName) {
+      return (profile.suites || []).find((item) => item.suite === suiteName) || {};
+    }
+
+    function familyColorMap(rows) {
+      const families = [...new Set(rows.map((row) => row.family || "Other"))].sort();
+      return new Map(families.map((family, index) => [family, colors[index % colors.length]]));
+    }
+
+    function renderSummary() {
+      const profiles = sortedProfiles();
+      const best = profiles[0];
+      const fastestWall = profiles.filter((row) => isNum(row.samplesPerMinute)).sort((a, b) => b.samplesPerMinute - a.samplesPerMinute)[0];
+      const liveRows = profiles.filter((row) => isNum(row.liveMetrics?.peakPredictedTps));
+      const fastestLive = liveRows.sort((a, b) => b.liveMetrics.peakPredictedTps - a.liveMetrics.peakPredictedTps)[0];
+      const totalTasks = profiles.reduce((sum, row) => sum + (row.tasks || 0), 0);
+      $("latestRun").textContent = DATA.meta?.generatedAtUtc ? `Updated ${dateFmt(DATA.meta.generatedAtUtc)}` : "Updated";
+      $("heroBest").textContent = best ? pct(best.plusRate) : "n/a";
+      $("summaryStats").innerHTML = [
+        ["Models", intFmt(profiles.length), `${intFmt(DATA.meta?.runCount)} completed EvalPlus runs`],
+        ["Scored Tasks", intFmt(totalTasks), "HumanEval+ and MBPP+ pass@1 coverage"],
+        ["Best Plus", best ? `${escapeHtml(best.profile)} • ${pct(best.plusRate)}` : "n/a", best ? `${intFmt(best.plusPass)}/${intFmt(best.tasks)} plus tests passed` : "No completed profile rows"],
+        ["Fastest Wall", fastestWall ? `${escapeHtml(fastestWall.profile)} • ${fmt(fastestWall.samplesPerMinute, 2)}/min` : "n/a", "EvalPlus suite wall-clock generation"],
+        ["Fastest Live Decode", fastestLive ? `${escapeHtml(fastestLive.profile)} • ${fmt(fastestLive.liveMetrics.peakPredictedTps, 2)} t/s` : "n/a", `${intFmt(liveRows.length)} profiles with live metric samples`]
+      ].map(([label, value, note]) => `
+        <div class="stat">
+          <span>${escapeHtml(label)}</span>
+          <strong>${value}</strong>
+          <small>${escapeHtml(note)}</small>
+        </div>
+      `).join("");
+      $("footerText").textContent = `Data generated ${DATA.meta?.generatedAtUtc || "n/a"}. Latest included coding run ${dateFmt(DATA.meta?.latestRunUtc)}.`;
+    }
+
+    function renderAbilityChart() {
+      if (!abilityChart) return;
+      const profiles = sortedProfiles();
+      const colorMap = familyColorMap(profiles);
+      const xLabel = speedMode === "decode" ? "Peak live decode tokens/s" : "EvalPlus codegen samples/min";
+      const rows = profiles.filter((row) => speedMode === "decode" ? isNum(row.liveMetrics?.peakPredictedTps) : isNum(row.samplesPerMinute));
+      abilityChart.clear();
+      abilityChart.setOption({
+        grid: { top: 28, right: 28, bottom: 66, left: 66 },
+        legend: { type: "scroll", bottom: 0, textStyle },
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "rgba(5,10,16,.95)",
+          borderColor: alpha("#39d0ff", 0.24),
+          textStyle,
+          formatter: ({ data }) => [
+            `<strong>${escapeHtml(data.name)}</strong>`,
+            `${escapeHtml(data.family)} • ${escapeHtml(data.runLabel)}`,
+            `EvalPlus+: ${pct(data.plusRate)} (${intFmt(data.plusPass)}/${intFmt(data.tasks)})`,
+            `Base: ${pct(data.baseRate)}`,
+            speedMode === "decode"
+              ? `Peak live decode: ${fmt(data.value[0], 2)} t/s`
+              : `Wall-clock generation: ${fmt(data.value[0], 2)} samples/min`,
+            data.samplesPerMinute ? `Codegen speed: ${fmt(data.samplesPerMinute, 2)} samples/min` : "Codegen speed: n/a",
+            data.livePredicted ? `Live decode: ${fmt(data.livePredicted, 2)} t/s` : "Live decode: not captured"
+          ].join("<br>")
+        },
+        xAxis: {
+          type: "value",
+          name: xLabel,
+          nameLocation: "middle",
+          nameGap: 42,
+          nameTextStyle: textStyle,
+          axisLabel: { color: "#8ea3bb" },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        yAxis: {
+          type: "value",
+          name: "EvalPlus+ pass@1",
+          min: 0.7,
+          max: 0.85,
+          axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` },
+          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
+        },
+        graphic: rows.length ? [] : [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: { text: "No rows have this speed metric.", fill: "#c9d8ea", font: "700 14px Space Grotesk, sans-serif" }
+        }],
+        series: [...colorMap.keys()].map((family) => ({
+          name: family,
+          type: "scatter",
+          data: rows.filter((row) => (row.family || "Other") === family).map((row) => {
+            const speedValue = speedMode === "decode" ? row.liveMetrics?.peakPredictedTps : row.samplesPerMinute;
+            const color = colorMap.get(family) || colors[0];
+            return {
+              name: row.profile,
+              family,
+              runLabel: row.runLabel,
+              plusRate: row.plusRate,
+              baseRate: row.baseRate,
+              plusPass: row.plusPass,
+              tasks: row.tasks,
+              samplesPerMinute: row.samplesPerMinute,
+              livePredicted: row.liveMetrics?.peakPredictedTps,
+              value: [speedValue, row.plusRate],
+              symbolSize: Math.max(13, Math.min(32, 10 + Math.sqrt(row.tasks || 0))),
+              itemStyle: { color, shadowBlur: 16, shadowColor: alpha(color, 0.3) },
+              label: {
+                show: row.plusRate >= 0.81 || speedValue >= 15,
+                formatter: row.profile,
+                position: "top",
+                color: "#edf5ff",
+                fontSize: 11,
+                fontWeight: 700
+              }
+            };
+          }),
+          labelLayout: { hideOverlap: true },
+          emphasis: { focus: "series", scale: true }
+        }))
+      });
+    }
+
+    function renderSuiteChart() {
+      if (!suiteChart) return;
+      const profiles = sortedProfiles();
+      suiteChart.setOption({
+        grid: { top: 24, right: 22, bottom: 92, left: 58 },
+        tooltip: { trigger: "axis", backgroundColor: "rgba(5,10,16,.95)", borderColor: alpha("#39d0ff", 0.24), textStyle },
+        legend: { top: 0, textStyle },
+        xAxis: { type: "category", data: profiles.map((row) => row.profile), axisLabel: { color: "#8ea3bb", rotate: 34, width: 130, overflow: "truncate" } },
+        yAxis: { type: "value", min: 0.68, max: 0.93, axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
+        series: [
+          { name: "HumanEval+", type: "bar", data: profiles.map((row) => suite(row, "humaneval").plusRate), itemStyle: { color: "#20d1a2", borderRadius: [4, 4, 0, 0] } },
+          { name: "MBPP+", type: "bar", data: profiles.map((row) => suite(row, "mbpp").plusRate), itemStyle: { color: "#39d0ff", borderRadius: [4, 4, 0, 0] } }
+        ]
+      });
+    }
+
+    function renderSpeedChart() {
+      if (!speedChart) return;
+      const profiles = sortedProfiles().slice().sort((a, b) => (b.samplesPerMinute || 0) - (a.samplesPerMinute || 0));
+      speedChart.setOption({
+        grid: { top: 28, right: 58, bottom: 92, left: 58 },
+        tooltip: { trigger: "axis", backgroundColor: "rgba(5,10,16,.95)", borderColor: alpha("#39d0ff", 0.24), textStyle },
+        legend: { top: 0, textStyle },
+        xAxis: { type: "category", data: profiles.map((row) => row.profile), axisLabel: { color: "#8ea3bb", rotate: 34, width: 130, overflow: "truncate" } },
+        yAxis: [
+          { type: "value", name: "samples/min", axisLabel: { color: "#8ea3bb" }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
+          { type: "value", name: "tokens/s", axisLabel: { color: "#8ea3bb" }, splitLine: { show: false } }
+        ],
+        series: [
+          { name: "Codegen samples/min", type: "bar", data: profiles.map((row) => row.samplesPerMinute), itemStyle: { color: "#f6c046", borderRadius: [4, 4, 0, 0] } },
+          { name: "Peak live decode t/s", type: "line", yAxisIndex: 1, data: profiles.map((row) => row.liveMetrics?.peakPredictedTps ?? null), itemStyle: { color: "#ff4e5f" }, symbolSize: 8, connectNulls: false }
+        ]
+      });
+    }
+
+    function bar(value) {
+      const width = Math.max(0, Math.min(100, Number(value || 0) * 100));
+      return `<div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>`;
+    }
+
+    function renderTables() {
+      const profiles = sortedProfiles();
+      $("rankingBody").innerHTML = profiles.map((row) => {
+        const he = suite(row, "humaneval");
+        const mbpp = suite(row, "mbpp");
+        return `
+          <tr>
+            <td><strong>${escapeHtml(row.profile)}</strong><small>${escapeHtml(row.family || "Other")}${row.quant ? ` • ${escapeHtml(row.quant)}` : ""}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}</small></td>
+            <td class="bar-cell">${pct(row.plusRate)}${bar(row.plusRate)}<small>${intFmt(row.plusPass)}/${intFmt(row.tasks)} plus tests</small></td>
+            <td>${pct(row.baseRate)}<small>${intFmt(row.basePass)}/${intFmt(row.tasks)} base tests</small></td>
+            <td>${pct(he.plusRate)}<small>${intFmt(he.plusPass)}/${intFmt(he.tasks)} • ${fmt(he.samplesPerMinute, 2)}/min</small></td>
+            <td>${pct(mbpp.plusRate)}<small>${intFmt(mbpp.plusPass)}/${intFmt(mbpp.tasks)} • ${fmt(mbpp.samplesPerMinute, 2)}/min</small></td>
+            <td>${fmt(row.samplesPerMinute, 2)} /min<small>${row.speedCoverage || 0}/${(row.suites || []).length} suite logs timed</small></td>
+            <td>${row.liveMetrics ? `${fmt(row.liveMetrics.peakPredictedTps, 2)} t/s` : "not captured"}<small>${row.liveMetrics ? `${intFmt(row.liveMetrics.activeSamples)} active samples` : "no live metric sampler"}</small></td>
+            <td><strong>${escapeHtml(row.runLabel)}</strong><small>${dateFmt(row.createdUtc)}</small></td>
+          </tr>
+        `;
+      }).join("");
+
+      $("runBody").innerHTML = (DATA.runs || []).slice().sort((a, b) => String(b.createdUtc || "").localeCompare(String(a.createdUtc || ""))).map((run) => `
+        <tr>
+          <td><strong>${escapeHtml(run.label)}</strong><small>${escapeHtml(run.runId)}</small></td>
+          <td>${dateFmt(run.createdUtc)}</td>
+          <td>${intFmt(run.profiles)}</td>
+          <td>${intFmt(run.rows)}</td>
+          <td>${intFmt(run.tasks)}</td>
+          <td>${run.hasLiveMetrics ? '<span class="tag">live metrics</span>' : '<span class="tag">summary only</span>'}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderNotes() {
+      const notes = [
+        ["Quality", "EvalPlus+ is the stricter score", "The plus result requires the base HumanEval or MBPP test to pass and the expanded EvalPlus tests to pass. The page ranks by aggregate plus pass@1."],
+        ["Speed", "Wall-clock speed is not token throughput", "Samples per minute comes from EvalPlus generation logs. It includes API overhead and one-at-a-time task dispatch, so it is useful operational evidence rather than a pure decode benchmark."],
+        ["Metrics", "Live decode is partial coverage", "Only the metrics-enabled run sampled llama.cpp during active requests. Models without live metrics remain ranked by correctness and codegen wall time."],
+        ["Scope", "These are deterministic coding tasks", "The runs use pass@1 and temperature 0. BigCodeBench, LiveCodeBench, and repo-edit benchmarks should be added as separate suites when their completed summaries are available."]
+      ];
+      $("methodNotes").innerHTML = notes.map(([kind, title, text], index) => `
+        <article class="note" style="--accent:${colors[index % colors.length]}">
+          <span class="tag">${escapeHtml(kind)}</span>
+          <strong>${escapeHtml(title)}</strong>
+          <p>${escapeHtml(text)}</p>
+        </article>
+      `).join("");
+    }
+
+    document.querySelectorAll("[data-speed]").forEach((button) => {
+      button.addEventListener("click", () => {
+        speedMode = button.dataset.speed;
+        document.querySelectorAll("[data-speed]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+        renderAbilityChart();
+      });
+    });
+
+    renderSummary();
+    renderAbilityChart();
+    renderSuiteChart();
+    renderSpeedChart();
+    renderTables();
+    renderNotes();
+    window.addEventListener("resize", () => chartRefs.forEach((instance) => instance.resize()));
+  </script>
+</body>
+</html>

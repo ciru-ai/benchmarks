@@ -442,6 +442,237 @@ def summarize_loadouts():
         })
     return {"path": compact_path(path), "rows": len(rows), "loadouts": out}
 
+CODING_LAB_ROOT = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs"
+
+PROFILE_LABELS = {
+    "qwen3-coder-next-q4-k-l": "Qwen3 Coder Next Q4_K_L",
+    "qwen3-coder-next-q6-k-l": "Qwen3 Coder Next Q6_K_L",
+    "qwen3.6-27b-ud-q8-k-xl": "Qwen3.6 27B UD Q8_K_XL",
+    "qwen3.6-35b-a3b-crown-halo-mtp-dynamic": "Qwen3.6 35B A3B Crown Dyn MTP",
+    "nemotron3-nano-omni-30b-a3b-reasoning-ud-q6-k-xl": "Nemotron 3 Nano Omni 30B A3B UD Q6_K_XL",
+    "gemma4-26b-a4b-it-q4-km-mtp": "Gemma 4 26B A4B Q4_K_M MTP",
+    "qwopus3.6-27b-v2-q5-k-m": "Qwopus3.6 27B v2 Q5_K_M",
+    "qwopus3.6-35b-a3b-v1-q5-k-m": "Qwopus3.6 35B A3B v1 Q5_K_M",
+}
+
+SUITE_LABELS = {
+    "humaneval": "HumanEval+",
+    "mbpp": "MBPP+",
+}
+
+def title_from_slug(value):
+    words = re.sub(r"^\d{8}T\d{6}Z-", "", str(value or "")).replace("-", " ").split()
+    return " ".join(word.upper() if word in ("mtp", "q8", "q6", "q5", "q4") else word.capitalize() for word in words)
+
+def run_created_utc(run_id):
+    m = re.match(r"(\d{8})T(\d{6})Z", str(run_id or ""))
+    if not m:
+        return None
+    date, tm = m.groups()
+    return f"{date[:4]}-{date[4:6]}-{date[6:8]}T{tm[:2]}:{tm[2:4]}:{tm[4:6]}Z"
+
+def suite_from_summary_file(value):
+    parts = str(value or "").split("/")
+    for part in reversed(parts):
+        if part in SUITE_LABELS:
+            return part
+    return "unknown"
+
+def parse_elapsed_seconds(text):
+    if not text:
+        return None
+    matches = re.findall(r"(\d+):(\d{2}):(\d{2})", text)
+    if not matches:
+        return None
+    hours, minutes, seconds = [int(v) for v in matches[-1]]
+    elapsed = hours * 3600 + minutes * 60 + seconds
+    if elapsed == 0 and "resuming" in text.lower():
+        return None
+    return elapsed
+
+def public_profile_label(profile_id):
+    return PROFILE_LABELS.get(profile_id, title_from_slug(profile_id))
+
+def profile_quant(profile_id):
+    text = str(profile_id or "").lower()
+    patterns = [
+        ("q4-k-l", "Q4_K_L"), ("q6-k-l", "Q6_K_L"), ("q8-k-xl", "Q8_K_XL"),
+        ("q6-k-xl", "Q6_K_XL"), ("q5-k-m", "Q5_K_M"), ("q4-km", "Q4_K_M"),
+        ("q4-k-m", "Q4_K_M"), ("iq3", "IQ3"), ("bf16", "BF16")
+    ]
+    for needle, label in patterns:
+        if needle in text:
+            return label
+    return None
+
+def profile_size_class(profile_id):
+    m = re.search(r"(\d+(?:\.\d+)?)b", str(profile_id or ""), re.I)
+    if not m:
+        return None
+    params = float(m.group(1))
+    if params <= 10:
+        return "Compact"
+    if params < 60:
+        return "Large"
+    return "Flagship"
+
+def summarize_coding_lab():
+    run_dirs = sorted(glob.glob(os.path.join(CODING_LAB_ROOT, "*")))
+    rows = []
+    runs = []
+    metrics_by_run_profile = {}
+
+    for run_dir in run_dirs:
+        if not os.path.isdir(run_dir):
+            continue
+        run_id = os.path.basename(run_dir)
+        summary_path = os.path.join(run_dir, "outputs", "evalplus", "summary.json")
+        if not os.path.exists(summary_path):
+            continue
+
+        try:
+            summary_rows = json.load(open(summary_path, "r", encoding="utf-8"))
+        except Exception:
+            summary_rows = []
+
+        metrics_path = os.path.join(run_dir, "outputs", "metrics", "summary.json")
+        if os.path.exists(metrics_path):
+            try:
+                for metric in json.load(open(metrics_path, "r", encoding="utf-8")):
+                    metrics_by_run_profile[(run_id, metric.get("profile_id"))] = metric
+            except Exception:
+                pass
+
+        profile_ids = sorted({row.get("profile_id") for row in summary_rows if row.get("profile_id")})
+        runs.append({
+            "runId": run_id,
+            "label": title_from_slug(run_id),
+            "createdUtc": run_created_utc(run_id),
+            "profiles": len(profile_ids),
+            "rows": len(summary_rows),
+            "tasks": sum(row.get("tasks") or 0 for row in summary_rows),
+            "hasLiveMetrics": os.path.exists(metrics_path),
+        })
+
+        for row in summary_rows:
+            profile_id = row.get("profile_id")
+            suite = suite_from_summary_file(row.get("file"))
+            log_path = os.path.join(run_dir, "logs", "evalplus", profile_id or "", f"{suite}-codegen.log")
+            elapsed = None
+            if os.path.exists(log_path):
+                try:
+                    elapsed = parse_elapsed_seconds(open(log_path, "r", encoding="utf-8", errors="replace").read())
+                except Exception:
+                    elapsed = None
+            tasks = row.get("tasks") or 0
+            rows.append({
+                "runId": run_id,
+                "runLabel": title_from_slug(run_id),
+                "createdUtc": run_created_utc(run_id),
+                "profileId": profile_id,
+                "profile": public_profile_label(profile_id),
+                "family": family_for(profile_id),
+                "suite": suite,
+                "suiteLabel": SUITE_LABELS.get(suite, title_from_slug(suite)),
+                "tasks": tasks,
+                "basePass": row.get("base_pass"),
+                "plusPass": row.get("plus_pass"),
+                "baseRate": round(row.get("base_rate"), 4) if isinstance(row.get("base_rate"), (int, float)) else None,
+                "plusRate": round(row.get("plus_rate"), 4) if isinstance(row.get("plus_rate"), (int, float)) else None,
+                "elapsedSeconds": elapsed,
+                "samplesPerMinute": round(tasks * 60 / elapsed, 3) if tasks and elapsed else None,
+            })
+
+    profiles_by_key = {}
+    for row in rows:
+        key = (row["runId"], row["profileId"])
+        profile = profiles_by_key.setdefault(key, {
+            "runId": row["runId"],
+            "runLabel": row["runLabel"],
+            "createdUtc": row["createdUtc"],
+            "profileId": row["profileId"],
+            "profile": row["profile"],
+            "family": row["family"],
+            "quant": profile_quant(row["profileId"]),
+            "sizeClass": profile_size_class(row["profileId"]),
+            "tasks": 0,
+            "basePass": 0,
+            "plusPass": 0,
+            "suites": [],
+            "speedTasks": 0,
+            "codegenSeconds": 0,
+            "speedCoverage": 0,
+        })
+        profile["tasks"] += row["tasks"] or 0
+        profile["basePass"] += row["basePass"] or 0
+        profile["plusPass"] += row["plusPass"] or 0
+        profile["suites"].append({
+            "suite": row["suite"],
+            "suiteLabel": row["suiteLabel"],
+            "tasks": row["tasks"],
+            "basePass": row["basePass"],
+            "plusPass": row["plusPass"],
+            "baseRate": row["baseRate"],
+            "plusRate": row["plusRate"],
+            "elapsedSeconds": row["elapsedSeconds"],
+            "samplesPerMinute": row["samplesPerMinute"],
+        })
+        if row["elapsedSeconds"]:
+            profile["speedTasks"] += row["tasks"] or 0
+            profile["codegenSeconds"] += row["elapsedSeconds"]
+            profile["speedCoverage"] += 1
+
+    profile_runs = []
+    for profile in profiles_by_key.values():
+        tasks = profile["tasks"]
+        profile["baseRate"] = round(profile["basePass"] / tasks, 4) if tasks else None
+        profile["plusRate"] = round(profile["plusPass"] / tasks, 4) if tasks else None
+        profile["samplesPerMinute"] = round(profile["speedTasks"] * 60 / profile["codegenSeconds"], 3) if profile["speedTasks"] and profile["codegenSeconds"] else None
+        metric = metrics_by_run_profile.get((profile["runId"], profile["profileId"]))
+        if metric:
+            predicted_seconds = metric.get("predicted_seconds_total_delta")
+            prompt_seconds = metric.get("prompt_seconds_total_delta")
+            predicted_tokens = metric.get("tokens_predicted_total_delta")
+            prompt_tokens = metric.get("prompt_tokens_total_delta")
+            profile["liveMetrics"] = {
+                "activeSamples": metric.get("active_samples"),
+                "peakPromptTps": metric.get("peak_prompt_tps_active"),
+                "peakPredictedTps": metric.get("peak_predicted_tps_active"),
+                "avgPromptTps": round(prompt_tokens / prompt_seconds, 3) if prompt_tokens and prompt_seconds else None,
+                "avgPredictedTps": round(predicted_tokens / predicted_seconds, 3) if predicted_tokens and predicted_seconds else None,
+                "promptTokens": prompt_tokens,
+                "predictedTokens": predicted_tokens,
+            }
+        else:
+            profile["liveMetrics"] = None
+        profile_runs.append(profile)
+
+    latest_by_profile = {}
+    for profile in sorted(profile_runs, key=lambda item: (item.get("createdUtc") or "", item.get("tasks") or 0)):
+        latest_by_profile[profile["profileId"]] = profile
+
+    profiles = sorted(latest_by_profile.values(), key=lambda item: (
+        item.get("plusRate") if item.get("plusRate") is not None else -1,
+        item.get("baseRate") if item.get("baseRate") is not None else -1,
+        item.get("samplesPerMinute") if item.get("samplesPerMinute") is not None else -1,
+    ), reverse=True)
+
+    return {
+        "meta": {
+            "sourceHost": "ciru",
+            "suite": "EvalPlus HumanEval+ and MBPP+",
+            "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "runCount": len(runs),
+            "profileCount": len(profiles),
+            "rowCount": len(rows),
+            "latestRunUtc": max([r["createdUtc"] for r in runs if r.get("createdUtc")] or [None]),
+        },
+        "runs": sorted(runs, key=lambda item: item.get("createdUtc") or ""),
+        "profiles": profiles,
+        "profileRuns": sorted(profile_runs, key=lambda item: (item.get("createdUtc") or "", item.get("profile") or "")),
+        "rows": rows,
+    }
+
 def read_json(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -504,6 +735,7 @@ payload = {
     "mtpServer": summarize_mtp_server(),
     "auxEval": summarize_aux_eval(),
     "loadouts": summarize_loadouts(),
+    "codingLab": summarize_coding_lab(),
     "races": summarize_races(),
     "notes": [
         {"title": "Validated results", "kind": "method", "text": "Validated results use runs with complete settings and comparable measurement fields."},
@@ -556,5 +788,6 @@ console.log(JSON.stringify({
   mtpServerRows: data.mtpServer.length,
   auxCandidates: data.auxEval.candidateCount,
   loadouts: data.loadouts.rows,
+  codingProfiles: data.codingLab.meta.profileCount,
   storeOk: data.meta.storeOk
 }, null, 2));
