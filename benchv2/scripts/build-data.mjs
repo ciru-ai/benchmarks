@@ -458,6 +458,7 @@ PROFILE_LABELS = {
 SUITE_LABELS = {
     "humaneval": "HumanEval+",
     "mbpp": "MBPP+",
+    "bigcodebench_hard": "BigCodeBench-Hard",
 }
 
 def title_from_slug(value):
@@ -521,18 +522,21 @@ def summarize_coding_lab():
     rows = []
     runs = []
     metrics_by_run_profile = {}
+    min_representative_tasks = 100
 
     for run_dir in run_dirs:
         if not os.path.isdir(run_dir):
             continue
         run_id = os.path.basename(run_dir)
         summary_path = os.path.join(run_dir, "outputs", "evalplus", "summary.json")
-        if not os.path.exists(summary_path):
-            continue
+        run_rows = []
 
-        try:
-            summary_rows = json.load(open(summary_path, "r", encoding="utf-8"))
-        except Exception:
+        if os.path.exists(summary_path):
+            try:
+                summary_rows = json.load(open(summary_path, "r", encoding="utf-8"))
+            except Exception:
+                summary_rows = []
+        else:
             summary_rows = []
 
         metrics_path = os.path.join(run_dir, "outputs", "metrics", "summary.json")
@@ -542,17 +546,6 @@ def summarize_coding_lab():
                     metrics_by_run_profile[(run_id, metric.get("profile_id"))] = metric
             except Exception:
                 pass
-
-        profile_ids = sorted({row.get("profile_id") for row in summary_rows if row.get("profile_id")})
-        runs.append({
-            "runId": run_id,
-            "label": title_from_slug(run_id),
-            "createdUtc": run_created_utc(run_id),
-            "profiles": len(profile_ids),
-            "rows": len(summary_rows),
-            "tasks": sum(row.get("tasks") or 0 for row in summary_rows),
-            "hasLiveMetrics": os.path.exists(metrics_path),
-        })
 
         for row in summary_rows:
             profile_id = row.get("profile_id")
@@ -565,7 +558,11 @@ def summarize_coding_lab():
                 except Exception:
                     elapsed = None
             tasks = row.get("tasks") or 0
-            rows.append({
+            if tasks < min_representative_tasks:
+                continue
+            if not isinstance(row.get("base_pass"), (int, float)) or not isinstance(row.get("plus_pass"), (int, float)):
+                continue
+            run_rows.append({
                 "runId": run_id,
                 "runLabel": title_from_slug(run_id),
                 "createdUtc": run_created_utc(run_id),
@@ -582,6 +579,60 @@ def summarize_coding_lab():
                 "elapsedSeconds": elapsed,
                 "samplesPerMinute": round(tasks * 60 / elapsed, 3) if tasks and elapsed else None,
             })
+
+        for score_path in sorted(glob.glob(os.path.join(run_dir, "outputs", "bigcodebench", "*_pass_at_k.json"))):
+            try:
+                score = json.load(open(score_path, "r", encoding="utf-8"))
+            except Exception:
+                continue
+            model_id = score.get("model") or os.path.basename(score_path).split("--")[0]
+            profile_id = str(model_id).split("--")[0]
+            eval_path = score_path.replace("_pass_at_k.json", "_eval_results.json")
+            tasks = 0
+            if os.path.exists(eval_path):
+                try:
+                    eval_payload = json.load(open(eval_path, "r", encoding="utf-8"))
+                    tasks = len((eval_payload.get("eval") or {}).keys())
+                except Exception:
+                    tasks = 0
+            if not tasks:
+                tasks = 148 if score.get("subset") == "hard" else 0
+            if tasks < min_representative_tasks or not isinstance(score.get("pass@1"), (int, float)):
+                continue
+            passed = int(round(score.get("pass@1") * tasks))
+            suite = "bigcodebench_hard"
+            run_rows.append({
+                "runId": run_id,
+                "runLabel": title_from_slug(run_id),
+                "createdUtc": run_created_utc(run_id),
+                "profileId": profile_id,
+                "profile": public_profile_label(profile_id),
+                "family": family_for(profile_id),
+                "suite": suite,
+                "suiteLabel": SUITE_LABELS.get(suite, "BigCodeBench-Hard"),
+                "tasks": tasks,
+                "basePass": passed,
+                "plusPass": passed,
+                "baseRate": round(score.get("pass@1"), 4),
+                "plusRate": round(score.get("pass@1"), 4),
+                "elapsedSeconds": None,
+                "samplesPerMinute": None,
+            })
+
+        if not run_rows:
+            continue
+
+        profile_ids = sorted({row.get("profileId") for row in run_rows if row.get("profileId")})
+        runs.append({
+            "runId": run_id,
+            "label": title_from_slug(run_id),
+            "createdUtc": run_created_utc(run_id),
+            "profiles": len(profile_ids),
+            "rows": len(run_rows),
+            "tasks": sum(row.get("tasks") or 0 for row in run_rows),
+            "hasLiveMetrics": os.path.exists(metrics_path),
+        })
+        rows.extend(run_rows)
 
     profiles_by_key = {}
     for row in rows:
@@ -647,11 +698,65 @@ def summarize_coding_lab():
             profile["liveMetrics"] = None
         profile_runs.append(profile)
 
-    latest_by_profile = {}
-    for profile in sorted(profile_runs, key=lambda item: (item.get("createdUtc") or "", item.get("tasks") or 0)):
-        latest_by_profile[profile["profileId"]] = profile
+    latest_row_by_profile_suite = {}
+    for row in sorted(rows, key=lambda item: (item.get("createdUtc") or "", item.get("tasks") or 0)):
+        latest_row_by_profile_suite[(row["profileId"], row["suite"])] = row
 
-    profiles = sorted(latest_by_profile.values(), key=lambda item: (
+    latest_metric_by_profile = {}
+    for profile in sorted(profile_runs, key=lambda item: item.get("createdUtc") or ""):
+        if profile.get("liveMetrics"):
+            latest_metric_by_profile[profile["profileId"]] = profile["liveMetrics"]
+
+    profiles_by_profile = {}
+    for row in latest_row_by_profile_suite.values():
+        profile = profiles_by_profile.setdefault(row["profileId"], {
+            "runId": row["runId"],
+            "runLabel": row["runLabel"],
+            "createdUtc": row["createdUtc"],
+            "profileId": row["profileId"],
+            "profile": row["profile"],
+            "family": row["family"],
+            "quant": profile_quant(row["profileId"]),
+            "sizeClass": profile_size_class(row["profileId"]),
+            "tasks": 0,
+            "basePass": 0,
+            "plusPass": 0,
+            "suites": [],
+            "speedTasks": 0,
+            "codegenSeconds": 0,
+            "speedCoverage": 0,
+            "liveMetrics": latest_metric_by_profile.get(row["profileId"]),
+        })
+        if (row.get("createdUtc") or "") >= (profile.get("createdUtc") or ""):
+            profile["runId"] = row["runId"]
+            profile["runLabel"] = row["runLabel"]
+            profile["createdUtc"] = row["createdUtc"]
+        profile["tasks"] += row["tasks"] or 0
+        profile["basePass"] += row["basePass"] or 0
+        profile["plusPass"] += row["plusPass"] or 0
+        profile["suites"].append({
+            "suite": row["suite"],
+            "suiteLabel": row["suiteLabel"],
+            "tasks": row["tasks"],
+            "basePass": row["basePass"],
+            "plusPass": row["plusPass"],
+            "baseRate": row["baseRate"],
+            "plusRate": row["plusRate"],
+            "elapsedSeconds": row["elapsedSeconds"],
+            "samplesPerMinute": row["samplesPerMinute"],
+        })
+        if row["elapsedSeconds"]:
+            profile["speedTasks"] += row["tasks"] or 0
+            profile["codegenSeconds"] += row["elapsedSeconds"]
+            profile["speedCoverage"] += 1
+
+    for profile in profiles_by_profile.values():
+        tasks = profile["tasks"]
+        profile["baseRate"] = round(profile["basePass"] / tasks, 4) if tasks else None
+        profile["plusRate"] = round(profile["plusPass"] / tasks, 4) if tasks else None
+        profile["samplesPerMinute"] = round(profile["speedTasks"] * 60 / profile["codegenSeconds"], 3) if profile["speedTasks"] and profile["codegenSeconds"] else None
+
+    profiles = sorted(profiles_by_profile.values(), key=lambda item: (
         item.get("plusRate") if item.get("plusRate") is not None else -1,
         item.get("baseRate") if item.get("baseRate") is not None else -1,
         item.get("samplesPerMinute") if item.get("samplesPerMinute") is not None else -1,
@@ -660,7 +765,7 @@ def summarize_coding_lab():
     return {
         "meta": {
             "sourceHost": "ciru",
-            "suite": "EvalPlus HumanEval+ and MBPP+",
+            "suite": "EvalPlus HumanEval+, MBPP+, and BigCodeBench-Hard",
             "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "runCount": len(runs),
             "profileCount": len(profiles),

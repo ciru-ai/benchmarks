@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Coding Quality Lab | Crown Citadel Benchmarks</title>
-  <meta name="description" content="EvalPlus coding quality results for local models on the Crown Citadel Strix Halo benchmark host, comparing correctness and speed evidence.">
+  <meta name="description" content="Coding quality results for local models on the Crown Citadel Strix Halo benchmark host, comparing correctness and speed evidence.">
   <link rel="canonical" href="https://bench.ciru.ai/coding-quality/">
   <meta name="theme-color" content="#080808">
   <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
@@ -565,10 +565,10 @@
       <div>
         <p class="eyebrow">Crown Citadel Coding Quality Lab</p>
         <h1>Model coding ability and speed</h1>
-        <p class="subtitle">EvalPlus HumanEval+ and MBPP+ pass@1 results for local coding models, paired with wall-clock generation speed and live llama.cpp metrics where the run captured them.</p>
+        <p class="subtitle">Representative coding benchmark pass@1 results for local coding models, paired with wall-clock generation speed and live llama.cpp metrics where the run captured them.</p>
         <div class="hero-actions">
           <span class="chip"><strong id="latestRun">Updated</strong></span>
-          <span class="chip">EvalPlus • pass@1</span>
+          <span class="chip">Coding suites • pass@1</span>
           <span class="chip" title="Linux ciru 7.0.1 #1-NixOS SMP PREEMPT_DYNAMIC Wed Apr 22 11:32:23 UTC 2026 x86_64">NixOS • Linux 7.0.1</span>
           <a class="ghost-button" href="../">Benchmark Home</a>
         </div>
@@ -576,7 +576,7 @@
       <div class="hero-card" aria-label="AMD Ryzen AI Max+ benchmark host">
         <img src="../242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
         <strong id="heroBest">n/a</strong>
-        <span>top EvalPlus+ pass@1</span>
+        <span>top representative pass@1</span>
       </div>
     </header>
 
@@ -597,7 +597,7 @@
         <div class="panel-head">
           <div>
             <h2>Coding Ability vs Speed</h2>
-            <p>The vertical axis is aggregate EvalPlus+ pass@1. The horizontal axis can use suite wall-clock generation speed for every model, or live decode throughput for runs that recorded server metrics.</p>
+            <p>The vertical axis is aggregate representative pass@1. The horizontal axis can use suite wall-clock generation speed for timed EvalPlus runs, or live decode throughput for runs that recorded server metrics.</p>
           </div>
           <div class="segmented" aria-label="Speed metric">
             <button type="button" data-speed="wall" aria-pressed="true">Wall Clock</button>
@@ -613,7 +613,7 @@
         <div class="panel-head">
           <div>
             <h2>Suite Pass Rates</h2>
-            <p>HumanEval+ and MBPP+ are shown separately because a model can be strong on one task shape and weaker on the other.</p>
+            <p>Each completed suite is shown separately because a model can be strong on one task shape and weaker on another.</p>
           </div>
         </div>
         <div id="suiteChart" class="chart short"></div>
@@ -623,7 +623,7 @@
         <div class="panel-head">
           <div>
             <h2>Speed Evidence</h2>
-            <p>Wall-clock samples per minute come from EvalPlus codegen logs. Live decode throughput appears only for runs that sampled llama.cpp metrics during active requests.</p>
+            <p>Wall-clock samples per minute come from available codegen logs. Live decode throughput appears only for runs that sampled llama.cpp metrics during active requests.</p>
           </div>
         </div>
         <div id="speedChart" class="chart short"></div>
@@ -635,7 +635,7 @@
         <div class="panel-head">
           <div>
             <h2>Current Ranking</h2>
-            <p>Sorted by EvalPlus+ pass@1, then base pass@1, then available generation speed. Coverage is kept visible so partial speed evidence is not mistaken for full token telemetry.</p>
+            <p>Sorted by aggregate representative pass@1, then base pass@1, then available generation speed. Coverage is kept visible so partial speed evidence is not mistaken for full token telemetry.</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -643,10 +643,9 @@
             <thead>
               <tr>
                 <th>Model</th>
-                <th>EvalPlus+</th>
+                <th>Strict Pass</th>
                 <th>Base</th>
-                <th>HumanEval+</th>
-                <th>MBPP+</th>
+                <th>Suite Scores</th>
                 <th>Wall Clock</th>
                 <th>Live Decode</th>
                 <th>Run</th>
@@ -663,7 +662,7 @@
         <div class="panel-head">
           <div>
             <h2>Run Coverage</h2>
-            <p>Completed EvalPlus runs are included when they have generated summary JSON. Repeated profiles use the newest completed run in the ranking, while the run table keeps the coverage history visible.</p>
+            <p>Completed runs are included when they have generated representative summary data. Small smoke tests are excluded from scoring, while the run table keeps scored coverage visible.</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -757,6 +756,25 @@
       return (profile.suites || []).find((item) => item.suite === suiteName) || {};
     }
 
+    function suiteKeys(profiles) {
+      const preferred = ["humaneval", "mbpp", "bigcodebench_hard"];
+      const found = [...new Set(profiles.flatMap((row) => (row.suites || []).map((item) => item.suite)))];
+      return found.sort((a, b) => {
+        const ai = preferred.indexOf(a);
+        const bi = preferred.indexOf(b);
+        if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        return String(a).localeCompare(String(b));
+      });
+    }
+
+    function suiteLabel(key, profiles) {
+      for (const profile of profiles) {
+        const row = suite(profile, key);
+        if (row.suiteLabel) return row.suiteLabel;
+      }
+      return key.replace(/_/g, " ");
+    }
+
     function familyColorMap(rows) {
       const families = [...new Set(rows.map((row) => row.family || "Other"))].sort();
       return new Map(families.map((family, index) => [family, colors[index % colors.length]]));
@@ -772,10 +790,10 @@
       $("latestRun").textContent = DATA.meta?.generatedAtUtc ? `Updated ${dateFmt(DATA.meta.generatedAtUtc)}` : "Updated";
       $("heroBest").textContent = best ? pct(best.plusRate) : "n/a";
       $("summaryStats").innerHTML = [
-        ["Models", intFmt(profiles.length), `${intFmt(DATA.meta?.runCount)} completed EvalPlus runs`],
-        ["Scored Tasks", intFmt(totalTasks), "HumanEval+ and MBPP+ pass@1 coverage"],
-        ["Best Plus", best ? `${escapeHtml(best.profile)} • ${pct(best.plusRate)}` : "n/a", best ? `${intFmt(best.plusPass)}/${intFmt(best.tasks)} plus tests passed` : "No completed profile rows"],
-        ["Fastest Wall", fastestWall ? `${escapeHtml(fastestWall.profile)} • ${fmt(fastestWall.samplesPerMinute, 2)}/min` : "n/a", "EvalPlus suite wall-clock generation"],
+        ["Models", intFmt(profiles.length), `${intFmt(DATA.meta?.runCount)} completed scored runs`],
+        ["Scored Tasks", intFmt(totalTasks), "Representative pass@1 coverage"],
+        ["Best Strict", best ? `${escapeHtml(best.profile)} • ${pct(best.plusRate)}` : "n/a", best ? `${intFmt(best.plusPass)}/${intFmt(best.tasks)} strict tests passed` : "No completed profile rows"],
+        ["Fastest Wall", fastestWall ? `${escapeHtml(fastestWall.profile)} • ${fmt(fastestWall.samplesPerMinute, 2)}/min` : "n/a", "Timed suite wall-clock generation"],
         ["Fastest Live Decode", fastestLive ? `${escapeHtml(fastestLive.profile)} • ${fmt(fastestLive.liveMetrics.peakPredictedTps, 2)} t/s` : "n/a", `${intFmt(liveRows.length)} profiles with live metric samples`]
       ].map(([label, value, note]) => `
         <div class="stat">
@@ -791,7 +809,7 @@
       if (!abilityChart) return;
       const profiles = sortedProfiles();
       const colorMap = familyColorMap(profiles);
-      const xLabel = speedMode === "decode" ? "Peak live decode tokens/s" : "EvalPlus codegen samples/min";
+      const xLabel = speedMode === "decode" ? "Peak live decode tokens/s" : "Timed codegen samples/min";
       const rows = profiles.filter((row) => speedMode === "decode" ? isNum(row.liveMetrics?.peakPredictedTps) : isNum(row.samplesPerMinute));
       abilityChart.clear();
       abilityChart.setOption({
@@ -805,7 +823,7 @@
           formatter: ({ data }) => [
             `<strong>${escapeHtml(data.name)}</strong>`,
             `${escapeHtml(data.family)} • ${escapeHtml(data.runLabel)}`,
-            `EvalPlus+: ${pct(data.plusRate)} (${intFmt(data.plusPass)}/${intFmt(data.tasks)})`,
+            `Strict pass: ${pct(data.plusRate)} (${intFmt(data.plusPass)}/${intFmt(data.tasks)})`,
             `Base: ${pct(data.baseRate)}`,
             speedMode === "decode"
               ? `Peak live decode: ${fmt(data.value[0], 2)} t/s`
@@ -825,7 +843,7 @@
         },
         yAxis: {
           type: "value",
-          name: "EvalPlus+ pass@1",
+          name: "Strict pass@1",
           min: 0.7,
           max: 0.85,
           axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` },
@@ -875,16 +893,19 @@
     function renderSuiteChart() {
       if (!suiteChart) return;
       const profiles = sortedProfiles();
+      const keys = suiteKeys(profiles);
       suiteChart.setOption({
         grid: { top: 24, right: 22, bottom: 92, left: 58 },
         tooltip: { trigger: "axis", backgroundColor: "rgba(5,10,16,.95)", borderColor: alpha("#39d0ff", 0.24), textStyle },
         legend: { top: 0, textStyle },
         xAxis: { type: "category", data: profiles.map((row) => row.profile), axisLabel: { color: "#8ea3bb", rotate: 34, width: 130, overflow: "truncate" } },
-        yAxis: { type: "value", min: 0.68, max: 0.93, axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
-        series: [
-          { name: "HumanEval+", type: "bar", data: profiles.map((row) => suite(row, "humaneval").plusRate), itemStyle: { color: "#20d1a2", borderRadius: [4, 4, 0, 0] } },
-          { name: "MBPP+", type: "bar", data: profiles.map((row) => suite(row, "mbpp").plusRate), itemStyle: { color: "#39d0ff", borderRadius: [4, 4, 0, 0] } }
-        ]
+        yAxis: { type: "value", min: 0, max: 1, axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
+        series: keys.map((key, index) => ({
+          name: suiteLabel(key, profiles),
+          type: "bar",
+          data: profiles.map((row) => suite(row, key).plusRate ?? null),
+          itemStyle: { color: colors[index % colors.length], borderRadius: [4, 4, 0, 0] }
+        }))
       });
     }
 
@@ -915,15 +936,15 @@
     function renderTables() {
       const profiles = sortedProfiles();
       $("rankingBody").innerHTML = profiles.map((row) => {
-        const he = suite(row, "humaneval");
-        const mbpp = suite(row, "mbpp");
+        const suiteCells = (row.suites || []).map((item) => `
+          <small><strong>${escapeHtml(item.suiteLabel || item.suite)}</strong> ${pct(item.plusRate)} • ${intFmt(item.plusPass)}/${intFmt(item.tasks)}${item.samplesPerMinute ? ` • ${fmt(item.samplesPerMinute, 2)}/min` : ""}</small>
+        `).join("");
         return `
           <tr>
             <td><strong>${escapeHtml(row.profile)}</strong><small>${escapeHtml(row.family || "Other")}${row.quant ? ` • ${escapeHtml(row.quant)}` : ""}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}</small></td>
-            <td class="bar-cell">${pct(row.plusRate)}${bar(row.plusRate)}<small>${intFmt(row.plusPass)}/${intFmt(row.tasks)} plus tests</small></td>
+            <td class="bar-cell">${pct(row.plusRate)}${bar(row.plusRate)}<small>${intFmt(row.plusPass)}/${intFmt(row.tasks)} strict tests</small></td>
             <td>${pct(row.baseRate)}<small>${intFmt(row.basePass)}/${intFmt(row.tasks)} base tests</small></td>
-            <td>${pct(he.plusRate)}<small>${intFmt(he.plusPass)}/${intFmt(he.tasks)} • ${fmt(he.samplesPerMinute, 2)}/min</small></td>
-            <td>${pct(mbpp.plusRate)}<small>${intFmt(mbpp.plusPass)}/${intFmt(mbpp.tasks)} • ${fmt(mbpp.samplesPerMinute, 2)}/min</small></td>
+            <td>${suiteCells || "n/a"}</td>
             <td>${fmt(row.samplesPerMinute, 2)} /min<small>${row.speedCoverage || 0}/${(row.suites || []).length} suite logs timed</small></td>
             <td>${row.liveMetrics ? `${fmt(row.liveMetrics.peakPredictedTps, 2)} t/s` : "not captured"}<small>${row.liveMetrics ? `${intFmt(row.liveMetrics.activeSamples)} active samples` : "no live metric sampler"}</small></td>
             <td><strong>${escapeHtml(row.runLabel)}</strong><small>${dateFmt(row.createdUtc)}</small></td>
@@ -945,10 +966,10 @@
 
     function renderNotes() {
       const notes = [
-        ["Quality", "EvalPlus+ is the stricter score", "The plus result requires the base HumanEval or MBPP test to pass and the expanded EvalPlus tests to pass. The page ranks by aggregate plus pass@1."],
-        ["Speed", "Wall-clock speed is not token throughput", "Samples per minute comes from EvalPlus generation logs. It includes API overhead and one-at-a-time task dispatch, so it is useful operational evidence rather than a pure decode benchmark."],
+        ["Quality", "Strict pass@1 is the headline score", "EvalPlus suites use the plus result. BigCodeBench-Hard uses calibrated pass@1. The page ranks by aggregate representative pass@1 across the latest scored suite for each model."],
+        ["Speed", "Wall-clock speed is not token throughput", "Samples per minute comes from available generation logs. It includes API overhead and task dispatch, so it is useful operational evidence rather than a pure decode benchmark."],
         ["Metrics", "Live decode is partial coverage", "Only the metrics-enabled run sampled llama.cpp during active requests. Models without live metrics remain ranked by correctness and codegen wall time."],
-        ["Scope", "These are deterministic coding tasks", "The runs use pass@1 and temperature 0. BigCodeBench, LiveCodeBench, and repo-edit benchmarks should be added as separate suites when their completed summaries are available."]
+        ["Scope", "These are deterministic coding tasks", "The runs use pass@1 and temperature 0. Small smoke tests under 100 tasks are excluded from scoring because they are useful harness checks, not representative model comparisons."]
       ];
       $("methodNotes").innerHTML = notes.map(([kind, title, text], index) => `
         <article class="note" style="--accent:${colors[index % colors.length]}">
