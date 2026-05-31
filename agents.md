@@ -1,6 +1,6 @@
 # Benchmark Site Agent Guide
 
-This repository publishes the Crown Citadel benchmark site at `bench.ciru.ai`.
+This repository publishes the Crown Citadel benchmark site at `llm.ciru.ai`.
 
 The current public page is v2 at `index.html`. The archived original page is `v1/index.html`. A direct v2 copy is kept at `benchv2/index.html`; when changing v2, update root first, then sync the `benchv2/` copy with adjusted relative paths.
 
@@ -489,10 +489,10 @@ Before committing:
 After push, poll:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/' -Headers @{ 'Cache-Control'='no-cache' }
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/v1/' -Headers @{ 'Cache-Control'='no-cache' }
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/benchv2/' -Headers @{ 'Cache-Control'='no-cache' }
-Invoke-WebRequest -UseBasicParsing -Uri 'https://bench.ciru.ai/coding-quality/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://llm.ciru.ai/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://llm.ciru.ai/v1/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://llm.ciru.ai/benchv2/' -Headers @{ 'Cache-Control'='no-cache' }
+Invoke-WebRequest -UseBasicParsing -Uri 'https://llm.ciru.ai/coding-quality/' -Headers @{ 'Cache-Control'='no-cache' }
 ```
 
 Vercel may lag briefly after GitHub accepts the push.
