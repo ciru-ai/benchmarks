@@ -37,6 +37,7 @@ Primary source locations on `ciru`:
 - Main benchmark database: `/home/crown/bench-results/llama/results.sqlite3`
 - Ledger mirror: `/home/crown/bench-results/llama/results.ledger.jsonl`
 - MTP serving sweeps: `/home/crown/bench-results/llama/mtp-server/*/results.jsonl`
+- Focused server tuning sweeps: `/home/crown/bench-results/llama/qwopus27-*`, `/home/crown/bench-results/llama/ace-saber-settings-*`
 - Hermes auxiliary model evals: `/home/crown/bench-results/hermes-aux-eval/results.jsonl`
 - Hermes loadout evals: `/home/crown/bench-results/hermes-aux-loadout/loadout-results.jsonl`
 - Coding quality lab runs: `/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/*`
@@ -144,6 +145,12 @@ To refresh v2 data:
 node benchv2\scripts\build-data.mjs
 ```
 
+When running directly on the benchmark host, avoid SSH and read the local result stores:
+
+```bash
+BENCHV2_LOCAL=1 node benchv2/scripts/build-data.mjs
+```
+
 The build script executes an embedded Python collector on `ciru`, then writes:
 
 ```text
@@ -168,6 +175,7 @@ If a new source type is added, extend the embedded Python in `build-data.mjs` fi
 - `comparableRows`: broader llama-bench rows for the `All Results` toggle.
 - `apiRows`: `llama-server-api` rows for serving request behavior.
 - `mtpServer`: summarized speculative/MTP server sweeps.
+- `serverTuning`: focused Qwopus/Chadrock/ACE-SABER tuning runs from recent server folders, including prompt throughput, decode throughput, MTP acceptance, latency, memory, and generated summary cards.
 - `auxEval`: Hermes auxiliary model behavior tests.
 - `loadouts`: Hermes main+aux loadout behavior tests.
 - `codingLab`: external SSD coding quality lab summaries, currently EvalPlus HumanEval+ and MBPP+ with wall-clock generation speed and live metrics where captured.

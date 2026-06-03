@@ -812,6 +812,56 @@
       gap: 12px;
     }
 
+    .server-tuning-panel {
+      grid-column: 1 / -1;
+    }
+
+    .tuning-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(32, 209, 162, 0.07), transparent 58%),
+        rgba(0, 0, 0, 0.18);
+    }
+
+    .tuning-card {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(32, 209, 162, 0.08), transparent 72%),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .tuning-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .tuning-card strong {
+      display: block;
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.02rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .tuning-card small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
     .coding-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
@@ -1027,6 +1077,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .tuning-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .selected-top,
       .inspector-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1062,6 +1116,7 @@
       .article-card,
       .control-row,
       .coding-summary,
+      .tuning-summary,
       .selected-top,
       .inspector-grid {
         grid-template-columns: 1fr;
@@ -1097,6 +1152,7 @@
           <span class="chip" title="Linux ciru 7.0.1 #1-NixOS SMP PREEMPT_DYNAMIC Wed Apr 22 11:32:23 UTC 2026 x86_64">NixOS • Linux 7.0.1</span>
           <span class="chip">RADV STRIX_HALO</span>
           <a class="ghost-button" href="../coding-quality/">Open coding quality lab</a>
+          <a class="ghost-button" href="https://huggingface.co/jcbtc" target="_blank" rel="noreferrer">View models</a>
         </div>
       </div>
       <div class="badge-card" aria-label="AMD Ryzen AI Max+ badge">
@@ -1116,6 +1172,7 @@
       <a href="#frontier">Frontier</a>
       <a href="#atlas">Atlas</a>
       <a href="#server">Serving Lab</a>
+      <a href="#server-tuning">Tuning</a>
       <a href="#quality">Quality</a>
       <a href="#races">Races</a>
       <a href="#coding">Coding</a>
@@ -1314,6 +1371,33 @@
               </tr>
             </thead>
             <tbody id="servingBody"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel server-tuning-panel" id="server-tuning">
+        <div class="panel-head">
+          <div>
+            <h2>Server Tuning Results</h2>
+            <p>Recent focused llama-server runs for Qwopus 27B Chadrock Lean and Chadrock 35B ACE/SABER. These rows use real API prompts and expose where MTP settings, draft depth, batch shape, and ngram-mod helped or hurt.</p>
+          </div>
+        </div>
+        <div class="tuning-summary" id="tuningSummary"></div>
+        <div class="table-wrap" style="max-height:560px">
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Model</th>
+                <th>Prompt</th>
+                <th>Decode</th>
+                <th>Acceptance</th>
+                <th>Latency</th>
+                <th>Memory</th>
+                <th>Finding</th>
+              </tr>
+            </thead>
+            <tbody id="tuningBody"></tbody>
           </table>
         </div>
       </article>
@@ -2207,6 +2291,45 @@
       }
     }
 
+    function renderServerTuning() {
+      const data = DATA.serverTuning || { summary: [], rows: [] };
+      const summary = data.summary || [];
+      $("tuningSummary").innerHTML = summary.length ? summary.map((item) => `
+        <div class="tuning-card">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <small>${escapeHtml(item.detail)}</small>
+        </div>
+      `).join("") : `
+        <div class="tuning-card">
+          <span>Server tuning</span>
+          <strong>No recent tuning rows</strong>
+          <small>Refresh the generated data bundle to populate this section.</small>
+        </div>
+      `;
+
+      const rows = (data.rows || [])
+        .slice()
+        .sort((a, b) => (b.decodeTps || 0) - (a.decodeTps || 0) || (b.promptTps || 0) - (a.promptTps || 0));
+
+      $("tuningBody").innerHTML = rows.map((row) => `
+        <tr>
+          <td class="profile-cell">
+            <strong>${escapeHtml(row.displayLabel || row.label || "n/a")}</strong>
+            <small>${escapeHtml(row.group || "")} • ${latestDate(row.timestamp)}</small>
+            ${row.status && row.status !== "ok" ? `<small><span class="tag">${escapeHtml(row.status)}</span></small>` : ""}
+          </td>
+          <td>${escapeHtml(row.modelName || "n/a")}</td>
+          <td>${speed(row.promptTps)}<small class="muted">${intFmt(row.promptTokens)} prompt tokens</small></td>
+          <td>${speed(row.decodeTps)}<small class="muted">${intFmt(row.generatedTokens)} generated</small></td>
+          <td>${pct(row.acceptRate, 1)}<small class="muted">${intFmt(row.draftAccepted)} / ${intFmt(row.draftGenerated)} draft tokens</small></td>
+          <td>${ms(row.totalMs)}<small class="muted">TTFP ${ms(row.ttfpMs)}</small></td>
+          <td>${mem(row.vramGiB)}<small class="muted">${row.gttGiB ? `${mem(row.gttGiB)} GTT` : row.sysGiB ? `${mem(row.sysGiB)} system` : ""}</small></td>
+          <td>${escapeHtml(row.note || "Measured setting row")}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">No server tuning rows are available.</td></tr>`;
+    }
+
     function renderQuality() {
       const candidates = DATA.auxEval.candidates.slice().sort((a, b) => (b.passRate - a.passRate) || (b.avgScore - a.avgScore) || (a.avgTotalMs - b.avgTotalMs));
       $("qualityBody").innerHTML = candidates.map((row) => `
@@ -2655,6 +2778,7 @@
     wire();
     renderAtlas();
     renderServerLab();
+    renderServerTuning();
     renderQuality();
     renderRacesAndNotes();
     renderCodingQuality();

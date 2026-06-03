@@ -82,6 +82,8 @@ def model_name(model):
 
 def family_for(text):
     low = (text or "").lower()
+    if "chadrock" in low or "ace-saber" in low or "ace_saber" in low:
+        return "Chadrock"
     if "qwen3-coder-next" in low:
         return "Qwen Coder Next"
     if "qwen3-coder-30b" in low or "qwen3-coder" in low:
@@ -89,7 +91,7 @@ def family_for(text):
     if "qwen2.5-coder" in low:
         return "Qwen2.5 Coder"
     if "qwen3.6" in low or "qwen36" in low:
-        if "halostrix-dyn-mtp-v7" in low or "crown-dyn-mtp" in low:
+        if "halostrix-dyn-mtp-v7" in low or "crown-dyn-mtp" in low or "crown-halo-mtp-dynamic" in low:
             return "Qwen3.6 Crown MTP"
         if "dynamic" in low or "dyn" in low or "halostrix" in low or "crown-v7" in low:
             return "Qwen3.6 Strix"
@@ -98,6 +100,12 @@ def family_for(text):
         return "Qwen3.6"
     if "gemma" in low:
         return "Gemma"
+    if "lfm2.5" in low or "lfm25" in low:
+        return "Liquid"
+    if "step-3.7" in low or "step3.7" in low or "step37" in low:
+        return "StepFun"
+    if "ornstein" in low:
+        return "Ornstein"
     if "qwopus" in low:
         return "Qwopus"
     if "carnice" in low:
@@ -449,10 +457,19 @@ PROFILE_LABELS = {
     "qwen3-coder-next-q6-k-l": "Qwen3 Coder Next Q6_K_L",
     "qwen3.6-27b-ud-q8-k-xl": "Qwen3.6 27B UD Q8_K_XL",
     "qwen3.6-35b-a3b-crown-halo-mtp-dynamic": "Qwen3.6 35B A3B Crown Dyn MTP",
+    "qwen36-35b-a3b-crown-halo-mtp-dynamic": "Qwen3.6 35B A3B Crown Dyn MTP",
     "nemotron3-nano-omni-30b-a3b-reasoning-ud-q6-k-xl": "Nemotron 3 Nano Omni 30B A3B UD Q6_K_XL",
     "gemma4-26b-a4b-it-q4-km-mtp": "Gemma 4 26B A4B Q4_K_M MTP",
+    "gemma4-31b-it-q4-km-mtp": "Gemma 4 31B IT Q4_K_M MTP",
+    "gemma4-31b-q4-dflash-q8": "Gemma 4 31B DFlash Q8",
+    "gemma4-31b-q4-dflash-q8-full-ctx32768": "Gemma 4 31B DFlash Q8 32k",
     "qwopus3.6-27b-v2-q5-k-m": "Qwopus3.6 27B v2 Q5_K_M",
     "qwopus3.6-35b-a3b-v1-q5-k-m": "Qwopus3.6 35B A3B v1 Q5_K_M",
+    "chadrock-qwen36-27b-mtp-rocmfp4-strix-lean": "Chadrock Qwen3.6 27B MTP ROCmFP4",
+    "chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff": "Chadrock 35B ACE/SABER ROCmFP4",
+    "chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler": "Chadrock 35B ACE/SABER ROCmFP4 Docsampler",
+    "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
+    "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
 }
 
 SUITE_LABELS = {
@@ -778,6 +795,344 @@ def summarize_coding_lab():
         "rows": rows,
     }
 
+SERVER_TUNING_DIR_PATTERNS = [
+    "/home/crown/bench-results/llama/qwopus27-vs-chadrock27",
+    "/home/crown/bench-results/llama/qwopus27-settings-experiments",
+    "/home/crown/bench-results/llama/qwopus27-settings-matrix-*",
+    "/home/crown/bench-results/llama/qwopus27-d2-matrix-*",
+    "/home/crown/bench-results/llama/qwopus27-d3-focused-*",
+    "/home/crown/bench-results/llama/qwopus27-confirm-*",
+    "/home/crown/bench-results/llama/qwopus27-long-confirm-*",
+    "/home/crown/bench-results/llama/qwopus27-final-4096-*",
+    "/home/crown/bench-results/llama/qwopus27-32k-batch-matrix-*",
+    "/home/crown/bench-results/llama/qwopus27-small-batch-*",
+]
+
+SERVER_TUNING_GROUPS = [
+    ("qwopus27-vs-chadrock27", "Qwopus vs Chadrock 27B"),
+    ("qwopus27-settings-experiments", "Qwopus proposed settings"),
+    ("qwopus27-settings-matrix", "Qwopus isolation probes"),
+    ("qwopus27-d2-matrix", "Qwopus d2 starting matrix"),
+    ("qwopus27-d3-focused", "Qwopus d3 focused matrix"),
+    ("qwopus27-confirm", "Qwopus 1024-token confirmation"),
+    ("qwopus27-long-confirm", "Qwopus 2048-token confirmation"),
+    ("qwopus27-final-4096", "Qwopus 4096-token confirmation"),
+    ("qwopus27-32k-batch-matrix", "Qwopus 45k prefill batch test"),
+    ("qwopus27-small-batch", "Qwopus 45k small-batch follow-up"),
+]
+
+TUNING_LABELS = {
+    "chadrock27-winner-qwopus-ab": "Chadrock 27B winner",
+    "qwopus36-27b-v2-chadrock-lean-mtp-qwopus-ab": "Qwopus 27B Chadrock lean",
+    "qwopus36-27b-v2-full-proposed-f16kv-b32768-ub2048-t32tb16-ngram": "Qwopus full proposed + ngram",
+    "qwopus36-27b-v2-proposed-no-ngram-f16kv-b32768-ub2048-t32tb16": "Qwopus proposed without ngram",
+    "f16_only": "F16 KV only",
+    "batch_threads_only": "Batch/thread change only",
+    "draft_n6_p025_only": "n_max 6 + p_min 0.25",
+    "ngram_only": "ngram-mod only",
+    "d1_default": "d1 default",
+    "d2_default": "d2 default",
+    "d3_default": "d3 default",
+    "d4_default": "d4 default",
+    "d5_default": "d5 default",
+    "d3_default_repeat": "d3 default repeat",
+    "d3_default_1024": "d3 default, 1024 tokens",
+    "d3_pmin010_1024": "d3 p_min 0.10, 1024 tokens",
+    "d3_psplit020_1024": "d3 p_split 0.20, 1024 tokens",
+    "d4_default_1024": "d4 default, 1024 tokens",
+    "d4_default_2048": "d4 default, 2048 tokens",
+    "d4_psplit020_2048": "d4 p_split 0.20, 2048 tokens",
+    "d4_pmin010_2048": "d4 p_min 0.10, 2048 tokens",
+    "d3_psplit020_2048": "d3 p_split 0.20, 2048 tokens",
+    "d4_default_4096": "d4 default, 4096 tokens",
+    "b512_ub512": "batch 512 / ubatch 512",
+    "b1024_ub512": "batch 1024 / ubatch 512",
+    "b2048_ub512": "batch 2048 / ubatch 512",
+    "b256_ub256": "batch 256 / ubatch 256",
+    "b256_ub128": "batch 256 / ubatch 128",
+    "b128_ub128": "batch 128 / ubatch 128",
+    "ace_saber_baseline_ignore_eos": "ACE/SABER baseline, 1024 tokens",
+    "ace_saber_proposed_no_ngram": "ACE/SABER proposed without ngram",
+    "baseline_512": "ACE/SABER baseline, 512 tokens",
+    "draft_n6_p025_only": "n_max 6 + p_min 0.25",
+}
+
+def timestamp_from_text(value):
+    m = re.search(r"(\d{8}T\d{6}Z)", str(value or ""))
+    return m.group(1) if m else None
+
+def group_label_for_dir(run_id):
+    for prefix, label in SERVER_TUNING_GROUPS:
+        if str(run_id or "").startswith(prefix):
+            return label
+    return title_from_slug(run_id)
+
+def public_tuning_label(label):
+    if label in TUNING_LABELS:
+        return TUNING_LABELS[label]
+    return title_from_slug(str(label or "").replace("_", "-"))
+
+def parse_sse_final_timing(raw_path):
+    if not raw_path or not os.path.exists(raw_path):
+        return None
+    last = None
+    try:
+        with open(raw_path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line.startswith("data: "):
+                    continue
+                try:
+                    payload = json.loads(line[6:])
+                except Exception:
+                    continue
+                if payload.get("timings"):
+                    last = payload
+    except Exception:
+        return None
+    if not last:
+        return None
+    timings = last.get("timings") or {}
+    draft_n = timings.get("draft_n")
+    draft_accepted = timings.get("draft_n_accepted")
+    return {
+        "promptTokens": timings.get("prompt_n"),
+        "promptMs": timings.get("prompt_ms"),
+        "promptTps": timings.get("prompt_per_second"),
+        "generatedTokens": timings.get("predicted_n") or last.get("tokens_predicted"),
+        "decodeMs": timings.get("predicted_ms"),
+        "decodeTps": timings.get("predicted_per_second"),
+        "draftGenerated": draft_n,
+        "draftAccepted": draft_accepted,
+        "acceptRate": round(draft_accepted / draft_n, 5) if draft_n else None,
+        "speculativeTypes": (last.get("generation_settings") or {}).get("speculative.types"),
+    }
+
+def parse_server_log_timing(log_path):
+    if not log_path or not os.path.exists(log_path):
+        return None
+    try:
+        text = open(log_path, "r", encoding="utf-8", errors="replace").read()
+    except Exception:
+        return None
+    pattern = re.compile(
+        r"prompt eval time =\s+([0-9.]+) ms /\s+(\d+) tokens .*?([0-9.]+) tokens per second\)"
+        r".*?eval time =\s+([0-9.]+) ms /\s+(\d+) tokens .*?([0-9.]+) tokens per second\)"
+        r".*?draft acceptance rate =\s+([0-9.]+) \(\s*(\d+) accepted /\s*(\d+) generated\)",
+        re.S,
+    )
+    m = pattern.search(text)
+    if not m:
+        return None
+    prompt_ms, prompt_tokens, prompt_tps, decode_ms, generated_tokens, decode_tps, accept_rate, accepted, generated = m.groups()
+    return {
+        "promptTokens": int(prompt_tokens),
+        "promptMs": float(prompt_ms),
+        "promptTps": float(prompt_tps),
+        "generatedTokens": int(generated_tokens),
+        "decodeMs": float(decode_ms),
+        "decodeTps": float(decode_tps),
+        "draftGenerated": int(generated),
+        "draftAccepted": int(accepted),
+        "acceptRate": float(accept_rate),
+        "speculativeTypes": "draft-mtp",
+    }
+
+def client_json_for_log(log_path):
+    base = os.path.basename(log_path).replace(".server.log", "")
+    candidates = [
+        os.path.join(os.path.dirname(log_path), f"{base}.client.json"),
+        os.path.join(os.path.dirname(log_path), "client.json"),
+    ]
+    for path in candidates:
+        try:
+            if os.path.exists(path):
+                return json.load(open(path, "r", encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+def tuning_model_name(label, run_id):
+    low = f"{label} {run_id}".lower()
+    if "ace" in low or "saber" in low:
+        return "Chadrock 35B ACE/SABER MTP"
+    if "chadrock27-winner" in low:
+        return "Chadrock 27B winner MTP"
+    return "Qwopus3.6 27B v2 Chadrock Lean MTP"
+
+def tuning_note(label, group, timing):
+    low = str(label or "").lower()
+    if label == "d4_default_4096":
+        return "Best confirmed Qwopus setting: d4 default over a 4096-token decode."
+    if label == "d4_default_2048":
+        return "d4 beat the d3 candidate on the longer 2048-token confirmation."
+    if label == "d4_default_1024":
+        return "Longer 1024-token confirmation moved the lead from d3 to d4."
+    if label == "qwopus36-27b-v2-chadrock-lean-mtp-qwopus-ab":
+        return "Faster than the older Chadrock 27B winner under the same 1024-token prompt."
+    if label == "chadrock27-winner-qwopus-ab":
+        return "Baseline row for the Qwopus-vs-Chadrock 27B comparison."
+    if label == "b512_ub512":
+        return "Balanced long-context winner: strong prefill and best post-prefill decode."
+    if label == "b256_ub256":
+        return "Best raw 45k prefill speed, but weaker decode than b512/u512."
+    if "proposed" in low or "n6" in low or "p025" in low:
+        return "Aggressive proposed settings were slower than the baseline."
+    if "ngram" in low:
+        return "ngram-mod was not useful for these MTP profiles."
+    if "ace" in group.lower() and "baseline" in low:
+        return "ACE/SABER baseline remains the fast serving profile."
+    if timing and timing.get("generatedTokens") and timing.get("generatedTokens") >= 4000:
+        return "Long forced decode exposes sustained MTP throughput."
+    return ""
+
+def round_tuning_value(value, digits=3):
+    return round(value, digits) if isinstance(value, (int, float)) and math.isfinite(value) else None
+
+def tuning_row_from_jsonl(row, run_dir):
+    if row.get("error"):
+        return None
+    timing = parse_sse_final_timing(row.get("raw_output"))
+    if not timing:
+        return None
+    run_id = os.path.basename(run_dir)
+    label = row.get("label")
+    mem = row.get("memory") or {}
+    return {
+        "timestamp": row.get("timestamp_utc") or timestamp_from_text(row.get("raw_output")) or timestamp_from_text(run_id),
+        "runId": run_id,
+        "group": group_label_for_dir(run_id),
+        "label": label,
+        "displayLabel": public_tuning_label(label),
+        "modelName": tuning_model_name(label, run_id),
+        "promptTokens": timing.get("promptTokens"),
+        "generatedTokens": timing.get("generatedTokens"),
+        "promptTps": round_tuning_value(timing.get("promptTps")),
+        "decodeTps": round_tuning_value(timing.get("decodeTps")),
+        "acceptRate": round_tuning_value(timing.get("acceptRate"), 5),
+        "draftAccepted": timing.get("draftAccepted"),
+        "draftGenerated": timing.get("draftGenerated"),
+        "totalMs": round_tuning_value(row.get("total_ms")),
+        "ttfpMs": round_tuning_value(row.get("ttfp_ms")),
+        "vramGiB": gib(mem.get("peak_vram_used_bytes")),
+        "gttGiB": gib(mem.get("peak_gtt_used_bytes")),
+        "sysGiB": gib(mem.get("peak_ram_used_bytes")),
+        "status": "ok",
+        "note": tuning_note(label, group_label_for_dir(run_id), timing),
+        "sourcePath": compact_path(row.get("raw_output")),
+    }
+
+def ace_tuning_rows():
+    rows = []
+    for log_path in sorted(glob.glob("/home/crown/bench-results/llama/ace-saber-settings-*/*.server.log")):
+        run_id = os.path.basename(os.path.dirname(log_path))
+        label = os.path.basename(log_path).replace(".server.log", "")
+        timing = parse_server_log_timing(log_path)
+        client = client_json_for_log(log_path)
+        status = "ok" if timing else "stalled"
+        if timing and (timing.get("generatedTokens") or 0) < 32:
+            continue
+        row = {
+            "timestamp": timestamp_from_text(run_id) or datetime.fromtimestamp(os.path.getmtime(log_path), timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+            "runId": run_id,
+            "group": "ACE/SABER settings cross-check",
+            "label": label,
+            "displayLabel": public_tuning_label(label),
+            "modelName": "Chadrock 35B ACE/SABER MTP",
+            "promptTokens": timing.get("promptTokens") if timing else None,
+            "generatedTokens": timing.get("generatedTokens") if timing else None,
+            "promptTps": round_tuning_value(timing.get("promptTps") if timing else None),
+            "decodeTps": round_tuning_value(timing.get("decodeTps") if timing else None),
+            "acceptRate": round_tuning_value(timing.get("acceptRate") if timing else None, 5),
+            "draftAccepted": timing.get("draftAccepted") if timing else None,
+            "draftGenerated": timing.get("draftGenerated") if timing else None,
+            "totalMs": round_tuning_value(client.get("total_ms") or ((timing.get("promptMs") or 0) + (timing.get("decodeMs") or 0) if timing else None)),
+            "ttfpMs": round_tuning_value(client.get("ttfp_ms")),
+            "vramGiB": None,
+            "gttGiB": None,
+            "sysGiB": None,
+            "status": status,
+            "note": tuning_note(label, "ACE/SABER settings cross-check", timing),
+            "sourcePath": compact_path(log_path),
+        }
+        if status == "stalled":
+            row["note"] = "Run did not complete a usable timing summary."
+        rows.append(row)
+    return rows
+
+def fmt_speed_value(value, suffix=" t/s"):
+    return f"{value:.2f}{suffix}" if isinstance(value, (int, float)) and math.isfinite(value) else "n/a"
+
+def summarize_server_tuning():
+    rows = []
+    seen_dirs = []
+    for pattern in SERVER_TUNING_DIR_PATTERNS:
+        for run_dir in sorted(glob.glob(pattern)):
+            if os.path.isdir(run_dir) and run_dir not in seen_dirs:
+                seen_dirs.append(run_dir)
+    for run_dir in seen_dirs:
+        for row in read_jsonl(os.path.join(run_dir, "results.jsonl")):
+            tuning_row = tuning_row_from_jsonl(row, run_dir)
+            if tuning_row:
+                rows.append(tuning_row)
+    rows.extend(ace_tuning_rows())
+    rows = sorted(rows, key=lambda item: (item.get("timestamp") or "", item.get("group") or "", item.get("decodeTps") or 0))
+
+    by_label = {row.get("label"): row for row in rows}
+    qwopus = by_label.get("qwopus36-27b-v2-chadrock-lean-mtp-qwopus-ab")
+    chadrock = by_label.get("chadrock27-winner-qwopus-ab")
+    qfinal = by_label.get("d4_default_4096")
+    ace1024 = by_label.get("ace_saber_baseline_ignore_eos")
+    ace512 = by_label.get("baseline_512")
+    balanced = by_label.get("b512_ub512")
+    fastest_prefill = max(
+        [row for row in rows if row.get("group") in ("Qwopus 45k prefill batch test", "Qwopus 45k small-batch follow-up") and row.get("promptTps")],
+        key=lambda item: item.get("promptTps") or 0,
+        default=None,
+    )
+
+    summary = []
+    if ace512 or ace1024:
+        top_ace = ace512 or ace1024
+        summary.append({
+            "label": "ACE/SABER decode",
+            "value": fmt_speed_value(top_ace.get("decodeTps")),
+            "detail": f"{top_ace.get('displayLabel')} with {fmt_speed_value(top_ace.get('promptTps'))} prompt processing and {round((top_ace.get('acceptRate') or 0) * 100, 1)}% acceptance.",
+        })
+    if qfinal:
+        summary.append({
+            "label": "Qwopus sustained decode",
+            "value": fmt_speed_value(qfinal.get("decodeTps")),
+            "detail": f"4096-token forced decode at d4 default with {round((qfinal.get('acceptRate') or 0) * 100, 1)}% MTP acceptance.",
+        })
+    if qwopus and chadrock and chadrock.get("decodeTps"):
+        lift = ((qwopus.get("decodeTps") or 0) / chadrock.get("decodeTps") - 1) * 100
+        summary.append({
+            "label": "Qwopus vs Chadrock 27B",
+            "value": f"+{lift:.1f}%",
+            "detail": f"{fmt_speed_value(qwopus.get('decodeTps'))} vs {fmt_speed_value(chadrock.get('decodeTps'))} on the same 1024-token API prompt.",
+        })
+    if balanced:
+        detail = f"Balanced b512/u512 delivered {fmt_speed_value(balanced.get('promptTps'))} prefill and {fmt_speed_value(balanced.get('decodeTps'))} decode after 44,677 prompt tokens."
+        if fastest_prefill and fastest_prefill is not balanced:
+            detail += f" Raw prefill peak was {fmt_speed_value(fastest_prefill.get('promptTps'))} on {fastest_prefill.get('displayLabel')}."
+        summary.append({
+            "label": "45k-token prefill",
+            "value": fmt_speed_value(balanced.get("promptTps")),
+            "detail": detail,
+        })
+
+    return {
+        "meta": {
+            "sourceRoot": compact_path("/home/crown/bench-results/llama"),
+            "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "rowCount": len(rows),
+            "latestTimestamp": max([row.get("timestamp") for row in rows if row.get("timestamp")] or [None]),
+        },
+        "summary": summary,
+        "rows": rows,
+    }
+
 def read_json(path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -822,6 +1177,7 @@ except FileNotFoundError:
 strict_rows = fetch_rows(cur, "llama_bench_strict")
 comparable_rows = fetch_rows(cur, "llama_bench_comparable")
 api_rows = summarize_api_rows(cur)
+server_tuning = summarize_server_tuning()
 
 payload = {
     "meta": {
@@ -832,12 +1188,13 @@ payload = {
         "ledgerRows": ledger_rows,
         "storeOk": ledger_rows == counts["benchmark_rows"],
         "counts": counts,
-        "latestTimestamp": max([r["timestamp"] for r in strict_rows + api_rows if r.get("timestamp")] or [None]),
+        "latestTimestamp": max([r["timestamp"] for r in strict_rows + api_rows + server_tuning["rows"] if r.get("timestamp")] or [None]),
     },
     "strictRows": strict_rows,
     "comparableRows": comparable_rows,
     "apiRows": api_rows,
     "mtpServer": summarize_mtp_server(),
+    "serverTuning": server_tuning,
     "auxEval": summarize_aux_eval(),
     "loadouts": summarize_loadouts(),
     "codingLab": summarize_coding_lab(),
@@ -875,8 +1232,24 @@ function runRemote() {
   return JSON.parse(result.stdout);
 }
 
+function runLocal() {
+  const result = spawnSync("python3", ["-"], {
+    input: remoteScript,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024
+  });
+
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`python3 exited ${result.status}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+  }
+  return JSON.parse(result.stdout);
+}
+
 fs.mkdirSync(dataDir, { recursive: true });
-const data = runRemote();
+const data = process.env.BENCHV2_LOCAL === "1" || process.env.BENCHV2_SSH_HOST === "local"
+  ? runLocal()
+  : runRemote();
 const json = JSON.stringify(data, null, 2);
 fs.writeFileSync(path.join(dataDir, "benchv2-data.json"), json + "\n", "utf8");
 fs.writeFileSync(
@@ -891,6 +1264,7 @@ console.log(JSON.stringify({
   counts: data.meta.counts,
   apiRows: data.apiRows.length,
   mtpServerRows: data.mtpServer.length,
+  serverTuningRows: data.serverTuning.rows.length,
   auxCandidates: data.auxEval.candidateCount,
   loadouts: data.loadouts.rows,
   codingProfiles: data.codingLab.meta.profileCount,
