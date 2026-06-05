@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>iGPU+NPU LOAD CONCURRENCY TEST</title>
-  <meta name="description" content="We compare a fully loaded iGPU running with a concurrent Qwen3.5 9b under full load to measure impact.">
+  <meta name="description" content="We compare a fully loaded iGPU running with a concurrent Qwen3.5 9B under full load to measure impact.">
   <meta name="theme-color" content="#080808">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -268,7 +268,6 @@
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.12em;
-      text-transform: uppercase;
     }
 
     .result-card .value {
@@ -306,7 +305,7 @@
       <div>
         <p class="eyebrow">64k token race</p>
         <h1>iGPU+NPU LOAD CONCURRENCY TEST</h1>
-        <p class="subtitle">We compare a fully loaded iGPU running with a concurrent Qwen3.5 9b under full load to measure impact.</p>
+        <p class="subtitle">We compare a fully loaded iGPU running with a concurrent Qwen3.5 9B under full load to measure impact.</p>
       </div>
       <div class="hero-badge">
         <img src="../../amd_xdna2_badge_true_rgba_cropped.png" alt="AMD XDNA 2 NPU badge">
@@ -321,7 +320,7 @@
       <div class="race-head">
         <div>
           <h2>Processed-Token Race</h2>
-          <p>Each lane runs the same full 64k main-model workload to a 65,664 processed-token finish line. The baseline runs Qwen3.6 35B on the iGPU by itself, the NPU lane adds a fully loaded concurrent Qwen3.5 9b on the NPU, and the iGPU contention lane runs that same Qwen3.5 9b load on the iGPU.</p>
+          <p>Each lane runs the same full 64k main-model workload to a 65,664 processed-token finish line. The baseline is Qwen3.6 35B iGPU Alone, the NPU lane is Qwen3.6 35B + Qwen3.5 9B NPU, and the iGPU contention lane is Qwen3.6 35B + Qwen3.5 9B iGPU.</p>
         </div>
         <div class="status">
           <span>Leader</span>
@@ -333,19 +332,19 @@
       </div>
       <div class="result-grid" aria-label="Result summary">
         <div class="result-card" style="--accent: var(--teal)">
-          <div class="label">Baseline</div>
+          <div class="label">Qwen3.6 35B iGPU Alone</div>
           <div class="value">195.31 tok/s</div>
-          <div class="sub">336s finish | 65,664 tokens | Qwen3.6 35B iGPU alone</div>
+          <div class="sub">336s finish | 65,664 tokens | baseline</div>
         </div>
         <div class="result-card" style="--accent: var(--amber)">
-          <div class="label">NPU concurrency</div>
+          <div class="label">Qwen3.6 35B + Qwen3.5 9B NPU</div>
           <div class="value">189.09 tok/s</div>
-          <div class="sub">347s finish | +3.29% latency | Qwen3.5 9b fully loaded on NPU</div>
+          <div class="sub">347s finish | +3.29% latency | concurrent NPU load</div>
         </div>
         <div class="result-card" style="--accent: var(--rose)">
-          <div class="label">iGPU contention</div>
+          <div class="label">Qwen3.6 35B + Qwen3.5 9B iGPU</div>
           <div class="value">115.60 tok/s</div>
-          <div class="sub">568s finish | +68.96% latency | Qwen3.5 9b fully loaded on iGPU</div>
+          <div class="sub">568s finish | +68.96% latency | concurrent iGPU load</div>
         </div>
       </div>
     </section>
@@ -359,7 +358,7 @@
       {
         id: "solo",
         label: "Qwen3.6 35B iGPU Alone",
-        shortLabel: "35B iGPU Alone",
+        shortLabel: "Qwen3.6 35B iGPU Alone",
         color: "#20d1a2",
         promptSeconds: 329.719,
         totalSeconds: 336.198,
@@ -367,8 +366,8 @@
       },
       {
         id: "npu",
-        label: "Qwen3.6 35B iGPU + NPU",
-        shortLabel: "35B + NPU",
+        label: "Qwen3.6 35B + Qwen3.5 9B NPU",
+        shortLabel: "Qwen3.6 35B + Qwen3.5 9B NPU",
         color: "#f6c046",
         promptSeconds: 339.616,
         totalSeconds: 347.260,
@@ -376,8 +375,8 @@
       },
       {
         id: "igpu",
-        label: "Qwen3.6 35B iGPU + Qwen3.5 iGPU",
-        shortLabel: "35B + iGPU",
+        label: "Qwen3.6 35B + Qwen3.5 9B iGPU",
+        shortLabel: "Qwen3.6 35B + Qwen3.5 9B iGPU",
         color: "#ff4e6e",
         promptSeconds: 562.000,
         totalSeconds: 568.035,
@@ -479,7 +478,7 @@
       ctx.fillRect(x - 13, y + 6, 26, 4);
 
       ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.font = "700 15px Space Grotesk, sans-serif";
+      fitText(lane.shortLabel, Math.max(220, width * 0.58), 15, 11);
       ctx.fillText(lane.shortLabel, left, y - 44);
       ctx.font = "700 13px IBM Plex Mono, monospace";
       const readout = `${fmt(tokens)} / ${fmt(TARGET_TOKENS)}`;
@@ -494,6 +493,15 @@
         ctx.fillText(seconds(lane.totalSeconds), Math.min(x + 28, right - 80), y + 6);
       }
       ctx.restore();
+    }
+
+    function fitText(text, maxWidth, basePx = 15, minPx = 11) {
+      let size = basePx;
+      ctx.font = `700 ${size}px Space Grotesk, sans-serif`;
+      while (size > minPx && ctx.measureText(text).width > maxWidth) {
+        size -= 1;
+        ctx.font = `700 ${size}px Space Grotesk, sans-serif`;
+      }
     }
 
     function currentTime() {
