@@ -108,6 +108,8 @@ def family_for(text):
         return "Ornstein"
     if "qwopus" in low:
         return "Qwopus"
+    if "hermes" in low:
+        return "Hermes Agent"
     if "carnice" in low:
         return "Carnice"
     if "mistral" in low or "devstral" in low:
@@ -124,8 +126,6 @@ def family_for(text):
         return "Phi"
     if "medpsy" in low:
         return "MedPsy"
-    if "hermes" in low:
-        return "Hermes"
     return "Other"
 
 def tier_for(model, model_params):
@@ -451,6 +451,7 @@ def summarize_loadouts():
     return {"path": compact_path(path), "rows": len(rows), "loadouts": out}
 
 CODING_LAB_ROOT = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs"
+QUALITY_DB = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/quality-results.sqlite3"
 
 PROFILE_LABELS = {
     "qwen3-coder-next-q4-k-l": "Qwen3 Coder Next Q4_K_L",
@@ -468,6 +469,8 @@ PROFILE_LABELS = {
     "chadrock-qwen36-27b-mtp-rocmfp4-strix-lean": "Chadrock Qwen3.6 27B MTP ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff": "Chadrock 35B ACE/SABER ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler": "Chadrock 35B ACE/SABER ROCmFP4 Docsampler",
+    "CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN": "Chadrock3.6 35B Uncensored MTP",
+    "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
     "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
     "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
 }
@@ -476,6 +479,21 @@ SUITE_LABELS = {
     "humaneval": "HumanEval+",
     "mbpp": "MBPP+",
     "bigcodebench_hard": "BigCodeBench-Hard",
+    "bigcodebench-hard-instruct": "BigCodeBench-Hard",
+    "release_latest-codegeneration-2025-01-01": "LiveCodeBench 2025-01",
+    "swebench-lite-dev": "SWE-bench Lite Dev",
+    "official-20": "HermesAgent-20",
+    "aggregate": "Aggregate",
+    "bfcl-v4-all_scoring": "BFCL v4 all scoring",
+    "bfcl-v4-non_live": "BFCL v4 non-live",
+    "bfcl-v4-non_live_irrelevance": "BFCL irrelevance",
+    "bfcl-v4-non_live_multiple": "BFCL multiple",
+    "bfcl-v4-non_live_parallel": "BFCL parallel",
+    "bfcl-v4-non_live_parallel_multiple": "BFCL parallel multiple",
+    "bfcl-v4-non_live_simple": "BFCL simple",
+    "bfcl-v4-non_live_simple_java": "BFCL simple Java",
+    "bfcl-v4-non_live_simple_javascript": "BFCL simple JavaScript",
+    "bfcl-v4-non_live_simple_python": "BFCL simple Python",
 }
 
 def title_from_slug(value):
@@ -534,7 +552,381 @@ def profile_size_class(profile_id):
         return "Large"
     return "Flagship"
 
+def score_label(score_name):
+    return {
+        "pass@1_plus": "pass@1+",
+        "pass@1": "pass@1",
+        "non_live_overall_acc": "overall accuracy",
+        "irrelevance_detection_acc": "irrelevance",
+        "multiple_ast_acc": "multiple AST",
+        "parallel_ast_acc": "parallel AST",
+        "parallel_multiple_ast_acc": "parallel multiple AST",
+        "simple_ast_acc": "simple AST",
+        "java_simple_ast_acc": "Java simple AST",
+        "javascript_simple_ast_acc": "JavaScript simple AST",
+        "python_simple_ast_acc": "Python simple AST",
+        "accuracy": "accuracy",
+        "resolved": "resolved",
+        "avg_score": "average score",
+        "category_score": "category score",
+        "scenario_score": "scenario score",
+    }.get(score_name, title_from_slug(score_name))
+
+def completed_quality_score(row):
+    try:
+        score = float(row["score_value"])
+    except Exception:
+        return False
+    if not math.isfinite(score):
+        return False
+    if row["benchmark_family"] == "run_manifest":
+        return False
+    if row["benchmark_family"] == "evalplus":
+        if row["row_kind"] not in ("dataset", "aggregate"):
+            return False
+        if not row["tasks"] or int(row["tasks"] or 0) < 100 or row["plus_pass"] is None or row["base_pass"] is None:
+            return False
+    if row["benchmark_family"] in ("bigcodebench", "livecodebench"):
+        if row["tasks"] is None or int(row["tasks"] or 0) < 100:
+            return False
+    if row["benchmark_family"] == "mini-swe-agent":
+        if row["tasks"] is None or int(row["tasks"] or 0) <= 0:
+            return False
+    if row["benchmark_family"] == "hermesagent-20":
+        if row["row_kind"] != "aggregate" or row["suite"] != "official-20":
+            return False
+        if row["tasks"] is None or int(row["tasks"] or 0) < 20:
+            return False
+    return True
+
+def quality_row_public(row):
+    score = float(row["score_value"])
+    profile_id = row["profile_id"]
+    suite = row["suite"]
+    return {
+        "seq": row["seq"],
+        "runId": row["run_id"],
+        "createdUtc": run_created_utc(row["run_id"]) or row["timestamp_utc"],
+        "timestamp": row["timestamp_utc"],
+        "benchmarkFamily": row["benchmark_family"],
+        "suite": suite,
+        "suiteLabel": SUITE_LABELS.get(suite, title_from_slug(suite)),
+        "rowKind": row["row_kind"],
+        "profileId": profile_id,
+        "profile": public_profile_label(profile_id),
+        "family": family_for(profile_id),
+        "quant": profile_quant(profile_id),
+        "sizeClass": profile_size_class(profile_id),
+        "tasks": row["tasks"],
+        "scoreName": row["score_name"],
+        "scoreLabel": score_label(row["score_name"]),
+        "score": round(score, 6),
+        "basePass": row["base_pass"],
+        "plusPass": row["plus_pass"],
+        "baseRate": round(row["base_rate"], 6) if row["base_rate"] is not None else None,
+        "plusRate": round(row["plus_rate"], 6) if row["plus_rate"] is not None else None,
+        "generationSeconds": round(row["generation_seconds"], 3) if row["generation_seconds"] is not None else None,
+        "generationTokS": round(row["generation_tok_s"], 3) if row["generation_tok_s"] is not None else None,
+        "totalRuntimeS": round(row["total_runtime_s"], 3) if row["total_runtime_s"] is not None else None,
+        "activeSamples": row["active_samples"],
+        "peakPromptTps": round(row["peak_prompt_tps"], 3) if row["peak_prompt_tps"] is not None else None,
+        "peakPredictedTps": round(row["peak_predicted_tps"], 3) if row["peak_predicted_tps"] is not None else None,
+        "model": compact_path(row["model_path"]),
+        "sourcePath": compact_path(row["source_path"]),
+    }
+
+def quality_rows_from_db():
+    if not os.path.exists(QUALITY_DB):
+        return [], 0
+    conn = sqlite3.connect(QUALITY_DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        all_rows = list(conn.execute("""
+            SELECT seq, run_id, timestamp_utc, benchmark_family, suite, row_kind, profile_id,
+                   tasks, score_name, score_value, base_pass, plus_pass, base_rate, plus_rate,
+                   prefill_tok_s, generation_tok_s, total_runtime_s, generation_seconds,
+                   active_samples, peak_prompt_tps, peak_predicted_tps, model_path, source_path, row_json
+            FROM quality_result_rows
+            ORDER BY seq
+        """))
+    finally:
+        conn.close()
+
+    deduped = {}
+    excluded = 0
+    for row in all_rows:
+        if not completed_quality_score(row):
+            excluded += 1
+            continue
+        key = (
+            row["run_id"], row["profile_id"], row["benchmark_family"], row["suite"],
+            row["row_kind"], row["score_name"], row["source_path"] or "",
+        )
+        if key not in deduped or (row["seq"] or 0) > (deduped[key]["seq"] or 0):
+            deduped[key] = row
+    return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
+
+def summarize_quality_suites():
+    rows, excluded = quality_rows_from_db()
+    if not rows:
+        return {
+            "meta": {
+                "sourcePath": compact_path(QUALITY_DB),
+                "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "rowCount": 0,
+                "profileCount": 0,
+                "runCount": 0,
+                "excludedRows": excluded,
+                "latestTimestamp": None,
+            },
+            "rows": [],
+            "codingRows": [],
+            "bfclRows": [],
+            "agentRows": [],
+            "leaderRows": [],
+        }
+
+    coding_families = {"evalplus", "bigcodebench", "livecodebench", "mini-swe-agent"}
+    coding_rows = [
+        row for row in rows
+        if row["benchmarkFamily"] in coding_families
+        and not (row["benchmarkFamily"] == "evalplus" and row["suite"] not in ("aggregate", "humaneval", "mbpp"))
+    ]
+    bfcl_rows = [row for row in rows if row["benchmarkFamily"] == "bfcl"]
+    agent_rows = [
+        row for row in rows
+        if row["benchmarkFamily"] == "hermesagent-20"
+        and row["rowKind"] == "aggregate"
+        and row["suite"] == "official-20"
+    ]
+
+    latest_by_profile_suite = {}
+    for row in [*coding_rows, *agent_rows]:
+        key = (row["profileId"], row["benchmarkFamily"], row["suite"], row["scoreName"])
+        if key not in latest_by_profile_suite or (row.get("createdUtc") or "") >= (latest_by_profile_suite[key].get("createdUtc") or ""):
+            latest_by_profile_suite[key] = row
+
+    headline_priority = {
+        ("evalplus", "aggregate"): 0,
+        ("evalplus", "humaneval"): 1,
+        ("evalplus", "mbpp"): 2,
+        ("livecodebench", "release_latest-codegeneration-2025-01-01"): 3,
+        ("bigcodebench", "bigcodebench-hard-instruct"): 4,
+        ("mini-swe-agent", "swebench-lite-dev"): 5,
+        ("hermesagent-20", "official-20"): 6,
+    }
+    leader_rows = sorted(latest_by_profile_suite.values(), key=lambda row: (
+        headline_priority.get((row["benchmarkFamily"], row["suite"]), 99),
+        -(row["score"] if row["score"] is not None else -1),
+        row["profile"],
+    ))
+
+    return {
+        "meta": {
+            "sourcePath": compact_path(QUALITY_DB),
+            "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "rowCount": len(rows),
+            "profileCount": len({row["profileId"] for row in rows}),
+            "runCount": len({row["runId"] for row in rows}),
+            "excludedRows": excluded,
+            "latestTimestamp": max([row.get("timestamp") or row.get("createdUtc") for row in rows if row.get("timestamp") or row.get("createdUtc")] or [None]),
+        },
+        "rows": rows,
+        "codingRows": coding_rows,
+        "bfclRows": sorted(bfcl_rows, key=lambda row: (row["profile"], row["suite"])),
+        "agentRows": sorted(agent_rows, key=lambda row: (row["profile"], row["suite"])),
+        "leaderRows": leader_rows,
+    }
+
+def summarize_coding_lab_from_quality_db():
+    rows, _excluded = quality_rows_from_db()
+    if not rows:
+        return None
+
+    coding_rows = []
+    for row in rows:
+        if row["benchmarkFamily"] == "evalplus" and row["rowKind"] == "dataset" and row["suite"] in ("humaneval", "mbpp"):
+            pass
+        elif row["benchmarkFamily"] == "bigcodebench" and row["suite"] == "bigcodebench-hard-instruct":
+            row = dict(row)
+            row["suite"] = "bigcodebench_hard"
+            row["suiteLabel"] = SUITE_LABELS["bigcodebench_hard"]
+        else:
+            continue
+        if not row.get("tasks") or row.get("plusPass") is None:
+            continue
+        coding_rows.append({
+            "runId": row["runId"],
+            "runLabel": title_from_slug(row["runId"]),
+            "createdUtc": row["createdUtc"],
+            "profileId": row["profileId"],
+            "profile": row["profile"],
+            "family": row["family"],
+            "suite": row["suite"],
+            "suiteLabel": row["suiteLabel"],
+            "tasks": row["tasks"],
+            "basePass": row["basePass"],
+            "plusPass": row["plusPass"],
+            "baseRate": round(row["baseRate"], 4) if row["baseRate"] is not None else row["score"],
+            "plusRate": round(row["plusRate"], 4) if row["plusRate"] is not None else row["score"],
+            "elapsedSeconds": row["generationSeconds"],
+            "samplesPerMinute": round(row["tasks"] * 60 / row["generationSeconds"], 3) if row.get("tasks") and row.get("generationSeconds") else None,
+        })
+
+    if not coding_rows:
+        return None
+
+    runs_by_id = {}
+    for row in coding_rows:
+        run = runs_by_id.setdefault(row["runId"], {
+            "runId": row["runId"],
+            "label": title_from_slug(row["runId"]),
+            "createdUtc": row["createdUtc"],
+            "profiles": set(),
+            "rows": 0,
+            "tasks": 0,
+            "hasLiveMetrics": False,
+        })
+        run["profiles"].add(row["profileId"])
+        run["rows"] += 1
+        run["tasks"] += row["tasks"] or 0
+
+    runs = []
+    for run in runs_by_id.values():
+        runs.append({
+            **run,
+            "profiles": len(run["profiles"]),
+        })
+
+    profiles_by_key = {}
+    for row in coding_rows:
+        key = (row["runId"], row["profileId"])
+        profile = profiles_by_key.setdefault(key, {
+            "runId": row["runId"],
+            "runLabel": row["runLabel"],
+            "createdUtc": row["createdUtc"],
+            "profileId": row["profileId"],
+            "profile": row["profile"],
+            "family": row["family"],
+            "quant": profile_quant(row["profileId"]),
+            "sizeClass": profile_size_class(row["profileId"]),
+            "tasks": 0,
+            "basePass": 0,
+            "plusPass": 0,
+            "suites": [],
+            "speedTasks": 0,
+            "codegenSeconds": 0,
+            "speedCoverage": 0,
+            "liveMetrics": None,
+        })
+        profile["tasks"] += row["tasks"] or 0
+        profile["basePass"] += row["basePass"] or 0
+        profile["plusPass"] += row["plusPass"] or 0
+        profile["suites"].append({
+            "suite": row["suite"],
+            "suiteLabel": row["suiteLabel"],
+            "tasks": row["tasks"],
+            "basePass": row["basePass"],
+            "plusPass": row["plusPass"],
+            "baseRate": row["baseRate"],
+            "plusRate": row["plusRate"],
+            "elapsedSeconds": row["elapsedSeconds"],
+            "samplesPerMinute": row["samplesPerMinute"],
+        })
+        if row["elapsedSeconds"]:
+            profile["speedTasks"] += row["tasks"] or 0
+            profile["codegenSeconds"] += row["elapsedSeconds"]
+            profile["speedCoverage"] += 1
+
+    profile_runs = []
+    for profile in profiles_by_key.values():
+        tasks = profile["tasks"]
+        profile["baseRate"] = round(profile["basePass"] / tasks, 4) if tasks else None
+        profile["plusRate"] = round(profile["plusPass"] / tasks, 4) if tasks else None
+        profile["samplesPerMinute"] = round(profile["speedTasks"] * 60 / profile["codegenSeconds"], 3) if profile["speedTasks"] and profile["codegenSeconds"] else None
+        profile_runs.append(profile)
+
+    latest_row_by_profile_suite = {}
+    for row in sorted(coding_rows, key=lambda item: (item.get("createdUtc") or "", item.get("tasks") or 0)):
+        latest_row_by_profile_suite[(row["profileId"], row["suite"])] = row
+
+    profiles_by_profile = {}
+    for row in latest_row_by_profile_suite.values():
+        profile = profiles_by_profile.setdefault(row["profileId"], {
+            "runId": row["runId"],
+            "runLabel": row["runLabel"],
+            "createdUtc": row["createdUtc"],
+            "profileId": row["profileId"],
+            "profile": row["profile"],
+            "family": row["family"],
+            "quant": profile_quant(row["profileId"]),
+            "sizeClass": profile_size_class(row["profileId"]),
+            "tasks": 0,
+            "basePass": 0,
+            "plusPass": 0,
+            "suites": [],
+            "speedTasks": 0,
+            "codegenSeconds": 0,
+            "speedCoverage": 0,
+            "liveMetrics": None,
+        })
+        if (row.get("createdUtc") or "") >= (profile.get("createdUtc") or ""):
+            profile["runId"] = row["runId"]
+            profile["runLabel"] = row["runLabel"]
+            profile["createdUtc"] = row["createdUtc"]
+        profile["tasks"] += row["tasks"] or 0
+        profile["basePass"] += row["basePass"] or 0
+        profile["plusPass"] += row["plusPass"] or 0
+        profile["suites"].append({
+            "suite": row["suite"],
+            "suiteLabel": row["suiteLabel"],
+            "tasks": row["tasks"],
+            "basePass": row["basePass"],
+            "plusPass": row["plusPass"],
+            "baseRate": row["baseRate"],
+            "plusRate": row["plusRate"],
+            "elapsedSeconds": row["elapsedSeconds"],
+            "samplesPerMinute": row["samplesPerMinute"],
+        })
+        if row["elapsedSeconds"]:
+            profile["speedTasks"] += row["tasks"] or 0
+            profile["codegenSeconds"] += row["elapsedSeconds"]
+            profile["speedCoverage"] += 1
+
+    for profile in profiles_by_profile.values():
+        tasks = profile["tasks"]
+        profile["baseRate"] = round(profile["basePass"] / tasks, 4) if tasks else None
+        profile["plusRate"] = round(profile["plusPass"] / tasks, 4) if tasks else None
+        profile["samplesPerMinute"] = round(profile["speedTasks"] * 60 / profile["codegenSeconds"], 3) if profile["speedTasks"] and profile["codegenSeconds"] else None
+
+    profiles = sorted(profiles_by_profile.values(), key=lambda item: (
+        item.get("plusRate") if item.get("plusRate") is not None else -1,
+        item.get("baseRate") if item.get("baseRate") is not None else -1,
+        item.get("samplesPerMinute") if item.get("samplesPerMinute") is not None else -1,
+    ), reverse=True)
+
+    return {
+        "meta": {
+            "sourceHost": "ciru",
+            "sourcePath": compact_path(QUALITY_DB),
+            "suite": "Completed EvalPlus HumanEval+, MBPP+, and BigCodeBench-Hard rows",
+            "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "runCount": len(runs),
+            "profileCount": len(profiles),
+            "rowCount": len(coding_rows),
+            "latestRunUtc": max([r["createdUtc"] for r in runs if r.get("createdUtc")] or [None]),
+        },
+        "runs": sorted(runs, key=lambda item: item.get("createdUtc") or ""),
+        "profiles": profiles,
+        "profileRuns": sorted(profile_runs, key=lambda item: (item.get("createdUtc") or "", item.get("profile") or "")),
+        "rows": coding_rows,
+    }
+
 def summarize_coding_lab():
+    quality_summary = summarize_coding_lab_from_quality_db()
+    if quality_summary:
+        return quality_summary
+
     run_dirs = sorted(glob.glob(os.path.join(CODING_LAB_ROOT, "*")))
     rows = []
     runs = []
@@ -1198,6 +1590,7 @@ payload = {
     "auxEval": summarize_aux_eval(),
     "loadouts": summarize_loadouts(),
     "codingLab": summarize_coding_lab(),
+    "qualitySuites": summarize_quality_suites(),
     "races": summarize_races(),
     "notes": [
         {"title": "Validated results", "kind": "method", "text": "Validated results use runs with complete settings and comparable measurement fields."},
@@ -1268,5 +1661,7 @@ console.log(JSON.stringify({
   auxCandidates: data.auxEval.candidateCount,
   loadouts: data.loadouts.rows,
   codingProfiles: data.codingLab.meta.profileCount,
+  qualitySuiteRows: data.qualitySuites.meta.rowCount,
+  qualityExcludedRows: data.qualitySuites.meta.excludedRows,
   storeOk: data.meta.storeOk
 }, null, 2));
