@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>64k Token Speed Race</title>
+  <meta name="description" content="Qwen3.6 35B iGPU 64k token speed race with NPU and iGPU contention lanes.">
+  <meta name="theme-color" content="#080808">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070707;
+      --panel: rgba(14, 15, 18, 0.9);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f7f7f4;
+      --muted: #a4a8b0;
+      --amd: #ed1c24;
+      --amd-2: #ff5a36;
+      --cyan: #39d0ff;
+      --teal: #20d1a2;
+      --amber: #f6c046;
+      --rose: #ff4e6e;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1360px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 26%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.12), transparent 28%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #101012 42%, #070707 100%);
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 82%);
+    }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 16px auto 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(190px, 280px);
+      gap: 22px;
+      align-items: end;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.92));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.18), transparent 46%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      max-width: 940px;
+      font-size: clamp(2.25rem, 5.4vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 0.92;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #c6c9cf;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 88ch;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: grid;
+      align-content: center;
+      gap: 14px;
+      min-height: 210px;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .hero-badge img {
+      display: block;
+      max-width: 100%;
+      width: 230px;
+      justify-self: center;
+      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
+    }
+
+    button {
+      min-height: 38px;
+      padding: 9px 13px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: rgba(255, 255, 255, 0.28); }
+    button:focus-visible { outline: 3px solid rgba(57, 208, 255, 0.25); outline-offset: 2px; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .metric,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border-left: 3px solid var(--accent, var(--cyan));
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent),
+        rgba(14, 15, 18, 0.88);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.18rem;
+      line-height: 1.08;
+    }
+
+    .race-panel {
+      margin-top: 16px;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .race-head {
+      display: flex;
+      gap: 14px;
+      align-items: start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .race-head > div:first-child {
+      flex: 1 1 620px;
+      min-width: 0;
+    }
+
+    .race-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0;
+    }
+
+    .race-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.48;
+      max-width: 78ch;
+    }
+
+    .status {
+      flex: 0 0 330px;
+      min-width: min(100%, 330px);
+      padding: 12px;
+      border: 1px solid rgba(57, 208, 255, 0.34);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(57, 208, 255, 0.14), rgba(0, 0, 0, 0.18));
+    }
+
+    .status span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status strong {
+      display: block;
+      margin-top: 7px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.1rem, 2vw, 1.45rem);
+      line-height: 1;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 18% 20%, rgba(57, 208, 255, 0.18), transparent 22%),
+        radial-gradient(circle at 82% 80%, rgba(32, 209, 162, 0.16), transparent 24%),
+        rgba(0, 0, 0, 0.3);
+      min-height: 520px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 520px;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .hud-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .hud-card .label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hud-card .value {
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .hud-card .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .mono { font-family: "IBM Plex Mono", monospace; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; align-items: start; }
+      .controls { justify-content: flex-start; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hud { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .app { width: min(calc(100% - 18px), var(--max)); }
+      .metric-grid { grid-template-columns: 1fr; }
+      canvas { height: 430px; }
+      .canvas-wrap { min-height: 430px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">64k token race</p>
+        <h1>Qwen3.6 35B Contention Race</h1>
+        <p class="subtitle">A TG-race-style replay of the 64k context benchmark. Each lane races to the same 65,664 processed-token finish line; elapsed time is proportional and played back at 18x.</p>
+      </div>
+      <div class="hero-badge">
+        <img src="../../amd_xdna2_badge_true_rgba_cropped.png" alt="AMD XDNA 2 NPU badge">
+        <div class="controls" aria-label="Race controls">
+          <button id="play" type="button">Pause</button>
+          <button id="replay" type="button">Replay</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Race headline metrics">
+      <div class="metric" style="--accent: var(--teal)"><span>iGPU alone</span><strong>336s</strong></div>
+      <div class="metric" style="--accent: var(--amber)"><span>with NPU load</span><strong>347s</strong></div>
+      <div class="metric" style="--accent: var(--rose)"><span>with iGPU load</span><strong>568s</strong></div>
+      <div class="metric" style="--accent: var(--cyan)"><span>NPU impact</span><strong>+3.29%</strong></div>
+    </section>
+
+    <section class="panel race-panel">
+      <div class="race-head">
+        <div>
+          <h2>Processed-Token Race</h2>
+          <p>The first two lanes finish close together; the iGPU-contention lane shows the slowdown when Qwen3.5 9B Q4_K_M is also running on Vulkan with unique uncached prompts.</p>
+        </div>
+        <div class="status">
+          <span>Leader</span>
+          <strong id="leader">n/a</strong>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="raceCanvas" width="1200" height="520" aria-label="Animated 64k token speed race"></canvas>
+      </div>
+      <div class="hud" aria-label="Lane readouts">
+        <div class="hud-card" style="--accent: var(--teal)">
+          <div class="label">Qwen3.6 35B iGPU Alone</div>
+          <div class="value" id="soloReadout">0 / 65,664</div>
+          <div class="sub" id="soloSub">prefill</div>
+        </div>
+        <div class="hud-card" style="--accent: var(--amber)">
+          <div class="label">Qwen3.6 35B iGPU + NPU</div>
+          <div class="value" id="npuReadout">0 / 65,664</div>
+          <div class="sub" id="npuSub">prefill</div>
+        </div>
+        <div class="hud-card" style="--accent: var(--rose)">
+          <div class="label">Qwen3.6 35B iGPU + Qwen3.5 iGPU</div>
+          <div class="value" id="igpuReadout">0 / 65,664</div>
+          <div class="sub" id="igpuSub">prefill</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TARGET_TOKENS = 65664;
+    const PLAYBACK_SPEED = 18;
+    const CAPTURE_MODE = new URLSearchParams(window.location.search).has("capture");
+    const lanes = [
+      {
+        id: "solo",
+        label: "Qwen3.6 35B iGPU Alone",
+        shortLabel: "35B iGPU Alone",
+        color: "#20d1a2",
+        promptSeconds: 329.719,
+        totalSeconds: 336.198,
+        impact: "baseline"
+      },
+      {
+        id: "npu",
+        label: "Qwen3.6 35B iGPU + NPU",
+        shortLabel: "35B + NPU",
+        color: "#f6c046",
+        promptSeconds: 339.616,
+        totalSeconds: 347.260,
+        impact: "+3.29%"
+      },
+      {
+        id: "igpu",
+        label: "Qwen3.6 35B iGPU + Qwen3.5 iGPU",
+        shortLabel: "35B + iGPU",
+        color: "#ff4e6e",
+        promptSeconds: 562.000,
+        totalSeconds: 568.035,
+        impact: "+68.96%"
+      }
+    ];
+
+    const canvas = document.getElementById("raceCanvas");
+    const ctx = canvas.getContext("2d");
+    const byId = (id) => document.getElementById(id);
+    const fmt = (value, digits = 0) => Number(value).toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+    const seconds = (value) => `${fmt(value, value < 100 ? 1 : 0)}s`;
+    const pct = (value) => `${Math.round(value * 100)}%`;
+    const maxTime = Math.max(...lanes.map((lane) => lane.totalSeconds));
+
+    let startedAt = performance.now();
+    let pausedAt = null;
+    let pausedTotal = 0;
+    let playing = true;
+
+    function tokensAt(lane, t) {
+      if (t <= 0) return 0;
+      if (t <= lane.promptSeconds) return (65536 * t) / lane.promptSeconds;
+      if (t <= lane.totalSeconds) {
+        const f = (t - lane.promptSeconds) / Math.max(0.001, lane.totalSeconds - lane.promptSeconds);
+        return 65536 + (128 * f);
+      }
+      return TARGET_TOKENS;
+    }
+
+    function phaseFor(lane, t) {
+      if (t >= lane.totalSeconds) return `done at ${seconds(lane.totalSeconds)}`;
+      if (t >= lane.promptSeconds) return "decode";
+      return "64k prefill";
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(800, Math.floor(rect.width * dpr));
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function roundRect(x, y, w, h, r) {
+      const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function drawTrack(y, lane, progress, tokens, phase, now) {
+      const w = canvas.clientWidth;
+      const left = 72;
+      const right = w - 52;
+      const width = right - left;
+      const x = left + width * progress;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      roundRect(left, y - 30, width, 60, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      const gradient = ctx.createLinearGradient(left, 0, x, 0);
+      gradient.addColorStop(0, lane.color);
+      gradient.addColorStop(1, "rgba(255,255,255,0.14)");
+      ctx.fillStyle = gradient;
+      roundRect(left, y - 30, Math.max(0, x - left), 60, 8);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      for (let i = 0; i < 7; i += 1) {
+        const px = left + ((now / 18 + i * 137) % width);
+        const py = y - 20 + ((i * 19) % 40);
+        ctx.globalAlpha = 0.18 + i * 0.035;
+        ctx.fillRect(px, py, 14, 2);
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.shadowColor = lane.color;
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = lane.color;
+      roundRect(x - 21, y - 22, 42, 44, 7);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.stroke();
+      ctx.fillStyle = "#070707";
+      ctx.fillRect(x - 13, y - 6, 26, 4);
+      ctx.fillRect(x - 13, y + 6, 26, 4);
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "700 15px Space Grotesk, sans-serif";
+      ctx.fillText(lane.shortLabel, left, y - 44);
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      const readout = `${fmt(tokens)} / ${fmt(TARGET_TOKENS)}`;
+      const readoutX = Math.min(x + 28, right - 228);
+      ctx.fillText(readout, readoutX, y - 38);
+      ctx.fillStyle = "rgba(255,255,255,0.62)";
+      ctx.fillText(`${phase} | ${lane.impact}`, left, y + 51);
+
+      if (progress >= 1) {
+        ctx.fillStyle = lane.color;
+        ctx.font = "700 13px IBM Plex Mono, monospace";
+        ctx.fillText(seconds(lane.totalSeconds), Math.min(x + 28, right - 80), y + 6);
+      }
+      ctx.restore();
+    }
+
+    function currentTime() {
+      if (CAPTURE_MODE) return maxTime;
+      const now = performance.now();
+      if (!playing && pausedAt !== null) {
+        return Math.min(maxTime, ((pausedAt - startedAt - pausedTotal) / 1000) * PLAYBACK_SPEED);
+      }
+      const sim = ((now - startedAt - pausedTotal) / 1000) * PLAYBACK_SPEED;
+      return Math.min(maxTime, sim);
+    }
+
+    function updateHud(t) {
+      let leader = lanes[0];
+      let leaderTokens = -1;
+      for (const lane of lanes) {
+        const tokens = Math.min(TARGET_TOKENS, tokensAt(lane, t));
+        if (tokens > leaderTokens) {
+          leader = lane;
+          leaderTokens = tokens;
+        }
+        byId(`${lane.id}Readout`).textContent = `${fmt(tokens)} / ${fmt(TARGET_TOKENS)}`;
+        byId(`${lane.id}Sub`).textContent = `${phaseFor(lane, t)} | ${pct(tokens / TARGET_TOKENS)} complete`;
+      }
+      byId("leader").textContent = leaderTokens >= TARGET_TOKENS
+        ? `${leader.shortLabel} finished`
+        : `${leader.shortLabel} +${fmt(leaderTokens - Math.min(...lanes.filter((lane) => lane !== leader).map((lane) => tokensAt(lane, t))))}`;
+    }
+
+    function render() {
+      const t = currentTime();
+      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      ctx.fillText(`proportionate replay: ${seconds(t)} / ${seconds(maxTime)} at ${PLAYBACK_SPEED}x`, 24, 32);
+      ctx.fillText(`finish line: ${fmt(TARGET_TOKENS)} processed tokens`, canvas.clientWidth - 328, 32);
+
+      const top = canvas.clientHeight < 470 ? 110 : 130;
+      const gap = canvas.clientHeight < 470 ? 108 : 126;
+      lanes.forEach((lane, index) => {
+        const tokens = Math.min(TARGET_TOKENS, tokensAt(lane, t));
+        drawTrack(top + gap * index, lane, tokens / TARGET_TOKENS, tokens, phaseFor(lane, t), performance.now());
+      });
+      updateHud(t);
+
+      if (t >= maxTime && !CAPTURE_MODE) {
+        playing = false;
+        byId("play").textContent = "Play";
+      }
+      requestAnimationFrame(render);
+    }
+
+    byId("play").addEventListener("click", () => {
+      if (playing) {
+        playing = false;
+        pausedAt = performance.now();
+        byId("play").textContent = "Play";
+        return;
+      }
+      if (pausedAt !== null) pausedTotal += performance.now() - pausedAt;
+      pausedAt = null;
+      playing = true;
+      byId("play").textContent = "Pause";
+    });
+
+    byId("replay").addEventListener("click", () => {
+      startedAt = performance.now();
+      pausedAt = null;
+      pausedTotal = 0;
+      playing = true;
+      byId("play").textContent = "Pause";
+    });
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
