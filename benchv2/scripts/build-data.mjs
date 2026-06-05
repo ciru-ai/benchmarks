@@ -572,7 +572,116 @@ def score_label(score_name):
         "scenario_score": "scenario score",
     }.get(score_name, title_from_slug(score_name))
 
+HERMES_AGENT_SCENARIOS = {
+    "HA-01": {"title": "Replace Contradictory Memory", "category": "Memory & Recall"},
+    "HA-02": {"title": "Memory Near Capacity", "category": "Memory & Recall"},
+    "HA-03": {"title": "Reject Malicious Memory Injection", "category": "Memory & Recall"},
+    "HA-04": {"title": "Recall A Prior Fix And Reuse It", "category": "Memory & Recall"},
+    "HA-05": {"title": "Fix A Real Failing Test", "category": "Workspace Orchestration"},
+    "HA-06": {"title": "Background Process Management", "category": "Workspace Orchestration"},
+    "HA-07": {"title": "Programmatic Tool Chaining With execute_code", "category": "Workspace Orchestration"},
+    "HA-08": {"title": "Browser Automation On A Local Fixture Site", "category": "Workspace Orchestration"},
+    "HA-09": {"title": "Create A Skill From Completed Work", "category": "Skills & Procedural Memory"},
+    "HA-10": {"title": "Discover And Apply An Existing Skill", "category": "Skills & Procedural Memory"},
+    "HA-11": {"title": "Patch A Skill, Don't Rewrite It", "category": "Skills & Procedural Memory"},
+    "HA-12": {"title": "Manage Skill Supporting Files", "category": "Skills & Procedural Memory"},
+    "HA-13": {"title": "Create A Cron Job", "category": "Scheduling & Delivery"},
+    "HA-14": {"title": "Update An Existing Cron Job", "category": "Scheduling & Delivery"},
+    "HA-15": {"title": "Trigger A Cron Run And Verify Delivery", "category": "Scheduling & Delivery"},
+    "HA-16": {"title": "Send A Cross-Platform Message To A Specific Target", "category": "Scheduling & Delivery"},
+    "HA-17": {"title": "Parallel Delegation", "category": "Delegation, Recovery & Boundaries"},
+    "HA-18": {"title": "Approval-Gated Destructive Command", "category": "Delegation, Recovery & Boundaries"},
+    "HA-19": {"title": "Recover From A Tool Failure And Retry Correctly", "category": "Delegation, Recovery & Boundaries"},
+    "HA-20": {"title": "Clarify An Ambiguous Destructive Request", "category": "Delegation, Recovery & Boundaries"},
+}
+
+def hermes_score_parts(details):
+    details = details if isinstance(details, dict) else {}
+    return {
+        "outcomeScore": details.get("outcomeScore"),
+        "nativeUseScore": details.get("nativeUseScore"),
+        "safetyScore": details.get("safetyScore"),
+    }
+
+def summarize_hermes_agent_scenarios(agent_rows):
+    rows = []
+    category_rows = []
+    for agent_row in agent_rows:
+        source_path = agent_row.get("sourcePath")
+        if not source_path or not os.path.exists(source_path):
+            continue
+        try:
+            with open(source_path, "r", encoding="utf-8") as f:
+                summary = json.load(f)
+        except Exception:
+            continue
+        result_map = summary.get("resultsByModel") or {}
+        results = result_map.get(agent_row["profileId"])
+        if results is None and len(result_map) == 1:
+            results = next(iter(result_map.values()))
+        if not isinstance(results, list):
+            continue
+        score_data = (summary.get("scores") or {}).get(agent_row["profileId"]) or {}
+        for category in score_data.get("categories") or []:
+            if not isinstance(category, dict):
+                continue
+            category_rows.append({
+                "runId": agent_row["runId"],
+                "profileId": agent_row["profileId"],
+                "profile": agent_row["profile"],
+                "categoryId": category.get("id"),
+                "category": category.get("label") or title_from_slug(category.get("id")),
+                "score": round(float(category.get("score")) / 100.0, 6) if isinstance(category.get("score"), (int, float)) else None,
+                "weight": category.get("weight"),
+            })
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            scenario_id = item.get("scenarioId")
+            scenario = HERMES_AGENT_SCENARIOS.get(scenario_id, {})
+            verifier = item.get("verifier") if isinstance(item.get("verifier"), dict) else {}
+            details = verifier.get("details") if isinstance(verifier.get("details"), dict) else {}
+            timings = item.get("timings") if isinstance(item.get("timings"), dict) else {}
+            duration_ms = timings.get("durationMs")
+            score = item.get("score")
+            rows.append({
+                "runId": agent_row["runId"],
+                "createdUtc": agent_row["createdUtc"],
+                "profileId": agent_row["profileId"],
+                "profile": agent_row["profile"],
+                "scenarioId": scenario_id,
+                "scenarioTitle": scenario.get("title") or title_from_slug(scenario_id),
+                "category": scenario.get("category") or "HermesAgent-20",
+                "status": item.get("status"),
+                "verifierStatus": verifier.get("status"),
+                "score": round(float(score) / 100.0, 6) if isinstance(score, (int, float)) else None,
+                "scoreRaw": score,
+                "summary": item.get("summary"),
+                "verifierSummary": verifier.get("summary"),
+                "durationS": round(float(duration_ms) / 1000.0, 3) if isinstance(duration_ms, (int, float)) else None,
+                **hermes_score_parts(details),
+            })
+    return sorted(rows, key=lambda row: (row["scenarioId"] or "", row["profile"] or "")), sorted(category_rows, key=lambda row: (row["category"] or "", row["profile"] or ""))
+
 def completed_quality_score(row):
+    invalid_run_ids = {
+        # First HermesAgent-20 local sweep used the backend without the required
+        # local bearer token. Hermes exited after HTTP 401, producing uniform
+        # harness failures rather than model-quality results.
+        "20260605T043425Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-strix-lean",
+        "20260605T043456Z-hermesagent20-lfm25-8b-a1b-q8",
+        "20260605T043526Z-hermesagent20-q36-27b-chadrock-heretic",
+        "20260605T043559Z-hermesagent20-qwen3-5-9b-q4-km",
+        "20260605T043629Z-hermesagent20-qwen3-6-27b-mtp-chadrock-rocmfp4-strix-lean",
+        "20260605T043704Z-hermesagent20-qwen3-6-35b-a3b-ace-saber-rocmfp4-vulkan-d2",
+        "20260605T043743Z-hermesagent20-qwen3-6-35b-a3b-crown-halo-mtp-dynamic",
+        "20260605T043818Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix",
+        "20260605T043925Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
+        "20260605T044001Z-hermesagent20-qwopus3-6-27b-v2-chadrock-strix-lean-mtp",
+        "20260605T044103Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-rocm-q4fast",
+    }
+    if row["run_id"] in invalid_run_ids:
+        return False
     try:
         score = float(row["score_value"])
     except Exception:
@@ -699,6 +808,7 @@ def summarize_quality_suites():
         and row["rowKind"] == "aggregate"
         and row["suite"] == "official-20"
     ]
+    agent_scenario_rows, agent_category_rows = summarize_hermes_agent_scenarios(agent_rows)
 
     latest_by_profile_suite = {}
     for row in [*coding_rows, *agent_rows]:
@@ -735,6 +845,8 @@ def summarize_quality_suites():
         "codingRows": coding_rows,
         "bfclRows": sorted(bfcl_rows, key=lambda row: (row["profile"], row["suite"])),
         "agentRows": sorted(agent_rows, key=lambda row: (row["profile"], row["suite"])),
+        "agentScenarioRows": agent_scenario_rows,
+        "agentCategoryRows": agent_category_rows,
         "leaderRows": leader_rows,
     }
 

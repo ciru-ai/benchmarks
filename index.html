@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-  <script src="benchv2/data/benchv2-data.js"></script>
+  <script src="assets/echarts.min.js"></script>
+  <script src="benchv2/data/benchv2-data.js?v=20260605-hermes-scenarios"></script>
   <style>
     :root {
       --bg: #070707;
@@ -92,17 +92,14 @@
 
     .app {
       width: min(calc(100% - 28px), var(--max));
-      margin: 16px auto 34px;
+      margin: 6px auto 34px;
       position: relative;
       z-index: 1;
     }
 
     .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 300px;
-      gap: 22px;
-      align-items: stretch;
-      padding: 22px;
+      display: block;
+      padding: 8px 12px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background:
@@ -129,12 +126,42 @@
       z-index: 1;
     }
 
+    .hero-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .hero-logo-plate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(128px, 15vw, 184px);
+      height: 70px;
+      padding: 8px 12px;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.16), rgba(57, 208, 255, 0.06)),
+        rgba(0, 0, 0, 0.26);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      flex: 0 0 auto;
+    }
+
+    .hero-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(237, 28, 36, 0.3));
+    }
+
     .eyebrow {
       margin: 0;
       color: #ff7863;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
     }
 
@@ -146,19 +173,20 @@
     }
 
     h1 {
-      margin: 8px 0 0;
+      margin: 4px 0 0;
       max-width: 1060px;
-      font-size: 4.35rem;
-      line-height: 0.95;
+      font-size: 2rem;
+      line-height: 0.98;
       letter-spacing: 0;
       text-transform: uppercase;
     }
 
     .subtitle {
       max-width: 95ch;
-      margin: 14px 0 0;
+      margin: 5px 0 0;
       color: #c6c9cf;
-      line-height: 1.5;
+      line-height: 1.25;
+      font-size: 0.84rem;
     }
 
     .hero-actions,
@@ -170,7 +198,8 @@
     }
 
     .hero-actions {
-      margin-top: 18px;
+      margin-top: 7px;
+      gap: 6px;
     }
 
     .chip,
@@ -190,48 +219,43 @@
       font-weight: 700;
     }
 
+    .hero-actions .ghost-button {
+      min-height: 30px;
+      padding: 6px 11px;
+      border-color: rgba(57, 208, 255, 0.5);
+      background:
+        linear-gradient(180deg, rgba(57, 208, 255, 0.22), rgba(32, 209, 162, 0.08)),
+        rgba(0, 0, 0, 0.54);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 12px 28px rgba(0, 0, 0, 0.34);
+      color: #f8fdff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+    }
+
+    .hero-actions .ghost-button:hover,
+    .hero-actions .ghost-button:focus-visible {
+      border-color: rgba(246, 192, 70, 0.72);
+      background:
+        linear-gradient(180deg, rgba(246, 192, 70, 0.22), rgba(57, 208, 255, 0.12)),
+        rgba(0, 0, 0, 0.62);
+      text-decoration: none;
+    }
+
     .chip strong {
       font-family: "IBM Plex Mono", monospace;
       font-size: 0.9rem;
-    }
-
-    .badge-card {
-      min-height: 210px;
-      display: grid;
-      align-content: center;
-      justify-items: center;
-      gap: 14px;
-      padding: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: var(--radius);
-      background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 50%),
-        rgba(0, 0, 0, 0.32);
-    }
-
-    .badge-card img {
-      width: min(100%, 220px);
-      filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
-    }
-
-    .badge-caption {
-      display: grid;
-      gap: 4px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
     }
 
     .nav {
       position: sticky;
       top: 0;
       z-index: 10;
-      margin: 12px 0;
-      padding: 8px;
-      gap: 8px;
+      margin: 8px 0;
+      padding: 6px;
+      gap: 6px;
       border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: var(--radius);
       background:
@@ -245,8 +269,8 @@
 
     .nav a {
       position: relative;
-      min-height: 42px;
-      padding: 10px 16px;
+      min-height: 34px;
+      padding: 7px 11px;
       border-color: rgba(255, 255, 255, 0.18);
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.03)),
@@ -837,6 +861,27 @@
         rgba(255, 255, 255, 0.045);
     }
 
+    .tuning-card.use {
+      border-color: rgba(32, 209, 162, 0.34);
+      background:
+        linear-gradient(135deg, rgba(32, 209, 162, 0.14), transparent 72%),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .tuning-card.warn {
+      border-color: rgba(246, 192, 70, 0.34);
+      background:
+        linear-gradient(135deg, rgba(246, 192, 70, 0.12), transparent 72%),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .tuning-card.avoid {
+      border-color: rgba(255, 78, 95, 0.34);
+      background:
+        linear-gradient(135deg, rgba(255, 78, 95, 0.12), transparent 72%),
+        rgba(255, 255, 255, 0.045);
+    }
+
     .tuning-card span {
       display: block;
       color: var(--muted);
@@ -860,12 +905,6 @@
       margin-top: 5px;
       color: var(--muted);
       line-height: 1.25;
-    }
-
-    .coding-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
-      gap: 12px;
     }
 
     .coding-summary {
@@ -909,6 +948,306 @@
       margin-top: 5px;
       color: var(--muted);
       line-height: 1.25;
+    }
+
+    .hermes-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .hermes-rank-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hermes-rank-card {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(120deg, rgba(32, 209, 162, 0.11), transparent 56%),
+        rgba(16, 17, 20, 0.86);
+    }
+
+    .hermes-rank-card strong {
+      display: block;
+      color: #fff;
+      line-height: 1.2;
+      font-size: 0.9rem;
+      overflow-wrap: anywhere;
+    }
+
+    .hermes-rank-card span,
+    .hermes-rank-card small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.76rem;
+    }
+
+    .score-bar {
+      position: relative;
+      overflow: hidden;
+      min-width: 116px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .score-bar span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--score-width, 0%);
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+      opacity: 0.82;
+    }
+
+    .score-bar strong {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      padding: 0 8px;
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+    }
+
+    .hermes-category-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hermes-category-card {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .hermes-category-card span,
+    .hermes-model-strip span {
+      display: block;
+      color: var(--subtle);
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hermes-category-card strong {
+      display: block;
+      margin-top: 6px;
+      color: #fff;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .hermes-category-card small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .hermes-model-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 8px;
+    }
+
+    .hermes-model-strip button {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .hermes-model-strip button.active,
+    .hermes-model-strip button:hover,
+    .hermes-model-strip button:focus-visible {
+      border-color: rgba(57, 208, 255, 0.72);
+      background: rgba(57, 208, 255, 0.12);
+    }
+
+    .hermes-model-strip strong {
+      display: block;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+      font-size: 0.84rem;
+    }
+
+    .hermes-model-strip small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .hermes-matrix-wrap {
+      overflow: auto;
+      max-height: 760px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .hermes-matrix {
+      min-width: 1320px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .hermes-matrix th,
+    .hermes-matrix td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      vertical-align: top;
+    }
+
+    .hermes-matrix thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: rgba(14, 15, 18, 0.98);
+    }
+
+    .hermes-matrix .scenario-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      width: 320px;
+      min-width: 320px;
+      background: rgba(14, 15, 18, 0.98);
+    }
+
+    .hermes-matrix thead .scenario-col {
+      z-index: 4;
+    }
+
+    .hermes-scenario-title strong {
+      display: block;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .hermes-scenario-title small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .hermes-model-head {
+      width: 92px;
+      min-width: 92px;
+      max-width: 92px;
+      white-space: normal;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .hermes-cell {
+      width: 92px;
+      min-width: 92px;
+      padding: 8px;
+    }
+
+    .hermes-score-cell {
+      display: grid;
+      gap: 3px;
+      min-height: 58px;
+      padding: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .hermes-score-cell.pass {
+      background: rgba(32, 209, 162, 0.18);
+      border-color: rgba(32, 209, 162, 0.42);
+    }
+
+    .hermes-score-cell.partial {
+      background: rgba(246, 192, 70, 0.17);
+      border-color: rgba(246, 192, 70, 0.42);
+    }
+
+    .hermes-score-cell.fail {
+      background: rgba(255, 78, 95, 0.16);
+      border-color: rgba(255, 78, 95, 0.38);
+    }
+
+    .hermes-score-cell strong {
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.86rem;
+    }
+
+    .hermes-score-cell span,
+    .hermes-score-cell small {
+      color: var(--muted);
+      line-height: 1.2;
+      font-size: 0.66rem;
+      overflow-wrap: anywhere;
+    }
+
+    .hermes-detail {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .hermes-detail h3 {
+      margin: 0;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .hermes-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .hermes-detail-item {
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .hermes-detail-item span {
+      display: block;
+      color: var(--subtle);
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hermes-detail-item strong,
+    .hermes-detail-item small {
+      display: block;
+      margin-top: 5px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .race-grid {
@@ -1059,7 +1398,6 @@
       .hero,
       .two-col,
       .lab-grid,
-      .coding-grid,
       .chart-grid {
         grid-template-columns: 1fr;
       }
@@ -1074,6 +1412,12 @@
       }
 
       .coding-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hermes-category-grid,
+      .hermes-rank-grid,
+      .hermes-detail-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -1107,8 +1451,12 @@
         padding: 13px;
       }
 
+      .section {
+        scroll-margin-top: 178px;
+      }
+
       h1 {
-        font-size: 2.35rem;
+        font-size: 2.05rem;
       }
 
       .race-grid,
@@ -1117,6 +1465,9 @@
       .control-row,
       .coding-summary,
       .tuning-summary,
+      .hermes-category-grid,
+      .hermes-rank-grid,
+      .hermes-detail-grid,
       .selected-top,
       .inspector-grid {
         grid-template-columns: 1fr;
@@ -1130,8 +1481,14 @@
         grid-template-columns: 1fr;
       }
 
-      .badge-card {
-        min-height: 160px;
+      .hero-topline {
+        align-items: center;
+      }
+
+      .hero-logo-plate {
+        width: 112px;
+        height: 58px;
+        padding: 7px 9px;
       }
 
       .chart {
@@ -1144,25 +1501,22 @@
   <main class="app">
     <header class="hero" id="top">
       <div>
-        <p class="eyebrow">Crown Citadel Performance Lab</p>
-        <h1>Ciru Inference Lab</h1>
-        <p class="subtitle">Model throughput, memory use, long-context behavior, serving latency, speculative decoding, and task quality measured on the Crown Citadel Ryzen AI Max+ 395 lab system.</p>
+        <div class="hero-topline">
+          <div>
+            <p class="eyebrow">Crown Citadel Performance Lab</p>
+            <h1>Ciru Inference Lab</h1>
+          </div>
+          <span class="hero-logo-plate" aria-label="Strix Halo system image">
+            <img class="hero-logo" src="strixhalo.png" alt="">
+          </span>
+        </div>
+        <p class="subtitle">Strix Halo local inference benchmarks: throughput, memory, serving, tuning, and quality.</p>
         <div class="hero-actions">
           <span class="chip"><strong id="latestRun">Updated</strong></span>
           <span class="chip" title="Linux ciru 7.0.1 #1-NixOS SMP PREEMPT_DYNAMIC Wed Apr 22 11:32:23 UTC 2026 x86_64">NixOS • Linux 7.0.1</span>
           <span class="chip">RADV STRIX_HALO</span>
-          <a class="ghost-button" href="coding-quality/">Open coding quality lab</a>
+          <a class="ghost-button" href="coding-quality/">Open quality lab</a>
           <a class="ghost-button" href="https://huggingface.co/jcbtc" target="_blank" rel="noreferrer">View models</a>
-        </div>
-      </div>
-      <div class="badge-card" aria-label="AMD Ryzen AI Max+ badge">
-        <picture>
-          <source srcset="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" type="image/avif">
-          <img src="242861895-A_AMD_Ryzen_AI_MAX_plus_badge.avif" alt="AMD Ryzen AI Max+ badge">
-        </picture>
-        <div class="badge-caption">
-          <span>Ryzen AI Max+ 395</span>
-          <span>128 GiB UMA lab host</span>
         </div>
       </div>
     </header>
@@ -1173,9 +1527,9 @@
       <a href="#atlas">Atlas</a>
       <a href="#server">Serving Lab</a>
       <a href="#server-tuning">Tuning</a>
-      <a href="#quality">Quality</a>
+      <a href="#quality-suites">Quality</a>
+      <a href="#hermes-agent">HermesAgent-20</a>
       <a href="#races">Races</a>
-      <a href="#coding">Coding</a>
       <a href="coding-quality/">Coding Tests</a>
       <a href="#notes">Notes</a>
     </nav>
@@ -1378,8 +1732,8 @@
       <article class="panel server-tuning-panel" id="server-tuning">
         <div class="panel-head">
           <div>
-            <h2>Server Tuning Results</h2>
-            <p>Recent focused llama-server runs for Qwopus 27B Chadrock Lean and Chadrock 35B ACE/SABER. These rows use real API prompts and expose where MTP settings, draft depth, batch shape, and ngram-mod helped or hurt.</p>
+            <h2>Server Tuning Takeaways</h2>
+            <p>Short conclusions from focused real-prompt tuning runs. This is not a launch-command reference; it only shows which tested direction is worth using.</p>
           </div>
         </div>
         <div class="tuning-summary" id="tuningSummary"></div>
@@ -1387,14 +1741,10 @@
           <table>
             <thead>
               <tr>
-                <th>Run</th>
-                <th>Model</th>
-                <th>Prompt</th>
-                <th>Decode</th>
-                <th>Acceptance</th>
-                <th>Latency</th>
-                <th>Memory</th>
-                <th>Finding</th>
+                <th>Scenario</th>
+                <th>Use</th>
+                <th>Evidence</th>
+                <th>Caveat</th>
               </tr>
             </thead>
             <tbody id="tuningBody"></tbody>
@@ -1403,53 +1753,50 @@
       </article>
     </section>
 
-    <section class="section chart-grid" id="quality">
-      <article class="panel">
+    <section class="section chart-grid" id="quality-suites">
+      <article class="panel wide-panel">
         <div class="panel-head">
           <div>
-            <h2>Hermes Aux Behavior Tests</h2>
-            <p>These tests run Hermes-style support tasks through candidate auxiliary models. They measure whether an aux model can reliably handle agent side work, while also tracking first-token latency, total latency, score, pass rate, and coverage. Dot size shows how many eval rows support the point.</p>
+            <h2>Quality Suite Leaderboard</h2>
+            <p>Completed coding and repair rows from the quality benchmark store. Suites require real task coverage before they can appear here; failed or incomplete rows stay out of the chart.</p>
           </div>
+          <a class="ghost-button" href="coding-quality/">Open lab details</a>
         </div>
-        <div id="qualityChart" class="chart short"></div>
-        <div class="table-wrap" style="max-height:430px">
+        <div class="coding-summary" id="qualitySuiteSummary"></div>
+        <div id="qualitySuiteChart" class="chart short"></div>
+        <div class="table-wrap" style="max-height:560px">
           <table>
             <thead>
               <tr>
-                <th>Candidate</th>
-                <th>Pass</th>
+                <th>Profile</th>
+                <th>Test</th>
                 <th>Score</th>
-                <th>Total</th>
-                <th>TTFP</th>
-                <th>Coverage</th>
+                <th>Evidence</th>
+                <th>Run</th>
               </tr>
             </thead>
-            <tbody id="qualityBody"></tbody>
+            <tbody id="qualitySuiteBody"></tbody>
           </table>
         </div>
       </article>
+    </section>
 
-      <article class="panel">
+    <section class="section" id="hermes-agent">
+      <article class="panel wide-panel">
         <div class="panel-head">
           <div>
-            <h2>Hermes Loadout Behavior</h2>
-            <p>Loadouts test the Hermes main model and auxiliary model together as a routing plan. They measure more than throughput because an agent loadout has to be correct, responsive at p95, and small enough to stay loaded beside the main model without crowding memory.</p>
+            <h2>HermesAgent-20 Sweep</h2>
+            <p>Official 20-scenario Hermes agent behavior runs. Score is verifier average across memory, workspace, skills, scheduling, delegation, recovery, and approval-boundary scenarios.</p>
           </div>
+          <a class="ghost-button" href="#quality-suites">Quality context</a>
         </div>
-        <div id="loadoutChart" class="chart short"></div>
-        <div class="table-wrap" style="max-height:430px">
-          <table>
-            <thead>
-              <tr>
-                <th>Loadout</th>
-                <th>Main</th>
-                <th>Aux</th>
-                <th>P95</th>
-                <th>VRAM</th>
-              </tr>
-            </thead>
-            <tbody id="loadoutBody"></tbody>
-          </table>
+        <div class="coding-summary" id="hermesAgentSummary"></div>
+        <div class="hermes-layout">
+          <div class="hermes-rank-grid" id="hermesAgentTopCards"></div>
+          <div class="hermes-category-grid" id="hermesAgentCategoryCards"></div>
+          <div class="hermes-model-strip" id="hermesAgentModelStrip"></div>
+          <div class="hermes-matrix-wrap" id="hermesAgentMatrix"></div>
+          <div class="hermes-detail" id="hermesAgentDetail"></div>
         </div>
       </article>
     </section>
@@ -1464,43 +1811,6 @@
         </div>
         <div class="panel-pad">
           <div class="race-grid" id="raceGrid"></div>
-        </div>
-      </article>
-    </section>
-
-    <section class="section coding-grid" id="coding">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Coding Quality Lab</h2>
-            <p>Code review security tasks from the Hermes auxiliary model suite. Harness or launch/config invalid rows are excluded from model scoring and shown as excluded coverage.</p>
-          </div>
-          <a class="ghost-button" href="coding-quality/">Open full lab</a>
-        </div>
-        <div class="coding-summary" id="codingSummary"></div>
-        <div id="codingChart" class="chart short"></div>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Code Review Ranking</h2>
-            <p>Ranked by adjusted pass rate, then score, then latency. Coverage shows scored code-review tasks separately from harness/config rows.</p>
-          </div>
-        </div>
-        <div class="table-wrap" style="max-height:600px">
-          <table>
-            <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Pass</th>
-                <th>Score</th>
-                <th>Total</th>
-                <th>Coverage</th>
-              </tr>
-            </thead>
-            <tbody id="codingBody"></tbody>
-          </table>
         </div>
       </article>
     </section>
@@ -1634,7 +1944,12 @@
     const ms = (value) => isNum(value) ? `${fmt(value, 0)} ms` : "n/a";
     const mem = (value) => isNum(value) ? `${fmt(value, 2)} GiB` : "n/a";
     const shortContext = (value) => value >= 1000 ? `${Math.round(value / 1024)}k` : String(value);
-    const latestDate = (ts) => ts ? `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}` : "n/a";
+    const latestDate = (ts) => {
+      if (!ts) return "n/a";
+      const value = String(ts);
+      if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`;
+    };
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;",
       "<": "&lt;",
@@ -1927,6 +2242,7 @@
 
     function chart(id) {
       const el = $(id);
+      if (!el) return null;
       if (typeof echarts === "undefined") {
         el.innerHTML = `<div class="chart-fallback">Apache ECharts did not load. Tables remain available.</div>`;
         return null;
@@ -1940,9 +2256,7 @@
     const throughputChart = chart("throughputChart");
     const curveChart = chart("curveChart");
     const serverChart = chart("serverChart");
-    const qualityChart = chart("qualityChart");
-    const loadoutChart = chart("loadoutChart");
-    const codingChart = chart("codingChart");
+    const qualitySuiteChart = chart("qualitySuiteChart");
     const textStyle = { color: "#edf5ff", fontFamily: "Space Grotesk, sans-serif" };
 
     function renderCharts() {
@@ -2304,179 +2618,169 @@
     }
 
     function renderServerTuning() {
-      const data = DATA.serverTuning || { summary: [], rows: [] };
-      const summary = data.summary || [];
-      $("tuningSummary").innerHTML = summary.length ? summary.map((item) => `
-        <div class="tuning-card">
+      const data = DATA.serverTuning || { rows: [] };
+      const rows = (data.rows || []).filter((row) => row.status !== "error");
+      const completeRows = rows.filter((row) => isNum(row.decodeTps));
+      const bestBy = (predicate, getter = (row) => row.decodeTps) => completeRows
+        .filter(predicate)
+        .sort((a, b) => (Number(getter(b)) || 0) - (Number(getter(a)) || 0))[0] || null;
+      const find = (needle) => completeRows.find((row) => `${row.displayLabel || ""} ${row.group || ""} ${row.note || ""}`.toLowerCase().includes(needle));
+
+      const ace = bestBy((row) => /ACE\/SABER/.test(row.group || ""));
+      const qwopusLong = find("4096-token") || bestBy((row) => /Qwopus .*confirmation/.test(row.group || ""));
+      const longContext = find("batch 512 / ubatch 512") || bestBy((row) => /45k/.test(row.group || ""), (row) => row.promptTps);
+      const rawPrefill = find("batch 256 / ubatch 256");
+      const avoidCount = (data.rows || []).filter((row) => /slower|not useful|did not complete/i.test(row.note || "")).length;
+      const measuredText = (row) => `${speed(row.decodeTps)} decode • ${speed(row.promptTps)} prompt • ${pct(row.acceptRate, 1)} acceptance`;
+      const workloadText = (row) => `${intFmt(row.promptTokens)} prompt tokens, ${intFmt(row.generatedTokens)} output tokens`;
+      const cards = [
+        ace && {
+          kind: "use",
+          label: "ACE/SABER 35B",
+          value: "Keep the current server launch",
+          detail: `${measuredText(ace)} on ${workloadText(ace)}. No alternate tested row earned a recommendation.`
+        },
+        qwopusLong && {
+          kind: "use",
+          label: "Qwopus 27B long replies",
+          value: "Use the d4 preset",
+          detail: `${measuredText(qwopusLong)} on ${workloadText(qwopusLong)}.`
+        },
+        longContext && {
+          kind: "use",
+          label: "Qwopus 45k prompt",
+          value: "Use b512/u512",
+          detail: `${measuredText(longContext)} on ${workloadText(longContext)}.`
+        },
+        {
+          kind: "avoid",
+          label: "Do not copy",
+          value: "The proposed experiment bundle",
+          detail: `${intFmt(avoidCount)} rows were slower, unusable, or failed timing. b256/u256 prefills faster, but decoded worse than b512/u512.`
+        }
+      ].filter(Boolean);
+
+      $("tuningSummary").innerHTML = cards.length ? cards.map((item) => `
+        <div class="tuning-card ${escapeHtml(item.kind)}">
           <span>${escapeHtml(item.label)}</span>
           <strong>${escapeHtml(item.value)}</strong>
           <small>${escapeHtml(item.detail)}</small>
         </div>
       `).join("") : `
-        <div class="tuning-card">
+        <div class="tuning-card warn">
           <span>Server tuning</span>
-          <strong>No recent tuning rows</strong>
+          <strong>No recommendations yet</strong>
           <small>Refresh the generated data bundle to populate this section.</small>
         </div>
       `;
 
-      const rows = (data.rows || [])
+      const conclusions = [
+        ace && {
+          useCase: "Fast 35B ACE/SABER serving",
+          row: ace,
+          setting: "Keep the current ACE/SABER server launch.",
+          meaning: "The data bundle does not store a better alternate launch recipe. This row is evidence that the current launch is already the one to keep for short replies."
+        },
+        qwopusLong && {
+          useCase: "Qwopus 27B sustained generation",
+          row: qwopusLong,
+          setting: "Use d4 for long replies.",
+          meaning: "The longer confirmation runs favored d4; short probes were too noisy to use as the main decision."
+        },
+        longContext && {
+          useCase: "Qwopus 27B long-context prompt",
+          row: longContext,
+          setting: "Use b512/u512 for very large prompts.",
+          meaning: "Use this when the request has a roughly 45k-token prompt and still needs decent decode afterward."
+        },
+        rawPrefill && {
+          useCase: "Prefill-only diagnostic",
+          row: rawPrefill,
+          setting: "Only consider b256/u256 if prefill speed is the only goal.",
+          meaning: "b256/u256 had the fastest raw 45k prefill, but lower decode. Use only when prefill is the whole question."
+        },
+        {
+          useCase: "Settings to skip",
+          row: null,
+          setting: "Do not use the proposed experiment bundle as a default.",
+          result: `${intFmt(avoidCount)} negative/failure rows`,
+          meaning: "Those rows are useful as experiment history, not as instructions for serving."
+        }
+      ].filter(Boolean);
+
+      $("tuningBody").innerHTML = conclusions.map((item) => {
+        const row = item.row;
+        const setting = item.setting || "No recommendation";
+        const result = item.result || measuredText(row);
+        const sub = row ? `${escapeHtml(row.modelName || "")} • ${escapeHtml(row.group || "")} • ${latestDate(row.timestamp)}` : "From slower/failed comparison rows";
+        const detail = row ? `${workloadText(row)} • TTFP ${ms(row.ttfpMs)}` : "Not recommended.";
+        return `
+          <tr>
+            <td class="profile-cell"><strong>${escapeHtml(item.useCase)}</strong><small>${sub}</small></td>
+            <td>${escapeHtml(setting)}</td>
+            <td>${escapeHtml(result)}<small class="muted">${escapeHtml(detail)}</small></td>
+            <td>${escapeHtml(item.meaning)}</td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="4">No server tuning recommendations are available.</td></tr>`;
+    }
+
+    function completedQualityRows(rows) {
+      return (rows || []).filter((row) => {
+        if (!isNum(row.score)) return false;
+        if (row.benchmarkFamily === "run_manifest") return false;
+        if (["evalplus", "bigcodebench", "livecodebench"].includes(row.benchmarkFamily) && !(Number(row.tasks) >= 100)) return false;
+        if (row.benchmarkFamily === "mini-swe-agent" && !(Number(row.tasks) > 0)) return false;
+        if (row.benchmarkFamily === "evalplus" && row.rowKind && !["dataset", "aggregate"].includes(row.rowKind)) return false;
+        return true;
+      });
+    }
+
+    function suiteKindLabel(row) {
+      const family = {
+        evalplus: "EvalPlus",
+        bigcodebench: "BigCodeBench",
+        livecodebench: "LiveCodeBench",
+        "mini-swe-agent": "Mini-SWE-Agent",
+        bfcl: "BFCL"
+      }[row.benchmarkFamily] || row.benchmarkFamily || "Suite";
+      return `${family} • ${row.suiteLabel || row.suite || row.scoreLabel || "score"}`;
+    }
+
+    function displayQualityLeaders(rows) {
+      const groups = new Map();
+      for (const row of rows) {
+        const key = [row.runId, row.profileId, row.benchmarkFamily].join("|");
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      }
+      const hidden = new Set();
+      for (const group of groups.values()) {
+        const aggregateRows = group.filter((row) => row.rowKind === "aggregate");
+        const datasetRows = group.filter((row) => row.rowKind === "dataset");
+        if (aggregateRows.length && datasetRows.length === 1) {
+          aggregateRows.forEach((row) => hidden.add(row));
+        }
+      }
+      return rows.filter((row) => !hidden.has(row));
+    }
+
+    function renderQualitySuites() {
+      const suiteData = DATA.qualitySuites || { meta: {}, leaderRows: [], bfclRows: [] };
+      const completedLeaders = completedQualityRows(suiteData.leaderRows)
+        .filter((row) => row.benchmarkFamily !== "bfcl");
+      const leaders = displayQualityLeaders(completedLeaders)
         .slice()
-        .sort((a, b) => (b.decodeTps || 0) - (a.decodeTps || 0) || (b.promptTps || 0) - (a.promptTps || 0));
+        .sort((a, b) => ((b.score ?? -1) - (a.score ?? -1)) || String(a.profile).localeCompare(String(b.profile)));
+      const families = [...new Set(leaders.map((row) => row.benchmarkFamily))];
+      const bestCoding = leaders[0] || null;
+      const latestQuality = leaders.slice().sort((a, b) => String(b.createdUtc || b.timestamp || "").localeCompare(String(a.createdUtc || a.timestamp || "")))[0] || null;
 
-      $("tuningBody").innerHTML = rows.map((row) => `
-        <tr>
-          <td class="profile-cell">
-            <strong>${escapeHtml(row.displayLabel || row.label || "n/a")}</strong>
-            <small>${escapeHtml(row.group || "")} • ${latestDate(row.timestamp)}</small>
-            ${row.status && row.status !== "ok" ? `<small><span class="tag">${escapeHtml(row.status)}</span></small>` : ""}
-          </td>
-          <td>${escapeHtml(row.modelName || "n/a")}</td>
-          <td>${speed(row.promptTps)}<small class="muted">${intFmt(row.promptTokens)} prompt tokens</small></td>
-          <td>${speed(row.decodeTps)}<small class="muted">${intFmt(row.generatedTokens)} generated</small></td>
-          <td>${pct(row.acceptRate, 1)}<small class="muted">${intFmt(row.draftAccepted)} / ${intFmt(row.draftGenerated)} draft tokens</small></td>
-          <td>${ms(row.totalMs)}<small class="muted">TTFP ${ms(row.ttfpMs)}</small></td>
-          <td>${mem(row.vramGiB)}<small class="muted">${row.gttGiB ? `${mem(row.gttGiB)} GTT` : row.sysGiB ? `${mem(row.sysGiB)} system` : ""}</small></td>
-          <td>${escapeHtml(row.note || "Measured setting row")}</td>
-        </tr>
-      `).join("") || `<tr><td colspan="8">No server tuning rows are available.</td></tr>`;
-    }
-
-    function renderQuality() {
-      const candidates = DATA.auxEval.candidates.slice().sort((a, b) => (b.passRate - a.passRate) || (b.avgScore - a.avgScore) || (a.avgTotalMs - b.avgTotalMs));
-      $("qualityBody").innerHTML = candidates.map((row) => `
-        <tr>
-          <td class="profile-cell"><strong>${escapeHtml(row.candidate)}</strong><small>${escapeHtml(row.modelName || "")}</small></td>
-          <td>${pct(row.passRate)}</td>
-          <td>${fmt(row.avgScore, 2)}</td>
-          <td>${ms(row.avgTotalMs)}<small class="muted">p95 ${ms(row.p95TotalMs)}</small></td>
-          <td>${ms(row.avgTtfpMs)}</td>
-          <td>${row.rows} rows<small class="muted">${Object.keys(row.categories || {}).join(", ")}</small></td>
-        </tr>
-      `).join("");
-      if (qualityChart) {
-        qualityChart.setOption({
-          grid: { top: 18, right: 24, bottom: 48, left: 58 },
-          tooltip: {
-            trigger: "item",
-            backgroundColor: "rgba(5,10,16,.95)",
-            textStyle,
-            formatter: ({ data }) => `<strong>${data.name}</strong><br>Pass: ${pct(data.value[1])}<br>Total: ${ms(data.value[0])}<br>Score: ${fmt(data.score, 2)}<br>Rows: ${data.rows}`
-          },
-          xAxis: { type: "value", name: "Avg total ms", nameLocation: "middle", nameGap: 34, axisLabel: { color: "#8ea3bb" }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
-          yAxis: { type: "value", name: "Pass rate", axisLabel: { color: "#8ea3bb", formatter: (v) => `${v * 100}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
-          series: [{
-            type: "scatter",
-            data: candidates.map((row, i) => ({
-              name: row.candidate,
-              value: [row.avgTotalMs, row.passRate],
-              score: row.avgScore,
-              rows: row.rows,
-              symbolSize: Math.max(8, Math.min(22, 6 + Math.sqrt(row.rows || 0) * 2)),
-              itemStyle: { color: colors[i % colors.length], shadowBlur: 14, shadowColor: alpha(colors[i % colors.length], 0.34) },
-              label: { show: i < 8, formatter: row.candidate, position: "top", color: "#edf5ff", fontSize: 11, fontWeight: 700 }
-            })),
-            labelLayout: { hideOverlap: true }
-          }]
-        });
-      }
-
-      const loadouts = DATA.loadouts.loadouts.slice().sort((a, b) => (b.auxPassRate || 0) - (a.auxPassRate || 0) || (a.p95TotalMs || Infinity) - (b.p95TotalMs || Infinity));
-      $("loadoutBody").innerHTML = loadouts.map((row) => `
-        <tr>
-          <td class="profile-cell"><strong>${escapeHtml(row.loadout)}</strong><small>${escapeHtml(row.description || "")}</small></td>
-          <td>${pct(row.mainPassRate)}<small class="muted">${fmt(row.mainAvgScore, 2)} score</small></td>
-          <td>${isNum(row.auxPassRate) ? pct(row.auxPassRate) : "n/a"}<small class="muted">${isNum(row.auxAvgScore) ? `${fmt(row.auxAvgScore, 2)} score` : ""}</small></td>
-          <td>${ms(row.p95TotalMs)}</td>
-          <td>${mem(row.peakVramGiB)}</td>
-        </tr>
-      `).join("");
-      if (loadoutChart) {
-        const chartRows = loadouts.slice(0, 12);
-        loadoutChart.setOption({
-          grid: { top: 18, right: 22, bottom: 118, left: 56 },
-          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(5,10,16,.95)", textStyle },
-          legend: { bottom: 0, textStyle },
-          xAxis: { type: "category", data: chartRows.map((row) => row.loadout.slice(0, 24)), axisLabel: { color: "#8ea3bb", rotate: 35 } },
-          yAxis: [
-            { type: "value", name: "Pass", axisLabel: { color: "#8ea3bb", formatter: (v) => `${v * 100}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
-            { type: "value", name: "VRAM", axisLabel: { color: "#8ea3bb" } }
-          ],
-          series: [
-            { name: "Aux pass", type: "bar", data: chartRows.map((row) => row.auxPassRate), itemStyle: { color: "#20d1a2", borderRadius: [4, 4, 0, 0] } },
-            { name: "Peak VRAM GiB", type: "line", yAxisIndex: 1, data: chartRows.map((row) => row.peakVramGiB), itemStyle: { color: "#f6c046" } }
-          ]
-        });
-      }
-    }
-
-    function candidateFamily(row) {
-      const text = `${row.modelName || ""} ${row.candidate || ""}`.toLowerCase();
-      if (text.includes("qwen3.6") || text.includes("qwen36") || text.includes("crown") || text.includes("mxfp")) return "Qwen3.6";
-      if (text.includes("qwen")) return "Qwen";
-      if (text.includes("gemma")) return "Gemma";
-      if (text.includes("qwopus")) return "Qwopus";
-      if (text.includes("gestalt")) return "Gestalt";
-      if (text.includes("ornstein")) return "Ornstein";
-      if (text.includes("llama")) return "Llama";
-      if (text.includes("phi")) return "Phi";
-      if (text.includes("medpsy")) return "MedPsy";
-      return "Other";
-    }
-
-    function codingQualityRows() {
-      return DATA.auxEval.candidates
-        .map((row) => {
-          const code = row.categories?.code_review;
-          return code ? {
-            candidate: row.candidate,
-            modelName: row.modelName,
-            family: candidateFamily(row),
-            rows: code.rows,
-            scoredRows: code.scoredRows ?? Math.max(0, (code.rows || 0) - (code.invalidRows || 0)),
-            invalidRows: code.invalidRows || 0,
-            invalidReasons: code.invalidReasons || [],
-            rawPassRate: code.passRate,
-            passRate: code.adjustedPassRate ?? code.passRate,
-            avgScore: code.adjustedAvgScore ?? code.avgScore,
-            avgTotalMs: code.adjustedAvgTotalMs ?? code.avgTotalMs,
-            rawAvgScore: code.avgScore,
-            rawAvgTotalMs: code.avgTotalMs,
-            p95TotalMs: row.p95TotalMs,
-            avgTtfpMs: row.avgTtfpMs,
-            sizeClass: row.sizeClass,
-            kv: row.kv,
-            ctx: row.ctx
-          } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => (
-          (Number(b.scoredRows > 0) - Number(a.scoredRows > 0)) ||
-          ((b.passRate ?? -1) - (a.passRate ?? -1)) ||
-          ((b.avgScore ?? -1) - (a.avgScore ?? -1)) ||
-          ((a.avgTotalMs ?? Infinity) - (b.avgTotalMs ?? Infinity))
-        ));
-    }
-
-    function renderCodingQuality() {
-      const rows = codingQualityRows();
-      const totalTasks = rows.reduce((sum, row) => sum + (row.rows || 0), 0);
-      const scoredTasks = rows.reduce((sum, row) => sum + (row.scoredRows || 0), 0);
-      const invalidTasks = rows.reduce((sum, row) => sum + (row.invalidRows || 0), 0);
-      const scoredRows = rows.filter((row) => row.scoredRows > 0);
-      const summaryRows = scoredRows.some((row) => row.scoredRows >= 3) ? scoredRows.filter((row) => row.scoredRows >= 3) : scoredRows;
-      const bestPass = summaryRows[0] || null;
-      const bestScore = summaryRows.slice().sort((a, b) => ((b.avgScore ?? -1) - (a.avgScore ?? -1)) || ((b.passRate ?? -1) - (a.passRate ?? -1)) || ((a.avgTotalMs ?? Infinity) - (b.avgTotalMs ?? Infinity)))[0] || null;
-      const reliable = summaryRows.filter((row) => Number(row.passRate) >= 0.5);
-      const fastestReliable = reliable.slice().sort((a, b) => (a.avgTotalMs - b.avgTotalMs) || (b.passRate - a.passRate))[0] || null;
-      const familyCount = new Set(rows.map((row) => row.family)).size;
-
-      $("codingSummary").innerHTML = [
-        ["Suite", "Code review security", `${intFmt(scoredTasks)} scored / ${intFmt(totalTasks)} raw task rows`],
-        ["Excluded", `${intFmt(invalidTasks)} harness/config rows`, "Timeouts or launch/config failures are not scored as model misses"],
-        ["Best pass rate", bestPass ? `${escapeHtml(bestPass.candidate)} • ${pct(bestPass.passRate)}` : "n/a", bestPass ? `${fmt(bestPass.avgScore, 2)} score • ${intFmt(bestPass.scoredRows)} scored rows` : "No scored coding rows"],
-        ["Best score", bestScore ? `${escapeHtml(bestScore.candidate)} • ${fmt(bestScore.avgScore, 2)}` : "n/a", bestScore ? `${pct(bestScore.passRate)} pass • ${intFmt(bestScore.scoredRows)} scored rows` : "No scored coding rows"],
-        ["Fast reliable", fastestReliable ? `${escapeHtml(fastestReliable.candidate)} • ${ms(fastestReliable.avgTotalMs)}` : "n/a", fastestReliable ? `${pct(fastestReliable.passRate)} pass • ${escapeHtml(fastestReliable.family)}` : `${familyCount} families measured`]
+      $("qualitySuiteSummary").innerHTML = [
+        ["Charted rows", intFmt(leaders.length), `${intFmt(suiteData.meta?.excludedRows || 0)} incomplete/failed rows excluded; ${intFmt(completedLeaders.length - leaders.length)} duplicate aggregates hidden`],
+        ["Profiles", intFmt(new Set(leaders.map((row) => row.profile)).size), `${intFmt(new Set(leaders.map((row) => row.suiteLabel || row.suite)).size)} completed suite views`],
+        ["Best quality row", bestCoding ? `${escapeHtml(bestCoding.profile)} • ${pct(bestCoding.score, 1)}` : "n/a", bestCoding ? suiteKindLabel(bestCoding) : "No completed scored rows"],
+        ["Latest scored run", latestQuality ? latestDate(latestQuality.createdUtc || latestQuality.timestamp) : "n/a", latestQuality ? `${escapeHtml(latestQuality.profile)} • ${suiteKindLabel(latestQuality)}` : "No completed scored rows"]
       ].map(([label, value, note]) => `
         <div class="coding-card">
           <span>${escapeHtml(label)}</span>
@@ -2485,96 +2789,223 @@
         </div>
       `).join("");
 
-      $("codingBody").innerHTML = rows.map((row) => `
+      $("qualitySuiteBody").innerHTML = leaders.map((row) => `
         <tr>
-          <td class="profile-cell"><strong>${escapeHtml(row.candidate)}</strong><small>${escapeHtml(row.modelName || row.family)}${row.kv ? ` • KV ${escapeHtml(row.kv)}` : ""}</small></td>
-          <td>${row.scoredRows ? pct(row.passRate) : "not scored"}<small class="muted">${row.invalidRows ? `raw ${pct(row.rawPassRate)}` : "adjusted"}</small></td>
-          <td>${fmt(row.avgScore, 2)}</td>
-          <td>${ms(row.avgTotalMs)}<small class="muted">${row.invalidRows ? `raw ${ms(row.rawAvgTotalMs)}` : `p95 all aux ${ms(row.p95TotalMs)}`}</small></td>
-          <td>${intFmt(row.scoredRows)} scored / ${intFmt(row.rows)} raw<small class="muted">${row.invalidRows ? `${intFmt(row.invalidRows)} excluded: ${escapeHtml(row.invalidReasons.map((item) => `${item.reason} x${item.count}`).join(", "))}` : `${escapeHtml(row.family)}${row.sizeClass ? ` • ${escapeHtml(row.sizeClass)}` : ""}`}</small></td>
+          <td class="profile-cell"><strong>${escapeHtml(row.profile)}</strong><small>${escapeHtml(row.family || "Other")}${row.quant ? ` • ${escapeHtml(row.quant)}` : ""}</small></td>
+          <td>${escapeHtml(suiteKindLabel(row))}<small class="muted">${escapeHtml(row.scoreLabel || row.scoreName || "")}</small></td>
+          <td>${pct(row.score)}${row.scoreName === "resolved" ? `<small class="muted">resolved</small>` : ""}</td>
+          <td>${row.tasks ? `${intFmt(row.tasks)} tasks` : "scored metric"}<small class="muted">${row.plusPass != null ? `${intFmt(row.plusPass)} strict passes` : "completed score row"}</small></td>
+          <td><strong>${escapeHtml(row.runId || "")}</strong><small>${latestDate(row.createdUtc || row.timestamp)}</small></td>
         </tr>
+      `).join("") || `<tr><td colspan="5">No completed quality suite rows are available.</td></tr>`;
+
+      if (qualitySuiteChart) {
+        const chartRows = leaders.slice(0, 28);
+        qualitySuiteChart.clear();
+        qualitySuiteChart.setOption({
+          grid: { top: 24, right: 22, bottom: 118, left: 58 },
+          tooltip: {
+            trigger: "item",
+            backgroundColor: "rgba(5,10,16,.95)",
+            borderColor: alpha("#39d0ff", 0.24),
+            textStyle,
+            formatter: ({ data }) => [
+              `<strong>${escapeHtml(data.profile)}</strong>`,
+              escapeHtml(data.suite),
+              `Score: ${pct(data.value)}`,
+              data.tasks ? `Tasks: ${intFmt(data.tasks)}` : "Completed scored metric",
+              `Run: ${escapeHtml(data.runId)}`
+            ].join("<br>")
+          },
+          xAxis: { type: "category", data: chartRows.map((row) => `${row.profile} • ${row.suiteLabel || row.suite}`), axisLabel: { color: "#8ea3bb", rotate: 38, width: 135, overflow: "truncate" } },
+          yAxis: { type: "value", min: 0, max: 1, axisLabel: { color: "#8ea3bb", formatter: (value) => `${Math.round(value * 100)}%` }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
+          graphic: chartRows.length ? [] : [{
+            type: "text",
+            left: "center",
+            top: "middle",
+            style: { text: "No completed quality suite rows are available.", fill: "#c9d8ea", font: "700 14px Space Grotesk, sans-serif" }
+          }],
+          series: [{
+            type: "bar",
+            data: chartRows.map((row, index) => ({
+              value: row.score,
+              profile: row.profile,
+              suite: suiteKindLabel(row),
+              tasks: row.tasks,
+              runId: row.runId,
+              itemStyle: { color: colors[Math.max(0, families.indexOf(row.benchmarkFamily)) % colors.length], borderRadius: [4, 4, 0, 0] }
+            }))
+          }]
+        });
+      }
+
+    }
+
+    function renderHermesAgentSweep() {
+      const suiteData = DATA.qualitySuites || { meta: {}, agentRows: [], agentScenarioRows: [], agentCategoryRows: [] };
+      const aggregateRows = (suiteData.agentRows || [])
+        .filter((row) => row.benchmarkFamily === "hermesagent-20" && row.suite === "official-20")
+        .slice()
+        .sort((a, b) => ((b.score ?? -1) - (a.score ?? -1)) || ((a.totalRuntimeS ?? 999999) - (b.totalRuntimeS ?? 999999)));
+      const scenarioRows = (suiteData.agentScenarioRows || []).slice();
+      const categoryRows = (suiteData.agentCategoryRows || []).slice();
+      const best = aggregateRows[0] || null;
+      const fastest = aggregateRows.filter((row) => isNum(row.totalRuntimeS)).sort((a, b) => a.totalRuntimeS - b.totalRuntimeS)[0] || null;
+      const fullPasses = scenarioRows.filter((row) => row.status === "pass").length;
+      const partials = scenarioRows.filter((row) => row.status === "partial").length;
+      const scenarioIds = [...new Set(scenarioRows.map((row) => row.scenarioId).filter(Boolean))].sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)));
+      const scenarioSpread = scenarioIds.map((scenarioId) => {
+        const scores = scenarioRows.filter((row) => row.scenarioId === scenarioId && isNum(row.score)).map((row) => Number(row.score));
+        return { scenarioId, spread: scores.length ? Math.max(...scores) - Math.min(...scores) : 0 };
+      }).sort((a, b) => b.spread - a.spread)[0] || null;
+
+      $("hermesAgentSummary").innerHTML = [
+        ["Models", intFmt(aggregateRows.length), `${intFmt(scenarioRows.length)} model-test cells across ${intFmt(scenarioIds.length)} scenarios`],
+        ["Best aggregate", best ? `${escapeHtml(best.profile)} • ${pct(best.score, 1)}` : "n/a", best ? `${intFmt(best.plusPass || 0)} full-pass scenarios` : "No HermesAgent rows"],
+        ["Scenario outcomes", `${intFmt(fullPasses)} pass / ${intFmt(partials)} partial`, `${intFmt(Math.max(0, scenarioRows.length - fullPasses - partials))} failed cells`],
+        ["Largest spread", scenarioSpread ? `${escapeHtml(scenarioSpread.scenarioId)} • ${pct(scenarioSpread.spread, 0)}` : "n/a", "Scenario with widest model separation"]
+      ].map(([label, value, note]) => `
+        <div class="coding-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${value}</strong>
+          <small>${escapeHtml(note)}</small>
+        </div>
       `).join("");
 
-      if (!codingChart) return;
-      const chartRows = scoredRows;
-      const families = [...new Set(chartRows.map((row) => row.family))].sort();
-      codingChart.clear();
-      codingChart.setOption({
-        grid: { top: 24, right: 24, bottom: 58, left: 58 },
-        legend: { type: "scroll", bottom: 0, textStyle },
-        tooltip: {
-          trigger: "item",
-          backgroundColor: "rgba(5,10,16,.95)",
-          borderColor: alpha("#39d0ff", 0.24),
-          textStyle,
-          formatter: ({ data }) => [
-            `<strong>${escapeHtml(data.name)}</strong>`,
-            `${escapeHtml(data.family)} • ${escapeHtml(data.modelName || "")}`,
-            `Code review pass: ${pct(data.value[1])}`,
-            `Code review score: ${fmt(data.score, 2)}`,
-            `Avg total: ${ms(data.value[0])}`,
-            `Coverage: ${intFmt(data.rows)} scored / ${intFmt(data.rawRows)} raw tasks`,
-            data.invalidRows ? `Excluded harness/config rows: ${intFmt(data.invalidRows)}` : "No harness/config exclusions"
-          ].join("<br>")
-        },
-        xAxis: {
-          type: "value",
-          name: "Avg task time ms",
-          nameLocation: "middle",
-          nameGap: 34,
-          nameTextStyle: textStyle,
-          axisLabel: { color: "#8ea3bb" },
-          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
-        },
-        yAxis: {
-          type: "value",
-          name: "Pass rate",
-          min: 0,
-          max: 1,
-          axisLabel: { color: "#8ea3bb", formatter: (v) => `${Math.round(v * 100)}%` },
-          splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
-        },
-        graphic: chartRows.length ? [] : [{
-          type: "text",
-          left: "center",
-          top: "middle",
-          style: {
-            text: "No coding quality rows are present in this benchmark bundle.",
-            fill: "#c9d8ea",
-            font: "700 14px Inter, sans-serif"
-          }
-        }],
-        series: families.map((family, familyIndex) => ({
-          name: family,
-          type: "scatter",
-          data: chartRows.filter((row) => row.family === family).map((row) => ({
-            name: row.candidate,
-            family: row.family,
-            modelName: row.modelName,
-            score: row.avgScore,
-            rows: row.scoredRows,
-            rawRows: row.rows,
-            invalidRows: row.invalidRows,
-            value: [row.avgTotalMs, row.passRate],
-            symbolSize: Math.max(9, Math.min(25, 7 + Math.sqrt(row.rows || 0) * 3)),
-            itemStyle: {
-              color: colors[familyIndex % colors.length],
-              shadowBlur: 14,
-              shadowColor: alpha(colors[familyIndex % colors.length], 0.3)
-            },
-            label: {
-              show: row.passRate >= 0.67 || row.avgScore >= 0.95,
-              formatter: row.candidate,
-              position: "top",
-              color: "#edf5ff",
-              fontSize: 11,
-              fontWeight: 700
-            }
-          })),
-          labelLayout: { hideOverlap: true },
-          emphasis: { focus: "series", scale: true }
-        }))
+      $("hermesAgentTopCards").innerHTML = aggregateRows.slice(0, 4).map((row, index) => `
+        <div class="hermes-rank-card">
+          <span>#${index + 1} aggregate</span>
+          <strong>${escapeHtml(row.profile)}</strong>
+          <small>${pct(row.score, 1)} avg • ${intFmt(row.plusPass || 0)} pass • ${isNum(row.totalRuntimeS) ? `${fmt(row.totalRuntimeS, 1)}s` : "walltime n/a"}</small>
+        </div>
+      `).join("") || `<div class="hermes-rank-card"><strong>No HermesAgent rows</strong><small>Refresh benchmark data.</small></div>`;
+
+      const categoryOrder = [
+        "Memory & Recall",
+        "Workspace Orchestration",
+        "Skills & Procedural Memory",
+        "Scheduling & Delivery",
+        "Delegation, Recovery & Boundaries"
+      ];
+      $("hermesAgentCategoryCards").innerHTML = categoryOrder.map((category) => {
+        const rows = categoryRows.filter((row) => row.category === category && isNum(row.score));
+        const avg = rows.length ? rows.reduce((sum, row) => sum + Number(row.score), 0) / rows.length : null;
+        const bestCategory = rows.slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))[0] || null;
+        const scenarioCount = new Set(scenarioRows.filter((row) => row.category === category).map((row) => row.scenarioId)).size;
+        return `
+          <div class="hermes-category-card">
+            <span>${escapeHtml(category)}</span>
+            <strong>${isNum(avg) ? pct(avg, 1) : "n/a"} average</strong>
+            <small>${intFmt(scenarioCount)} tests • best ${bestCategory ? `${escapeHtml(bestCategory.profile)} ${pct(bestCategory.score, 0)}` : "n/a"}</small>
+          </div>
+        `;
+      }).join("");
+
+      const modelRows = aggregateRows.length ? aggregateRows : [...new Map(scenarioRows.map((row) => [row.profileId, row])).values()];
+      const modelIds = modelRows.map((row) => row.profileId);
+      const byScenarioModel = new Map(scenarioRows.map((row) => [`${row.scenarioId}|${row.profileId}`, row]));
+      const scenarioMeta = new Map();
+      for (const row of scenarioRows) {
+        if (!scenarioMeta.has(row.scenarioId)) scenarioMeta.set(row.scenarioId, row);
+      }
+      const shortModel = (name) => String(name || "model")
+        .replace(/Qwen3\.6 /i, "Q3.6 ")
+        .replace(/Chadrock3\.6 /i, "Chad3.6 ")
+        .replace(/Rocmfp4/i, "ROCmFP4")
+        .replace(/Uncensored/i, "Uncens")
+        .slice(0, 34);
+      const statusClass = (status) => ["pass", "partial", "fail"].includes(status) ? status : "fail";
+      const cellTitle = (row) => row ? [
+        row.profile,
+        `${row.scenarioId} ${row.scenarioTitle}`,
+        `Score: ${pct(row.score, 0)} • ${row.status || "n/a"} • ${isNum(row.durationS) ? `${fmt(row.durationS, 1)}s` : "time n/a"}`,
+        row.verifierSummary || row.summary || ""
+      ].join("\n") : "No result";
+
+      $("hermesAgentModelStrip").innerHTML = modelRows.map((row, index) => `
+        <button type="button" data-profile-id="${escapeHtml(row.profileId)}" class="${index === 0 ? "active" : ""}">
+          <span>${escapeHtml(`#${index + 1} model`)}</span>
+          <strong>${escapeHtml(row.profile)}</strong>
+          <small>${pct(row.score, 1)} avg • ${intFmt(row.plusPass || 0)} pass • ${isNum(row.totalRuntimeS) ? `${fmt(row.totalRuntimeS, 1)}s` : "walltime n/a"}</small>
+        </button>
+      `).join("");
+
+      $("hermesAgentMatrix").innerHTML = `
+        <table class="hermes-matrix">
+          <thead>
+            <tr>
+              <th class="scenario-col">Scenario</th>
+              ${modelRows.map((row, index) => `<th class="hermes-model-head" title="${escapeHtml(row.profile)}">#${index + 1}<br>${escapeHtml(shortModel(row.profile))}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${scenarioIds.map((scenarioId) => {
+              const meta = scenarioMeta.get(scenarioId) || { scenarioId, scenarioTitle: scenarioId, category: "HermesAgent-20" };
+              return `
+                <tr>
+                  <td class="scenario-col hermes-scenario-title">
+                    <strong>${escapeHtml(scenarioId)} • ${escapeHtml(meta.scenarioTitle)}</strong>
+                    <small>${escapeHtml(meta.category)}</small>
+                  </td>
+                  ${modelIds.map((profileId) => {
+                    const row = byScenarioModel.get(`${scenarioId}|${profileId}`);
+                    return `
+                      <td class="hermes-cell">
+                        <div class="hermes-score-cell ${statusClass(row?.status)}" title="${escapeHtml(cellTitle(row))}">
+                          <strong>${row ? pct(row.score, 0) : "--"}</strong>
+                          <span>${escapeHtml(row?.status || "missing")}</span>
+                          <small>${isNum(row?.durationS) ? `${fmt(row.durationS, 1)}s` : ""}</small>
+                        </div>
+                      </td>
+                    `;
+                  }).join("")}
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+
+      function renderModelDetail(profileId = modelIds[0]) {
+        const aggregate = aggregateRows.find((row) => row.profileId === profileId) || modelRows.find((row) => row.profileId === profileId) || null;
+        const rows = scenarioRows.filter((row) => row.profileId === profileId).sort((a, b) => Number(a.scenarioId.slice(3)) - Number(b.scenarioId.slice(3)));
+        const misses = rows.filter((row) => row.status !== "pass");
+        const slowest = rows.filter((row) => isNum(row.durationS)).sort((a, b) => Number(b.durationS) - Number(a.durationS))[0] || null;
+        $("hermesAgentDetail").innerHTML = aggregate ? `
+          <h3>${escapeHtml(aggregate.profile)} per-test detail</h3>
+          <div class="hermes-detail-grid">
+            <div class="hermes-detail-item">
+              <span>Aggregate</span>
+              <strong>${pct(aggregate.score, 1)} avg • ${intFmt(aggregate.plusPass || 0)} pass</strong>
+              <small>${isNum(aggregate.totalRuntimeS) ? `${fmt(aggregate.totalRuntimeS, 1)}s walltime` : "walltime n/a"}</small>
+            </div>
+            <div class="hermes-detail-item">
+              <span>Needs inspection</span>
+              <strong>${intFmt(misses.length)} tests</strong>
+              <small>${misses.slice(0, 5).map((row) => `${row.scenarioId} ${row.status} ${pct(row.score, 0)}`).join(" • ") || "All tests passed"}</small>
+            </div>
+            <div class="hermes-detail-item">
+              <span>Slowest test</span>
+              <strong>${slowest ? `${escapeHtml(slowest.scenarioId)} • ${fmt(slowest.durationS, 1)}s` : "n/a"}</strong>
+              <small>${slowest ? escapeHtml(slowest.scenarioTitle) : "No timed scenario row"}</small>
+            </div>
+          </div>
+        ` : `<h3>No HermesAgent model selected</h3>`;
+        [...$("hermesAgentModelStrip").querySelectorAll("button")].forEach((button) => {
+          button.classList.toggle("active", button.dataset.profileId === profileId);
+        });
+      }
+
+      $("hermesAgentModelStrip").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-profile-id]");
+        if (!button) return;
+        renderModelDetail(button.dataset.profileId);
       });
+      renderModelDetail(modelIds[0]);
+
+      if (!scenarioRows.length) {
+        $("hermesAgentMatrix").innerHTML = `<div class="panel-pad">No HermesAgent-20 scenario rows are available. Rebuild the data bundle from BenchLocal summaries.</div>`;
+      }
     }
 
     function numericPayloadList(payload) {
@@ -2788,12 +3219,12 @@
     renderMeta();
     populateFilters();
     wire();
+    renderQualitySuites();
+    renderHermesAgentSweep();
     renderAtlas();
     renderServerLab();
     renderServerTuning();
-    renderQuality();
     renderRacesAndNotes();
-    renderCodingQuality();
   </script>
 </body>
 </html>
