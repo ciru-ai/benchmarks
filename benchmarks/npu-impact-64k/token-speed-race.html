@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>64k Token Speed Race</title>
-  <meta name="description" content="Qwen3.6 35B iGPU 64k token speed race with NPU and iGPU contention lanes.">
+  <title>iGPU+NPU LOAD CONCURRENCY TEST</title>
+  <meta name="description" content="We compare a fully loaded iGPU running with a concurrent Qwen3.5 9b under full load to measure impact.">
   <meta name="theme-color" content="#080808">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,17 +58,17 @@
 
     .app {
       width: min(calc(100% - 28px), var(--max));
-      margin: 16px auto 30px;
+      margin: 12px auto 24px;
       position: relative;
       z-index: 1;
     }
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(190px, 280px);
-      gap: 22px;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 250px);
+      gap: 16px;
       align-items: end;
-      padding: 22px;
+      padding: 18px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background:
@@ -107,19 +107,19 @@
     h1 {
       margin: 8px 0 0;
       max-width: 940px;
-      font-size: clamp(2.25rem, 5.4vw, 5.5rem);
+      font-size: clamp(2.05rem, 4.7vw, 4.7rem);
       font-weight: 700;
       letter-spacing: 0;
-      line-height: 0.92;
-      text-transform: uppercase;
+      line-height: 0.94;
+      text-transform: none;
     }
 
     .subtitle {
-      margin: 14px 0 0;
+      margin: 10px 0 0;
       color: #c6c9cf;
       font-size: 1rem;
-      line-height: 1.5;
-      max-width: 88ch;
+      line-height: 1.42;
+      max-width: 76ch;
     }
 
     .controls {
@@ -133,8 +133,8 @@
       display: grid;
       align-content: center;
       gap: 14px;
-      min-height: 210px;
-      padding: 18px;
+      min-height: 166px;
+      padding: 14px;
       border-radius: var(--radius);
       border: 1px solid rgba(255, 255, 255, 0.14);
       background: rgba(0, 0, 0, 0.32);
@@ -143,7 +143,7 @@
     .hero-badge img {
       display: block;
       max-width: 100%;
-      width: 230px;
+      width: 190px;
       justify-self: center;
       filter: drop-shadow(0 18px 34px rgba(237, 28, 36, 0.36));
     }
@@ -164,14 +164,6 @@
     button:hover { border-color: rgba(255, 255, 255, 0.28); }
     button:focus-visible { outline: 3px solid rgba(57, 208, 255, 0.25); outline-offset: 2px; }
 
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    .metric,
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -179,38 +171,9 @@
       box-shadow: var(--shadow);
     }
 
-    .metric {
-      min-width: 0;
-      padding: 13px;
-      border-left: 3px solid var(--accent, var(--cyan));
-      background:
-        linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent),
-        rgba(14, 15, 18, 0.88);
-    }
-
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .metric strong {
-      display: block;
-      margin-top: 7px;
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 1.18rem;
-      line-height: 1.08;
-    }
-
     .race-panel {
-      margin-top: 16px;
-      padding: 18px;
+      margin-top: 14px;
+      padding: 14px;
       overflow: hidden;
     }
 
@@ -220,7 +183,7 @@
       align-items: start;
       justify-content: space-between;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .race-head > div:first-child {
@@ -275,32 +238,32 @@
         radial-gradient(circle at 18% 20%, rgba(57, 208, 255, 0.18), transparent 22%),
         radial-gradient(circle at 82% 80%, rgba(32, 209, 162, 0.16), transparent 24%),
         rgba(0, 0, 0, 0.3);
-      min-height: 520px;
+      min-height: 430px;
       overflow: hidden;
     }
 
     canvas {
       display: block;
       width: 100%;
-      height: 520px;
+      height: 430px;
     }
 
-    .hud {
+    .result-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 10px;
     }
 
-    .hud-card {
-      padding: 12px;
+    .result-card {
+      padding: 10px 11px;
       border: 1px solid var(--line);
       border-left: 3px solid var(--accent);
       border-radius: var(--radius);
       background: rgba(0, 0, 0, 0.24);
     }
 
-    .hud-card .label {
+    .result-card .label {
       color: var(--muted);
       font-size: 0.72rem;
       font-weight: 700;
@@ -308,14 +271,14 @@
       text-transform: uppercase;
     }
 
-    .hud-card .value {
+    .result-card .value {
       margin-top: 6px;
       font-family: "IBM Plex Mono", monospace;
-      font-size: 1.25rem;
+      font-size: 1.16rem;
       font-weight: 700;
     }
 
-    .hud-card .sub {
+    .result-card .sub {
       margin-top: 4px;
       color: var(--muted);
       font-size: 0.86rem;
@@ -327,15 +290,13 @@
     @media (max-width: 980px) {
       .hero { grid-template-columns: 1fr; align-items: start; }
       .controls { justify-content: flex-start; }
-      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .hud { grid-template-columns: 1fr; }
+      .result-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 620px) {
       .app { width: min(calc(100% - 18px), var(--max)); }
-      .metric-grid { grid-template-columns: 1fr; }
-      canvas { height: 430px; }
-      .canvas-wrap { min-height: 430px; }
+      canvas { height: 380px; }
+      .canvas-wrap { min-height: 380px; }
     }
   </style>
 </head>
@@ -344,8 +305,8 @@
     <section class="hero">
       <div>
         <p class="eyebrow">64k token race</p>
-        <h1>Qwen3.6 35B Contention Race</h1>
-        <p class="subtitle">A TG-race-style replay of the 64k context benchmark. Each lane races to the same 65,664 processed-token finish line; elapsed time is proportional and played back at 18x.</p>
+        <h1>iGPU+NPU LOAD CONCURRENCY TEST</h1>
+        <p class="subtitle">We compare a fully loaded iGPU running with a concurrent Qwen3.5 9b under full load to measure impact.</p>
       </div>
       <div class="hero-badge">
         <img src="../../amd_xdna2_badge_true_rgba_cropped.png" alt="AMD XDNA 2 NPU badge">
@@ -356,18 +317,11 @@
       </div>
     </section>
 
-    <section class="metric-grid" aria-label="Race headline metrics">
-      <div class="metric" style="--accent: var(--teal)"><span>iGPU alone</span><strong>336s</strong></div>
-      <div class="metric" style="--accent: var(--amber)"><span>with NPU load</span><strong>347s</strong></div>
-      <div class="metric" style="--accent: var(--rose)"><span>with iGPU load</span><strong>568s</strong></div>
-      <div class="metric" style="--accent: var(--cyan)"><span>NPU impact</span><strong>+3.29%</strong></div>
-    </section>
-
     <section class="panel race-panel">
       <div class="race-head">
         <div>
           <h2>Processed-Token Race</h2>
-          <p>The first two lanes finish close together; the iGPU-contention lane shows the slowdown when Qwen3.5 9B Q4_K_M is also running on Vulkan with unique uncached prompts.</p>
+          <p>Each lane runs the same full 64k main-model workload to a 65,664 processed-token finish line. The baseline runs Qwen3.6 35B on the iGPU by itself, the NPU lane adds a fully loaded concurrent Qwen3.5 9b on the NPU, and the iGPU contention lane runs that same Qwen3.5 9b load on the iGPU.</p>
         </div>
         <div class="status">
           <span>Leader</span>
@@ -375,23 +329,23 @@
         </div>
       </div>
       <div class="canvas-wrap">
-        <canvas id="raceCanvas" width="1200" height="520" aria-label="Animated 64k token speed race"></canvas>
+        <canvas id="raceCanvas" width="1200" height="430" aria-label="Animated 64k token speed race"></canvas>
       </div>
-      <div class="hud" aria-label="Lane readouts">
-        <div class="hud-card" style="--accent: var(--teal)">
-          <div class="label">Qwen3.6 35B iGPU Alone</div>
-          <div class="value" id="soloReadout">0 / 65,664</div>
-          <div class="sub" id="soloSub">prefill</div>
+      <div class="result-grid" aria-label="Result summary">
+        <div class="result-card" style="--accent: var(--teal)">
+          <div class="label">Baseline</div>
+          <div class="value">195.31 tok/s</div>
+          <div class="sub">336s finish | 65,664 tokens | Qwen3.6 35B iGPU alone</div>
         </div>
-        <div class="hud-card" style="--accent: var(--amber)">
-          <div class="label">Qwen3.6 35B iGPU + NPU</div>
-          <div class="value" id="npuReadout">0 / 65,664</div>
-          <div class="sub" id="npuSub">prefill</div>
+        <div class="result-card" style="--accent: var(--amber)">
+          <div class="label">NPU concurrency</div>
+          <div class="value">189.09 tok/s</div>
+          <div class="sub">347s finish | +3.29% latency | Qwen3.5 9b fully loaded on NPU</div>
         </div>
-        <div class="hud-card" style="--accent: var(--rose)">
-          <div class="label">Qwen3.6 35B iGPU + Qwen3.5 iGPU</div>
-          <div class="value" id="igpuReadout">0 / 65,664</div>
-          <div class="sub" id="igpuSub">prefill</div>
+        <div class="result-card" style="--accent: var(--rose)">
+          <div class="label">iGPU contention</div>
+          <div class="value">115.60 tok/s</div>
+          <div class="sub">568s finish | +68.96% latency | Qwen3.5 9b fully loaded on iGPU</div>
         </div>
       </div>
     </section>
@@ -439,7 +393,6 @@
       maximumFractionDigits: digits
     });
     const seconds = (value) => `${fmt(value, value < 100 ? 1 : 0)}s`;
-    const pct = (value) => `${Math.round(value * 100)}%`;
     const maxTime = Math.max(...lanes.map((lane) => lane.totalSeconds));
 
     let startedAt = performance.now();
@@ -562,8 +515,6 @@
           leader = lane;
           leaderTokens = tokens;
         }
-        byId(`${lane.id}Readout`).textContent = `${fmt(tokens)} / ${fmt(TARGET_TOKENS)}`;
-        byId(`${lane.id}Sub`).textContent = `${phaseFor(lane, t)} | ${pct(tokens / TARGET_TOKENS)} complete`;
       }
       byId("leader").textContent = leaderTokens >= TARGET_TOKENS
         ? `${leader.shortLabel} finished`
