@@ -706,6 +706,22 @@ def completed_quality_score(row):
             return False
         if row["tasks"] is None or int(row["tasks"] or 0) < 20:
             return False
+        source_path = row["source_path"]
+        try:
+            summary = json.load(open(source_path, "r", encoding="utf-8")) if source_path else {}
+            result_lists = (summary.get("resultsByModel") or {}).values()
+        except Exception:
+            result_lists = []
+        for results in result_lists:
+            if not isinstance(results, list):
+                continue
+            for result in results:
+                if (
+                    isinstance(result, dict)
+                    and result.get("summary") == "Scenario execution failed."
+                    and "fetch failed" in str(result.get("note") or "")
+                ):
+                    return False
     return True
 
 def quality_row_public(row):
