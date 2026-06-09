@@ -1,6 +1,6 @@
 window.BENCHV2_DATA = {
   "meta": {
-    "generatedAtUtc": "2026-06-09T02:48:09Z",
+    "generatedAtUtc": "2026-06-09T04:09:17Z",
     "sourceHost": "ciru",
     "database": "/home/crown/bench-results/llama/results.sqlite3",
     "ledger": "/home/crown/bench-results/llama/results.ledger.jsonl",
@@ -71824,7 +71824,7 @@ window.BENCHV2_DATA = {
   "serverTuning": {
     "meta": {
       "sourceRoot": "/home/crown/bench-results/llama",
-      "generatedAtUtc": "2026-06-09T02:48:09Z",
+      "generatedAtUtc": "2026-06-09T04:09:17Z",
       "rowCount": 53,
       "latestTimestamp": "20260603T061858Z"
     },
@@ -85305,7 +85305,7 @@ window.BENCHV2_DATA = {
       "sourceHost": "ciru",
       "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/quality-results.sqlite3",
       "suite": "Completed EvalPlus HumanEval+, MBPP+, and BigCodeBench-Hard rows",
-      "generatedAtUtc": "2026-06-09T02:48:09Z",
+      "generatedAtUtc": "2026-06-09T04:09:17Z",
       "runCount": 18,
       "profileCount": 20,
       "rowCount": 36,
@@ -87813,11 +87813,11 @@ window.BENCHV2_DATA = {
   "qualitySuites": {
     "meta": {
       "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/quality-results.sqlite3",
-      "generatedAtUtc": "2026-06-09T02:48:09Z",
+      "generatedAtUtc": "2026-06-09T04:09:17Z",
       "rowCount": 82,
       "profileCount": 28,
       "runCount": 36,
-      "excludedRows": 683,
+      "excludedRows": 709,
       "latestTimestamp": "20260607T155635Z"
     },
     "rows": [
@@ -90333,9 +90333,9 @@ window.BENCHV2_DATA = {
         "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T013926Z-hermesagent20-step3-7-flash-q3kl-hermes64k-repaired-official20/summary.json"
       },
       {
-        "seq": 743,
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "seq": 769,
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "timestamp": "2026-06-05T05:46:01.896Z",
         "benchmarkFamily": "hermesagent-20",
         "suite": "official-20",
@@ -90349,19 +90349,19 @@ window.BENCHV2_DATA = {
         "tasks": 20,
         "scoreName": "avg_score",
         "scoreLabel": "average score",
-        "score": 0.79,
+        "score": 0.77,
         "basePass": 13,
         "plusPass": 12,
         "baseRate": 0.65,
         "plusRate": 0.6,
-        "generationSeconds": 334847.106,
+        "generationSeconds": 339773.647,
         "generationTokS": null,
-        "totalRuntimeS": 334847.106,
+        "totalRuntimeS": 339773.647,
         "activeSamples": 1,
         "peakPromptTps": null,
         "peakPredictedTps": null,
         "model": null,
-        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
+        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
       }
     ],
     "codingRows": [
@@ -92819,9 +92819,9 @@ window.BENCHV2_DATA = {
         "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T053854Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix/summary.json"
       },
       {
-        "seq": 743,
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "seq": 769,
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "timestamp": "2026-06-05T05:46:01.896Z",
         "benchmarkFamily": "hermesagent-20",
         "suite": "official-20",
@@ -92835,19 +92835,19 @@ window.BENCHV2_DATA = {
         "tasks": 20,
         "scoreName": "avg_score",
         "scoreLabel": "average score",
-        "score": 0.79,
+        "score": 0.77,
         "basePass": 13,
         "plusPass": 12,
         "baseRate": 0.65,
         "plusRate": 0.6,
-        "generationSeconds": 334847.106,
+        "generationSeconds": 339773.647,
         "generationTokS": null,
-        "totalRuntimeS": 334847.106,
+        "totalRuntimeS": 339773.647,
         "activeSamples": 1,
         "peakPromptTps": null,
         "peakPredictedTps": null,
         "model": null,
-        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
+        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
       },
       {
         "seq": 599,
@@ -93104,8 +93104,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-01",
@@ -93351,8 +93351,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-02",
@@ -93598,8 +93598,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-03",
@@ -93845,8 +93845,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-04",
@@ -94092,8 +94092,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 10
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-05",
@@ -94339,8 +94339,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-06",
@@ -94586,23 +94586,23 @@ window.BENCHV2_DATA = {
         "safetyScore": 0
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-07",
         "scenarioTitle": "Programmatic Tool Chaining With execute_code",
         "category": "Workspace Orchestration",
         "status": "fail",
-        "verifierStatus": "fail",
-        "score": 0.3,
-        "scoreRaw": 30,
-        "summary": "Hermes failed the programmatic execute_code summarization scenario.",
-        "verifierSummary": "The generated report does not match the deterministic recomputation.",
-        "durationS": 44.217,
-        "outcomeScore": 0,
-        "nativeUseScore": 30,
-        "safetyScore": 0
+        "verifierStatus": null,
+        "score": 0,
+        "scoreRaw": 0,
+        "summary": "Failed to prepare the pinned Hermes runtime inside the verifier.",
+        "verifierSummary": null,
+        "durationS": 600.04,
+        "outcomeScore": null,
+        "nativeUseScore": null,
+        "safetyScore": null
       },
       {
         "runId": "20260605T060139Z-hermesagent20-qwopus3-6-27b-v2-chadrock-strix-lean-mtp",
@@ -94833,8 +94833,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-08",
@@ -95080,8 +95080,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-09",
@@ -95327,8 +95327,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-10",
@@ -95574,8 +95574,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-11",
@@ -95821,8 +95821,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-12",
@@ -96068,8 +96068,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-13",
@@ -96315,8 +96315,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-14",
@@ -96562,8 +96562,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-15",
@@ -96809,8 +96809,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 0
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-16",
@@ -97056,8 +97056,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-17",
@@ -97303,8 +97303,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-18",
@@ -97550,8 +97550,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 0
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-19",
@@ -97797,8 +97797,8 @@ window.BENCHV2_DATA = {
         "safetyScore": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "scenarioId": "HA-20",
@@ -97946,7 +97946,7 @@ window.BENCHV2_DATA = {
         "weight": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "categoryId": "delegation_recovery_boundaries",
@@ -98063,7 +98063,7 @@ window.BENCHV2_DATA = {
         "weight": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "categoryId": "memory_recall",
@@ -98180,7 +98180,7 @@ window.BENCHV2_DATA = {
         "weight": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "categoryId": "scheduling_delivery",
@@ -98297,7 +98297,7 @@ window.BENCHV2_DATA = {
         "weight": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "categoryId": "skills_procedural_memory",
@@ -98414,12 +98414,12 @@ window.BENCHV2_DATA = {
         "weight": 20
       },
       {
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
         "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
         "categoryId": "workspace_orchestration",
         "category": "Workspace Orchestration",
-        "score": 0.83,
+        "score": 0.75,
         "weight": 20
       },
       {
@@ -100241,37 +100241,6 @@ window.BENCHV2_DATA = {
         "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T045253Z-hermesagent20-q36-27b-chadrock-heretic/summary.json"
       },
       {
-        "seq": 743,
-        "runId": "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
-        "createdUtc": "2026-06-09T02:44:54Z",
-        "timestamp": "2026-06-05T05:46:01.896Z",
-        "benchmarkFamily": "hermesagent-20",
-        "suite": "official-20",
-        "suiteLabel": "HermesAgent-20",
-        "rowKind": "aggregate",
-        "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
-        "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
-        "family": "Chadrock",
-        "quant": null,
-        "sizeClass": "Large",
-        "tasks": 20,
-        "scoreName": "avg_score",
-        "scoreLabel": "average score",
-        "score": 0.79,
-        "basePass": 13,
-        "plusPass": 12,
-        "baseRate": 0.65,
-        "plusRate": 0.6,
-        "generationSeconds": 334847.106,
-        "generationTokS": null,
-        "totalRuntimeS": 334847.106,
-        "activeSamples": 1,
-        "peakPromptTps": null,
-        "peakPredictedTps": null,
-        "model": null,
-        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
-      },
-      {
         "seq": 547,
         "runId": "20260605T053854Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix",
         "createdUtc": "2026-06-05T05:38:54Z",
@@ -100301,6 +100270,37 @@ window.BENCHV2_DATA = {
         "peakPredictedTps": null,
         "model": null,
         "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T053854Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix/summary.json"
+      },
+      {
+        "seq": 769,
+        "runId": "20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        "createdUtc": "2026-06-09T03:57:38Z",
+        "timestamp": "2026-06-05T05:46:01.896Z",
+        "benchmarkFamily": "hermesagent-20",
+        "suite": "official-20",
+        "suiteLabel": "HermesAgent-20",
+        "rowKind": "aggregate",
+        "profileId": "qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
+        "profile": "Qwen3.6 35b A3b MTP Chadrock Rocmfp4 Strix Lean",
+        "family": "Chadrock",
+        "quant": null,
+        "sizeClass": "Large",
+        "tasks": 20,
+        "scoreName": "avg_score",
+        "scoreLabel": "average score",
+        "score": 0.77,
+        "basePass": 13,
+        "plusPass": 12,
+        "baseRate": 0.65,
+        "plusRate": 0.6,
+        "generationSeconds": 339773.647,
+        "generationTokS": null,
+        "totalRuntimeS": 339773.647,
+        "activeSamples": 1,
+        "peakPromptTps": null,
+        "peakPredictedTps": null,
+        "model": null,
+        "sourcePath": "/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json"
       },
       {
         "seq": 443,

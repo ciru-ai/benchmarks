@@ -679,6 +679,9 @@ def completed_quality_score(row):
         "20260605T043925Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean",
         "20260605T044001Z-hermesagent20-qwopus3-6-27b-v2-chadrock-strix-lean-mtp",
         "20260605T044103Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-rocm-q4fast",
+        # Superseded HA-07 repair used diagnostic max_tokens=4096. Keep it out
+        # of public official rows; the official-settings repair is 20260609T035738Z.
+        "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
     }
     if row["run_id"] in invalid_run_ids:
         return False
