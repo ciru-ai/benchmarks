@@ -102,6 +102,8 @@ def family_for(text):
         return "Gemma"
     if "lfm2.5" in low or "lfm25" in low:
         return "Liquid"
+    if "nex-n2" in low:
+        return "Nex"
     if "step-3.7" in low or "step3.7" in low or "step37" in low:
         return "StepFun"
     if "ornstein" in low:
@@ -473,6 +475,9 @@ PROFILE_LABELS = {
     "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
     "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
     "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
+    "nex-n2-mini-q4-k-xl": "Nex N2 Mini Q4_K_XL",
+    "nex-n2-mini-q5-k-xl": "Nex N2 Mini Q5_K_XL",
+    "nex-n2-mini-q6-k-xl": "Nex N2 Mini Q6_K_XL",
 }
 
 SUITE_LABELS = {
@@ -533,7 +538,8 @@ def profile_quant(profile_id):
     text = str(profile_id or "").lower()
     patterns = [
         ("q4-k-l", "Q4_K_L"), ("q6-k-l", "Q6_K_L"), ("q8-k-xl", "Q8_K_XL"),
-        ("q6-k-xl", "Q6_K_XL"), ("q5-k-m", "Q5_K_M"), ("q4-km", "Q4_K_M"),
+        ("q6-k-xl", "Q6_K_XL"), ("q5-k-xl", "Q5_K_XL"), ("q4-k-xl", "Q4_K_XL"),
+        ("q5-k-m", "Q5_K_M"), ("q4-km", "Q4_K_M"),
         ("q4-k-m", "Q4_K_M"), ("iq3", "IQ3"), ("bf16", "BF16")
     ]
     for needle, label in patterns:
@@ -830,7 +836,7 @@ def summarize_quality_suites():
     agent_scenario_rows, agent_category_rows = summarize_hermes_agent_scenarios(agent_rows)
 
     latest_by_profile_suite = {}
-    for row in [*coding_rows, *agent_rows]:
+    for row in coding_rows:
         key = (row["profileId"], row["benchmarkFamily"], row["suite"], row["scoreName"])
         if key not in latest_by_profile_suite or (row.get("createdUtc") or "") >= (latest_by_profile_suite[key].get("createdUtc") or ""):
             latest_by_profile_suite[key] = row
@@ -842,7 +848,6 @@ def summarize_quality_suites():
         ("livecodebench", "release_latest-codegeneration-2025-01-01"): 3,
         ("bigcodebench", "bigcodebench-hard-instruct"): 4,
         ("mini-swe-agent", "swebench-lite-dev"): 5,
-        ("hermesagent-20", "official-20"): 6,
     }
     leader_rows = sorted(latest_by_profile_suite.values(), key=lambda row: (
         headline_priority.get((row["benchmarkFamily"], row["suite"]), 99),
