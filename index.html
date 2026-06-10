@@ -1663,8 +1663,8 @@
       <article class="panel wide-panel">
         <div class="panel-head">
           <div>
-            <h2>Accelerator Memory / Speed Frontier</h2>
-            <p>Peak VRAM + GTT on x, standalone decode on y, and selected context speed as color.</p>
+            <h2>UMA Memory / Speed Frontier</h2>
+            <p>Peak effective UMA memory on x, standalone decode on y, and selected context speed as color.</p>
           </div>
           <label class="field" style="max-width:170px">
             <span>Context</span>
@@ -1733,7 +1733,7 @@
               <option value="64k">64k context</option>
               <option value="32k">32k context</option>
               <option value="tg">Standalone TG</option>
-              <option value="efficiency">TG / accel memory</option>
+              <option value="efficiency">TG / effective memory</option>
               <option value="latest">Latest</option>
             </select>
           </label>
@@ -2157,7 +2157,7 @@
       return cell.pg || cell.pp || null;
     }
 
-    function memoryGiB(row) {
+    function acceleratorMemoryGiB(row) {
       if (!row) return null;
       const vram = isNum(row.vramGiB) ? Number(row.vramGiB) : 0;
       const gtt = isNum(row.gttGiB) ? Number(row.gttGiB) : 0;
@@ -2165,12 +2165,37 @@
       return total > 0 ? total : null;
     }
 
+    function memoryGiB(row) {
+      if (!row) return null;
+      const accelerator = acceleratorMemoryGiB(row);
+      const sys = isNum(row.sysGiB) ? Number(row.sysGiB) : null;
+      const modelSize = isNum(row.modelSizeGiB) ? Number(row.modelSizeGiB) : null;
+      const fallback = Math.max(0, sys || 0, modelSize || 0);
+      const tinyAccelerator = accelerator && accelerator < 2;
+      const belowModelFloor = accelerator && modelSize && modelSize > 4 && accelerator < modelSize * 0.35;
+      const fallbackLooksBetter = fallback && (!accelerator || fallback > accelerator * 1.5);
+      if ((tinyAccelerator || belowModelFloor || !accelerator) && fallbackLooksBetter) return fallback;
+      return accelerator || fallback || null;
+    }
+
     function memorySplit(row) {
       if (!row) return "sampled memory";
+      const effective = memoryGiB(row);
+      const accelerator = acceleratorMemoryGiB(row);
+      const sys = isNum(row.sysGiB) ? Number(row.sysGiB) : null;
+      const modelSize = isNum(row.modelSizeGiB) ? Number(row.modelSizeGiB) : null;
       const parts = [];
       if (isNum(row.vramGiB)) parts.push(`${mem(row.vramGiB)} VRAM`);
       if (isNum(row.gttGiB)) parts.push(`${mem(row.gttGiB)} GTT`);
-      return parts.join(" + ") || "sampled memory";
+      const acceleratorText = parts.join(" + ");
+      if (accelerator && effective && Math.abs(effective - accelerator) < 0.05) return acceleratorText || "sampled memory";
+      if (sys && effective && Math.abs(effective - sys) < 0.05) {
+        return `${acceleratorText ? `${acceleratorText}; ` : ""}${mem(sys)} system/UMA peak`;
+      }
+      if (modelSize && effective && Math.abs(effective - modelSize) < 0.05) {
+        return `${acceleratorText ? `${acceleratorText}; ` : ""}${mem(modelSize)} model-size floor`;
+      }
+      return acceleratorText || "sampled memory";
     }
 
     function scoreFor(profile, sortKey) {
@@ -2191,7 +2216,7 @@
       const ratio = maxValue && value ? Math.max(0.08, Math.min(1, value / maxValue)) : 0.08;
       const hue = metric === "memory" ? "#ff9f43" : (row.mode === "pg" ? "#20d1a2" : "#39d0ff");
       const label = metric === "memory" ? mem(value) : fmt(value, 1);
-      const sub = metric === "memory" ? "VRAM+GTT" : row.mode?.toUpperCase();
+      const sub = metric === "memory" ? "effective UMA" : row.mode?.toUpperCase();
       return `
         <td class="metric-cell" style="background: linear-gradient(90deg, ${alpha(hue, 0.12 + ratio * 0.34)}, rgba(255,255,255,0.015));">
           ${label}<small>${sub || ""}</small>
@@ -2293,7 +2318,7 @@
         ["Best context", bestMeasured ? `${bestMeasured.band} ${speed(bestMeasured.row.tps)}` : "No context row", bestMeasured ? `${bestMeasured.row.mode.toUpperCase()} measurement` : "not recorded"],
         ["Best 64k+", best64Plus ? `${best64Plus.band} ${speed(best64Plus.row.tps)}` : "Not tested", best64Plus ? `${best64Plus.row.mode.toUpperCase()} long-context` : "no 64k+ row"],
         ["Largest context", highestContext ? `${highestContext.band} ${speed(highestContext.row.tps)}` : "No context row", highestContext ? `${highestContext.row.mode.toUpperCase()} • ${intFmt(highestContext.row.ctx)} ctx` : ""],
-        ["Peak accelerator memory", mem(memoryGiB(profile.memory)), memorySplit(profile.memory)],
+        ["Peak effective memory", mem(memoryGiB(profile.memory)), memorySplit(profile.memory)],
         ["Measurements", intFmt(profile.rows.length), `${resultSetLabel()} result set`]
       ];
       el.innerHTML = `
@@ -2405,7 +2430,7 @@
           formatter: ({ data }) => [
             `<strong>${escapeHtml(data.name)}</strong>`,
             `${escapeHtml(data.family)} • ${escapeHtml(data.backend || "n/a")}`,
-            `Accelerator memory: ${mem(data.value[0])}`,
+            `Effective memory: ${mem(data.value[0])}`,
             `${escapeHtml(data.memorySplit || "")}`,
             `Standalone TG: ${speed(data.value[1])}`,
             `${band}: ${speed(data.value[2])} ${data.contextMode}`,
@@ -2424,7 +2449,7 @@
         },
         xAxis: {
           type: "value",
-          name: "Peak VRAM+GTT GiB",
+          name: "Effective UMA memory GiB",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
@@ -2704,7 +2729,7 @@
           <td>${speed(row.promptTps)}<small class="muted">${intFmt(row.promptTokens)} tok</small></td>
           <td>${speed(row.decodeTps)}<small class="muted">${intFmt(row.predictedTokens)} tok</small></td>
           <td>${pct(row.acceptRate)}<small class="muted">draft ${intFmt(row.draftN)}</small></td>
-          <td>${mem(row.vramGiB)}<small class="muted">${mem(row.gttGiB)} GTT</small></td>
+          <td>${mem(memoryGiB(row))}<small class="muted">${memorySplit(row)}</small></td>
         </tr>
       `).join("");
       $("servingBody").innerHTML = DATA.apiRows.slice().sort((a, b) => b.seq - a.seq).slice(0, 70).map((row) => `
@@ -2714,7 +2739,7 @@
           <td>${ms(row.totalMs)}</td>
           <td>${row.promptBytes ? `${intFmt(row.promptBytes)} B` : "n/a"}<small class="muted">${escapeHtml(row.promptFile || "")}</small></td>
           <td>${intFmt(row.gen)}<small class="muted">${intFmt(row.responseChars)} chars</small></td>
-          <td>${mem(row.vramGiB)}<small class="muted">${mem(row.gttGiB)} GTT</small></td>
+          <td>${mem(memoryGiB(row))}<small class="muted">${memorySplit(row)}</small></td>
         </tr>
       `).join("");
       if (serverChart) {
