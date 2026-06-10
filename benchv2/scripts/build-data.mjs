@@ -716,6 +716,16 @@ def completed_quality_score(row):
         if row["tasks"] is None or int(row["tasks"] or 0) < 20:
             return False
         source_path = row["source_path"]
+        run_dir = os.path.dirname(source_path) if source_path else None
+        artifacts_dir = os.path.join(run_dir, "artifacts") if run_dir else None
+        if artifacts_dir and os.path.isdir(artifacts_dir):
+            for stdout_path in glob.glob(os.path.join(artifacts_dir, "HA-*-attempt-*", "agent-runner-stdout.txt")):
+                try:
+                    text = open(stdout_path, "r", encoding="utf-8", errors="replace").read()
+                except Exception:
+                    text = ""
+                if "unexpected keyword argument 'top_k'" in text:
+                    return False
         try:
             summary = json.load(open(source_path, "r", encoding="utf-8")) if source_path else {}
             result_lists = (summary.get("resultsByModel") or {}).values()
