@@ -2866,6 +2866,8 @@
       const fastest = aggregateRows.filter((row) => isNum(row.totalRuntimeS)).sort((a, b) => a.totalRuntimeS - b.totalRuntimeS)[0] || null;
       const fullPasses = scenarioRows.filter((row) => row.status === "pass").length;
       const partials = scenarioRows.filter((row) => row.status === "partial").length;
+      const scoredCells = scenarioRows.filter((row) => isNum(row.score) && Number(row.score) > 0).length;
+      const zeroScoreCells = scenarioRows.filter((row) => isNum(row.score) && Number(row.score) <= 0).length;
       const scenarioIds = [...new Set(scenarioRows.map((row) => row.scenarioId).filter(Boolean))].sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)));
       const scenarioSpread = scenarioIds.map((scenarioId) => {
         const scores = scenarioRows.filter((row) => row.scenarioId === scenarioId && isNum(row.score)).map((row) => Number(row.score));
@@ -2874,8 +2876,8 @@
 
       $("hermesAgentSummary").innerHTML = [
         ["Models", intFmt(aggregateRows.length), `${intFmt(scenarioRows.length)} model-test cells across ${intFmt(scenarioIds.length)} scenarios`],
-        ["Best aggregate", best ? `${escapeHtml(best.profile)} • ${pct(best.score, 1)}` : "n/a", best ? `${intFmt(best.plusPass || 0)} full-pass scenarios` : "No HermesAgent rows"],
-        ["Scenario outcomes", `${intFmt(fullPasses)} pass / ${intFmt(partials)} partial`, `${intFmt(Math.max(0, scenarioRows.length - fullPasses - partials))} failed cells`],
+        ["Best aggregate", best ? `${escapeHtml(best.profile)} • ${pct(best.score, 1)}` : "n/a", best ? `${intFmt(best.plusPass || 0)} strict passes; ${intFmt(scoredCells)} scored cells` : "No HermesAgent rows"],
+        ["Scenario scoring", `${intFmt(scoredCells)} scored / ${intFmt(zeroScoreCells)} zero`, `${intFmt(fullPasses)} strict pass / ${intFmt(partials)} strict partial by harness status`],
         ["Largest spread", scenarioSpread ? `${escapeHtml(scenarioSpread.scenarioId)} • ${pct(scenarioSpread.spread, 0)}` : "n/a", "Scenario with widest model separation"]
       ].map(([label, value, note]) => `
         <div class="coding-card">
@@ -2889,7 +2891,7 @@
         <div class="hermes-rank-card">
           <span>#${index + 1} aggregate</span>
           <strong>${escapeHtml(row.profile)}</strong>
-          <small>${pct(row.score, 1)} avg • ${intFmt(row.plusPass || 0)} pass • ${isNum(row.totalRuntimeS) ? `${fmt(row.totalRuntimeS, 1)}s` : "walltime n/a"}</small>
+          <small>${pct(row.score, 1)} avg • ${intFmt(row.plusPass || 0)} strict pass • ${isNum(row.totalRuntimeS) ? `${fmt(row.totalRuntimeS, 1)}s` : "walltime n/a"}</small>
         </div>
       `).join("") || `<div class="hermes-rank-card"><strong>No HermesAgent rows</strong><small>Refresh benchmark data.</small></div>`;
 
@@ -2927,7 +2929,19 @@
         .replace(/Rocmfp4/i, "ROCmFP4")
         .replace(/Uncensored/i, "Uncens")
         .slice(0, 34);
-      const statusClass = (status) => ["pass", "partial", "fail"].includes(status) ? status : "fail";
+      const scoreClass = (row) => {
+        if (!row || !isNum(row.score)) return "fail";
+        if (row.status === "pass" || Number(row.score) >= 0.999) return "pass";
+        if (row.status === "partial" || Number(row.score) > 0) return "partial";
+        return "fail";
+      };
+      const scoreLabel = (row) => {
+        if (!row) return "missing";
+        if (row.status === "pass") return "strict pass";
+        if (row.status === "partial") return "partial";
+        if (isNum(row.score) && Number(row.score) > 0) return "partial credit";
+        return row.status || "zero";
+      };
       const cellTitle = (row) => row ? [
         row.profile,
         `${row.scenarioId} ${row.scenarioTitle}`,
@@ -2964,9 +2978,9 @@
                     const row = byScenarioModel.get(`${scenarioId}|${profileId}`);
                     return `
                       <td class="hermes-cell">
-                        <div class="hermes-score-cell ${statusClass(row?.status)}" title="${escapeHtml(cellTitle(row))}">
+                        <div class="hermes-score-cell ${scoreClass(row)}" title="${escapeHtml(cellTitle(row))}">
                           <strong>${row ? pct(row.score, 0) : "--"}</strong>
-                          <span>${escapeHtml(row?.status || "missing")}</span>
+                          <span>${escapeHtml(scoreLabel(row))}</span>
                           <small>${isNum(row?.durationS) ? `${fmt(row.durationS, 1)}s` : ""}</small>
                         </div>
                       </td>
@@ -2982,20 +2996,21 @@
       function renderModelDetail(profileId = modelIds[0]) {
         const aggregate = aggregateRows.find((row) => row.profileId === profileId) || modelRows.find((row) => row.profileId === profileId) || null;
         const rows = scenarioRows.filter((row) => row.profileId === profileId).sort((a, b) => Number(a.scenarioId.slice(3)) - Number(b.scenarioId.slice(3)));
-        const misses = rows.filter((row) => row.status !== "pass");
+        const zeroRows = rows.filter((row) => !isNum(row.score) || Number(row.score) <= 0);
         const slowest = rows.filter((row) => isNum(row.durationS)).sort((a, b) => Number(b.durationS) - Number(a.durationS))[0] || null;
+        const scored = rows.filter((row) => isNum(row.score) && Number(row.score) > 0).length;
         $("hermesAgentDetail").innerHTML = aggregate ? `
           <h3>${escapeHtml(aggregate.profile)} per-test detail</h3>
           <div class="hermes-detail-grid">
             <div class="hermes-detail-item">
               <span>Aggregate</span>
-              <strong>${pct(aggregate.score, 1)} avg • ${intFmt(aggregate.plusPass || 0)} pass</strong>
+              <strong>${pct(aggregate.score, 1)} avg • ${intFmt(aggregate.plusPass || 0)} strict pass</strong>
               <small>${isNum(aggregate.totalRuntimeS) ? `${fmt(aggregate.totalRuntimeS, 1)}s walltime` : "walltime n/a"}</small>
             </div>
             <div class="hermes-detail-item">
-              <span>Needs inspection</span>
-              <strong>${intFmt(misses.length)} tests</strong>
-              <small>${misses.slice(0, 5).map((row) => `${row.scenarioId} ${row.status} ${pct(row.score, 0)}`).join(" • ") || "All tests passed"}</small>
+              <span>Scored cells</span>
+              <strong>${intFmt(scored)} / ${intFmt(rows.length)} tests</strong>
+              <small>${zeroRows.slice(0, 5).map((row) => `${row.scenarioId} ${pct(row.score, 0)}`).join(" • ") || "No zero-score tests"}</small>
             </div>
             <div class="hermes-detail-item">
               <span>Slowest test</span>
