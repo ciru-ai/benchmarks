@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ciru NPU Benchmarks</title>
+  <meta name="description" content="Ciru XDNA2 NPU benchmark page for FastFlowLM-NPU context, prefill, and decode results.">
+  <meta name="theme-color" content="#070707">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="../assets/echarts.min.js"></script>
+  <script src="../benchv2/data/benchv2-data.js?v=20260610-npu-static"></script>
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(15, 16, 19, 0.94);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.27);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --red: #ed1c24;
+      --cyan: #39d0ff;
+      --green: #20d1a2;
+      --yellow: #d8c7a3;
+      --radius: 8px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+    }
+
+    * { box-sizing: border-box; }
+    html { overflow-x: hidden; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      font: 14px "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 30%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.10), transparent 36%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.35;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 86%);
+    }
+
+    a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(237, 28, 36, 0.8); }
+    a:hover { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+    header,
+    main {
+      position: relative;
+      z-index: 1;
+      width: min(calc(100% - 28px), 1840px);
+      margin-inline: auto;
+    }
+
+    header {
+      min-height: 500px;
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+      gap: 20px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.24), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--red);
+      background:
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px),
+        linear-gradient(90deg, rgba(237, 28, 36, 0.13), transparent 52%);
+    }
+
+    .hero-copy,
+    .xdna-stage { position: relative; z-index: 1; }
+    .eyebrow,
+    h2,
+    .mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .eyebrow { color: var(--cyan); font-size: 12px; margin-bottom: 16px; }
+    h1 {
+      margin: 0;
+      max-width: 980px;
+      font-size: clamp(42px, 6vw, 104px);
+      line-height: 0.88;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero-copy p {
+      margin: 20px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: clamp(16px, 1.35vw, 22px);
+      line-height: 1.34;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+      color: var(--muted);
+      font: 12px "IBM Plex Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .stat,
+    .source-chip {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.28);
+      padding: 12px;
+    }
+
+    .stat strong { display: block; font-size: clamp(24px, 3vw, 42px); line-height: 1; }
+    .stat span { color: var(--muted); font: 11px "IBM Plex Mono", ui-monospace, monospace; text-transform: uppercase; }
+
+    .xdna-stage {
+      display: grid;
+      place-items: center;
+      min-height: 430px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.09), transparent 35%),
+        radial-gradient(circle at 50% 48%, rgba(237, 28, 36, 0.28), transparent 32%),
+        rgba(0,0,0,0.32);
+      overflow: hidden;
+    }
+
+    .xdna-stage::before,
+    .xdna-stage::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 520px;
+      height: 520px;
+      border: 1px solid rgba(237, 28, 36, 0.42);
+      transform: translate(-50%, -50%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    .xdna-stage::after {
+      width: 360px;
+      height: 360px;
+      border-color: rgba(57, 208, 255, 0.34);
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    .trace {
+      position: absolute;
+      inset: 22px;
+      background:
+        linear-gradient(90deg, transparent 0 42%, rgba(237,28,36,.38) 42% 43%, transparent 43%),
+        linear-gradient(0deg, transparent 0 48%, rgba(57,208,255,.24) 48% 49%, transparent 49%);
+      opacity: .78;
+      mix-blend-mode: screen;
+    }
+
+    .xdna-badge {
+      position: relative;
+      z-index: 2;
+      width: min(88%, 560px);
+      filter:
+        drop-shadow(0 0 18px rgba(237, 28, 36, 0.62))
+        drop-shadow(0 24px 60px rgba(0, 0, 0, 0.70));
+    }
+
+    .npu-label {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      color: var(--muted);
+      font: 11px "IBM Plex Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+    }
+
+    main { display: grid; gap: 12px; margin-top: 12px; margin-bottom: 34px; }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.22);
+    }
+
+    h2 { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 12px; }
+    .chart { height: 430px; width: 100%; }
+    .panel-note { color: var(--muted); font: 12px "IBM Plex Mono", ui-monospace, monospace; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; }
+    th,
+    td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font: 10px "IBM Plex Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; }
+    td { font: 12px "IBM Plex Mono", ui-monospace, monospace; }
+    .ok { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+    .sources { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .source-chip { color: var(--muted); min-height: 104px; }
+    .source-chip strong { display: block; color: var(--text); margin-bottom: 7px; font-size: 13px; }
+
+    @media (max-width: 980px) {
+      header { grid-template-columns: 1fr; min-height: auto; }
+      .xdna-stage { min-height: 330px; }
+      .stat-grid,
+      .grid-2,
+      .sources { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero-copy">
+      <div class="eyebrow">Ciru Lab / XDNA2 benchmark board</div>
+      <h1>NPU token telemetry</h1>
+      <p>Static AMD Ryzen AI NPU measurements from the Ciru benchmark bundle. The current matrix tracks FastFlowLM-NPU prefill and decode through 32k context.</p>
+      <div class="nav">
+        <a href="../">Lab dashboard</a>
+        <a href="../#races">Race pages</a>
+        <a href="#catalog">Catalog</a>
+        <a href="#sources">Sources</a>
+      </div>
+      <div class="stat-grid" id="stats"></div>
+    </div>
+    <div class="xdna-stage" aria-label="AMD XDNA2 accelerator badge">
+      <div class="trace"></div>
+      <img class="xdna-badge" src="../amd_xdna2_badge_true_rgba_cropped.png" alt="AMD XDNA 2 badge">
+      <div class="npu-label">NPU / FastFlowLM-NPU / context matrix</div>
+    </div>
+  </header>
+  <main>
+    <section class="grid-2">
+      <div>
+        <h2>NPU PP/TG Scatter</h2>
+        <div id="scatter" class="chart"></div>
+      </div>
+      <div>
+        <h2>Fastest NPU Decode Rows</h2>
+        <div id="topTg" class="chart"></div>
+      </div>
+    </section>
+    <section class="grid-2">
+      <div>
+        <h2>Published Qwen3.5 Decode Ladder</h2>
+        <div id="publicDecode" class="chart"></div>
+      </div>
+      <div>
+        <h2>Published Qwen3.5 Prefill Ladder</h2>
+        <div id="publicPrefill" class="chart"></div>
+      </div>
+    </section>
+    <section>
+      <h2>Readout</h2>
+      <div class="panel-note" id="readout"></div>
+    </section>
+    <section id="catalog">
+      <h2>NPU Context Rows</h2>
+      <table>
+        <thead><tr><th>Model</th><th>Backend</th><th>Context</th><th>PP tok/s</th><th>TG tok/s</th><th>Timestamp</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+    <section id="sources">
+      <h2>Reference Benchmarks And Architecture Notes</h2>
+      <div class="sources" id="sourceChips"></div>
+    </section>
+  </main>
+  <script>
+    const DATA = window.BENCHV2_DATA || {};
+    const red = '#ed1c24';
+    const cyan = '#39d0ff';
+    const green = '#20d1a2';
+    const yellow = '#d8c7a3';
+    const muted = '#a8adb7';
+    const text = '#f7f7f4';
+
+    function fmt(value, digits = 1) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toFixed(digits) : '-';
+    }
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[char]));
+    }
+
+    function isNpu(row) {
+      return /NPU \/ FastFlowLM-NPU/i.test(row.backend || '') || /npu-context-matrix-full-rss/i.test(row.label || '');
+    }
+
+    function buildRows() {
+      const sourceRows = [...(DATA.strictRows || []), ...(DATA.comparableRows || [])].filter(isNpu);
+      const map = new Map();
+      for (const row of sourceRows) {
+        if (row.mode !== 'pp' && row.mode !== 'tg') continue;
+        const ctx = Number(row.ctx || 0);
+        if (!ctx) continue;
+        const model = row.modelName || row.model || 'unknown';
+        const key = `${model}|${ctx}`;
+        const item = map.get(key) || {
+          model,
+          backend: row.backend || 'NPU / FastFlowLM-NPU',
+          ctx,
+          pp_tps: null,
+          tg_tps: null,
+          timestamp: row.timestamp || ''
+        };
+        if ((row.timestamp || '') > item.timestamp) item.timestamp = row.timestamp || item.timestamp;
+        if (row.mode === 'pp' && (!item.pp_tps || row.tps > item.pp_tps)) item.pp_tps = row.tps;
+        if (row.mode === 'tg' && (!item.tg_tps || row.tps > item.tg_tps)) item.tg_tps = row.tps;
+        map.set(key, item);
+      }
+      return [...map.values()].filter(row => row.pp_tps || row.tg_tps);
+    }
+
+    const rows = buildRows();
+    const topTg = [...rows].filter(row => row.tg_tps).sort((a, b) => b.tg_tps - a.tg_tps).slice(0, 12);
+    const topPp = [...rows].filter(row => row.pp_tps).sort((a, b) => b.pp_tps - a.pp_tps).slice(0, 12);
+    const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+    const maxContext = Math.max(0, ...rows.map(row => row.ctx || 0));
+
+    const publicQwen35 = {
+      contexts: ['1k', '2k', '4k', '8k', '16k', '32k'],
+      decode: {
+        'Qwen3.5-0.8B': [39.2, 38.0, 36.3, 33.1, 28.1, 21.6],
+        'Qwen3.5-2B': [26.8, 26.2, 25.4, 23.7, 21.3, 17.0],
+        'Qwen3.5-4B': [15.0, 14.6, 14.2, 13.3, 11.8, 9.6],
+        'Qwen3.5-9B': [9.3, 9.2, 9.0, 8.5, 7.8, 6.9]
+      },
+      prefill: {
+        'Qwen3.5-0.8B': [983, 1257, 1471, 1584, 1579, 1447],
+        'Qwen3.5-2B': [803, 1004, 1142, 1223, 1225, 1151],
+        'Qwen3.5-4B': [378, 440, 479, 493, 487, 450],
+        'Qwen3.5-9B': [284, 333, 362, 379, 378, 357]
+      }
+    };
+
+    const sources = [
+      {
+        label: 'AMD Ryzen AI Max+ 395 product specs',
+        url: 'https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-plus-395.html',
+        note: 'NPU TOPS up to 50, overall TOPS up to 126.'
+      },
+      {
+        label: 'AMD XDNA architecture',
+        url: 'https://www.amd.com/en/technologies/xdna.html',
+        note: 'Tiled AI Engine architecture and XDNA 2 positioning.'
+      },
+      {
+        label: 'FastFlowLM Qwen3.5 NPU benchmark',
+        url: 'https://fastflowlm.com/docs/benchmarks/qwen3.5_results/',
+        note: 'Published NPU decode and prefill tables.'
+      },
+      {
+        label: 'Ciru benchmark bundle',
+        url: '../benchv2/data/benchv2-data.json',
+        note: 'Local FastFlowLM-NPU context matrix rows used by this page.'
+      }
+    ];
+
+    function baseOption() {
+      return {
+        textStyle: { color: muted, fontFamily: 'IBM Plex Mono' },
+        tooltip: { trigger: 'item', backgroundColor: '#101014', borderColor: 'rgba(255,255,255,.18)', textStyle: { color: text } },
+        grid: { left: 58, right: 18, top: 28, bottom: 62 },
+        xAxis: { axisLine: { lineStyle: { color: 'rgba(255,255,255,.24)' } }, splitLine: { lineStyle: { color: 'rgba(255,255,255,.08)' } }, axisLabel: { color: muted } },
+        yAxis: { axisLine: { lineStyle: { color: 'rgba(255,255,255,.24)' } }, splitLine: { lineStyle: { color: 'rgba(255,255,255,.08)' } }, axisLabel: { color: muted } }
+      };
+    }
+
+    function chart(id, option) {
+      const node = document.getElementById(id);
+      const instance = echarts.init(node, null, { renderer: 'canvas' });
+      instance.setOption(option);
+      window.addEventListener('resize', () => instance.resize());
+      return instance;
+    }
+
+    function buildStats() {
+      document.getElementById('stats').innerHTML = [
+        ['mean TG', `${fmt(mean(rows.map(row => row.tg_tps).filter(Number.isFinite)))} tok/s`],
+        ['mean PP', `${fmt(mean(rows.map(row => row.pp_tps).filter(Number.isFinite)))} tok/s`],
+        ['context rows', `${rows.length}`],
+        ['max context', `${maxContext}`]
+      ].map(([label, value]) => `<div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');
+      document.getElementById('readout').innerHTML = `
+        <p><span class="ok">NPU label:</span> rows are recorded as NPU / FastFlowLM-NPU in the static Ciru benchmark data.</p>
+        <p><span class="warn">Public context:</span> AMD lists Ryzen AI Max+ 395 at up to 50 NPU TOPS and up to 126 overall TOPS. The local charts use tokens per second, not TOPS.</p>
+        <p><span class="ok">Best NPU decode:</span> ${esc(topTg[0]?.model || '-')} at ${fmt(topTg[0]?.tg_tps)} tok/s reported decode.</p>
+        <p><span class="warn">Artifact:</span> benchv2/data/benchv2-data.js generated from the local benchmark result store.</p>
+      `;
+    }
+
+    function buildScatter() {
+      const scatterRows = rows.filter(row => Number.isFinite(Number(row.pp_tps)) && Number.isFinite(Number(row.tg_tps)));
+      chart('scatter', {
+        ...baseOption(),
+        xAxis: { ...baseOption().xAxis, name: 'PP tok/s', nameTextStyle: { color: muted } },
+        yAxis: { ...baseOption().yAxis, name: 'TG tok/s', nameTextStyle: { color: muted } },
+        series: [{
+          type: 'scatter',
+          symbolSize: row => Math.max(10, Math.min(34, Number(row[3] || 0) / 1024)),
+          itemStyle: { color: row => row.data[3] >= 16384 ? cyan : green, opacity: .86 },
+          data: scatterRows.map(row => [row.pp_tps, row.tg_tps, row.model, row.ctx]),
+          tooltip: { formatter: p => `${esc(p.data[2])}<br>ctx ${esc(p.data[3])}<br>PP ${fmt(p.data[0])} tok/s<br>TG ${fmt(p.data[1])} tok/s` }
+        }]
+      });
+    }
+
+    function buildTopTg() {
+      const chartRows = [...topTg].reverse();
+      chart('topTg', {
+        ...baseOption(),
+        grid: { left: 132, right: 18, top: 18, bottom: 36 },
+        xAxis: { ...baseOption().xAxis, type: 'value' },
+        yAxis: { type: 'category', data: chartRows.map(row => `${row.model} ${row.ctx}`), axisLabel: { color: muted }, axisLine: { lineStyle: { color: 'rgba(255,255,255,.24)' } } },
+        series: [{
+          type: 'bar',
+          data: chartRows.map(row => row.tg_tps),
+          itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: red }, { offset: 1, color: cyan }] } },
+          label: { show: true, position: 'right', color: text, formatter: p => fmt(p.value) }
+        }]
+      });
+    }
+
+    function buildPublic(id, metric) {
+      const names = Object.keys(publicQwen35[metric]);
+      chart(id, {
+        ...baseOption(),
+        legend: { top: 0, textStyle: { color: muted }, itemWidth: 14 },
+        grid: { left: 58, right: 20, top: 54, bottom: 42 },
+        xAxis: { type: 'category', data: publicQwen35.contexts, axisLabel: { color: muted }, axisLine: { lineStyle: { color: 'rgba(255,255,255,.24)' } } },
+        yAxis: { ...baseOption().yAxis, type: 'value' },
+        series: names.map((name, index) => ({
+          name,
+          type: 'line',
+          smooth: true,
+          symbolSize: 7,
+          data: publicQwen35[metric][name],
+          lineStyle: { width: 3 },
+          itemStyle: { color: [green, cyan, yellow, red][index] }
+        }))
+      });
+    }
+
+    function buildTable() {
+      const sorted = [...rows].sort((a, b) => Number(b.tg_tps || 0) - Number(a.tg_tps || 0));
+      document.getElementById('rows').innerHTML = sorted.map(row => `
+        <tr>
+          <td>${esc(row.model)}</td>
+          <td>${esc(row.backend)}</td>
+          <td>${esc(row.ctx)}</td>
+          <td>${fmt(row.pp_tps)}</td>
+          <td>${fmt(row.tg_tps)}</td>
+          <td>${esc(row.timestamp || '-')}</td>
+        </tr>`).join('');
+    }
+
+    function buildSources() {
+      document.getElementById('sourceChips').innerHTML = sources.map(source => `
+        <a class="source-chip" href="${esc(source.url)}" rel="noopener">
+          <strong>${esc(source.label)}</strong>
+          <span>${esc(source.note)}</span>
+        </a>`).join('');
+    }
+
+    buildStats();
+    buildScatter();
+    buildTopTg();
+    buildPublic('publicDecode', 'decode');
+    buildPublic('publicPrefill', 'prefill');
+    buildTable();
+    buildSources();
+  </script>
+</body>
+</html>
