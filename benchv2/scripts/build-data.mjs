@@ -98,8 +98,6 @@ def family_for(text):
         if "mtp" in low:
             return "Qwen3.6 MTP"
         return "Qwen3.6"
-    if "gemma" in low:
-        return "Gemma"
     if "lfm2.5" in low or "lfm25" in low:
         return "Liquid"
     if "nex-n2" in low:
@@ -110,6 +108,8 @@ def family_for(text):
         return "Ornstein"
     if "qwopus" in low:
         return "Qwopus"
+    if "gemma" in low:
+        return "Gemma"
     if "hermes" in low:
         return "Hermes Agent"
     if "carnice" in low:
