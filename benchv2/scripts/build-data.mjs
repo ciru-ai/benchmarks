@@ -759,6 +759,7 @@ def quality_row_public(row):
         "plusPass": row["plus_pass"],
         "baseRate": round(row["base_rate"], 6) if row["base_rate"] is not None else None,
         "plusRate": round(row["plus_rate"], 6) if row["plus_rate"] is not None else None,
+        "prefillTokS": round(row["prefill_tok_s"], 3) if row["prefill_tok_s"] is not None else None,
         "generationSeconds": round(row["generation_seconds"], 3) if row["generation_seconds"] is not None else None,
         "generationTokS": round(row["generation_tok_s"], 3) if row["generation_tok_s"] is not None else None,
         "totalRuntimeS": round(row["total_runtime_s"], 3) if row["total_runtime_s"] is not None else None,
@@ -820,12 +821,25 @@ def summarize_quality_suites():
             "leaderRows": [],
         }
 
+    speed_metric_rows = {}
+    for row in rows:
+        suite = row.get("suite") or ""
+        if row["benchmarkFamily"] == "bigcodebench-manifest" and suite.endswith("-metrics"):
+            speed_metric_rows[(row["profileId"], suite[:-8])] = row
+
     coding_families = {"evalplus", "bigcodebench", "livecodebench", "mini-swe-agent"}
     coding_rows = [
-        row for row in rows
+        dict(row) for row in rows
         if row["benchmarkFamily"] in coding_families
         and not (row["benchmarkFamily"] == "evalplus" and row["suite"] not in ("aggregate", "humaneval", "mbpp"))
     ]
+    for row in coding_rows:
+        metrics = speed_metric_rows.get((row["profileId"], row["suite"]))
+        if not metrics:
+            continue
+        for key in ("prefillTokS", "generationTokS", "peakPromptTps", "peakPredictedTps"):
+            if row.get(key) is None and metrics.get(key) is not None:
+                row[key] = metrics[key]
     bfcl_rows = [row for row in rows if row["benchmarkFamily"] == "bfcl"]
     agent_rows = [
         row for row in rows
@@ -859,13 +873,14 @@ def summarize_quality_suites():
         "meta": {
             "sourcePath": compact_path(QUALITY_DB),
             "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "rowCount": len(rows),
+            "rowCount": len(coding_rows),
+            "allCompletedRowCount": len(rows),
             "profileCount": len({row["profileId"] for row in rows}),
             "runCount": len({row["runId"] for row in rows}),
             "excludedRows": excluded,
             "latestTimestamp": max([row.get("timestamp") or row.get("createdUtc") for row in rows if row.get("timestamp") or row.get("createdUtc")] or [None]),
         },
-        "rows": rows,
+        "rows": coding_rows,
         "codingRows": coding_rows,
         "bfclRows": sorted(bfcl_rows, key=lambda row: (row["profile"], row["suite"])),
         "agentRows": sorted(agent_rows, key=lambda row: (row["profile"], row["suite"])),
