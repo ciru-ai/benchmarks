@@ -2152,12 +2152,11 @@
       const accelerator = acceleratorMemoryGiB(row);
       const sys = isNum(row.sysGiB) ? Number(row.sysGiB) : null;
       const modelSize = isNum(row.modelSizeGiB) ? Number(row.modelSizeGiB) : null;
-      const fallback = Math.max(0, sys || 0, modelSize || 0);
       const tinyAccelerator = accelerator && accelerator < 2;
       const belowModelFloor = accelerator && modelSize && modelSize > 4 && accelerator < modelSize * 0.35;
-      const fallbackLooksBetter = fallback && (!accelerator || fallback > accelerator * 1.5);
-      if ((tinyAccelerator || belowModelFloor || !accelerator) && fallbackLooksBetter) return fallback;
-      return accelerator || fallback || null;
+      if (sys) return Math.max(sys, modelSize || 0);
+      if ((tinyAccelerator || belowModelFloor || !accelerator) && modelSize) return modelSize;
+      return accelerator || modelSize || null;
     }
 
     function memorySplit(row) {
@@ -2170,13 +2169,16 @@
       if (isNum(row.vramGiB)) parts.push(`${mem(row.vramGiB)} VRAM`);
       if (isNum(row.gttGiB)) parts.push(`${mem(row.gttGiB)} GTT`);
       const acceleratorText = parts.join(" + ");
-      if (accelerator && effective && Math.abs(effective - accelerator) < 0.05) return acceleratorText || "sampled memory";
       if (sys && effective && Math.abs(effective - sys) < 0.05) {
         return `${acceleratorText ? `${acceleratorText}; ` : ""}${mem(sys)} system/UMA peak`;
+      }
+      if (sys && modelSize && effective && Math.abs(effective - modelSize) < 0.05) {
+        return `${acceleratorText ? `${acceleratorText}; ` : ""}${mem(sys)} system/UMA peak; ${mem(modelSize)} model-size floor`;
       }
       if (modelSize && effective && Math.abs(effective - modelSize) < 0.05) {
         return `${acceleratorText ? `${acceleratorText}; ` : ""}${mem(modelSize)} model-size floor`;
       }
+      if (accelerator && effective && Math.abs(effective - accelerator) < 0.05) return `${acceleratorText || "sampled memory"} legacy`;
       return acceleratorText || "sampled memory";
     }
 
