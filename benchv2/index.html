@@ -1564,8 +1564,8 @@
       <article class="panel wide-panel">
         <div class="panel-head">
           <div>
-            <h2>VRAM / Speed Frontier</h2>
-            <p>GPU memory on x, standalone decode on y, and selected context speed as color.</p>
+            <h2>Accelerator Memory / Speed Frontier</h2>
+            <p>Peak VRAM + GTT on x, standalone decode on y, and selected context speed as color.</p>
           </div>
           <label class="field" style="max-width:170px">
             <span>Context</span>
@@ -1634,7 +1634,7 @@
               <option value="64k">64k context</option>
               <option value="32k">32k context</option>
               <option value="tg">Standalone TG</option>
-              <option value="efficiency">TG / VRAM</option>
+              <option value="efficiency">TG / accel memory</option>
               <option value="latest">Latest</option>
             </select>
           </label>
@@ -2036,10 +2036,10 @@
           if (row.mode === "pg" && (!cell.pg || row.tps > cell.pg.tps)) cell.pg = row;
           if (row.mode === "pp" && (!cell.pp || row.tps > cell.pp.tps)) cell.pp = row;
           if (row.mode === "tg" && (!cell.tg || row.tps > cell.tg.tps)) cell.tg = row;
-          if (!cell.memory || (row.vramGiB ?? Infinity) < (cell.memory.vramGiB ?? Infinity)) cell.memory = row;
+          if (isNum(memoryGiB(row)) && (!cell.memory || memoryGiB(row) > memoryGiB(cell.memory))) cell.memory = row;
         }
         if (row.mode === "tg" && (!profile.tg || row.tps > profile.tg.tps)) profile.tg = row;
-        if (isNum(row.vramGiB) && (!profile.memory || row.vramGiB > profile.memory.vramGiB)) profile.memory = row;
+        if (isNum(memoryGiB(row)) && (!profile.memory || memoryGiB(row) > memoryGiB(profile.memory))) profile.memory = row;
       }
       profiles = [...map.values()].map((profile) => ({
         ...profile,
@@ -2058,10 +2058,27 @@
       return cell.pg || cell.pp || null;
     }
 
+    function memoryGiB(row) {
+      if (!row) return null;
+      const vram = isNum(row.vramGiB) ? Number(row.vramGiB) : 0;
+      const gtt = isNum(row.gttGiB) ? Number(row.gttGiB) : 0;
+      const total = vram + gtt;
+      return total > 0 ? total : null;
+    }
+
+    function memorySplit(row) {
+      if (!row) return "sampled memory";
+      const parts = [];
+      if (isNum(row.vramGiB)) parts.push(`${mem(row.vramGiB)} VRAM`);
+      if (isNum(row.gttGiB)) parts.push(`${mem(row.gttGiB)} GTT`);
+      return parts.join(" + ") || "sampled memory";
+    }
+
     function scoreFor(profile, sortKey) {
       if (sortKey === "tg") return profile.tg?.tps ?? -Infinity;
       if (sortKey === "efficiency") {
-        return profile.tg && profile.memory?.vramGiB ? profile.tg.tps / profile.memory.vramGiB : -Infinity;
+        const denom = memoryGiB(profile.memory);
+        return profile.tg && denom ? profile.tg.tps / denom : -Infinity;
       }
       if (sortKey === "latest") return Number(String(profile.latest || "").replace(/\D/g, "")) || 0;
       const metric = $("atlasMetric").value;
@@ -2071,11 +2088,11 @@
     function cellHtml(profile, band, metric, maxValue) {
       const row = cellMetric(profile.cells[band], metric);
       if (!row) return `<td class="empty-cell">--</td>`;
-      const value = metric === "memory" ? row.vramGiB : row.tps;
+      const value = metric === "memory" ? memoryGiB(row) : row.tps;
       const ratio = maxValue && value ? Math.max(0.08, Math.min(1, value / maxValue)) : 0.08;
       const hue = metric === "memory" ? "#ff9f43" : (row.mode === "pg" ? "#20d1a2" : "#39d0ff");
       const label = metric === "memory" ? mem(value) : fmt(value, 1);
-      const sub = metric === "memory" ? row.mode?.toUpperCase() || "MEM" : row.mode?.toUpperCase();
+      const sub = metric === "memory" ? "VRAM+GTT" : row.mode?.toUpperCase();
       return `
         <td class="metric-cell" style="background: linear-gradient(90deg, ${alpha(hue, 0.12 + ratio * 0.34)}, rgba(255,255,255,0.015));">
           ${label}<small>${sub || ""}</small>
@@ -2118,7 +2135,7 @@
         band,
         Math.max(0, ...atlasRows.map((profile) => {
           const row = cellMetric(profile.cells[band], metric);
-          return metric === "memory" ? row?.vramGiB || 0 : row?.tps || 0;
+          return metric === "memory" ? memoryGiB(row) || 0 : row?.tps || 0;
         }))
       ]));
 
@@ -2135,7 +2152,7 @@
             <td><span class="tag">${escapeHtml(profile.kv || "n/a")}</span><br><small class="muted">b${profile.batch || "?"} / u${profile.ubatch || "?"} • ${escapeHtml(profile.splitMode || "split?")}</small></td>
             ${BAND_KEYS.map((band) => cellHtml(profile, band, metric, maxByBand[band])).join("")}
             <td class="metric-cell">${profile.tg ? fmt(profile.tg.tps, 2) : '<span class="empty-cell">--</span>'}<small>TG</small></td>
-            <td>${mem(profile.memory?.vramGiB)}<small class="muted">${profile.memory?.gttGiB ? `${mem(profile.memory.gttGiB)} GTT` : ""}</small></td>
+            <td>${mem(memoryGiB(profile.memory))}<small class="muted">${memorySplit(profile.memory)}</small></td>
             <td><span class="source-tag ${activeSource === "strict" ? "strict" : "comparable"}">${resultSetLabel()}</span><br><small class="muted">${profile.rows.length} measurements</small></td>
           </tr>
         `;
@@ -2177,7 +2194,7 @@
         ["Best context", bestMeasured ? `${bestMeasured.band} ${speed(bestMeasured.row.tps)}` : "No context row", bestMeasured ? `${bestMeasured.row.mode.toUpperCase()} measurement` : "not recorded"],
         ["Best 64k+", best64Plus ? `${best64Plus.band} ${speed(best64Plus.row.tps)}` : "Not tested", best64Plus ? `${best64Plus.row.mode.toUpperCase()} long-context` : "no 64k+ row"],
         ["Largest context", highestContext ? `${highestContext.band} ${speed(highestContext.row.tps)}` : "No context row", highestContext ? `${highestContext.row.mode.toUpperCase()} • ${intFmt(highestContext.row.ctx)} ctx` : ""],
-        ["Peak VRAM", mem(profile.memory?.vramGiB), profile.memory?.gttGiB ? `${mem(profile.memory.gttGiB)} GTT` : "sampled memory"],
+        ["Peak accelerator memory", mem(memoryGiB(profile.memory)), memorySplit(profile.memory)],
         ["Measurements", intFmt(profile.rows.length), `${resultSetLabel()} result set`]
       ];
       el.innerHTML = `
@@ -2274,7 +2291,8 @@
           profile,
           contextRow,
           tg: profile.tg,
-          mem: profile.memory?.vramGiB
+          mem: memoryGiB(profile.memory),
+          memorySplit: memorySplit(profile.memory)
         };
       }).filter((item) => item.contextRow && item.tg && isNum(item.mem));
       frontierChart.setOption({
@@ -2288,7 +2306,8 @@
           formatter: ({ data }) => [
             `<strong>${escapeHtml(data.name)}</strong>`,
             `${escapeHtml(data.family)} • ${escapeHtml(data.backend || "n/a")}`,
-            `Memory: ${mem(data.value[0])}`,
+            `Accelerator memory: ${mem(data.value[0])}`,
+            `${escapeHtml(data.memorySplit || "")}`,
             `Standalone TG: ${speed(data.value[1])}`,
             `${band}: ${speed(data.value[2])} ${data.contextMode}`,
             `KV: ${escapeHtml(data.kv || "n/a")}`
@@ -2306,7 +2325,7 @@
         },
         xAxis: {
           type: "value",
-          name: "Peak VRAM GiB",
+          name: "Peak VRAM+GTT GiB",
           nameLocation: "middle",
           nameGap: 34,
           nameTextStyle: textStyle,
@@ -2330,6 +2349,7 @@
             backend: item.profile.backend,
             kv: item.profile.kv,
             contextMode: item.contextRow.mode.toUpperCase(),
+            memorySplit: item.memorySplit,
             value: [item.mem, item.tg.tps, item.contextRow.tps],
             symbolSize: Math.max(14, Math.min(46, 12 + Math.sqrt(item.mem || 4) * 4)),
             itemStyle: {
@@ -2362,7 +2382,7 @@
           profile,
           contextRow,
           tg: profile.tg,
-          mem: profile.memory?.vramGiB
+          mem: memoryGiB(profile.memory)
         };
       }).filter((item) => item.contextRow && item.tg && isNum(item.contextRow.tps) && isNum(item.tg.tps));
       const families = [...new Set(rows.map((item) => item.profile.family || "Other"))].sort();
