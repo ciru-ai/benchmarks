@@ -203,6 +203,22 @@ def fetch_rows(cur, view):
     """
     return [row_from_db(row) for row in cur.execute(sql)]
 
+def fetch_api_tg_rows(cur):
+    sql = """
+    SELECT b.seq,b.timestamp_utc,b.label,b.kind,b.mode,b.ctx,b.gen,b.avg_tps,b.stddev_tps,b.ttfp_ms,
+           b.model,b.model_type,b.model_size_bytes,b.model_params,b.backend,b.type_k,b.type_v,
+           b.batch,b.ubatch,b.threads,b.ngl,b.split_mode,b.flash_attn,b.repetitions,
+           b.build_number,b.build_commit,b.peak_vram_used_bytes,b.peak_gtt_used_bytes,
+           b.peak_gpu_used_bytes,b.peak_sys_used_bytes,b.source_path,b.raw_output,b.samples,
+           b.settings_json,b.row_json
+    FROM benchmark_rows b
+    WHERE b.kind='llama-server-api'
+      AND b.mode='tg'
+      AND b.avg_tps IS NOT NULL
+    ORDER BY b.seq
+    """
+    return [row_from_db(row) for row in cur.execute(sql)]
+
 def parse_metric_text(text):
     out = {}
     if not text:
@@ -233,8 +249,8 @@ def read_jsonl(path):
 def summarize_api_rows(cur):
     rows = []
     sql = """
-    SELECT seq,timestamp_utc,label,kind,gen,ttfp_ms,peak_vram_used_bytes,peak_gtt_used_bytes,
-           peak_sys_used_bytes,row_json,raw_output,samples
+    SELECT seq,timestamp_utc,label,kind,mode,gen,avg_tps,ttfp_ms,model,peak_vram_used_bytes,
+           peak_gtt_used_bytes,peak_sys_used_bytes,row_json,raw_output,samples
     FROM benchmark_rows
     WHERE kind='llama-server-api'
     ORDER BY seq
@@ -247,11 +263,15 @@ def summarize_api_rows(cur):
             "seq": row["seq"],
             "timestamp": row["timestamp_utc"],
             "label": row["label"],
+            "mode": row["mode"],
             "gen": row["gen"] or rj.get("gen"),
+            "decodeTps": round(row["avg_tps"], 3) if row["avg_tps"] is not None else None,
             "totalMs": round(rj.get("total_ms"), 3) if isinstance(rj.get("total_ms"), (int, float)) else None,
             "ttfpMs": round(row["ttfp_ms"], 3) if row["ttfp_ms"] is not None else None,
             "promptBytes": rj.get("prompt_bytes"),
             "promptFile": compact_path(rj.get("prompt_file")),
+            "model": compact_path(row["model"] or rj.get("model")),
+            "modelName": model_name(row["model"] or rj.get("model")),
             "responseChars": rj.get("response_chars"),
             "tokensPredicted": rj.get("tokens_predicted") or timings.get("predicted_n"),
             "vramGiB": gib(row["peak_vram_used_bytes"] or mem.get("peak_vram_used_bytes")),
@@ -1810,6 +1830,9 @@ except FileNotFoundError:
 
 strict_rows = fetch_rows(cur, "llama_bench_strict")
 comparable_rows = fetch_rows(cur, "llama_bench_comparable")
+api_tg_rows = fetch_api_tg_rows(cur)
+strict_rows.extend(api_tg_rows)
+comparable_rows.extend(api_tg_rows)
 api_rows = summarize_api_rows(cur)
 server_tuning = summarize_server_tuning()
 supplemental_gemma_qat_mtp = supplemental_gemma_qat_mtp_rows()
