@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="assets/echarts.min.js"></script>
-  <script src="benchv2/data/benchv2-data.js?v=20260612-qwopus-hermes"></script>
+  <script src="benchv2/data/benchv2-data.js?v=20260612-hermes-refresh"></script>
   <style>
     :root {
       --bg: #070707;
@@ -393,6 +393,7 @@
       justify-content: space-between;
       gap: 18px;
       align-items: start;
+      flex-wrap: wrap;
       padding: 16px;
       border-bottom: 1px solid var(--line);
       background:
@@ -611,6 +612,82 @@
       color: #fff;
       border-color: rgba(237, 28, 36, 0.65);
       background: rgba(237, 28, 36, 0.17);
+    }
+
+    .chart-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      min-width: 280px;
+      justify-content: flex-end;
+    }
+
+    .chart-filter-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .chart-filter-button:hover,
+    .chart-filter-button:focus-visible {
+      border-color: rgba(57, 208, 255, 0.72);
+      color: #fff;
+    }
+
+    .chart-filter-button.active {
+      border-color: rgba(246, 192, 70, 0.7);
+      background:
+        linear-gradient(180deg, rgba(246, 192, 70, 0.17), rgba(57, 208, 255, 0.08)),
+        rgba(0, 0, 0, 0.42);
+      color: #fff;
+    }
+
+    .brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1;
+    }
+
+    .brand-mark.google {
+      border-color: rgba(255, 255, 255, 0.3);
+      background:
+        conic-gradient(#4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72);
+    }
+
+    .brand-mark.qwen {
+      border-color: rgba(57, 208, 255, 0.5);
+      color: #dff8ff;
+      background:
+        linear-gradient(135deg, rgba(57, 208, 255, 0.34), rgba(120, 168, 255, 0.16)),
+        rgba(0, 0, 0, 0.36);
+    }
+
+    .brand-mark.other {
+      border-color: rgba(201, 148, 255, 0.45);
+      color: #f1e7ff;
+      background:
+        linear-gradient(135deg, rgba(201, 148, 255, 0.24), rgba(32, 209, 162, 0.12)),
+        rgba(0, 0, 0, 0.36);
     }
 
     .table-wrap {
@@ -1675,6 +1752,20 @@
               <option value="4k">4k</option>
             </select>
           </label>
+          <div class="chart-filter-bar" id="chartFamilyFilter" aria-label="Top chart family filter">
+            <button class="chart-filter-button active" type="button" data-chart-family="all">
+              <span class="brand-mark">A</span>All
+            </button>
+            <button class="chart-filter-button" type="button" data-chart-family="google">
+              <span class="brand-mark google">G</span>Google
+            </button>
+            <button class="chart-filter-button" type="button" data-chart-family="qwen">
+              <span class="brand-mark qwen">Q</span>Qwen
+            </button>
+            <button class="chart-filter-button" type="button" data-chart-family="other">
+              <span class="brand-mark other">*</span>Other
+            </button>
+          </div>
         </div>
         <div id="frontierChart" class="chart"></div>
       </article>
@@ -2028,6 +2119,7 @@
     ];
 
     let activeSource = "strict";
+    let activeChartFamily = "all";
     let profiles = [];
     let atlasRows = [];
     let selectedProfile = null;
@@ -2075,6 +2167,23 @@
 
     function resultSetLabel(value = activeSource) {
       return value === "strict" ? "Validated" : "All Results";
+    }
+
+    function chartFamilyBucket(profile) {
+      const text = [
+        profile?.name,
+        profile?.modelType,
+        profile?.family,
+        profile?.tier,
+        profile?.labels?.join(" ")
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (/(gemma|google)/.test(text)) return "google";
+      if (/(qwen|qwopus|chadrock|heretic|ace-saber|mirofish)/.test(text)) return "qwen";
+      return "other";
+    }
+
+    function chartProfiles() {
+      return profiles.filter((profile) => activeChartFamily === "all" || chartFamilyBucket(profile) === activeChartFamily);
     }
 
     function profileKey(row) {
@@ -2411,7 +2520,7 @@
     function renderFrontierChart() {
       if (!frontierChart) return;
       const band = $("frontierContext").value;
-      const rows = profiles.map((profile) => {
+      const rows = chartProfiles().map((profile) => {
         const contextRow = cellMetric(profile.cells[band], "context");
         return {
           profile,
@@ -2443,8 +2552,8 @@
           type: "continuous",
           right: 8,
           top: 20,
-          min: Math.min(...rows.map((r) => r.contextRow.tps)),
-          max: Math.max(...rows.map((r) => r.contextRow.tps)),
+          min: rows.length ? Math.min(...rows.map((r) => r.contextRow.tps)) : 0,
+          max: rows.length ? Math.max(...rows.map((r) => r.contextRow.tps)) : 1,
           text: [`High ${band}`, "Low"],
           textStyle,
           inRange: { color: ["#4b5563", "#39d0ff", "#20d1a2", "#f6c046"] }
@@ -2467,6 +2576,16 @@
           axisLabel: { color: "#8ea3bb" },
           splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } }
         },
+        graphic: rows.length ? [] : [{
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: `No ${band} frontier points match this model-family filter.`,
+            fill: "#c9d8ea",
+            font: "700 14px Inter, sans-serif"
+          }
+        }],
         series: [{
           type: "scatter",
           data: rows.map((item) => ({
@@ -2502,7 +2621,7 @@
     function renderThroughputChart() {
       if (!throughputChart) return;
       const band = $("frontierContext").value;
-      const rows = profiles.map((profile) => {
+      const rows = chartProfiles().map((profile) => {
         const contextRow = cellMetric(profile.cells[band], "context");
         return {
           profile,
@@ -2611,6 +2730,7 @@
       const minCurveCells = 4;
       const minLongContext = 64000;
       const candidates = profiles
+        .filter((profile) => activeChartFamily === "all" || chartFamilyBucket(profile) === activeChartFamily)
         .map((profile) => {
           const rows = BAND_KEYS
             .map((band) => cellMetric(profile.cells[band], "context"))
@@ -2628,6 +2748,7 @@
         ))
         .slice(0, 16);
       const sparseLongProfiles = profiles
+        .filter((profile) => activeChartFamily === "all" || chartFamilyBucket(profile) === activeChartFamily)
         .map((profile) => {
           const rows = BAND_KEYS
             .map((band) => cellMetric(profile.cells[band], "context"))
@@ -3369,6 +3490,13 @@
         [...$("sourceSwitch").querySelectorAll("button")].forEach((node) => node.classList.toggle("active", node === button));
         selectedProfile = null;
         renderAtlas();
+      });
+      $("chartFamilyFilter").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-chart-family]");
+        if (!button) return;
+        activeChartFamily = button.dataset.chartFamily;
+        [...$("chartFamilyFilter").querySelectorAll("button")].forEach((node) => node.classList.toggle("active", node === button));
+        renderCharts();
       });
       ["atlasSearch", "atlasMetric", "atlasSort", "familyFilter", "atlasLimit", "frontierContext"].forEach((id) => {
         $(id).addEventListener("input", renderAtlas);
