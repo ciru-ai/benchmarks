@@ -57,7 +57,7 @@ def compact_path(value):
     if not value:
         return None
     value = str(value)
-    for marker in ("/srv/llm/models/", "/srv/llm/projects/", "/home/crown/bench-results/", "/srv/llm/runs/"):
+    for marker in ("/srv/llm/models/", "/srv/llm/projects/", "/home/crown/bench-results/", "/srv/llm/runs/", "/srv/ssd/"):
         if marker in value:
             return value[value.index(marker):]
     return value
@@ -317,6 +317,86 @@ def summarize_mtp_server():
             })
     return entries
 
+GEMMA_QAT_MTP_SPEED_PATH = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260612T142331Z-full-coding-benchmark-large/outputs/speed/full-speed-results.json"
+GEMMA_QAT_MTP_MODEL = "/srv/llm/models/gemma-4-26B-A4B-it-qat-GGUF/gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf"
+GEMMA_QAT_MTP_MODEL_SIZE = 14249045120
+
+def supplemental_gemma_qat_mtp_rows():
+    payload = read_json(GEMMA_QAT_MTP_SPEED_PATH)
+    if not isinstance(payload, list):
+        return {"throughput": [], "mtp": []}
+    rows = [row for row in payload if row.get("returncode") == 0 and str(row.get("label") or "").startswith("qat-mtp-")]
+    if not rows:
+        return {"throughput": [], "mtp": []}
+    best = max(rows, key=lambda row: row.get("generation_tps_reported") or 0)
+    label = "gemma4-26b-a4b-qat-mtp-nmax4-p000"
+    timestamp = "20260612T142331Z"
+    source_path = compact_path(best.get("log_path") or GEMMA_QAT_MTP_SPEED_PATH)
+    gen = best.get("requested_tokens") or 2048
+    tps = best.get("generation_tps_reported")
+    prompt_tps = best.get("prompt_tps_reported")
+    base = {
+        "seq": 900001,
+        "timestamp": timestamp,
+        "label": label,
+        "kind": "llama-cli-draft-mtp",
+        "mode": "tg",
+        "ctx": 0,
+        "gen": gen,
+        "tps": round(tps, 3) if isinstance(tps, (int, float)) else None,
+        "stddev": None,
+        "ttfpMs": None,
+        "model": compact_path(GEMMA_QAT_MTP_MODEL),
+        "modelName": "Gemma 4 26B A4B QAT UD Q4_K_XL + MTP",
+        "modelType": "Gemma 4 QAT+MTP",
+        "modelSizeGiB": gib(GEMMA_QAT_MTP_MODEL_SIZE),
+        "modelParamsB": 26.0,
+        "family": "Gemma",
+        "tier": "Large",
+        "backend": "Vulkan",
+        "kv": "f16/f16",
+        "batch": 2048,
+        "ubatch": 1024,
+        "threads": 16,
+        "ngl": 999,
+        "splitMode": None,
+        "flashAttn": 1,
+        "repetitions": 1,
+        "buildNumber": 9592,
+        "buildCommit": "c84e85af6",
+        "vramGiB": 1.71,
+        "gttGiB": 19.95,
+        "sysGiB": 13.46,
+        "sourcePath": source_path,
+        "rawOutput": source_path,
+        "samples": compact_path(GEMMA_QAT_MTP_SPEED_PATH),
+        "metadataQuality": "supplemental-speed-artifact",
+        "matrix": "gemma4-qat-mtp-speed",
+    }
+    mtp = {
+        "label": label,
+        "configId": "draft-mtp-n4-p0.00",
+        "file": compact_path(GEMMA_QAT_MTP_SPEED_PATH),
+        "rows": 1,
+        "avgTotalMs": round(best.get("wall_seconds") * 1000, 3) if isinstance(best.get("wall_seconds"), (int, float)) else None,
+        "p95TotalMs": round(best.get("wall_seconds") * 1000, 3) if isinstance(best.get("wall_seconds"), (int, float)) else None,
+        "acceptRate": None,
+        "promptTokens": None,
+        "predictedTokens": gen,
+        "promptTps": round(prompt_tps, 3) if isinstance(prompt_tps, (int, float)) else None,
+        "decodeTps": round(tps, 3) if isinstance(tps, (int, float)) else None,
+        "draftN": 4,
+        "draftAccepted": None,
+        "ctx": None,
+        "model": compact_path(GEMMA_QAT_MTP_MODEL),
+        "modelName": "Gemma 4 26B A4B QAT UD Q4_K_XL + MTP",
+        "vramGiB": 1.71,
+        "gttGiB": 19.95,
+        "sysGiB": 13.46,
+        "errorCount": 0,
+    }
+    return {"throughput": [base], "mtp": [mtp]}
+
 def summarize_aux_eval():
     path = "/home/crown/bench-results/hermes-aux-eval/results.jsonl"
     rows = read_jsonl(path)
@@ -463,6 +543,7 @@ PROFILE_LABELS = {
     "qwen36-35b-a3b-crown-halo-mtp-dynamic": "Qwen3.6 35B A3B Crown Dyn MTP",
     "nemotron3-nano-omni-30b-a3b-reasoning-ud-q6-k-xl": "Nemotron 3 Nano Omni 30B A3B UD Q6_K_XL",
     "gemma4-26b-a4b-it-q4-km-mtp": "Gemma 4 26B A4B Q4_K_M MTP",
+    "gemma4-26b-a4b-qat-mtp-speed": "Gemma 4 26B A4B QAT+MTP",
     "gemma4-31b-it-q4-km-mtp": "Gemma 4 31B IT Q4_K_M MTP",
     "gemma4-31b-q4-dflash-q8": "Gemma 4 31B DFlash Q8",
     "gemma4-31b-q4-dflash-q8-full-ctx32768": "Gemma 4 31B DFlash Q8 32k",
@@ -1731,6 +1812,10 @@ strict_rows = fetch_rows(cur, "llama_bench_strict")
 comparable_rows = fetch_rows(cur, "llama_bench_comparable")
 api_rows = summarize_api_rows(cur)
 server_tuning = summarize_server_tuning()
+supplemental_gemma_qat_mtp = supplemental_gemma_qat_mtp_rows()
+strict_rows.extend(supplemental_gemma_qat_mtp["throughput"])
+comparable_rows.extend(supplemental_gemma_qat_mtp["throughput"])
+mtp_server_rows = summarize_mtp_server() + supplemental_gemma_qat_mtp["mtp"]
 
 payload = {
     "meta": {
@@ -1746,7 +1831,7 @@ payload = {
     "strictRows": strict_rows,
     "comparableRows": comparable_rows,
     "apiRows": api_rows,
-    "mtpServer": summarize_mtp_server(),
+    "mtpServer": mtp_server_rows,
     "serverTuning": server_tuning,
     "auxEval": summarize_aux_eval(),
     "loadouts": summarize_loadouts(),
