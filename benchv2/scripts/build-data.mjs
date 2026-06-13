@@ -215,6 +215,7 @@ def fetch_api_tg_rows(cur):
     WHERE b.kind='llama-server-api'
       AND b.mode='tg'
       AND b.avg_tps IS NOT NULL
+      AND (b.label NOT LIKE 'context-sweep-%' OR b.label LIKE 'context-sweep-nocache-force-%')
     ORDER BY b.seq
     """
     return [row_from_db(row) for row in cur.execute(sql)]
@@ -249,10 +250,11 @@ def read_jsonl(path):
 def summarize_api_rows(cur):
     rows = []
     sql = """
-    SELECT seq,timestamp_utc,label,kind,mode,gen,avg_tps,ttfp_ms,model,peak_vram_used_bytes,
+    SELECT seq,timestamp_utc,label,kind,mode,ctx,gen,avg_tps,ttfp_ms,model,peak_vram_used_bytes,
            peak_gtt_used_bytes,peak_sys_used_bytes,row_json,raw_output,samples
     FROM benchmark_rows
     WHERE kind='llama-server-api'
+      AND (label NOT LIKE 'context-sweep-%' OR label LIKE 'context-sweep-nocache-force-%')
     ORDER BY seq
     """
     for row in cur.execute(sql):
@@ -264,6 +266,7 @@ def summarize_api_rows(cur):
             "timestamp": row["timestamp_utc"],
             "label": row["label"],
             "mode": row["mode"],
+            "ctx": row["ctx"] or rj.get("ctx") or rj.get("tokens_evaluated"),
             "gen": row["gen"] or rj.get("gen"),
             "decodeTps": round(row["avg_tps"], 3) if row["avg_tps"] is not None else None,
             "totalMs": round(rj.get("total_ms"), 3) if isinstance(rj.get("total_ms"), (int, float)) else None,
