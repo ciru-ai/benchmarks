@@ -661,8 +661,8 @@
       <article class="panel">
         <div class="panel-head">
           <div>
-            <h2>Recent Run Coverage</h2>
-            <p>The live run table shows the current scored window. Older completed runs remain in the ranking data but stay out of this operational view.</p>
+            <h2>Run Coverage</h2>
+            <p>Completed runs are included when they have generated representative summary data. Small smoke tests are excluded from scoring, while the run table keeps scored coverage visible.</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -754,20 +754,6 @@
 
     function suite(profile, suiteName) {
       return (profile.suites || []).find((item) => item.suite === suiteName) || {};
-    }
-
-    function recentRuns() {
-      const runs = (DATA.runs || []).slice().filter((run) => run.createdUtc);
-      const latestMs = Date.parse(DATA.meta?.latestRunUtc || "");
-      if (!Number.isFinite(latestMs)) {
-        return runs.sort((a, b) => String(b.createdUtc || "").localeCompare(String(a.createdUtc || ""))).slice(0, 12);
-      }
-      const cutoffMs = latestMs - 14 * 24 * 60 * 60 * 1000;
-      const recent = runs.filter((run) => {
-        const runMs = Date.parse(run.createdUtc || "");
-        return Number.isFinite(runMs) && runMs >= cutoffMs;
-      });
-      return recent.sort((a, b) => String(b.createdUtc || "").localeCompare(String(a.createdUtc || ""))).slice(0, 16);
     }
 
     function suiteKeys(profiles) {
@@ -966,8 +952,7 @@
         `;
       }).join("");
 
-      const visibleRuns = recentRuns();
-      $("runBody").innerHTML = visibleRuns.map((run) => `
+      $("runBody").innerHTML = (DATA.runs || []).slice().sort((a, b) => String(b.createdUtc || "").localeCompare(String(a.createdUtc || ""))).map((run) => `
         <tr>
           <td><strong>${escapeHtml(run.label)}</strong><small>${escapeHtml(run.runId)}</small></td>
           <td>${dateFmt(run.createdUtc)}</td>
@@ -976,7 +961,7 @@
           <td>${intFmt(run.tasks)}</td>
           <td>${run.hasLiveMetrics ? '<span class="tag">live metrics</span>' : '<span class="tag">summary only</span>'}</td>
         </tr>
-      `).join("") || `<tr><td colspan="6">No recent scored runs are available.</td></tr>`;
+      `).join("");
     }
 
     function renderNotes() {
