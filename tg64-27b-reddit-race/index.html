@@ -335,6 +335,14 @@
       align-items: start;
     }
 
+    .metrics-content {
+      grid-template-columns: 1fr;
+    }
+
+    .metrics-content .explain-panel {
+      max-width: 920px;
+    }
+
     .panel {
       min-width: 0;
       border: 1px solid var(--line);
@@ -587,8 +595,8 @@
       </div>
     </section>
 
-    <section class="content">
-      <article class="panel">
+    <section class="content metrics-content">
+      <article class="panel metrics-panel">
         <h2>Race Metrics</h2>
         <table class="metrics-table">
           <thead>
@@ -619,7 +627,7 @@
         </div>
       </article>
 
-      <aside class="panel">
+      <aside class="panel explain-panel">
         <h2>What TG64 Measures</h2>
         <p>A TG race is a token-generation race on a fixed long-output request. This one uses the TG64 workload: a long prompt asks the model to produce up to 64 JSON timeline records, with an 8192-token generation cap.</p>
         <p>The page animates the measured full API generation time for each lane. Server eval throughput, prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
@@ -636,6 +644,7 @@
         <div class="settings-grid">
           <div class="setting-card lane-card lane-baseline">
             <h3>Baseline Chadrock MTP</h3>
+            <span class="tag">model: Qwen3.6-27B MTP BF16-to-ROCmFP4 STRIX_LEAN</span>
             <span class="tag">build: /srv/llm/projects/llamaCHADROCK/build-strix-rocmfp4</span>
             <span class="tag">batch / ubatch: 2048 / 512</span>
             <span class="tag">spec type: draft-mtp</span>
@@ -657,7 +666,8 @@
           <div class="setting-card lane-card lane-vanilla">
             <h3>Vanilla Upstream Qwen3.6 27B</h3>
             <span class="tag">artifact: qwen36-27b-mtp-tg64-race8k-20260519T032549Z</span>
-            <span class="tag">model: unsloth Qwen3.6-27B UD-Q4_K_XL</span>
+            <span class="tag">model: unsloth Qwen3.6-27B MTP</span>
+            <span class="tag">quant: UD-Q4_K_XL</span>
             <span class="tag">build: upstream llama.cpp MTP Vulkan</span>
             <span class="tag">batch / ubatch: 2048 / 512</span>
             <span class="tag">spec type: draft-mtp</span>
