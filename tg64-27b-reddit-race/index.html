@@ -269,6 +269,28 @@
       padding: 12px;
     }
 
+    .lane-baseline {
+      --lane-color: #20d1a2;
+      --lane-bg: rgba(32, 209, 162, 0.09);
+      --lane-border: rgba(32, 209, 162, 0.36);
+    }
+
+    .lane-reddit {
+      --lane-color: #39d0ff;
+      --lane-bg: rgba(57, 208, 255, 0.09);
+      --lane-border: rgba(57, 208, 255, 0.38);
+    }
+
+    .lane-card {
+      border-color: var(--lane-border);
+      background:
+        linear-gradient(180deg, var(--lane-bg), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      box-shadow:
+        inset 0 3px 0 var(--lane-color),
+        0 18px 48px rgba(0, 0, 0, 0.24);
+    }
+
     .stat span {
       display: block;
       color: var(--muted);
@@ -285,6 +307,11 @@
       font-family: "IBM Plex Mono", monospace;
       font-size: clamp(1.05rem, 2vw, 1.5rem);
       line-height: 1.12;
+    }
+
+    .lane-card b,
+    .lane-card h3 {
+      color: var(--lane-color);
     }
 
     .stat small {
@@ -419,6 +446,11 @@
       max-width: 100%;
     }
 
+    .setting-card.lane-card .tag {
+      border-color: color-mix(in srgb, var(--lane-color) 34%, rgba(255, 255, 255, 0.14));
+      background: color-mix(in srgb, var(--lane-color) 9%, rgba(0, 0, 0, 0.24));
+    }
+
     .source {
       margin-top: 14px;
     }
@@ -511,10 +543,10 @@
       </div>
 
       <div class="metric-strip" aria-label="Headline metrics">
-        <div class="stat"><span>TG64 finish winner</span><b>Reddit by 1.15s</b><small>264.60s vs 265.75s full API generation</small></div>
-        <div class="stat"><span>Server eval TPS</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
-        <div class="stat"><span>Prompt processing</span><b>Baseline by 1.18%</b><small>267.27 vs 264.11 tok/s</small></div>
-        <div class="stat"><span>Patch outcome</span><b>Stall fixed</b><small>Patched Reddit passed the old 811-token failure point</small></div>
+        <div class="stat lane-card lane-reddit"><span>TG64 finish winner</span><b>Reddit by 1.15s</b><small>264.60s vs 265.75s full API generation</small></div>
+        <div class="stat lane-card lane-baseline"><span>Server eval TPS</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
+        <div class="stat lane-card lane-baseline"><span>Prompt processing</span><b>Baseline by 1.18%</b><small>267.27 vs 264.11 tok/s</small></div>
+        <div class="stat lane-card lane-reddit"><span>Patch outcome</span><b>Stall fixed</b><small>Patched Reddit passed the old 811-token failure point</small></div>
       </div>
     </section>
 
@@ -563,7 +595,7 @@
       <article class="panel">
         <h2>Settings Compared</h2>
         <div class="settings-grid">
-          <div class="setting-card">
+          <div class="setting-card lane-card lane-baseline">
             <h3>Baseline Chadrock MTP</h3>
             <span class="tag">build: /srv/llm/projects/llamaCHADROCK/build-strix-rocmfp4</span>
             <span class="tag">batch / ubatch: 2048 / 512</span>
@@ -573,7 +605,7 @@
             <span class="tag">KV: f16 / f16</span>
             <span class="tag">draft n max: 4</span>
           </div>
-          <div class="setting-card">
+          <div class="setting-card lane-card lane-reddit">
             <h3>Patched Reddit Settings</h3>
             <span class="tag">build: isolated ngram-rs test</span>
             <span class="tag">batch / ubatch: 4096 / 512</span>
