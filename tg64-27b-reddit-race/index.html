@@ -494,8 +494,8 @@
         </div>
         <div class="winner-card">
           <span>Winner</span>
-          <strong>Baseline Chadrock MTP</strong>
-          <b>30.98 tok/s</b>
+          <strong>Patched Reddit ngram</strong>
+          <b>264.60 s</b>
         </div>
       </div>
 
@@ -503,7 +503,7 @@
         <canvas id="raceCanvas" width="1200" height="430" aria-label="Animated token generation race between baseline and patched Reddit settings"></canvas>
       </div>
       <div class="race-controls">
-        <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 203.1s</strong></div>
+        <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 265.8s</strong></div>
         <div>
           <button id="pauseButton" type="button">Pause</button>
           <button id="replayButton" type="button">Replay</button>
@@ -511,8 +511,8 @@
       </div>
 
       <div class="metric-strip" aria-label="Headline metrics">
-        <div class="stat"><span>Server eval winner</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
-        <div class="stat"><span>API generated TPS</span><b>Baseline by 2.04%</b><small>23.665 vs 23.182 tok/s raw</small></div>
+        <div class="stat"><span>TG64 finish winner</span><b>Reddit by 1.15s</b><small>264.60s vs 265.75s full API generation</small></div>
+        <div class="stat"><span>Server eval TPS</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
         <div class="stat"><span>Prompt processing</span><b>Baseline by 1.18%</b><small>267.27 vs 264.11 tok/s</small></div>
         <div class="stat"><span>Patch outcome</span><b>Stall fixed</b><small>Patched Reddit passed the old 811-token failure point</small></div>
       </div>
@@ -531,6 +531,7 @@
             </tr>
           </thead>
           <tbody>
+            <tr><td>Full TG64 API completion</td><td class="num">265.751 s</td><td class="num">264.605 s</td><td class="num">Reddit faster by 1.146 s / 0.43%</td></tr>
             <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">-1.61%</td></tr>
             <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">-2.04%</td></tr>
             <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">-1.18%</td></tr>
@@ -544,14 +545,14 @@
           </tbody>
         </table>
         <div class="callout warning">
-          <strong>Interpretation:</strong> the patched Reddit lane completed, but it did not beat the baseline on this TG64 run. The extra ngram speculative path reduced acceptance and increased memory pressure.
+          <strong>Interpretation:</strong> the patched Reddit lane won the wall-clock TG64 race by 1.146 seconds, even though the baseline was still ahead on server eval TPS, raw generated-token TPS, prompt throughput, draft acceptance, and memory pressure.
         </div>
       </article>
 
       <aside class="panel">
         <h2>What TG64 Measures</h2>
         <p>A TG race is a token-generation race on a fixed long-output request. This one uses the TG64 workload: a long prompt asks the model to produce up to 64 JSON timeline records, with an 8192-token generation cap.</p>
-        <p>The page animates the measured server decode portion using server eval throughput. Prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
+        <p>The page animates the measured full API generation time for each lane. Server eval throughput, prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
         <div class="callout">
           <strong>Why this matters:</strong> standalone decode speed can look good while the served path stalls, emits invalid output, or spends too much time in prompt processing. TG64 keeps those costs visible.
         </div>
@@ -591,7 +592,7 @@
         <p>The only setting adopted before this race was <code>split-mode=none</code>. That made sense because this Strix Halo setup is a single local box, not a multi-GPU split deployment.</p>
         <p>The earlier checks showed <code>split-mode=none</code> was effectively free for this lane, so it became the shared baseline for both sides of the race. That keeps the race focused on the Reddit speculative differences rather than row-vs-none split behavior.</p>
         <div class="callout bad">
-          <strong>Not adopted:</strong> <code>ngram-map-k</code> is not recommended for the normal profile from this result. The patched runtime makes it complete, but it is slower and uses more GTT/RAM in this TG64 comparison.
+          <strong>Not adopted globally:</strong> <code>ngram-map-k</code> won this TG64 wall-clock race by 1.146 seconds, but it also had lower server eval TPS, lower prompt throughput, lower draft acceptance, and higher GTT/RAM use. That makes it a workload-specific experimental profile rather than a clean replacement for the normal profile.
         </div>
       </article>
     </section>
@@ -687,7 +688,7 @@ diff --git a/common/common.cpp b/common/common.cpp
         accepted: 4754,
         generated: 6148,
         gtt: 18.921,
-        finishSeconds: 6289 / 30.98
+        finishSeconds: 265.750635
       },
       {
         id: "patchedReddit",
@@ -702,7 +703,7 @@ diff --git a/common/common.cpp b/common/common.cpp
         accepted: 4505,
         generated: 6371,
         gtt: 20.894,
-        finishSeconds: 6134 / 30.48
+        finishSeconds: 264.604628
       }
     ];
 
@@ -710,7 +711,6 @@ diff --git a/common/common.cpp b/common/common.cpp
     const ctx = canvas.getContext("2d");
     const byId = (id) => document.getElementById(id);
     const maxFinish = Math.max(...lanes.map((lane) => lane.finishSeconds));
-    const maxTokens = Math.max(...lanes.map((lane) => lane.evalTokens));
     const playbackSeconds = 28;
     let startedAt = performance.now();
     let pauseAt = null;
@@ -764,9 +764,9 @@ diff --git a/common/common.cpp b/common/common.cpp
       const right = width - 54;
       const trackW = right - left;
       const y = 146 + index * 126;
-      const tokens = Math.min(lane.evalTokens, lane.serverTps * raceTime);
-      const progress = Math.min(1, tokens / maxTokens);
       const laneFinishProgress = Math.min(1, raceTime / lane.finishSeconds);
+      const tokens = Math.min(lane.evalTokens, lane.evalTokens * laneFinishProgress);
+      const progress = laneFinishProgress;
       const x = left + trackW * progress;
 
       ctx.save();
@@ -814,14 +814,14 @@ diff --git a/common/common.cpp b/common/common.cpp
       ctx.fillText(lane.label, left, y - 46);
       ctx.font = "700 13px IBM Plex Mono, monospace";
       ctx.fillStyle = lane.color;
-      ctx.fillText(`${fmt(lane.serverTps, 2)} tok/s server eval`, left, y + 54);
+      ctx.fillText(`${fmt(lane.finishSeconds, 3)}s full TG64 completion`, left, y + 54);
       ctx.fillStyle = "rgba(255,255,255,0.68)";
-      ctx.fillText(`API ${fmt(lane.apiTps, 3)} tok/s | acceptance ${fmt(lane.acceptance * 100, 2)}% | GTT ${fmt(lane.gtt, 3)} GiB`, left + 246, y + 54);
+      ctx.fillText(`server ${fmt(lane.serverTps, 2)} tok/s | API ${fmt(lane.apiTps, 3)} tok/s | acceptance ${fmt(lane.acceptance * 100, 2)}%`, left + 314, y + 54);
 
       ctx.font = "700 13px IBM Plex Mono, monospace";
       const readout = laneFinishProgress >= 1
         ? `finish ${fmt(lane.finishSeconds, 1)}s`
-        : `${fmt(tokens)} / ${fmt(lane.evalTokens)} eval tokens`;
+        : `${fmt(laneFinishProgress * 100, 1)}% | ${fmt(tokens)} / ${fmt(lane.evalTokens)} tokens`;
       const readoutW = ctx.measureText(readout).width;
       ctx.fillStyle = "rgba(0,0,0,0.56)";
       roundRect(Math.min(x + 28, right - readoutW - 18), y - 14, readoutW + 16, 28, 6);
@@ -841,7 +841,7 @@ diff --git a/common/common.cpp b/common/common.cpp
 
       ctx.font = "700 14px IBM Plex Mono, monospace";
       ctx.fillStyle = "rgba(255,255,255,0.62)";
-      ctx.fillText("server eval token race", 28, 34);
+      ctx.fillText("full TG64 API completion race", 28, 34);
       ctx.fillText(`${fmt(raceTime, 1)}s / ${fmt(maxFinish, 1)}s`, width - 176, 34);
 
       ctx.strokeStyle = "rgba(237, 28, 36, 0.55)";
@@ -856,7 +856,7 @@ diff --git a/common/common.cpp b/common/common.cpp
 
       lanes.forEach((lane, index) => drawLane(lane, index, raceTime));
 
-      const leader = [...lanes].sort((a, b) => Math.min(b.evalTokens, b.serverTps * raceTime) - Math.min(a.evalTokens, a.serverTps * raceTime))[0];
+      const leader = [...lanes].sort((a, b) => Math.min(1, raceTime / b.finishSeconds) - Math.min(1, raceTime / a.finishSeconds))[0];
       byId("clockReadout").textContent = `${fmt(raceTime, 1)}s / ${fmt(maxFinish, 1)}s`;
       byId("clockMode").textContent = raceTime >= maxFinish ? "Final" : `Leader: ${leader.label}`;
     }
