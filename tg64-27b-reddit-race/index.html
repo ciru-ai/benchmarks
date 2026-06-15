@@ -433,6 +433,25 @@
       line-height: 1.45;
     }
 
+    .patch-note {
+      margin-top: 14px;
+    }
+
+    .patch-note pre {
+      margin: 12px 0 0;
+      max-height: 520px;
+      overflow: auto;
+      color: #d7dae0;
+      background: rgba(0, 0, 0, 0.36);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      line-height: 1.45;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.76rem;
+      white-space: pre;
+    }
+
     @media (max-width: 960px) {
       .race-head,
       .content,
@@ -575,6 +594,72 @@
           <strong>Not adopted:</strong> <code>ngram-map-k</code> is not recommended for the normal profile from this result. The patched runtime makes it complete, but it is slower and uses more GTT/RAM in this TG64 comparison.
         </div>
       </article>
+    </section>
+
+    <section class="panel patch-note">
+      <h2>Experimental Chadrock Patch</h2>
+      <p>The Reddit lane needed a small test-only Chadrock patch because <code>draft-mtp,ngram-map-k</code> on this hybrid/recurrent path fell back to checkpoint rollback and stalled. The patch keeps recurrent-state rollback enabled for the short ngram draft window instead of disabling rollback whenever a non-MTP speculative method is present.</p>
+      <p>This is not published as a separate repo because the change is compact: one helper now sizes rollback for MTP and ngram draft windows, and one guard that disabled rollback for ngram methods is removed. Apply it only to an isolated Chadrock build for testing unless it is reviewed upstream.</p>
+      <div class="callout warning">
+        <strong>Scope:</strong> this made the Reddit settings complete the TG64 run, but it did not make them faster here. Treat it as an experimental compatibility fix for people who specifically want to test <code>draft-mtp,ngram-map-k</code> on Chadrock hybrid/recurrent models.
+      </div>
+      <pre><code>diff --git a/common/common.h b/common/common.h
+@@
+-    uint32_t need_n_rs_seq() const {
+-        bool needs_rs_seq = std::any_of(types.begin(), types.end(), [&amp;](auto t) {
+-            return t == COMMON_SPECULATIVE_TYPE_DRAFT_MTP;
+-        });
+-
+-        return needs_rs_seq ? draft.n_max : 0u;
+-    }
++    uint32_t need_n_rs_seq() const {
++        uint32_t n_rs_seq = 0;
++        for (const auto &amp; type : types) {
++            switch (type) {
++                case COMMON_SPECULATIVE_TYPE_DRAFT_MTP:
++                    n_rs_seq = std::max&lt;uint32_t&gt;(n_rs_seq, draft.n_max);
++                    break;
++                case COMMON_SPECULATIVE_TYPE_NGRAM_SIMPLE:
++                    n_rs_seq = std::max&lt;uint32_t&gt;(n_rs_seq, ngram_simple.size_m);
++                    break;
++                case COMMON_SPECULATIVE_TYPE_NGRAM_MAP_K:
++                    n_rs_seq = std::max&lt;uint32_t&gt;(n_rs_seq, ngram_map_k.size_m);
++                    break;
++                case COMMON_SPECULATIVE_TYPE_NGRAM_MAP_K4V:
++                    n_rs_seq = std::max&lt;uint32_t&gt;(n_rs_seq, ngram_map_k4v.size_m);
++                    break;
++                default:
++                    break;
++            }
++        }
++
++        return n_rs_seq;
++    }
+
+diff --git a/common/common.cpp b/common/common.cpp
+@@
+-    // [TAG_RS_STATE_ROLLBACK_SUPPORT]
+-    // TODO: ngram speculative methods require checkpointing in addition to partial RS rollback
+-    //       currently this is not supported. so we disable the partial rollback
+-    if (cparams.n_rs_seq &gt; 0 &amp;&amp; (llama_model_is_recurrent(model) || llama_model_is_hybrid(model))) {
+-        auto &amp; types = params.speculative.types;
+-
+-        for (int i = 0; i &lt; (int) types.size(); i++) {
+-            if (types[i] == COMMON_SPECULATIVE_TYPE_NONE) {
+-                continue;
+-            }
+-            if (types[i] == COMMON_SPECULATIVE_TYPE_DRAFT_MTP) {
+-                continue;
+-            }
+-
+-            cparams.n_rs_seq = 0;
+-
+-            LOG_WRN("%s: recurrent state rollback is not compatible with '%s' - disabling rollback support\n", __func__,
+-                    common_speculative_type_to_str(types[i]).c_str());
+-
+-            break;
+-        }
+-    }</code></pre>
     </section>
 
     <section class="panel source">
