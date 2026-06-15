@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>27B TG64 Race: Baseline vs Patched Reddit</title>
-  <meta name="description" content="Animated TG64 race comparing the fastest 27B Chadrock MTP baseline against patched Reddit ngram settings on Strix Halo.">
+  <title>27B TG64 Race: Baseline vs Patched Reddit vs Vanilla Qwen</title>
+  <meta name="description" content="Animated TG64 race comparing the fastest 27B Chadrock MTP baseline, patched Reddit ngram settings, and a vanilla upstream Qwen3.6 27B artifact on Strix Halo.">
   <meta name="theme-color" content="#080808">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,7 +206,7 @@
 
     .canvas-wrap {
       position: relative;
-      min-height: 430px;
+      min-height: 540px;
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: var(--radius);
       background:
@@ -219,7 +219,7 @@
     canvas {
       display: block;
       width: 100%;
-      height: 430px;
+      height: 540px;
     }
 
     .race-controls {
@@ -279,6 +279,12 @@
       --lane-color: #39d0ff;
       --lane-bg: rgba(57, 208, 255, 0.09);
       --lane-border: rgba(57, 208, 255, 0.38);
+    }
+
+    .lane-vanilla {
+      --lane-color: #f6c046;
+      --lane-bg: rgba(246, 192, 70, 0.09);
+      --lane-border: rgba(246, 192, 70, 0.38);
     }
 
     .lane-card {
@@ -416,19 +422,21 @@
 
     .metrics-table th:nth-child(1),
     .metrics-table td:nth-child(1) {
-      width: 28%;
+      width: 23%;
     }
 
     .metrics-table th:nth-child(2),
     .metrics-table td:nth-child(2),
     .metrics-table th:nth-child(3),
-    .metrics-table td:nth-child(3) {
-      width: 18%;
-    }
-
+    .metrics-table td:nth-child(3),
     .metrics-table th:nth-child(4),
     .metrics-table td:nth-child(4) {
-      width: 36%;
+      width: 15%;
+    }
+
+    .metrics-table th:nth-child(5),
+    .metrics-table td:nth-child(5) {
+      width: 32%;
       text-align: left;
       white-space: normal;
     }
@@ -528,8 +536,8 @@
     @media (max-width: 620px) {
       .app { width: min(calc(100% - 18px), var(--max)); }
       .race-top { padding: 12px; }
-      canvas { height: 380px; }
-      .canvas-wrap { min-height: 380px; }
+      canvas { height: 480px; }
+      .canvas-wrap { min-height: 480px; }
       .metric-strip { grid-template-columns: 1fr; }
       th,
       td { padding: 8px; }
@@ -550,8 +558,8 @@
       <div class="race-head">
         <div>
           <p class="eyebrow">Crown Citadel Research Report</p>
-          <h1>27B TG64 Race: Baseline vs Patched Reddit</h1>
-          <p class="subtitle">The fastest local 27B Chadrock/MTP lane races the Reddit-style ngram speculative settings after a test-only runtime patch kept recurrent rollback enabled. The race itself is shown first; the measured settings and interpretation are below.</p>
+          <h1>27B TG64 Race: Baseline vs Patched Reddit vs Vanilla Qwen</h1>
+          <p class="subtitle">The fastest local 27B Chadrock/MTP lane races the Reddit-style ngram speculative settings after a test-only runtime patch kept recurrent rollback enabled, plus an older vanilla upstream Qwen3.6 27B artifact for context. The race itself is shown first; the measured settings and interpretation are below.</p>
         </div>
         <div class="winner-card">
           <span>Winner</span>
@@ -561,7 +569,7 @@
       </div>
 
       <div class="canvas-wrap">
-        <canvas id="raceCanvas" width="1200" height="430" aria-label="Animated token generation race between baseline and patched Reddit settings"></canvas>
+        <canvas id="raceCanvas" width="1200" height="540" aria-label="Animated token generation race between baseline, patched Reddit, and vanilla Qwen 27B settings"></canvas>
       </div>
       <div class="race-controls">
         <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 265.8s</strong></div>
@@ -574,8 +582,8 @@
       <div class="metric-strip" aria-label="Headline metrics">
         <div class="stat lane-card lane-reddit"><span>TG64 finish winner</span><b>Reddit by 1.15s</b><small>264.60s vs 265.75s full API generation</small></div>
         <div class="stat lane-card lane-baseline"><span>Server eval TPS</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
-        <div class="stat lane-card lane-baseline"><span>Prompt processing</span><b>Baseline by 1.18%</b><small>267.27 vs 264.11 tok/s</small></div>
-        <div class="stat lane-card lane-reddit"><span>Patch outcome</span><b>Stall fixed</b><small>Patched Reddit passed the old 811-token failure point</small></div>
+        <div class="stat lane-card lane-vanilla"><span>Vanilla reference</span><b>287.58 s</b><small>Upstream Qwen3.6 27B MTP artifact</small></div>
+        <div class="stat lane-card lane-vanilla"><span>Prompt processing</span><b>Vanilla by 1.19%</b><small>270.45 vs baseline 267.27 tok/s</small></div>
       </div>
     </section>
 
@@ -588,25 +596,26 @@
               <th>Metric</th>
               <th class="num">Baseline</th>
               <th class="num">Patched Reddit</th>
-              <th class="num">Delta</th>
+              <th class="num">Vanilla Qwen</th>
+              <th class="num">Notes</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>Full TG64 API completion</td><td class="num">265.751 s</td><td class="num">264.605 s</td><td class="num">Reddit faster by 1.146 s / 0.43%</td></tr>
-            <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">-1.61%</td></tr>
-            <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">-2.04%</td></tr>
-            <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">-1.18%</td></tr>
-            <tr><td>TTFP</td><td class="num">62.663 s</td><td class="num">63.407 s</td><td class="num">+1.19%</td></tr>
-            <tr><td>Generated tokens</td><td class="num">6,289</td><td class="num">6,134</td><td class="num">-155</td></tr>
-            <tr><td>Draft acceptance</td><td class="num">0.77326</td><td class="num">0.70711</td><td class="num">-8.55%</td></tr>
-            <tr><td>Draft accepted/generated</td><td class="num">4,754 / 6,148</td><td class="num">4,505 / 6,371</td><td class="num">lower acceptance</td></tr>
-            <tr><td>Peak GTT</td><td class="num">18.921 GiB</td><td class="num">20.894 GiB</td><td class="num">+1.973 GiB</td></tr>
-            <tr><td>Peak VRAM</td><td class="num">1.987 GiB</td><td class="num">1.987 GiB</td><td class="num">flat</td></tr>
-            <tr><td>Peak system RAM used</td><td class="num">46.250 GiB</td><td class="num">48.092 GiB</td><td class="num">+1.842 GiB</td></tr>
+            <tr><td>Full TG64 API completion</td><td class="num">265.751 s</td><td class="num">264.605 s</td><td class="num">287.577 s</td><td class="num">Reddit wins by 1.146 s over baseline; vanilla is 22.973 s behind Reddit.</td></tr>
+            <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">26.71 tok/s</td><td class="num">Baseline has the best served decode TPS.</td></tr>
+            <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">20.982 tok/s</td><td class="num">Baseline leads raw generated-token TPS.</td></tr>
+            <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">270.45 tok/s</td><td class="num">Vanilla upstream Qwen had the fastest prompt phase in its older artifact.</td></tr>
+            <tr><td>TTFP</td><td class="num">62.663 s</td><td class="num">63.407 s</td><td class="num">61.711 s</td><td class="num">Vanilla upstream Qwen had the lowest TTFP.</td></tr>
+            <tr><td>Generated tokens</td><td class="num">6,289</td><td class="num">6,134</td><td class="num">6,034</td><td class="num">All three stopped before the 8192-token cap.</td></tr>
+            <tr><td>Draft acceptance</td><td class="num">0.77326</td><td class="num">0.70711</td><td class="num">0.68242</td><td class="num">Baseline had the strongest draft acceptance.</td></tr>
+            <tr><td>Draft accepted/generated</td><td class="num">4,754 / 6,148</td><td class="num">4,505 / 6,371</td><td class="num">4,852 / 7,110</td><td class="num">Vanilla row is from the older upstream MTP artifact.</td></tr>
+            <tr><td>Peak GTT</td><td class="num">18.921 GiB</td><td class="num">20.894 GiB</td><td class="num">not recorded</td><td class="num">The older vanilla artifact did not include GTT/VRAM/RAM sampling.</td></tr>
+            <tr><td>Peak VRAM</td><td class="num">1.987 GiB</td><td class="num">1.987 GiB</td><td class="num">not recorded</td><td class="num">Only server metrics were available for the vanilla artifact.</td></tr>
+            <tr><td>Peak system RAM used</td><td class="num">46.250 GiB</td><td class="num">48.092 GiB</td><td class="num">not recorded</td><td class="num">Not comparable for the vanilla row.</td></tr>
           </tbody>
         </table>
         <div class="callout warning">
-          <strong>Interpretation:</strong> the patched Reddit lane won the wall-clock TG64 race by 1.146 seconds, even though the baseline was still ahead on server eval TPS, raw generated-token TPS, prompt throughput, draft acceptance, and memory pressure.
+          <strong>Interpretation:</strong> the patched Reddit lane won the wall-clock TG64 race by 1.146 seconds. The vanilla upstream Qwen3.6 27B artifact was slower overall at 287.577 seconds, but it had the best prompt throughput and TTFP among the three rows.
         </div>
       </article>
 
@@ -614,6 +623,7 @@
         <h2>What TG64 Measures</h2>
         <p>A TG race is a token-generation race on a fixed long-output request. This one uses the TG64 workload: a long prompt asks the model to produce up to 64 JSON timeline records, with an 8192-token generation cap.</p>
         <p>The page animates the measured full API generation time for each lane. Server eval throughput, prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
+        <p>The vanilla lane is included as an older upstream Qwen3.6 27B reference artifact, not as a Chadrock ROCmFP4 profile.</p>
         <div class="callout">
           <strong>Why this matters:</strong> standalone decode speed can look good while the served path stalls, emits invalid output, or spends too much time in prompt processing. TG64 keeps those costs visible.
         </div>
@@ -644,8 +654,19 @@
             <span class="tag">split mode: none</span>
             <span class="tag">KV: f16 / f16</span>
           </div>
+          <div class="setting-card lane-card lane-vanilla">
+            <h3>Vanilla Upstream Qwen3.6 27B</h3>
+            <span class="tag">artifact: qwen36-27b-mtp-tg64-race8k-20260519T032549Z</span>
+            <span class="tag">model: unsloth Qwen3.6-27B UD-Q4_K_XL</span>
+            <span class="tag">build: upstream llama.cpp MTP Vulkan</span>
+            <span class="tag">batch / ubatch: 2048 / 512</span>
+            <span class="tag">spec type: draft-mtp</span>
+            <span class="tag">draft n max: 6</span>
+            <span class="tag">split mode: row</span>
+            <span class="tag">KV: f16 / f16</span>
+          </div>
         </div>
-        <p style="margin-top: 12px;">Both lanes used the same Qwen3.6 27B Chadrock ROCmFP4 MTP model, single-slot serving, filtered endpoint <code>8081</code>, prompt cache disabled, and clean server timing. The patched Reddit lane used a separate test build that keeps recurrent rollback enabled for short ngram drafts, which avoids the prior checkpoint-rollback stall.</p>
+        <p style="margin-top: 12px;">The baseline and patched Reddit lanes used the same Qwen3.6 27B Chadrock ROCmFP4 MTP model, single-slot serving, filtered endpoint <code>8081</code>, prompt cache disabled, and clean server timing. The patched Reddit lane used a separate test build that keeps recurrent rollback enabled for short ngram drafts, which avoids the prior checkpoint-rollback stall. The vanilla lane is an older upstream Qwen3.6 27B MTP artifact, included as a model-family reference rather than an apples-to-apples Chadrock profile.</p>
       </article>
 
       <article class="panel">
@@ -731,6 +752,8 @@ diff --git a/common/common.cpp b/common/common.cpp
       <code>/home/crown/bench-results/llama/tg64-race-27b-baseline-vs-patched-reddit-20260615T051056Z</code>
       <p style="margin-top: 12px;">Summary JSON:</p>
       <code>summary.json</code>
+      <p style="margin-top: 12px;">Vanilla upstream Qwen reference artifact:</p>
+      <code>/home/crown/bench-results/llama/qwen36-27b-mtp-tg64-race8k-20260519T032549Z</code>
     </section>
   </main>
 
@@ -739,6 +762,7 @@ diff --git a/common/common.cpp b/common/common.cpp
       {
         id: "baseline",
         label: "Baseline Chadrock MTP",
+        symbol: "B",
         color: "#20d1a2",
         serverTps: 30.98,
         apiTps: 23.665,
@@ -754,6 +778,7 @@ diff --git a/common/common.cpp b/common/common.cpp
       {
         id: "patchedReddit",
         label: "Patched Reddit ngram",
+        symbol: "R",
         color: "#39d0ff",
         serverTps: 30.48,
         apiTps: 23.182,
@@ -765,6 +790,22 @@ diff --git a/common/common.cpp b/common/common.cpp
         generated: 6371,
         gtt: 20.894,
         finishSeconds: 264.604628
+      },
+      {
+        id: "vanillaQwen",
+        label: "Vanilla Qwen3.6 27B",
+        symbol: "V",
+        color: "#f6c046",
+        serverTps: 26.714,
+        apiTps: 20.982,
+        promptTps: 270.45,
+        ttfp: 61.711,
+        evalTokens: 6034,
+        acceptance: 0.68242,
+        accepted: 4852,
+        generated: 7110,
+        gtt: null,
+        finishSeconds: 287.577381
       }
     ];
 
@@ -824,7 +865,7 @@ diff --git a/common/common.cpp b/common/common.cpp
       const left = 74;
       const right = width - 54;
       const trackW = right - left;
-      const y = 146 + index * 126;
+      const y = 126 + index * 124;
       const laneFinishProgress = Math.min(1, raceTime / lane.finishSeconds);
       const tokens = Math.min(lane.evalTokens, lane.evalTokens * laneFinishProgress);
       const progress = laneFinishProgress;
@@ -867,7 +908,7 @@ diff --git a/common/common.cpp b/common/common.cpp
       ctx.fillStyle = "#070707";
       ctx.font = "700 14px IBM Plex Mono, monospace";
       ctx.textAlign = "center";
-      ctx.fillText(index === 0 ? "B" : "R", x, y + 5);
+      ctx.fillText(lane.symbol, x, y + 5);
       ctx.textAlign = "left";
 
       fitText(lane.label, Math.max(240, trackW * 0.55), 16, 11);
@@ -877,7 +918,8 @@ diff --git a/common/common.cpp b/common/common.cpp
       ctx.fillStyle = lane.color;
       ctx.fillText(`${fmt(lane.finishSeconds, 3)}s full TG64 completion`, left, y + 54);
       ctx.fillStyle = "rgba(255,255,255,0.68)";
-      ctx.fillText(`server ${fmt(lane.serverTps, 2)} tok/s | API ${fmt(lane.apiTps, 3)} tok/s | acceptance ${fmt(lane.acceptance * 100, 2)}%`, left + 314, y + 54);
+      const memoryText = lane.gtt == null ? "GTT n/a" : `GTT ${fmt(lane.gtt, 3)} GiB`;
+      ctx.fillText(`server ${fmt(lane.serverTps, 2)} tok/s | API ${fmt(lane.apiTps, 3)} tok/s | acceptance ${fmt(lane.acceptance * 100, 2)}% | ${memoryText}`, left + 314, y + 54);
 
       ctx.font = "700 13px IBM Plex Mono, monospace";
       const readout = laneFinishProgress >= 1
