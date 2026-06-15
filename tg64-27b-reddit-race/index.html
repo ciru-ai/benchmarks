@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>27B TG64 Race: Baseline vs Patched Reddit</title>
+  <meta name="description" content="Animated TG64 race comparing the fastest 27B Chadrock MTP baseline against patched Reddit ngram settings on Strix Halo.">
+  <meta name="theme-color" content="#080808">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070707;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1320px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #070707 100%);
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a { color: var(--cyan); }
+
+    .app {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 10px auto 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      margin: 0 0 10px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-plate {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(237, 28, 36, 0.28), rgba(57, 208, 255, 0.12));
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .brand-title,
+    .brand-subtitle { display: block; }
+
+    .brand-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+    }
+
+    .race-top {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.18), transparent 34%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .race-top::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .race-top > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .race-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p { margin-top: 0; }
+
+    h1 {
+      margin: 7px 0 8px;
+      max-width: 920px;
+      font-size: clamp(1.9rem, 4.1vw, 4.1rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #c6c9cf;
+      max-width: 78ch;
+      line-height: 1.45;
+    }
+
+    .winner-card {
+      border: 1px solid rgba(32, 209, 162, 0.32);
+      border-left: 4px solid var(--green);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.32);
+      padding: 12px;
+    }
+
+    .winner-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .winner-card strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.3rem;
+    }
+
+    .winner-card b {
+      display: block;
+      margin-top: 6px;
+      color: var(--green);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.5rem;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      min-height: 430px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(57, 208, 255, 0.17), transparent 22%),
+        radial-gradient(circle at 84% 78%, rgba(237, 28, 36, 0.17), transparent 26%),
+        rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 430px;
+    }
+
+    .race-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .clock {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.86rem;
+    }
+
+    button {
+      min-height: 38px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: rgba(255, 255, 255, 0.28); }
+    button:focus-visible { outline: 3px solid rgba(57, 208, 255, 0.25); outline-offset: 2px; }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      padding: 12px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .stat b {
+      display: block;
+      margin-top: 6px;
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.05rem, 2vw, 1.5rem);
+      line-height: 1.12;
+    }
+
+    .stat small {
+      display: block;
+      margin-top: 4px;
+      color: var(--subtle);
+      line-height: 1.3;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 14px;
+      margin-top: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+      letter-spacing: 0;
+    }
+
+    .panel p,
+    .panel li {
+      color: #c6c9cf;
+      line-height: 1.48;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .callout {
+      border: 1px solid rgba(57, 208, 255, 0.24);
+      border-left: 5px solid var(--cyan);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      padding: 14px;
+      margin-top: 12px;
+    }
+
+    .callout.warning {
+      border-color: rgba(255, 159, 67, 0.25);
+      border-left-color: var(--orange);
+      background: rgba(255, 159, 67, 0.08);
+    }
+
+    .callout.bad {
+      border-color: rgba(255, 78, 95, 0.26);
+      border-left-color: var(--red);
+      background: rgba(255, 78, 95, 0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(0, 0, 0, 0.18);
+      font-size: 0.91rem;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+    }
+
+    td { color: #d7dae0; }
+
+    .num {
+      text-align: right;
+      white-space: nowrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mono,
+    code {
+      font-family: "IBM Plex Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .tag {
+      display: inline-block;
+      margin: 0 5px 5px 0;
+      padding: 4px 7px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.24);
+      color: #d7dae0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.73rem;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .setting-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+      padding: 12px;
+    }
+
+    .setting-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.96rem;
+    }
+
+    .setting-card .tag {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .source {
+      margin-top: 14px;
+    }
+
+    .source code {
+      display: block;
+      color: #d7dae0;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 960px) {
+      .race-head,
+      .content,
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app { width: min(calc(100% - 18px), var(--max)); }
+      .race-top { padding: 12px; }
+      canvas { height: 380px; }
+      .canvas-wrap { min-height: 380px; }
+      .metric-strip { grid-template-columns: 1fr; }
+      th,
+      td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <a class="brand-lockup" href="/">
+      <span class="logo-plate">C</span>
+      <span>
+        <span class="brand-title">Ciru Inference Lab</span>
+        <span class="brand-subtitle">llm.ciru.ai / research</span>
+      </span>
+    </a>
+
+    <section class="race-top" aria-label="Animated TG64 race">
+      <div class="race-head">
+        <div>
+          <p class="eyebrow">Crown Citadel Research Report</p>
+          <h1>27B TG64 Race: Baseline vs Patched Reddit</h1>
+          <p class="subtitle">The fastest local 27B Chadrock/MTP lane races the Reddit-style ngram speculative settings after a test-only runtime patch kept recurrent rollback enabled. The race itself is shown first; the measured settings and interpretation are below.</p>
+        </div>
+        <div class="winner-card">
+          <span>Winner</span>
+          <strong>Baseline Chadrock MTP</strong>
+          <b>30.98 tok/s</b>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="raceCanvas" width="1200" height="430" aria-label="Animated token generation race between baseline and patched Reddit settings"></canvas>
+      </div>
+      <div class="race-controls">
+        <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 203.1s</strong></div>
+        <div>
+          <button id="pauseButton" type="button">Pause</button>
+          <button id="replayButton" type="button">Replay</button>
+        </div>
+      </div>
+
+      <div class="metric-strip" aria-label="Headline metrics">
+        <div class="stat"><span>Server eval winner</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
+        <div class="stat"><span>API generated TPS</span><b>Baseline by 2.04%</b><small>23.665 vs 23.182 tok/s raw</small></div>
+        <div class="stat"><span>Prompt processing</span><b>Baseline by 1.18%</b><small>267.27 vs 264.11 tok/s</small></div>
+        <div class="stat"><span>Patch outcome</span><b>Stall fixed</b><small>Patched Reddit passed the old 811-token failure point</small></div>
+      </div>
+    </section>
+
+    <section class="content">
+      <article class="panel">
+        <h2>Race Metrics</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th class="num">Baseline</th>
+              <th class="num">Patched Reddit</th>
+              <th class="num">Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">-1.61%</td></tr>
+            <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">-2.04%</td></tr>
+            <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">-1.18%</td></tr>
+            <tr><td>TTFP</td><td class="num">62.663 s</td><td class="num">63.407 s</td><td class="num">+1.19%</td></tr>
+            <tr><td>Generated tokens</td><td class="num">6,289</td><td class="num">6,134</td><td class="num">-155</td></tr>
+            <tr><td>Draft acceptance</td><td class="num">0.77326</td><td class="num">0.70711</td><td class="num">-8.55%</td></tr>
+            <tr><td>Draft accepted/generated</td><td class="num">4,754 / 6,148</td><td class="num">4,505 / 6,371</td><td class="num">lower acceptance</td></tr>
+            <tr><td>Peak GTT</td><td class="num">18.921 GiB</td><td class="num">20.894 GiB</td><td class="num">+1.973 GiB</td></tr>
+            <tr><td>Peak VRAM</td><td class="num">1.987 GiB</td><td class="num">1.987 GiB</td><td class="num">flat</td></tr>
+            <tr><td>Peak system RAM used</td><td class="num">46.250 GiB</td><td class="num">48.092 GiB</td><td class="num">+1.842 GiB</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warning">
+          <strong>Interpretation:</strong> the patched Reddit lane completed, but it did not beat the baseline on this TG64 run. The extra ngram speculative path reduced acceptance and increased memory pressure.
+        </div>
+      </article>
+
+      <aside class="panel">
+        <h2>What TG64 Measures</h2>
+        <p>A TG race is a token-generation race on a fixed long-output request. This one uses the TG64 workload: a long prompt asks the model to produce up to 64 JSON timeline records, with an 8192-token generation cap.</p>
+        <p>The page animates the measured server decode portion using server eval throughput. Prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
+        <div class="callout">
+          <strong>Why this matters:</strong> standalone decode speed can look good while the served path stalls, emits invalid output, or spends too much time in prompt processing. TG64 keeps those costs visible.
+        </div>
+      </aside>
+    </section>
+
+    <section class="content">
+      <article class="panel">
+        <h2>Settings Compared</h2>
+        <div class="settings-grid">
+          <div class="setting-card">
+            <h3>Baseline Chadrock MTP</h3>
+            <span class="tag">build: /srv/llm/projects/llamaCHADROCK/build-strix-rocmfp4</span>
+            <span class="tag">batch / ubatch: 2048 / 512</span>
+            <span class="tag">spec type: draft-mtp</span>
+            <span class="tag">draft p split: 0.10</span>
+            <span class="tag">split mode: none</span>
+            <span class="tag">KV: f16 / f16</span>
+            <span class="tag">draft n max: 4</span>
+          </div>
+          <div class="setting-card">
+            <h3>Patched Reddit Settings</h3>
+            <span class="tag">build: isolated ngram-rs test</span>
+            <span class="tag">batch / ubatch: 4096 / 512</span>
+            <span class="tag">spec type: draft-mtp, ngram-map-k</span>
+            <span class="tag">ngram n/m/min hits: 8 / 4 / 2</span>
+            <span class="tag">draft p split: 0.45</span>
+            <span class="tag">split mode: none</span>
+            <span class="tag">KV: f16 / f16</span>
+          </div>
+        </div>
+        <p style="margin-top: 12px;">Both lanes used the same Qwen3.6 27B Chadrock ROCmFP4 MTP model, single-slot serving, filtered endpoint <code>8081</code>, prompt cache disabled, and clean server timing. The patched Reddit lane used a separate test build that keeps recurrent rollback enabled for short ngram drafts, which avoids the prior checkpoint-rollback stall.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Adopted From Initial Testing</h2>
+        <p>The only setting adopted before this race was <code>split-mode=none</code>. That made sense because this Strix Halo setup is a single local box, not a multi-GPU split deployment.</p>
+        <p>The earlier checks showed <code>split-mode=none</code> was effectively free for this lane, so it became the shared baseline for both sides of the race. That keeps the race focused on the Reddit speculative differences rather than row-vs-none split behavior.</p>
+        <div class="callout bad">
+          <strong>Not adopted:</strong> <code>ngram-map-k</code> is not recommended for the normal profile from this result. The patched runtime makes it complete, but it is slower and uses more GTT/RAM in this TG64 comparison.
+        </div>
+      </article>
+    </section>
+
+    <section class="panel source">
+      <h2>Source Artifact</h2>
+      <p>Measured run directory:</p>
+      <code>/home/crown/bench-results/llama/tg64-race-27b-baseline-vs-patched-reddit-20260615T051056Z</code>
+      <p style="margin-top: 12px;">Summary JSON:</p>
+      <code>summary.json</code>
+    </section>
+  </main>
+
+  <script>
+    const lanes = [
+      {
+        id: "baseline",
+        label: "Baseline Chadrock MTP",
+        color: "#20d1a2",
+        serverTps: 30.98,
+        apiTps: 23.665,
+        promptTps: 267.27,
+        ttfp: 62.663,
+        evalTokens: 6289,
+        acceptance: 0.77326,
+        accepted: 4754,
+        generated: 6148,
+        gtt: 18.921,
+        finishSeconds: 6289 / 30.98
+      },
+      {
+        id: "patchedReddit",
+        label: "Patched Reddit ngram",
+        color: "#39d0ff",
+        serverTps: 30.48,
+        apiTps: 23.182,
+        promptTps: 264.11,
+        ttfp: 63.407,
+        evalTokens: 6134,
+        acceptance: 0.70711,
+        accepted: 4505,
+        generated: 6371,
+        gtt: 20.894,
+        finishSeconds: 6134 / 30.48
+      }
+    ];
+
+    const canvas = document.getElementById("raceCanvas");
+    const ctx = canvas.getContext("2d");
+    const byId = (id) => document.getElementById(id);
+    const maxFinish = Math.max(...lanes.map((lane) => lane.finishSeconds));
+    const maxTokens = Math.max(...lanes.map((lane) => lane.evalTokens));
+    const playbackSeconds = 28;
+    let startedAt = performance.now();
+    let pauseAt = null;
+    let pausedTotal = 0;
+    let playing = true;
+
+    function fmt(value, digits = 0) {
+      return Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(760, Math.floor(rect.width * dpr));
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function roundRect(x, y, w, h, r) {
+      const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function currentRaceTime() {
+      const now = performance.now();
+      const effectiveNow = playing ? now : pauseAt;
+      return Math.min(maxFinish, ((effectiveNow - startedAt - pausedTotal) / 1000) * (maxFinish / playbackSeconds));
+    }
+
+    function fitText(text, maxWidth, basePx = 16, minPx = 11) {
+      let size = basePx;
+      ctx.font = `700 ${size}px Space Grotesk, sans-serif`;
+      while (size > minPx && ctx.measureText(text).width > maxWidth) {
+        size -= 1;
+        ctx.font = `700 ${size}px Space Grotesk, sans-serif`;
+      }
+    }
+
+    function drawLane(lane, index, raceTime) {
+      const width = canvas.clientWidth;
+      const left = 74;
+      const right = width - 54;
+      const trackW = right - left;
+      const y = 146 + index * 126;
+      const tokens = Math.min(lane.evalTokens, lane.serverTps * raceTime);
+      const progress = Math.min(1, tokens / maxTokens);
+      const laneFinishProgress = Math.min(1, raceTime / lane.finishSeconds);
+      const x = left + trackW * progress;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      roundRect(left, y - 30, trackW, 60, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      const gradient = ctx.createLinearGradient(left, 0, x, 0);
+      gradient.addColorStop(0, lane.color);
+      gradient.addColorStop(1, "rgba(255,255,255,0.15)");
+      ctx.fillStyle = gradient;
+      roundRect(left, y - 30, Math.max(0, x - left), 60, 8);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.setLineDash([5, 6]);
+      for (let i = 1; i < 5; i += 1) {
+        const gx = left + trackW * (i / 5);
+        ctx.beginPath();
+        ctx.moveTo(gx, y - 36);
+        ctx.lineTo(gx, y + 36);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      ctx.shadowColor = lane.color;
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = lane.color;
+      roundRect(x - 23, y - 23, 46, 46, 7);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,0.78)";
+      ctx.stroke();
+      ctx.fillStyle = "#070707";
+      ctx.font = "700 14px IBM Plex Mono, monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(index === 0 ? "B" : "R", x, y + 5);
+      ctx.textAlign = "left";
+
+      fitText(lane.label, Math.max(240, trackW * 0.55), 16, 11);
+      ctx.fillStyle = "rgba(255,255,255,0.94)";
+      ctx.fillText(lane.label, left, y - 46);
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      ctx.fillStyle = lane.color;
+      ctx.fillText(`${fmt(lane.serverTps, 2)} tok/s server eval`, left, y + 54);
+      ctx.fillStyle = "rgba(255,255,255,0.68)";
+      ctx.fillText(`API ${fmt(lane.apiTps, 3)} tok/s | acceptance ${fmt(lane.acceptance * 100, 2)}% | GTT ${fmt(lane.gtt, 3)} GiB`, left + 246, y + 54);
+
+      ctx.font = "700 13px IBM Plex Mono, monospace";
+      const readout = laneFinishProgress >= 1
+        ? `finish ${fmt(lane.finishSeconds, 1)}s`
+        : `${fmt(tokens)} / ${fmt(lane.evalTokens)} eval tokens`;
+      const readoutW = ctx.measureText(readout).width;
+      ctx.fillStyle = "rgba(0,0,0,0.56)";
+      roundRect(Math.min(x + 28, right - readoutW - 18), y - 14, readoutW + 16, 28, 6);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillText(readout, Math.min(x + 36, right - readoutW - 10), y + 5);
+      ctx.restore();
+    }
+
+    function draw(raceTime) {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.font = "700 14px IBM Plex Mono, monospace";
+      ctx.fillStyle = "rgba(255,255,255,0.62)";
+      ctx.fillText("server eval token race", 28, 34);
+      ctx.fillText(`${fmt(raceTime, 1)}s / ${fmt(maxFinish, 1)}s`, width - 176, 34);
+
+      ctx.strokeStyle = "rgba(237, 28, 36, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(width - 54, 76);
+      ctx.lineTo(width - 54, height - 42);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(237, 28, 36, 0.9)";
+      ctx.font = "700 12px IBM Plex Mono, monospace";
+      ctx.fillText("finish", width - 96, 64);
+
+      lanes.forEach((lane, index) => drawLane(lane, index, raceTime));
+
+      const leader = [...lanes].sort((a, b) => Math.min(b.evalTokens, b.serverTps * raceTime) - Math.min(a.evalTokens, a.serverTps * raceTime))[0];
+      byId("clockReadout").textContent = `${fmt(raceTime, 1)}s / ${fmt(maxFinish, 1)}s`;
+      byId("clockMode").textContent = raceTime >= maxFinish ? "Final" : `Leader: ${leader.label}`;
+    }
+
+    function tick() {
+      const t = currentRaceTime();
+      draw(t);
+      if (playing && t < maxFinish) requestAnimationFrame(tick);
+    }
+
+    byId("pauseButton").addEventListener("click", () => {
+      if (playing) {
+        pauseAt = performance.now();
+        playing = false;
+        byId("pauseButton").textContent = "Play";
+      } else {
+        pausedTotal += performance.now() - pauseAt;
+        pauseAt = null;
+        playing = true;
+        byId("pauseButton").textContent = "Pause";
+        requestAnimationFrame(tick);
+      }
+    });
+
+    byId("replayButton").addEventListener("click", () => {
+      startedAt = performance.now();
+      pausedTotal = 0;
+      pauseAt = null;
+      playing = true;
+      byId("pauseButton").textContent = "Pause";
+      requestAnimationFrame(tick);
+    });
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      draw(currentRaceTime());
+    });
+
+    resizeCanvas();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
