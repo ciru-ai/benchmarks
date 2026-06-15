@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>27B TG64 Race: Baseline vs Patched Reddit vs Vanilla Qwen</title>
-  <meta name="description" content="Animated TG64 race comparing the fastest 27B Chadrock MTP baseline, patched Reddit ngram settings, and a vanilla upstream Qwen3.6 27B artifact on Strix Halo.">
+  <meta name="description" content="Animated TG64 race comparing the fastest 27B Chadrock MTP baseline, patched Reddit ngram settings, and a fresh vanilla upstream Qwen3.6 27B MTP Vulkan run on Strix Halo.">
   <meta name="theme-color" content="#080808">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -567,7 +567,7 @@
         <div>
           <p class="eyebrow">Crown Citadel Research Report</p>
           <h1>27B TG64 Race: Baseline vs Patched Reddit vs Vanilla Qwen</h1>
-          <p class="subtitle">The fastest local 27B Chadrock/MTP lane races the Reddit-style ngram speculative settings after a test-only runtime patch kept recurrent rollback enabled, plus an older vanilla upstream Qwen3.6 27B artifact for context. The race itself is shown first; the measured settings and interpretation are below.</p>
+          <p class="subtitle">The fastest local 27B Chadrock/MTP lane races the Reddit-style ngram speculative settings after a test-only runtime patch kept recurrent rollback enabled, plus a fresh vanilla upstream Qwen3.6 27B MTP Vulkan run using the same baseline serving settings. The race itself is shown first; the measured settings and interpretation are below.</p>
         </div>
         <div class="winner-card">
           <span>Winner</span>
@@ -580,7 +580,7 @@
         <canvas id="raceCanvas" width="1200" height="540" aria-label="Animated token generation race between baseline, patched Reddit, and vanilla Qwen 27B settings"></canvas>
       </div>
       <div class="race-controls">
-        <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 265.8s</strong></div>
+        <div class="clock"><span id="clockMode">Race clock</span> <strong id="clockReadout">0.0s / 344.5s</strong></div>
         <div>
           <button id="pauseButton" type="button">Pause</button>
           <button id="replayButton" type="button">Replay</button>
@@ -590,7 +590,7 @@
       <div class="metric-strip" aria-label="Headline metrics">
         <div class="stat lane-card lane-reddit"><span>TG64 finish winner</span><b>Reddit by 1.15s</b><small>264.60s vs 265.75s full API generation</small></div>
         <div class="stat lane-card lane-baseline"><span>Server eval TPS</span><b>Baseline by 1.61%</b><small>30.98 vs 30.48 tok/s</small></div>
-        <div class="stat lane-card lane-vanilla"><span>Prompt processing</span><b>Vanilla by 1.19%</b><small>270.45 vs baseline 267.27 tok/s</small></div>
+        <div class="stat lane-card lane-baseline"><span>Prompt processing</span><b>Baseline by 19.10%</b><small>267.27 vs vanilla 224.40 tok/s</small></div>
       </div>
     </section>
 
@@ -608,21 +608,21 @@
             </tr>
           </thead>
           <tbody>
-            <tr><td>Full TG64 API completion</td><td class="num">265.751 s</td><td class="num">264.605 s</td><td class="num">287.577 s</td><td class="num">Reddit wins by 1.146 s over baseline; vanilla is 22.973 s behind Reddit.</td></tr>
-            <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">26.71 tok/s</td><td class="num">Baseline has the best served decode TPS.</td></tr>
-            <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">20.982 tok/s</td><td class="num">Baseline leads raw generated-token TPS.</td></tr>
-            <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">270.45 tok/s</td><td class="num">Vanilla upstream Qwen had the fastest prompt phase in its older artifact.</td></tr>
-            <tr><td>TTFP</td><td class="num">62.663 s</td><td class="num">63.407 s</td><td class="num">61.711 s</td><td class="num">Vanilla upstream Qwen had the lowest TTFP.</td></tr>
-            <tr><td>Generated tokens</td><td class="num">6,289</td><td class="num">6,134</td><td class="num">6,034</td><td class="num">All three stopped before the 8192-token cap.</td></tr>
-            <tr><td>Draft acceptance</td><td class="num">0.77326</td><td class="num">0.70711</td><td class="num">0.68242</td><td class="num">Baseline had the strongest draft acceptance.</td></tr>
-            <tr><td>Draft accepted/generated</td><td class="num">4,754 / 6,148</td><td class="num">4,505 / 6,371</td><td class="num">4,852 / 7,110</td><td class="num">Vanilla row is from the older upstream MTP artifact.</td></tr>
-            <tr><td>Peak GTT</td><td class="num">18.921 GiB</td><td class="num">20.894 GiB</td><td class="num">not recorded</td><td class="num">The older vanilla artifact did not include GTT/VRAM/RAM sampling.</td></tr>
-            <tr><td>Peak VRAM</td><td class="num">1.987 GiB</td><td class="num">1.987 GiB</td><td class="num">not recorded</td><td class="num">Only server metrics were available for the vanilla artifact.</td></tr>
-            <tr><td>Peak system RAM used</td><td class="num">46.250 GiB</td><td class="num">48.092 GiB</td><td class="num">not recorded</td><td class="num">Not comparable for the vanilla row.</td></tr>
+            <tr><td>Full TG64 API completion</td><td class="num">265.751 s</td><td class="num">264.605 s</td><td class="num">344.481 s</td><td class="num">Reddit wins by 1.146 s over baseline; vanilla Vulkan is 79.876 s behind Reddit.</td></tr>
+            <tr><td>Server eval throughput</td><td class="num">30.98 tok/s</td><td class="num">30.48 tok/s</td><td class="num">24.80 tok/s</td><td class="num">Baseline has the best served decode TPS.</td></tr>
+            <tr><td>API generated throughput</td><td class="num">23.665 tok/s</td><td class="num">23.182 tok/s</td><td class="num">19.435 tok/s</td><td class="num">Baseline leads raw generated-token TPS.</td></tr>
+            <tr><td>Prompt processing</td><td class="num">267.27 tok/s</td><td class="num">264.11 tok/s</td><td class="num">224.40 tok/s</td><td class="num">The fresh vanilla Vulkan run used the same baseline serving settings and was slower in prompt processing.</td></tr>
+            <tr><td>TTFP</td><td class="num">62.663 s</td><td class="num">63.407 s</td><td class="num">74.622 s</td><td class="num">Baseline had the lowest TTFP.</td></tr>
+            <tr><td>Generated tokens</td><td class="num">6,289</td><td class="num">6,134</td><td class="num">6,695</td><td class="num">All three stopped before the 8192-token cap.</td></tr>
+            <tr><td>Draft acceptance</td><td class="num">0.77326</td><td class="num">0.70711</td><td class="num">0.71096</td><td class="num">Baseline had the strongest draft acceptance.</td></tr>
+            <tr><td>Draft accepted/generated</td><td class="num">4,754 / 6,148</td><td class="num">4,505 / 6,371</td><td class="num">4,954 / 6,968</td><td class="num">Vanilla row is the new Vulkan run with the same baseline speculative settings.</td></tr>
+            <tr><td>Peak GTT</td><td class="num">18.921 GiB</td><td class="num">20.894 GiB</td><td class="num">21.947 GiB</td><td class="num">Vanilla UD-Q4_K_XL used the most GTT in this comparison.</td></tr>
+            <tr><td>Peak VRAM</td><td class="num">1.987 GiB</td><td class="num">1.987 GiB</td><td class="num">1.746 GiB</td><td class="num">VRAM is less important than GTT on this unified-memory Strix Halo path.</td></tr>
+            <tr><td>Peak system RAM used</td><td class="num">46.250 GiB</td><td class="num">48.092 GiB</td><td class="num">47.240 GiB</td><td class="num">Vanilla sat between baseline and Reddit on sampled system RAM.</td></tr>
           </tbody>
         </table>
         <div class="callout warning">
-          <strong>Interpretation:</strong> the patched Reddit lane won the wall-clock TG64 race by 1.146 seconds. The vanilla upstream Qwen3.6 27B artifact was slower overall at 287.577 seconds, but it had the best prompt throughput and TTFP among the three rows.
+          <strong>Interpretation:</strong> the patched Reddit lane won the wall-clock TG64 race by 1.146 seconds. The fresh vanilla upstream Qwen3.6 27B MTP Vulkan run, using the same baseline settings, finished much later at 344.481 seconds.
         </div>
       </article>
 
@@ -630,7 +630,7 @@
         <h2>What TG64 Measures</h2>
         <p>A TG race is a token-generation race on a fixed long-output request. This one uses the TG64 workload: a long prompt asks the model to produce up to 64 JSON timeline records, with an 8192-token generation cap.</p>
         <p>The page animates the measured full API generation time for each lane. Server eval throughput, prompt processing, TTFP, API raw throughput, acceptance rate, and memory are shown separately because they answer different questions.</p>
-        <p>The vanilla lane is included as an older upstream Qwen3.6 27B reference artifact, not as a Chadrock ROCmFP4 profile.</p>
+        <p>The vanilla lane is included as a fresh upstream Qwen3.6 27B MTP UD-Q4_K_XL Vulkan run, not as a Chadrock ROCmFP4 profile.</p>
         <div class="callout">
           <strong>Why this matters:</strong> standalone decode speed can look good while the served path stalls, emits invalid output, or spends too much time in prompt processing. TG64 keeps those costs visible.
         </div>
@@ -664,18 +664,19 @@
           </div>
           <div class="setting-card lane-card lane-vanilla">
             <h3>Vanilla Upstream Qwen3.6 27B MTP</h3>
-            <span class="tag">artifact: qwen36-27b-mtp-tg64-race8k-20260519T032549Z</span>
+            <span class="tag">artifact: tg64-race-27b-vanilla-baseline-settings-20260615T060702Z</span>
             <span class="tag">model: unsloth Qwen3.6-27B MTP</span>
             <span class="tag">quant: UD-Q4_K_XL</span>
-            <span class="tag">build: upstream llama.cpp MTP Vulkan</span>
+            <span class="tag">build: Chadrock ROCmFP4 server, Vulkan0</span>
             <span class="tag">batch / ubatch: 2048 / 512</span>
             <span class="tag">spec type: draft-mtp</span>
-            <span class="tag">draft n max: 6</span>
-            <span class="tag">split mode: row</span>
+            <span class="tag">draft p split: 0.10</span>
+            <span class="tag">draft n max: 4</span>
+            <span class="tag">split mode: none</span>
             <span class="tag">KV: f16 / f16</span>
           </div>
         </div>
-        <p style="margin-top: 12px;">The baseline and patched Reddit lanes used the same Qwen3.6 27B Chadrock ROCmFP4 MTP model, single-slot serving, filtered endpoint <code>8081</code>, prompt cache disabled, and clean server timing. The patched Reddit lane used a separate test build that keeps recurrent rollback enabled for short ngram drafts, which avoids the prior checkpoint-rollback stall. The vanilla lane is an older upstream Qwen3.6 27B MTP artifact, included as a model-family reference rather than an apples-to-apples Chadrock profile.</p>
+        <p style="margin-top: 12px;">The baseline and patched Reddit lanes used the same Qwen3.6 27B Chadrock ROCmFP4 MTP model, single-slot serving, filtered endpoint <code>8081</code>, prompt cache disabled, and clean server timing. The patched Reddit lane used a separate test build that keeps recurrent rollback enabled for short ngram drafts, which avoids the prior checkpoint-rollback stall. The vanilla lane used the upstream Qwen3.6 27B MTP UD-Q4_K_XL model with the same baseline serving settings on Vulkan0, included as a model-family reference rather than an apples-to-apples Chadrock quant profile.</p>
       </article>
 
       <article class="panel">
@@ -761,8 +762,8 @@ diff --git a/common/common.cpp b/common/common.cpp
       <code>/home/crown/bench-results/llama/tg64-race-27b-baseline-vs-patched-reddit-20260615T051056Z</code>
       <p style="margin-top: 12px;">Summary JSON:</p>
       <code>summary.json</code>
-      <p style="margin-top: 12px;">Vanilla upstream Qwen reference artifact:</p>
-      <code>/home/crown/bench-results/llama/qwen36-27b-mtp-tg64-race8k-20260519T032549Z</code>
+      <p style="margin-top: 12px;">Vanilla upstream Qwen Vulkan artifact:</p>
+      <code>/home/crown/bench-results/llama/tg64-race-27b-vanilla-baseline-settings-20260615T060702Z</code>
     </section>
   </main>
 
@@ -805,16 +806,16 @@ diff --git a/common/common.cpp b/common/common.cpp
         label: "Vanilla Qwen3.6 27B",
         symbol: "V",
         color: "#f6c046",
-        serverTps: 26.714,
-        apiTps: 20.982,
-        promptTps: 270.45,
-        ttfp: 61.711,
-        evalTokens: 6034,
-        acceptance: 0.68242,
-        accepted: 4852,
-        generated: 7110,
-        gtt: null,
-        finishSeconds: 287.577381
+        serverTps: 24.8,
+        apiTps: 19.435,
+        promptTps: 224.4,
+        ttfp: 74.622,
+        evalTokens: 6695,
+        acceptance: 0.71096,
+        accepted: 4954,
+        generated: 6968,
+        gtt: 21.947,
+        finishSeconds: 344.481075
       }
     ];
 
