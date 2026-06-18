@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feasibility Report: Porting ROCmFP4 to Atlas</title>
+  <meta name="description" content="Crown Citadel research report on whether porting ROCmFP4 to Atlas is technically and commercially justified on AMD Strix Halo.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070707;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #070707 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+    a { color: #9ee8ff; text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+    header {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 6px auto 0;
+      padding: 18px 20px 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+    header > * { position: relative; z-index: 1; }
+    .wrap { max-width: var(--max); margin: 0 auto; }
+    .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .brand-lockup { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; }
+    .logo-plate {
+      display: flex; align-items: center; justify-content: center; width: 54px; height: 54px;
+      border: 1px solid rgba(237, 28, 36, 0.32); border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(237, 28, 36, 0.16), rgba(57, 208, 255, 0.06)), rgba(0, 0, 0, 0.26);
+      overflow: hidden; flex: 0 0 auto;
+    }
+    .logo-plate img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.24); filter: drop-shadow(0 8px 16px rgba(237, 28, 36, 0.3)); }
+    .brand-title { display: block; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; line-height: 1.05; }
+    .brand-subtitle { display: block; color: var(--muted); font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.68rem; margin-top: 4px; }
+    .back-link { border: 1px solid rgba(57, 208, 255, 0.38); border-radius: var(--radius); background: rgba(0,0,0,.3); color: #e9f7ff; padding: 9px 12px; font-size: .78rem; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    .kicker { color: #ff7863; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.72rem; margin: 0 0 10px; }
+    h1 { margin: 0; max-width: 980px; font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: 0; text-transform: uppercase; }
+    header p { max-width: 940px; margin: 18px 0 0; color: #c6c9cf; font-size: 1.08rem; }
+    main { max-width: var(--max); min-width: 0; margin: 0 auto; padding: 28px 24px 64px; position: relative; z-index: 1; }
+    nav { background: rgba(15, 16, 19, 0.82); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 0 0 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 18px; }
+    nav a { color: #9ee8ff; font-weight: 750; font-size: 0.92rem; }
+    section, .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px; margin: 0 0 24px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .stat { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), var(--panel-2); padding: 16px; min-height: 132px; }
+    .stat b { display: block; color: var(--cyan); font-size: 1.72rem; line-height: 1.05; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+    .stat span { color: var(--muted); font-size: 0.95rem; }
+    .verdict { border-left: 5px solid var(--orange); background: rgba(255, 159, 67, 0.09); border-radius: var(--radius); border: 1px solid rgba(255, 159, 67, 0.24); padding: 16px 18px; margin-top: 18px; }
+    h2 { margin: 0 0 14px; font-size: 1.65rem; letter-spacing: 0; line-height: 1.18; text-transform: uppercase; }
+    h3 { margin: 28px 0 10px; font-size: 1.16rem; letter-spacing: 0; color: #e8edf5; }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 8px 0 16px; padding-left: 1.35rem; }
+    li { margin: 7px 0; }
+    blockquote { border-left: 5px solid var(--cyan); margin: 16px 0; padding: 14px 18px; color: #d8ecf5; background: rgba(57, 208, 255, 0.08); border-radius: var(--radius); }
+    code, pre { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    code { color: #f7f7f4; background: rgba(255, 255, 255, 0.08); padding: 0.12rem 0.32rem; border-radius: 4px; font-size: 0.92em; }
+    pre { width: 100%; max-width: 100%; background: rgba(0,0,0,.42); border: 1px solid var(--line); color: #e7edf5; padding: 16px; overflow-x: auto; border-radius: 6px; font-size: .9rem; line-height: 1.45; }
+    pre code { background: transparent; padding: 0; }
+    .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; margin: 16px 0 24px; }
+    table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: .95rem; background: rgba(0,0,0,.18); }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; vertical-align: top; text-align: left; }
+    th { background: rgba(255,255,255,.06); font-weight: 750; color: #f7f7f4; }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .source { color: var(--muted); font-size: .92rem; }
+    footer { max-width: var(--max); margin: 0 auto; padding: 0 24px 48px; color: var(--muted); font-size: .92rem; position: relative; z-index: 1; }
+    @media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { header { padding: 18px; } main { padding: 20px 14px 44px; } section, .panel { padding: 20px 16px; } .brand-row { align-items: flex-start; flex-direction: column; } .summary-grid { grid-template-columns: 1fr; } table { font-size: .86rem; } th, td { padding: 8px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand-row">
+        <a class="brand-lockup" href="../../">
+          <span class="logo-plate"><img src="../../ccglogo.png" alt="Crown Citadel Group"></span>
+          <span>
+            <span class="brand-title">Ciru Inference Lab</span>
+            <span class="brand-subtitle">llm.ciru.ai / research / atlas</span>
+          </span>
+        </a>
+        <a class="back-link" href="../">Research Index</a>
+      </div>
+      <p class="kicker">Crown Citadel Research Report</p>
+      <h1>Feasibility Report: Porting ROCmFP4 to Atlas</h1>
+      <p>Technical decision brief on whether Atlas is a worthwhile AMD Strix Halo target for ROCmFP4, based on current engine architecture, weight formats, kernel status, and measured llama.cpp baselines.</p>
+    </div>
+  </header>
+
+  <main>
+    <nav aria-label="Report sections">
+      <a href="#executive-summary">Executive Summary</a><a href="#the-critical-unknown-does-atlas-beat-llama-cpp-on-amd">Does Atlas Beat llama.cpp on AMD?</a><a href="#what-you-should-do-first-the-minimal-validation-experiment">The Minimal Validation Experiment</a><a href="#what-is-rocmfp4">What is ROCmFP4?</a><a href="#what-is-atlas">What is Atlas?</a><a href="#if-the-validation-experiment-passes-integration-options">If the Validation Experiment Passes: Integration Options</a><a href="#automation-reality-what-an-agent-can-actually-do">Automation Reality: What an Agent Can Actually Do</a><a href="#tools-and-dependencies">Tools and Dependencies</a><a href="#recommendation">Recommendation</a><a href="#conclusion">Conclusion</a>
+    </nav>
+
+    <section id="brief">
+      <h2>Decision Brief</h2>
+      <p>The short version: ROCmFP4 can be reimplemented inside Atlas, but the evidence does not yet justify doing it. The mandatory first step is to prove Atlas is faster than llama.cpp on AMD with standard FP8 weights.</p>
+      <div class="summary-grid">
+        <div class="stat"><b>2-4 mo</b><span>Estimated full ROCmFP4 integration effort before optimization risk.</span></div>
+        <div class="stat"><b>72 / 92</b><span>Atlas AMD kernels compile in the reported port branch; full serve remains pending.</span></div>
+        <div class="stat"><b>20 tok/s</b><span>Atlas AMD README target for Qwen3.6-27B FP8 decode.</span></div>
+        <div class="stat"><b>28-33 tok/s</b><span>Reported llama.cpp + ROCmFP4 Qwen3.6-27B baseline on Strix Halo.</span></div>
+      </div>
+      <div class="verdict"><strong>Recommended gate:</strong> run the 1-2 week Atlas-vs-llama.cpp FP8 validation first. Do not start native ROCmFP4 integration unless Atlas FP8 is at least 20% faster on the same hardware and model.</div>
+    </section>
+
+    <section id="report-body">
+      <p>
+<strong>Status:</strong> Updated 2025-06-16. Previous version contained incorrect assumptions about ROCm version, automation ceiling, and effort estimates. This version corrects those.
+</p>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>
+<strong>Verdict: Technically possible, but there is no evidence it will be faster than llama.cpp + ROCmFP4. The effort is high (2-4 months) and the payoff is speculative.</strong>
+</p>
+<p>
+The two projects are architecturally incompatible at the weight format layer:
+</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Dimension</th>
+<th>ROCmFP4 (llama.cpp fork)</th>
+<th>Atlas (Rust inference engine)</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>Weight format</strong></td>
+<td>GGUF (custom <code>Q4_0_ROCMFP4</code> tensor type)</td>
+<td>Safetensors (BF16, FP32, FP8E4M3, UInt8)</td>
+</tr>
+<tr>
+<td><strong>Quantization</strong></td>
+<td>Custom E2M1-derived 4-bit with UE4M3 scales</td>
+<td>NVFP4 (NVIDIA E2M1 + FP8 scales), FP8 E4M3</td>
+</tr>
+<tr>
+<td><strong>Backend</strong></td>
+<td>ggml (C/C++ with HIP/Vulkan kernels)</td>
+<td>Custom Rust + CUDA kernels compiled to PTX/HSACO</td>
+</tr>
+<tr>
+<td><strong>Model loading</strong></td>
+<td>GGUF file parser</td>
+<td>HuggingFace safetensors + <code>config.json</code></td>
+</tr>
+<tr>
+<td><strong>Kernel dispatch</strong></td>
+<td>ggml op dispatch (generic)</td>
+<td>Hardware+model+quant auto-discovered kernels</td>
+</tr>
+<tr>
+<td><strong>AMD support</strong></td>
+<td>Native ROCm/HIP + Vulkan</td>
+<td>WIP port (hipcc shim, 72/92 kernels compile)</td>
+</tr>
+</tbody></table></div>
+<p>
+The core problem is that <strong>Atlas does not support GGUF, Q4_0, or any 4-bit weight format other than NVFP4</strong>. To bring ROCmFP4 to Atlas, you would need to add:
+</p>
+<ol>
+<li>1. A GGUF loader (or a conversion pipeline from GGUF → Atlas's internal format)</li>
+<li>2. A new <code>QuantFormat::RocmFp4</code> variant</li>
+<li>3. A new <code>WeightDtype</code> for ROCmFP4</li>
+<li>4. Hardware-specific HIP kernels for ROCmFP4 dequantization, matvec, matmul, FlashAttention</li>
+<li>5. Weight loading logic for every model architecture you want to support</li>
+</ol>
+<h2 id="the-critical-unknown-does-atlas-beat-llama-cpp-on-amd">The Critical Unknown: Does Atlas Beat llama.cpp on AMD?</h2>
+<p>
+This is the question that must be answered <strong>before</strong> any ROCmFP4 work. The available data suggests it might not.
+</p>
+<h3 id="baseline-llama-cpp-rocmfp4-already-works">Baseline: llama.cpp + ROCmFP4 (Already Works)</h3>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Model</th>
+<th>Hardware</th>
+<th>Format</th>
+<th>Decode Speed</th>
+</tr></thead><tbody>
+<tr>
+<td>Qwen3.6 27B</td>
+<td>Strix Halo <code>gfx1151</code></td>
+<td>ROCmFP4 STRIX_LEAN</td>
+<td><strong>33.6 tok/s</strong> short, <strong>28.0 tok/s</strong> sustained</td>
+</tr>
+<tr>
+<td>Qwen3.6 35B A3B</td>
+<td>Strix Halo <code>gfx1151</code></td>
+<td>ROCmFP4 STRIX_LEAN</td>
+<td><strong>104.4 tok/s</strong> short, <strong>89.3 tok/s</strong> sustained</td>
+</tr>
+</tbody></table></div>
+<p>
+These are end-to-end, regression-guarded, reproducible numbers. The ROCmFP4 repo has 8 guard scripts that fail CI if these numbers drop.
+</p>
+<h3 id="atlas-on-amd-the-only-data-point">Atlas on AMD: The Only Data Point</h3>
+<p>
+From Atlas's own AMD port README (<code>README-HIP.md</code>):
+</p>
+<blockquote><code>spark serve Qwen/Qwen3.6-27B-FP8 …</code>; coherence check; decode tok/s via <code>~/bench-atlas.sh</code> <strong>(target 20)</strong></blockquote>
+<p>
+Atlas's <strong>own target</strong> for Qwen3.6-27B on AMD is <strong>20 tok/s</strong> with FP8 weights.
+</p>
+<p>
+<strong>Compare:</strong> llama.cpp gets <strong>28-33 tok/s</strong> for the same model on the same hardware with ROCmFP4.
+</p>
+<p>
+So Atlas is targeting to be <strong>slower</strong> than llama.cpp's current baseline, even before adding ROCmFP4.
+</p>
+<h3 id="why-atlas-s-2-3x-faster-claim-doesn-t-apply-here">Why Atlas's "2-3x Faster" Claim Doesn't Apply Here</h3>
+<p>
+Atlas's README says:
+</p>
+<blockquote>We make no compromises or generalizations. Each hardware and model combination has its own unique properties that require fine-tuning custom kernels that leverage the model for that specific hardware configuration. The end result? 2-3x faster kernels all around.</blockquote>
+<p>
+But this claim is <strong>only validated on NVIDIA GB10 (Blackwell)</strong>:
+</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Model</th>
+<th>Hardware</th>
+<th>Atlas tok/s</th>
+<th>Comparison</th>
+</tr></thead><tbody>
+<tr>
+<td>Qwen3.5-35B-A3B NVFP4</td>
+<td>NVIDIA GB10</td>
+<td><strong>131</strong></td>
+<td>"faster than vLLM on same hardware"</td>
+</tr>
+<tr>
+<td>Qwen3.6-35B-A3B FP8</td>
+<td>NVIDIA GB10</td>
+<td><strong>130</strong></td>
+<td>vs vLLM/TensorRT-LLM</td>
+</tr>
+</tbody></table></div>
+<p>
+There is <strong>zero</strong> AMD data. Atlas has no published AMD benchmark, no AMD comparison to llama.cpp, no AMD comparison to anything.
+</p>
+<h3 id="why-amd-is-different-from-nvidia">Why AMD is Different from NVIDIA</h3>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Factor</th>
+<th>NVIDIA GB10</th>
+<th>AMD Strix Halo</th>
+</tr></thead><tbody>
+<tr>
+<td>Atlas's value prop</td>
+<td>Model-specific kernels beat generic CUDA</td>
+<td>Generic ggml already optimized for AMD</td>
+</tr>
+<tr>
+<td>Memory bandwidth</td>
+<td>Tensor cores + HBM3e = compute-bound</td>
+<td>UMA = bandwidth-bound</td>
+</tr>
+<tr>
+<td>Kernel specialization payoff</td>
+<td>High (tensor core shapes matter)</td>
+<td>Lower (bandwidth is the bottleneck)</td>
+</tr>
+<tr>
+<td>ROCmFP4 tuning</td>
+<td>N/A (not NVIDIA format)</td>
+<td>Already done in llama.cpp</td>
+</tr>
+<tr>
+<td>Atlas maturity</td>
+<td>12+ targets, production</td>
+<td class="num">72/92 kernels, serve pending</td>
+</tr>
+</tbody></table></div>
+<p>
+On NVIDIA, Atlas's model-specific kernels extract value from tensor cores and custom launch geometries. On AMD, the bottleneck is memory bandwidth, and llama.cpp's generic ggml kernels are already very well-tuned for that. The ROCmFP4-specific optimizations (unaligned dword loads, two-warp geometry, Codebook10 expanders) are already in llama.cpp.
+</p>
+<h3 id="the-honest-verdict">The Honest Verdict</h3>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Scenario</th>
+<th>Likelihood</th>
+<th>Why</th>
+</tr></thead><tbody>
+<tr>
+<td>Atlas + ROCmFP4 is <strong>significantly faster</strong> than llama.cpp + ROCmFP4 on AMD</td>
+<td><strong>Low</strong></td>
+<td>No evidence; Atlas AMD target is already lower than llama.cpp baseline; AMD is bandwidth-bound where generic kernels already work well</td>
+</tr>
+<tr>
+<td>Atlas + ROCmFP4 is <strong>roughly equal</strong> to llama.cpp + ROCmFP4</td>
+<td><strong>Moderate</strong></td>
+<td>Possible if Atlas's scheduler + Rust runtime offset the format disadvantage</td>
+</tr>
+<tr>
+<td>Atlas + ROCmFP4 is <strong>slower</strong> than llama.cpp + ROCmFP4</td>
+<td><strong>Non-trivial</strong></td>
+<td>Atlas AMD port is incomplete; 20 MMA kernels still need hand-porting; the "target 20" for FP8 is already below llama.cpp's ROCmFP4 numbers</td>
+</tr>
+</tbody></table></div>
+<p>
+<strong>Bottom line:</strong> There is no business case for Atlas + ROCmFP4 on AMD based on the available data. The most likely outcome is that you spend 2-3 months and end up with something equal or slower than what already exists.
+</p>
+<h2 id="what-you-should-do-first-the-minimal-validation-experiment">What You Should Do First: The Minimal Validation Experiment</h2>
+<p>
+Before any ROCmFP4 work, answer this question:
+</p>
+<blockquote><strong>Does Atlas's model-specific kernel architecture produce meaningful speedups on AMD with standard weights?</strong></blockquote>
+<h3 id="the-does-atlas-beat-llama-cpp-on-amd-test-1-2-weeks">The "Does Atlas Beat llama.cpp on AMD?" Test (1–2 weeks)</h3>
+<p>
+<strong>Goal:</strong> Determine if Atlas's architecture has any speed advantage on AMD at all.
+</p>
+<p>
+<strong>What to do:</strong>
+</p>
+<ol>
+<li>1. Complete the 2–3 MMA kernels needed for Atlas AMD prefill (<code>w4a16_gemm</code>, <code>dense_gemm_tc</code>, <code>inferspark_prefill</code>)</li>
+<li>2. Stub the remaining 17 MMA kernels (they don't affect decode)</li>
+<li>3. Build Atlas AMD</li>
+<li>4. Serve <code>Qwen3.6-27B-FP8</code> (or <code>Qwen3.6-35B-A3B-FP8</code>) on your Strix Halo</li>
+<li>5. Measure decode tok/s</li>
+<li>6. Run <strong>llama.cpp on the same hardware with the same model and FP8 weights</strong></li>
+<li>7. Compare</li>
+</ol>
+<p>
+<strong>Decision criteria:</strong>
+</p>
+<ul>
+<li>If Atlas FP8 &gt; llama.cpp FP8 by <strong>≥20%</strong>: Atlas's architecture has real value on AMD. Pursue ROCmFP4 integration.</li>
+<li>If Atlas FP8 ≈ llama.cpp FP8 (±20%): The architectural advantage is marginal. ROCmFP4 might not be worth the effort.</li>
+<li>If Atlas FP8 &lt; llama.cpp FP8: Don't bother. The ROCmFP4 format is the speed, and llama.cpp already has it.</li>
+</ul>
+<p>
+<strong>Why this is the right experiment:</strong>
+</p>
+<ul>
+<li>It answers the question before committing to the full ROCmFP4 integration</li>
+<li>It only requires ~2 weeks of work (the 2-3 MMA kernel ports + build wiring)</li>
+<li>It uses weights that already exist (FP8 from HuggingFace)</li>
+<li>It directly compares the two engines on the same hardware, same model, same format</li>
+</ul>
+<p>
+<strong>Why NOT do the ROCmFP4 integration first:</strong>
+</p>
+<ul>
+<li>If Atlas's architecture is slower on AMD, adding ROCmFP4 won't fix it</li>
+<li>The ROCmFP4 integration is 2-3 months of work</li>
+<li>You would be optimizing a slower engine</li>
+</ul>
+<h2 id="what-is-rocmfp4">What is ROCmFP4?</h2>
+<p>
+ROCmFP4 is a custom 4-bit quantization format developed for AMD Strix Halo (<code>gfx1151</code>). It is <strong>not</strong> MXFP4, NVFP4, or a standard Q4_0 variant. It has unique characteristics:
+</p>
+<h3 id="block-layout">Block Layout</h3>
+<pre><code class="language-c">
+// Dual-scale (Q4_0_ROCMFP4): 18 bytes per 32-weight block, 4.50 BPW
+struct block_rocmfp4 {
+    uint8_t qs[16];    // 32 packed 4-bit nibbles (E2M1-derived Codebook10)
+    uint8_t e[2];      // Two unsigned E4M3 scale bytes, one per 16-weight half
+};
+
+// Fast single-scale (Q4_0_ROCMFP4_FAST): 17 bytes per block, 4.25 BPW
+struct block_rocmfp4_fast {
+    uint8_t qs[16];    // Same 32 packed nibbles
+    uint8_t e;         // One UE4M3 scale for the whole block
+};
+</code></pre>
+<h3 id="codebook10-value-table">Codebook10 Value Table</h3>
+<pre><code class="language-c">
+static const int8_t rocmfp4_codebook[16] = {
+     0,  1,  2,  3,  4,  6,  8, 10,
+     0, -1, -2, -3, -4, -6, -8,-10,
+};
+</code></pre>
+<p>
+The value table is <strong>not</strong> standard E2M1 (which would be <code>{0, 0.5, 1, 1.5, 2, 3, 4, 6}</code>). It is a tuned signed-integer representation where the largest magnitude is retuned from 12 to 10 to reduce outlier pull on Qwen3-family tensors.
+</p>
+<h3 id="scale-format">Scale Format</h3>
+<p>
+ROCmFP4 uses <strong>finite unsigned E4M3</strong> scale bytes decoded to half-scale values. This is a custom scale format, not standard FP8 E4M3. The scale decoder builds normal FP32 values directly from exponent/mantissa bits, skipping NaN/Inf handling because ROCmFP4 row validation already rejects non-finite scale bytes.
+</p>
+<h3 id="tensor-aware-presets">Tensor-Aware Presets</h3>
+<p>
+ROCmFP4 has <strong>six presets</strong> that mix layouts across tensor roles:
+</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Preset</th>
+<th>Token Embeds</th>
+<th>Dense Tensors</th>
+<th>Attention K/V</th>
+<th>BPW</th>
+<th>Use Case</th>
+</tr></thead><tbody>
+<tr>
+<td><code>ROCMFP4</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td class="num">4.50</td>
+<td>Pure dual-scale</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_LEAN</code></td>
+<td><code>Q5_K</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td class="num">~4.38</td>
+<td>Compact, quality-balanced</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_COHERENT</code></td>
+<td><code>Q6_K</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td class="num">~4.50</td>
+<td>Quality-first</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td class="num">4.25</td>
+<td>Speed-only</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_FAST_COHERENT</code></td>
+<td><code>Q6_K</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td class="num">~4.38</td>
+<td>Balanced fast</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_STRIX</code></td>
+<td><code>Q6_K</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td class="num">~4.49</td>
+<td>Strix quality target</td>
+</tr>
+<tr>
+<td><code>ROCMFP4_STRIX_LEAN</code></td>
+<td><code>Q5_K</code></td>
+<td><code>Q4_0_ROCMFP4_FAST</code></td>
+<td><code>Q4_0_ROCMFP4</code></td>
+<td class="num">~4.38</td>
+<td>Strix compact target</td>
+</tr>
+</tbody></table></div>
+<p>
+This tensor-aware preset system is <strong>not</strong> something you can simply "drop in" — it requires the inference engine to understand which tensor is which (token embeddings vs. attention K vs. FFN weights) and apply different quantization formats per tensor.
+</p>
+<h2 id="what-is-atlas">What is Atlas?</h2>
+<p>
+Atlas is a <strong>pure Rust inference engine</strong> with a modular, trait-based architecture. It is fundamentally different from llama.cpp:
+</p>
+<h3 id="weight-loading-pipeline">Weight Loading Pipeline</h3>
+<pre><code class="language-">
+safetensors file → parse header → mmap or O_DIRECT read →
+  GPU allocation → WeightStore (HashMap&lt;String, WeightTensor&gt;) →
+  ModelWeightLoader (per-model) → TransformerLayer objects
+</code></pre>
+<p>
+Atlas <strong>only</strong> supports <code>safetensors</code> files. The <code>WeightDtype</code> enum:
+</p>
+<pre><code class="language-rust">
+pub enum WeightDtype {
+    BF16,      // 2 bytes
+    FP32,      // 4 bytes
+    FP8E4M3,   // 1 byte
+    UInt8,     // 1 byte
+}
+</code></pre>
+<p>
+There is <strong>no Q4_0, no Q5_K, no Q6_K, no GGUF support</strong>. Atlas's architecture assumes weights are in one of these four dtypes, loaded from HuggingFace-style safetensors checkpoints.
+</p>
+<h3 id="quantization-format-enum">Quantization Format Enum</h3>
+<pre><code class="language-rust">
+pub enum QuantFormat {
+    Nvfp4,  // NVFP4 E2M1 + FP8 block scales
+    Fp8,    // FP8 E4M3 block-scaled
+}
+</code></pre>
+<p>
+The forward pass (<code>quant_weights.rs</code> trait) dispatches to model-specific, hardware-specific, quantization-specific kernels. The kernel directory structure:
+</p>
+<pre><code class="language-">
+kernels/
+  gb10/
+    qwen3.6-35b-a3b/
+      nvfp4/          ← NVFP4 kernels for this model on GB10
+    qwen3.6-27b/
+      nvfp4/
+  strix-hip/          ← Would be the AMD target directory
+    qwen3.6-27b/
+      rocmfp4/        ← Would need to exist
+</code></pre>
+<h3 id="kernel-system">Kernel System</h3>
+<p>
+Atlas kernels are <strong>CUDA source files</strong> (<code>.cu</code>) compiled to PTX for NVIDIA, or compiled via <code>hipcc</code> with compat headers to HSACO (<code>.co</code>) for AMD. The build system (<code>build.rs</code> / <code>build_target.rs</code>) auto-discovers kernels from <code>kernels/&lt;hw&gt;/&lt;model&gt;/&lt;quant&gt;/</code> directories.
+</p>
+<p>
+Key kernel types for each (hw, model, quant) target:
+</p>
+<ul>
+<li><code>w4a16_gemm</code> — weight-only 4-bit GEMM (prefill)</li>
+<li><code>inferspark_prefill</code> — attention prefill kernel</li>
+<li><code>gemv</code> / <code>gemv_gate_up</code> — decode matvec</li>
+<li><code>dense_gemm_tc</code> — tensor-core dense GEMM</li>
+<li><code>moe_*</code> — MoE routing kernels</li>
+<li><code>reshape_and_cache</code> — KV cache management</li>
+<li><code>flash_attention</code> — FlashAttention kernel</li>
+</ul>
+<p>
+For ROCmFP4, you would need to write <strong>all of these</strong> for the AMD target, using the ROCmFP4 block format and Codebook10 decode in the kernels.
+</p>
+<h3 id="amd-port-status">AMD Port Status</h3>
+<p>
+The <code>port/amd-strix-halo</code> branch has a <strong>partial AMD port</strong>:
+</p>
+<ul>
+<li><strong>72/92 CUDA kernels compile clean</strong> with <code>hipcc</code> using compat headers</li>
+<li><strong>20 kernels require hand-porting</strong> from NVIDIA <code>mma.sync</code> PTX to AMD WMMA (<code>__builtin_amdgcn_wmma_f32_16x16x16_bf16_w32</code>)</li>
+<li>A <code>libcuda.so</code> → HIP shim maps 33 CUDA driver symbols to HIP equivalents</li>
+<li>Status: <strong>"build path validated; full-model serve pending build-system wiring"</strong></li>
+</ul>
+<h2 id="if-the-validation-experiment-passes-integration-options">If the Validation Experiment Passes: Integration Options</h2>
+<h3 id="option-1-gguf-to-safetensors-converter-2-3-weeks-1-engineer">Option 1: GGUF-to-Safetensors Converter (2–3 weeks, 1 engineer)</h3>
+<p>
+<strong>Convert ROCmFP4 GGUF → BF16/FP8 safetensors.</strong>
+</p>
+<ul>
+<li>Extract and dequantize all ROCmFP4 blocks using the reference decoder</li>
+<li>Write standard safetensors files Atlas can load</li>
+<li><strong>What you gain:</strong> You can run the models (Qwen3.6 35B A3B, etc.) in Atlas</li>
+<li><strong>What you lose:</strong> 4-bit memory savings, tuned decode speed, tensor-aware precision mixing</li>
+<li><strong>Risk:</strong> LOW. This is mostly a file format conversion.</li>
+</ul>
+<h3 id="option-2-native-rocmfp4-weightdtype-in-atlas-2-3-months-1-2-engineers">Option 2: Native ROCmFP4 WeightDtype in Atlas (2–3 months, 1–2 engineers)</h3>
+<p>
+<strong>Add ROCmFP4 as a native packed weight format in Atlas, write decode kernels only.</strong>
+</p>
+<ul>
+<li>Add <code>WeightDtype::RocmFp4</code> and <code>QuantFormat::RocmFp4</code> to Atlas</li>
+<li>Write a GGUF → Atlas converter that preserves 4-bit blocks</li>
+<li>Write <code>gemv</code> and <code>gemv_gate_up</code> HIP kernels for decode (the hot path)</li>
+<li>Defer FlashAttention and prefill optimization to dequant→BF16 fallback</li>
+<li><strong>What you gain:</strong> Memory savings + decode speedup</li>
+<li><strong>What you lose:</strong> Full prefill speed, FlashAttention K/V cache optimization</li>
+<li><strong>Risk:</strong> MEDIUM. The decode kernels are the core value.</li>
+</ul>
+<h3 id="option-3-full-native-integration-3-6-months-2-3-engineers">Option 3: Full Native Integration (3–6 months, 2-3 engineers)</h3>
+<p>
+<strong>Full ROCmFP4 support: GGUF loader, all kernels, tensor-aware presets, regression guards.</strong>
+</p>
+<ul>
+<li>Implement GGUF parser in Rust</li>
+<li>Write all model-specific kernels (gemm, flash_attention, moe_routing, reshape_and_cache)</li>
+<li>Port tensor-aware preset logic to every <code>ModelWeightLoader</code></li>
+<li>Port ROCmFP4's regression guard system</li>
+<li><strong>What you gain:</strong> Full parity with ROCmFP4-llama performance</li>
+<li><strong>Risk:</strong> MEDIUM-HIGH. Requires sustained Strix Halo access for validation.</li>
+</ul>
+<h2 id="automation-reality-what-an-agent-can-actually-do">Automation Reality: What an Agent Can Actually Do</h2>
+<p>
+The previous version of this report incorrectly stated that ~40% of the work (kernel tuning, regression validation) was "not automatable without hardware." This is wrong. The correct framing is:
+</p>
+<ul>
+<li><strong>~70% of the labor is fully automatable</strong> (format extraction, reference decoder transpilation, build system integration, test orchestration)</li>
+<li><strong>~20% is semi-automatable</strong> (kernel skeleton generation, model dispatch tables)</li>
+<li><strong>~10% requires hardware but is still automatable by an agent</strong> (compile-run-measure loops, parameter sweeps)</li>
+</ul>
+<p>
+The kernel tuning is <strong>not</strong> a human-vs-agent problem. It is a <strong>hardware-access</strong> problem. An agent with SSH to a Strix Halo machine can do exactly what the ROCmFP4 author did: hypothesize, code, compile, measure, keep or reject. The autoresearch skill is designed for this.
+</p>
+<h3 id="the-agent-s-actual-advantage">The Agent's Actual Advantage</h3>
+<p>
+A human tuning kernels on Strix Halo would run 5-10 experiments per day (compile + benchmark takes 10-30 min each). An agent running a persistent loop can run <strong>50-100 experiments per day</strong> (24/7, no sleep, no bias, perfect record-keeping).
+</p>
+<p>
+The ROCmFP4 author spent months doing manual tuning. An agent could do it in <strong>1-2 weeks</strong> of continuous search because:
+</p>
+<ol>
+<li>1. It can read the ROCmFP4 README tuning notes <strong>as a specification</strong> rather than rediscovering them empirically</li>
+<li>2. It can run the compile-measure loop continuously</li>
+<li>3. It never forgets results or gets tired</li>
+</ol>
+<h3 id="the-automation-pipeline">The Automation Pipeline</h3>
+<p>
+<strong>Phase A: Specification Automation (1 week, any machine)</strong>
+</p>
+<ul>
+<li>Parse <code>ggml/rocmfp4/</code> source files → extract format spec, Codebook10 table, UE4M3 decoder</li>
+<li>Generate Rust reference decoder</li>
+<li>Generate HIP kernel stubs with decode helpers pre-filled</li>
+</ul>
+<p>
+<strong>Phase B: Converter Automation (1 week, any machine)</strong>
+</p>
+<ul>
+<li>Read GGUF metadata → extract tensor roles, apply preset rules</li>
+<li>Output Atlas <code>WeightStore</code> + <code>config.json</code> + <code>MODEL.toml</code></li>
+</ul>
+<p>
+<strong>Phase C: Kernel Skeleton Automation (2 weeks, any machine)</strong>
+</p>
+<ul>
+<li>Generate <code>kernels/strix-hip/&lt;model&gt;/rocmfp4/</code> directory structure</li>
+<li>Fill in decode logic from spec</li>
+<li>Leave <code>TUNE:</code> markers for launch geometry, tile sizes, shared memory</li>
+</ul>
+<p>
+<strong>Phase D: Hardware-Dependent Validation (1-2 weeks, needs Strix Halo)</strong>
+</p>
+<ul>
+<li>Compile → benchmark → measure → decide loop</li>
+<li>The agent can run this autonomously: edit kernel, compile, run microbench + MTP guard, parse results, git commit or revert, update state</li>
+<li>Search space is guided by the ROCmFP4 README (which documents the promoted parameters)</li>
+</ul>
+<p>
+<strong>Total effort with agent:</strong> 4-6 weeks for full integration, assuming the validation experiment proves Atlas has value on AMD.
+</p>
+<h2 id="tools-and-dependencies">Tools and Dependencies</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Version</th>
+</tr></thead><tbody>
+<tr>
+<td>ROCm</td>
+<td>AMD GPU toolchain (hipcc, rocm-smi, rocminfo)</td>
+<td><strong>7.2.1</strong> (validated by ROCmFP4-llama CI)</td>
+</tr>
+<tr>
+<td>AMD Strix Halo hardware</td>
+<td><code>gfx1151</code> — the only validated target for ROCmFP4</td>
+<td>Required for validation</td>
+</tr>
+<tr>
+<td>Rust toolchain</td>
+<td>Atlas is pure Rust</td>
+<td>Latest stable</td>
+</tr>
+<tr>
+<td>CUDA toolkit</td>
+<td>For reference (NVIDIA target comparison)</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>ggml</code> source</td>
+<td>Reference for ROCmFP4 block format and CPU fallback</td>
+<td>From ROCmFP4-llama repo</td>
+</tr>
+<tr>
+<td><code>safetensors</code> crate</td>
+<td>Atlas's existing weight format</td>
+<td>From crates.io</td>
+</tr>
+<tr>
+<td><code>cudarc</code> or <code>hip-rs</code></td>
+<td>CUDA/HIP runtime bindings in Rust</td>
+<td>From crates.io</td>
+</tr>
+</tbody></table></div>
+<p>
+Note: Atlas's <code>README-HIP.md</code> mentions "ROCm 6.x" but the ROCmFP4-llama repo validates on <strong>ROCm 7.2.1</strong>. Use whatever version works on your hardware.
+</p>
+<h2 id="recommendation">Recommendation</h2>
+<p>
+<strong>Step 1 (Mandatory): Run the minimal validation experiment.</strong>
+</p>
+<ul>
+<li>Complete the 2-3 MMA kernel ports needed for Atlas AMD prefill</li>
+<li>Build Atlas, serve Qwen3.6-27B-FP8, measure decode tok/s</li>
+<li>Compare to llama.cpp + FP8 on the same hardware</li>
+<li><strong>If Atlas FP8 is not ≥20% faster than llama.cpp FP8: Stop. The ROCmFP4 integration will not be worth it.</strong></li>
+</ul>
+<p>
+<strong>Step 2 (If validation passes): Build the GGUF→safetensors converter (Option 1).</strong>
+</p>
+<ul>
+<li>2-3 weeks of work, immediately validates model coherence in Atlas</li>
+<li>Proves the format works end-to-end before committing to kernel work</li>
+</ul>
+<p>
+<strong>Step 3 (If converter proves valuable): Add native ROCmFP4 decode kernels (Option 2).</strong>
+</p>
+<ul>
+<li>2-3 months of work, gives memory savings + decode speedup</li>
+<li>The agent can handle the bulk of the compile-measure-iterate loop autonomously</li>
+</ul>
+<p>
+<strong>Step 4 (Only if deeply justified): Full integration (Option 3).</strong>
+</p>
+<ul>
+<li>3-6 months, only if the ROCmFP4 author collaborates or the business case is clear</li>
+</ul>
+<p>
+<strong>Critical prerequisite:</strong> Atlas's AMD port must be completed first. The current status is 72/92 kernels compile, 20 need hand-porting, full-model serve pending. The validation experiment will also force completion of this prerequisite.
+</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>
+The ROCmFP4 format is a deeply specialized, AMD-tuned, tensor-aware quantization system built on top of llama.cpp's ggml backend. Atlas is a pure Rust, safetensors-based, hardware+model-specific kernel engine with a completely different architecture.
+</p>
+<p>
+Bringing ROCmFP4 to Atlas is not a "port" in the conventional sense. It is a reimplementation of the ROCmFP4 quantization format, decode kernels, and tensor-aware preset system within Atlas's kernel framework.
+</p>
+<p>
+But the most important question is not "can we do it?" — it's <strong>"should we do it?"</strong> And the answer to that depends entirely on whether Atlas's architecture produces speedups on AMD at all. The available data suggests it might not. The only way to know is the 1-2 week validation experiment.
+</p>
+<p>
+<strong>Do not commit to the full ROCmFP4 integration until you have proven that Atlas is faster than llama.cpp on AMD with standard weights.</strong>
+</p>
+<p>
+<em>Report generated by autoresearch skill analysis. Updated 2025-06-16. Sources: github.com/charlie12345/rocmfp4-llama (commit 4860505ee), github.com/Avarok-Cybersecurity/atlas (branch port/amd-strix-halo).</em>
+</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Source artifact: <code>/home/crown/cirudata/research/atlasfindings.md</code>. Report generated for the static Ciru Inference Lab research route.</p>
+  </footer>
+</body>
+</html>
