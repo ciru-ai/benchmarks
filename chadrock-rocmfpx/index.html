@@ -622,11 +622,10 @@ env JOBS=16 scripts/build-strix-rocmfp4-mtp.sh llama-server llama-bench</code></
       </p>
       <div class="code-panel">
         <div class="code-head">
-          <span class="code-title">Copy-paste llama configs</span>
-          <button class="copy-button" type="button" data-copy-target="config-code">Copy</button>
+          <span class="code-title">35B ACE/SABER launch</span>
+          <button class="copy-button" type="button" data-copy-target="config-35b-code">Copy</button>
         </div>
-        <pre><code id="config-code"># 35B ACE/SABER ROCmFP4 text winner: 143.08 tok/s gen512, 141.77 tok/s gen2048.
-MODEL=/path/to/Qwen3.6-35B-A3B-NSC-ACE-SABER-MTP-F16-to-ROCmFP4-STRIX_LEAN.gguf \
+        <pre><code id="config-35b-code">MODEL=/path/to/Qwen3.6-35B-A3B-NSC-ACE-SABER-MTP-F16-to-ROCmFP4-STRIX_LEAN.gguf \
 ALIAS=chadrock-35b-ace-saber-rocmfp4-cap4 \
 PORT=18180 \
 CTX_SIZE=32768 \
@@ -644,10 +643,14 @@ SPEC_DRAFT_P_MIN=0.25 \
 SPEC_DRAFT_P_SPLIT=0.10 \
 NO_MMPROJ=1 \
 STRICT_BENCH=1 \
-scripts/run-rocmfpx-mtp-server.sh
-
-# Qwable 5 27B Chadrock v2 ROCmFP4 winner: 53.25 tok/s gen512 at 3946 prompt tokens.
-MODEL=/path/to/Qwable-5-27B-Chadrock-v2-ROCmFP4.gguf \
+scripts/run-rocmfpx-mtp-server.sh</code></pre>
+      </div>
+      <div class="code-panel">
+        <div class="code-head">
+          <span class="code-title">Qwable 5 27B launch</span>
+          <button class="copy-button" type="button" data-copy-target="config-qwable-code">Copy</button>
+        </div>
+        <pre><code id="config-qwable-code">MODEL=/path/to/Qwable-5-27B-Chadrock-v2-ROCmFP4.gguf \
 ALIAS=qwable-5-27b-chadrock-v2-rocmfp4 \
 PORT=18180 \
 CTX_SIZE=131072 \
@@ -701,10 +704,10 @@ scripts/run-rocmfpx-mtp-server.sh</code></pre>
       </p>
       <div class="code-panel">
         <div class="code-head">
-          <span class="code-title">Copy-paste completion request</span>
-          <button class="copy-button" type="button" data-copy-target="request-code">Copy</button>
+          <span class="code-title">35B ACE/SABER request</span>
+          <button class="copy-button" type="button" data-copy-target="request-35b-code">Copy</button>
         </div>
-        <pre><code id="request-code">curl -sS http://127.0.0.1:18180/completion \
+        <pre><code id="request-35b-code">curl -sS http://127.0.0.1:18180/completion \
   -H 'Content-Type: application/json' \
   -d '{
     "prompt": "Write a concise technical note about ROCmFPX MTP serving.",
@@ -716,9 +719,22 @@ scripts/run-rocmfpx-mtp-server.sh</code></pre>
     "speculative.p_min": 0.25
   }'</code></pre>
       </div>
-      <div class="callout warning">
-        For the Qwable 5 27B winner profile, use <code>speculative.n_max=6</code>,
-        <code>speculative.n_min=0</code>, and <code>speculative.p_min=0.0</code>.
+      <div class="code-panel">
+        <div class="code-head">
+          <span class="code-title">Qwable 5 27B request</span>
+          <button class="copy-button" type="button" data-copy-target="request-qwable-code">Copy</button>
+        </div>
+        <pre><code id="request-qwable-code">curl -sS http://127.0.0.1:18180/completion \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "prompt": "Write a concise technical note about ROCmFPX MTP serving.",
+    "n_predict": 512,
+    "temperature": 0,
+    "ignore_eos": true,
+    "speculative.n_max": 6,
+    "speculative.n_min": 0,
+    "speculative.p_min": 0.0
+  }'</code></pre>
       </div>
     </section>
 
