@@ -411,6 +411,10 @@
       color: var(--red);
     }
 
+    .subtle {
+      color: var(--subtle);
+    }
+
     .steps {
       counter-reset: step;
       display: grid;
@@ -530,7 +534,6 @@
       <a href="#design">Design</a>
       <a href="#evidence">Evidence</a>
       <a href="#limits">Limits</a>
-      <a href="#next">Next</a>
     </nav>
 
     <section id="idea">
@@ -601,7 +604,67 @@
       <h2>Evidence From Qwen 3.6 35B</h2>
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
-        prompt caching disabled. The final DD policy selected the intended settings at 64k, 128k, and 256k context.
+        prompt caching disabled. The practical comparison is a fixed static draft setting versus the
+        context-selected draft setting a server policy can apply automatically.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Context</th>
+              <th>Static draft</th>
+              <th class="num">Static TG</th>
+              <th>Context-selected draft</th>
+              <th class="num">Selected TG</th>
+              <th class="num">Delta</th>
+              <th>Readout</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>4k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">90.64 tok/s</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">92.54 tok/s</td>
+              <td class="num ok">+2.1%</td>
+              <td>Short-context policy is already appropriate.</td>
+            </tr>
+            <tr>
+              <td>64k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">64.26 tok/s</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">74.85 tok/s</td>
+              <td class="num ok">+16.5%</td>
+              <td>Lower draft depth outperformed the short-context static setting.</td>
+            </tr>
+            <tr>
+              <td>128k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">43.26 tok/s</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">54.61 tok/s</td>
+              <td class="num ok">+26.2%</td>
+              <td>The short-context static policy became materially worse.</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td><span class="subtle">not rerun</span></td>
+              <td class="num">-</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">35.82 tok/s</td>
+              <td class="num">-</td>
+              <td>The long-context policy remained usable at the near-limit prompt.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top: 22px;">DD policy execution rows</h3>
+      <p>
+        These rows show the server-side policy applying request settings after tokenization. The decision time was
+        0-1 microseconds in the persisted benchmark rows.
       </p>
       <div class="table-wrap">
         <table>
@@ -609,9 +672,7 @@
             <tr>
               <th>Context</th>
               <th>DD selected</th>
-              <th class="num">DD TG</th>
-              <th class="num">No-draft TG</th>
-              <th class="num">Gain</th>
+              <th class="num">TG</th>
               <th class="num">Draft accepted/generated</th>
               <th class="num">Decision</th>
             </tr>
@@ -621,8 +682,6 @@
               <td>64k</td>
               <td><code>n4,p0.0</code></td>
               <td class="num">58.96 tok/s</td>
-              <td class="num">49.22 tok/s</td>
-              <td class="num ok">+19.8%</td>
               <td class="num">1372 / 2693</td>
               <td class="num">1 us</td>
             </tr>
@@ -630,8 +689,6 @@
               <td>128k</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">52.95 tok/s</td>
-              <td class="num">37.00 tok/s</td>
-              <td class="num ok">+43.1%</td>
               <td class="num">1218 / 1658</td>
               <td class="num">0 us</td>
             </tr>
@@ -639,62 +696,8 @@
               <td>256k</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">35.82 tok/s</td>
-              <td class="num">25.06 tok/s</td>
-              <td class="num ok">+42.9%</td>
               <td class="num">1215 / 1662</td>
               <td class="num">1 us</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3 style="margin-top: 22px;">Explicit setting checks</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Context</th>
-              <th>Setting</th>
-              <th class="num">TG</th>
-              <th>Readout</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>4k</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">90.64 tok/s</td>
-              <td>Strong short-context draft behavior.</td>
-            </tr>
-            <tr>
-              <td>4k</td>
-              <td>No draft</td>
-              <td class="num">72.46 tok/s</td>
-              <td>Drafting is useful at short context.</td>
-            </tr>
-            <tr>
-              <td>128k</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">43.26 tok/s</td>
-              <td>Short-context setting loses at long context.</td>
-            </tr>
-            <tr>
-              <td>128k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">54.61 tok/s</td>
-              <td>Shallower long-context draft setting wins this band.</td>
-            </tr>
-            <tr>
-              <td>256k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">33.51 tok/s</td>
-              <td>Still materially above no-draft at the near-limit prompt.</td>
-            </tr>
-            <tr>
-              <td>256k</td>
-              <td>No draft</td>
-              <td class="num">25.06 tok/s</td>
-              <td>Long-context baseline.</td>
             </tr>
           </tbody>
         </table>
@@ -714,16 +717,6 @@
         to be measured per model, quantization, backend, and workload. The tested policy is evidence for Qwen 3.6
         35B on this serving stack, not a universal MTP default.
       </p>
-    </section>
-
-    <section id="next">
-      <h2>Next Steps</h2>
-      <ol class="steps">
-        <li>Repeat 64k rows for <code>n2,p0.0</code>, <code>n3,p0.0</code>, and <code>n4,p0.0</code>.</li>
-        <li>Run a small breakpoint sweep between 64k and 128k to decide whether 98304 is the right transition.</li>
-        <li>Test whether requested generation length should also affect policy selection.</li>
-        <li>Package DD as a clean llama.cpp fork feature with documented flags, response metadata, and model-card guidance.</li>
-      </ol>
     </section>
 
     <section>
