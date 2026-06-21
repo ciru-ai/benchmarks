@@ -515,9 +515,9 @@
       <p class="kicker">Crown Citadel Research Note</p>
       <h1>Dynamic Draft Proposal</h1>
       <p class="lede">
-        Dynamic Draft is a server-side policy layer for llama.cpp speculative decoding. It selects draft settings
-        from the actual tokenized prompt length, so clients do not have to guess whether a request should use
-        short-context or long-context MTP behavior.
+        Dynamic Draft is a server-side policy layer for llama.cpp speculative decoding. It can select draft settings
+        from the actual tokenized prompt length, or preserve a fixed setting when calibration shows that fixed policy
+        is stronger than a context breakpoint.
       </p>
       <div class="meta-row">
         <span class="tag">Qwen 3.6 35B</span>
@@ -543,21 +543,23 @@
           <p>
             Speculative decoding already has the low-level machinery needed to accelerate generation: draft
             depth, draft acceptance thresholds, and MTP draft paths. The missing layer is a practical serving
-            policy. A static setting can be good at 4k context and poor at 128k or 256k context, while external
-            clients often cannot know the final prompt token count after chat templating and server-side formatting.
+            policy that can apply measured context breakpoints when they win, and reject them when a single static
+            setting is better. External clients often cannot know the final prompt token count after chat templating
+            and server-side formatting.
           </p>
           <p>
             Dynamic Draft moves that decision into the server. After tokenization and before generation, the
-            server reads the exact prompt token count, applies a configured breakpoint policy, and sets the
-            request's speculative parameters.
+            server reads the exact prompt token count, evaluates a configured policy, and sets the request's
+            speculative parameters. In the completed Qwen 3.6 35B proof set, that policy resolves to fixed
+            <code>n2,p0.0</code> across the measured contexts.
           </p>
-          <span class="policy-line">Fixed baseline: n2,p0.0 / DD candidate: 0:n4,p0.25;49152:n2,p0.0</span>
+          <span class="policy-line">Measured Qwen 3.6 35B policy: n2,p0.0 across 4k-256k; rejected branches: 4k n4,p0.25 and 64k n4,p0.0</span>
         </div>
         <div class="panel">
           <h3>One-sentence claim</h3>
           <p>
             Dynamic Draft makes context-conditioned speculative decoding executable and auditable inside the
-            runtime instead of asking every client or user to manually infer draft settings per request.
+            runtime when calibration finds a breakpoint that actually beats the fixed static baseline.
           </p>
         </div>
       </div>
@@ -568,13 +570,13 @@
       <div class="grid">
         <div class="stat">
           <span>Problem</span>
-          <b>Static knobs</b>
-          <small>One server-wide speculative profile is too blunt for prompt lengths ranging from 4k to 256k.</small>
+          <b>Client guessing</b>
+          <small>The server sees the final tokenized prompt; clients usually only see a pre-template request shape.</small>
         </div>
         <div class="stat">
           <span>Observation</span>
-          <b>Calibration matters</b>
-          <small>The Qwen 3.6 35B proof set kept <code>n2,p0.0</code> as the fixed baseline and rejected one bad 64k breakpoint.</small>
+          <b>n2,p0.0 held</b>
+          <small>The completed Qwen 3.6 35B proof set rejected the short <code>n4,p0.25</code> branch and the 64k <code>n4,p0.0</code> branch.</small>
         </div>
         <div class="stat">
           <span>Mechanism</span>
@@ -604,100 +606,100 @@
       <h2>Evidence From Qwen 3.6 35B</h2>
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
-        prompt caching disabled. A static draft baseline means one draft setting for every request. In this comparison
-        the fixed baseline is <code>n2,p0.0</code>, because that is the strongest measured long-context static setting
-        in the proof set. DD is the only policy allowed to change by prompt length, and any change has to beat or match
-        that fixed baseline at the context where it is used.
+        prompt caching disabled. After measuring the missing 4k fixed-baseline row, the strongest measured policy in
+        this proof set is fixed <code>n2,p0.0</code>. The earlier context-switching DD candidate is rejected for
+        Qwen 3.6 35B because its short branch loses at 4k and its old 64k branch loses badly.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Fixed static baseline</th>
-              <th class="num">Static TG</th>
-              <th>DD setting</th>
-              <th class="num">DD / candidate TG</th>
+              <th>Fixed static n2,p0.0</th>
+              <th>DD / candidate setting</th>
+              <th class="num">Candidate TG</th>
+              <th class="num">Delta vs fixed</th>
               <th>Readout</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>4k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">not measured in this proof set</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">90.64 tok/s explicit; 92.54 tok/s DD row</td>
-              <td>Short-context DD remains a candidate branch, not a scored win against fixed <code>n2,p0.0</code>.</td>
+              <td class="num">98.63 tok/s</td>
+              <td><code>n4,p0.25</code> short branch</td>
+              <td class="num">92.54 tok/s</td>
+              <td class="num risk">-6.2%</td>
+              <td>Rejected; fixed <code>n2,p0.0</code> was faster at short context.</td>
             </tr>
             <tr>
               <td>64k</td>
-              <td><code>n2,p0.0</code></td>
               <td class="num">74.85 tok/s</td>
               <td><code>n4,p0.0</code> prototype</td>
               <td class="num">58.96 tok/s</td>
-              <td>The prototype DD breakpoint was wrong. This branch is rejected.</td>
+              <td class="num risk">-21.2%</td>
+              <td>Rejected; this is the old bad breakpoint, not the measured policy.</td>
             </tr>
             <tr>
               <td>128k</td>
-              <td><code>n2,p0.0</code></td>
               <td class="num">54.61 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">52.95 tok/s</td>
-              <td>DD selected the same setting class as the fixed baseline and landed near parity.</td>
+              <td class="num warn">-3.0%</td>
+              <td>Same setting class; measured near parity, with the fixed row slightly higher.</td>
             </tr>
             <tr>
               <td>256k</td>
-              <td><code>n2,p0.0</code></td>
               <td class="num">33.51 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">35.82 tok/s</td>
-              <td>DD selected the same setting class as the fixed baseline at the measured context limit.</td>
+              <td class="num ok">+6.9%</td>
+              <td>Same setting class; the measured DD row was higher at the context limit.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="callout">
-        <strong>Interpretation:</strong> the fair static comparison is fixed <code>n2,p0.0</code> across the table.
-        The current proof set does not prove a complete DD speed win over that fixed baseline. It proves the runtime
-        mechanism, identifies <code>n2,p0.0</code> as the long-context branch, and rejects the old 64k
-        <code>n4,p0.0</code> breakpoint.
+        <strong>Current conclusion:</strong> do not publish
+        <code>0:n4,p0.25;49152:n2,p0.0</code> as the Qwen 3.6 35B policy. For this proof set, the measured policy is
+        <code>n2,p0.0</code> unless another calibrated branch beats it. DD remains the server-side mechanism for
+        applying such policies from exact tokenized prompt length, not a license to use worse settings.
       </div>
 
-      <h3 style="margin-top: 22px;">Prototype lesson</h3>
+      <h3 style="margin-top: 22px;">Rejected branches</h3>
       <p>
-        The original prototype policy selected <code>n4,p0.0</code> at 64k and reached 58.96 tok/s. That is not the
-        proposed policy. It is the calibration result that removed <code>n4,p0.0</code> from the long-context branch.
+        The rows below are useful because they show which settings should not be used for this model profile. DD as a
+        mechanism can apply context breakpoints, but calibration must reject a breakpoint when a single fixed setting
+        is faster.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Prototype selected</th>
-              <th class="num">TG</th>
+              <th>Rejected setting</th>
+              <th class="num">Rejected TG</th>
+              <th class="num">Fixed n2,p0.0 TG</th>
+              <th class="num">Delta</th>
               <th>What it taught</th>
             </tr>
           </thead>
           <tbody>
             <tr>
+              <td>4k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">92.54 tok/s</td>
+              <td class="num">98.63 tok/s</td>
+              <td class="num risk">-6.2%</td>
+              <td>Discard this short-context branch; fixed <code>n2,p0.0</code> was faster.</td>
+            </tr>
+            <tr>
               <td>64k</td>
               <td><code>n4,p0.0</code></td>
               <td class="num">58.96 tok/s</td>
-              <td>Discard this breakpoint; the measured <code>n2,p0.0</code> row was 74.85 tok/s.</td>
-            </tr>
-            <tr>
-              <td>128k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">52.95 tok/s</td>
-              <td>Correct policy class for the long-context branch.</td>
-            </tr>
-            <tr>
-              <td>256k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">35.82 tok/s</td>
-              <td>Correct policy class near the measured context limit.</td>
+              <td class="num">74.85 tok/s</td>
+              <td class="num risk">-21.2%</td>
+              <td>Discard this breakpoint; the measured <code>n2,p0.0</code> row was much faster.</td>
             </tr>
           </tbody>
         </table>
@@ -707,15 +709,15 @@
     <section id="limits">
       <h2>Calibration Note</h2>
       <div class="callout warning">
-        <strong>Policy quality comes from calibration.</strong> One early explicit <code>n4,p0.0</code> row reached
-        87.94 tok/s, but a post-DD repeat on the same final-policy server reached 59.63 tok/s and matched the
-        prototype DD row at 58.96 tok/s. That means the slower 64k result was a breakpoint-quality problem, not
-        DD decision overhead.
+        <strong>Policy quality comes from calibration.</strong> The 4k fixed <code>n2,p0.0</code> row reached
+        98.63 tok/s, beating the earlier 4k <code>n4,p0.25</code> DD row at 92.54 tok/s. The 64k
+        <code>n4,p0.0</code> repeat reached 59.63 tok/s and matched the prototype DD row at 58.96 tok/s. Both
+        branches are rejected for this proof set.
       </div>
       <p style="margin-top: 16px;">
         DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
-        measured per model, quantization, backend, and workload. The public claim here is the mechanism plus the
-        calibration evidence for Qwen 3.6 35B on this serving stack, not a universal MTP default.
+        measured per model, quantization, backend, and workload. For Qwen 3.6 35B on this serving stack, the calibrated
+        action is to keep <code>n2,p0.0</code> at the measured contexts.
       </p>
     </section>
 
