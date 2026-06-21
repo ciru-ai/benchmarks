@@ -546,7 +546,7 @@
       <p>
         Build the patched ROCmFPX / llama.cpp runner, launch the Strix Halo
         MTP configs, and use request-level speculative controls to reproduce
-        the 35B ~140 tok/s and 27B 50+ tok/s serving rows.
+        the 35B ~140 tok/s and Qwable 5 27B 50+ tok/s serving rows.
       </p>
       <div class="stats-grid">
         <div class="stat">
@@ -554,8 +554,8 @@
           <span>35B ACE/SABER ROCmFP4, gen512, served path, 3946-token prompt.</span>
         </div>
         <div class="stat">
-          <b>52.67-53.39 tok/s</b>
-          <span>27B Coder ROCmFP4, gen512 served path, exact repeat range.</span>
+          <b>53.25 tok/s</b>
+          <span>Qwable 5 27B Chadrock v2 ROCmFP4, gen512 served path, 3946-token prompt.</span>
         </div>
         <div class="stat">
           <b>3 knobs</b>
@@ -646,11 +646,11 @@ NO_MMPROJ=1 \
 STRICT_BENCH=1 \
 scripts/run-rocmfpx-mtp-server.sh
 
-# 27B Coder ROCmFP4 winner: 52.67-53.39 tok/s gen512, 52.08 tok/s gen2048.
-MODEL=/path/to/Qwable-5-27B-Coder-BF16-to-ROCmFP4-STRIX_LEAN.gguf \
-ALIAS=qwable5-27b-coder-rocmfp4-cap6 \
+# Qwable 5 27B Chadrock v2 ROCmFP4 winner: 53.25 tok/s gen512 at 3946 prompt tokens.
+MODEL=/path/to/Qwable-5-27B-Chadrock-v2-ROCmFP4.gguf \
+ALIAS=qwable-5-27b-chadrock-v2-rocmfp4 \
 PORT=18180 \
-CTX_SIZE=32768 \
+CTX_SIZE=131072 \
 DEVICE=Vulkan0 \
 SPEC_DRAFT_DEVICE=Vulkan0 \
 BATCH_SIZE=2048 \
@@ -683,10 +683,10 @@ scripts/run-rocmfpx-mtp-server.sh</code></pre>
             <td class="num">143.08 tok/s</td>
           </tr>
           <tr>
-            <td>27B Coder ROCmFP4</td>
+            <td>Qwable 5 27B Chadrock v2 ROCmFP4</td>
             <td><code>SPEC_DRAFT_N_MAX=6</code></td>
             <td><code>n_max=6</code>, <code>n_min=0</code>, <code>p_min=0.0</code></td>
-            <td class="num">52.67-53.39 tok/s</td>
+            <td class="num">53.25 tok/s</td>
           </tr>
         </tbody>
       </table>
@@ -717,7 +717,7 @@ scripts/run-rocmfpx-mtp-server.sh</code></pre>
   }'</code></pre>
       </div>
       <div class="callout warning">
-        For the 27B Coder profile, use <code>speculative.n_max=6</code>,
+        For the Qwable 5 27B winner profile, use <code>speculative.n_max=6</code>,
         <code>speculative.n_min=0</code>, and <code>speculative.p_min=0.0</code>.
       </div>
     </section>
@@ -735,7 +735,7 @@ scripts/run-rocmfpx-mtp-server.sh</code></pre>
       <div class="model-grid">
         <div class="model-card" style="--card-image: url('assets/chadrockv2quable5.png');">
           <a href="https://huggingface.co/jcbtc/qwable-5-27b-chadrock-v2-rocmfp4">jcbtc/qwable-5-27b-chadrock-v2-rocmfp4</a>
-          <span>New Qwable 5 27B Chadrock v2 ROCmFP4 model, the 50+ tok/s served-MTP lane.</span>
+          <span>Qwable 5 27B Chadrock v2 ROCmFP4, the 50+ tok/s served-MTP winner.</span>
         </div>
         <div class="model-card" style="--card-image: url('assets/chadrock35b.png');">
           <a href="https://huggingface.co/jcbtc/chadrock-35b-ace-saber-rocmfp4-mtp">jcbtc/chadrock-35b-ace-saber-rocmfp4-mtp</a>
