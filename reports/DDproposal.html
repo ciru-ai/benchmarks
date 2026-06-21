@@ -604,8 +604,9 @@
       <h2>Evidence From Qwen 3.6 35B</h2>
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
-        prompt caching disabled. The practical comparison is a fixed static draft setting versus the
-        context-selected draft setting a server policy can apply automatically.
+        prompt caching disabled. The static comparison below holds one measured long-context draft setting,
+        <code>n2,p0.0</code>, constant across every row where it was measured, then compares it to the tested
+        DD policy row for the same context.
       </p>
       <div class="table-wrap">
         <table>
@@ -614,51 +615,49 @@
               <th>Context</th>
               <th>Static draft</th>
               <th class="num">Static TG</th>
-              <th>Context-selected draft</th>
-              <th class="num">Selected TG</th>
+              <th>DD policy draft</th>
+              <th class="num">DD TG</th>
               <th class="num">Delta</th>
               <th>Readout</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>4k</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">90.64 tok/s</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">92.54 tok/s</td>
-              <td class="num ok">+2.1%</td>
-              <td>Short-context policy is already appropriate.</td>
-            </tr>
-            <tr>
               <td>64k</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">64.26 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">74.85 tok/s</td>
-              <td class="num ok">+16.5%</td>
-              <td>Lower draft depth outperformed the short-context static setting.</td>
+              <td><code>n4,p0.0</code></td>
+              <td class="num">58.96 tok/s</td>
+              <td class="num risk">-21.2%</td>
+              <td>The tested DD breakpoint was too aggressive at this context.</td>
             </tr>
             <tr>
               <td>128k</td>
-              <td><code>n4,p0.25</code></td>
-              <td class="num">43.26 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">54.61 tok/s</td>
-              <td class="num ok">+26.2%</td>
-              <td>The short-context static policy became materially worse.</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">52.95 tok/s</td>
+              <td class="num warn">-3.0%</td>
+              <td>DD selected the same static setting class and landed near parity.</td>
             </tr>
             <tr>
               <td>256k</td>
-              <td><span class="subtle">not rerun</span></td>
-              <td class="num">-</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">33.51 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">35.82 tok/s</td>
-              <td class="num">-</td>
-              <td>The long-context policy remained usable at the near-limit prompt.</td>
+              <td class="num ok">+6.9%</td>
+              <td>DD selected the same static setting class and remained strong at the near-limit prompt.</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="callout">
+        <strong>Interpretation:</strong> this run does not show that the tested DD policy is already the best
+        possible policy at every context. It shows why the policy belongs in the runtime: once calibrated, the
+        server can apply the intended draft setting from the exact tokenized prompt length instead of forcing one
+        static setting onto every request.
       </div>
 
       <h3 style="margin-top: 22px;">DD policy execution rows</h3>
@@ -713,9 +712,9 @@
         repeated calibration.
       </div>
       <p style="margin-top: 16px;">
-        DD also does not discover an optimal policy by itself. The mechanism is general, but the policy still needs
-        to be measured per model, quantization, backend, and workload. The tested policy is evidence for Qwen 3.6
-        35B on this serving stack, not a universal MTP default.
+        DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
+        measured per model, quantization, backend, and workload. The tested policy is evidence for Qwen 3.6 35B
+        on this serving stack, not a universal MTP default.
       </p>
     </section>
 
