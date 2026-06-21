@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dynamic Draft Proposal | Ciru Inference Lab</title>
+  <meta name="description" content="Dynamic Draft proposal for context-conditioned speculative decoding policy in llama.cpp serving.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070707;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1160px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #070707 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a {
+      color: #9ee8ff;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    code,
+    pre,
+    .mono,
+    .num,
+    .metric-value,
+    .policy-line {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .page {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 6px auto 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 8px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-plate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.16), rgba(57, 208, 255, 0.06)),
+        rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+    }
+
+    .logo-plate img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: scale(1.24);
+      filter: drop-shadow(0 8px 16px rgba(237, 28, 36, 0.3));
+    }
+
+    .brand-title,
+    .brand-subtitle {
+      display: block;
+    }
+
+    .brand-title {
+      color: var(--text);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    header {
+      position: relative;
+      overflow: hidden;
+      margin: 0 auto 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    header > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--cyan);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 900px;
+      margin-bottom: 12px;
+      color: #fff;
+      font-size: clamp(2.05rem, 5vw, 4.7rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: 1.42rem;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      color: #fff;
+      font-size: 1.05rem;
+      letter-spacing: 0;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      line-height: 1.62;
+    }
+
+    strong {
+      color: #fff;
+    }
+
+    .lede {
+      max-width: 900px;
+      margin-bottom: 16px;
+      color: #dfe4ea;
+      font-size: 1.05rem;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.24);
+      color: #e9edf3;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(8, 8, 10, 0.72);
+    }
+
+    nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 6px 10px;
+      border: 1px solid rgba(57, 208, 255, 0.16);
+      border-radius: 6px;
+      background: rgba(57, 208, 255, 0.055);
+      color: #dff7ff;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    section,
+    .panel {
+      margin-bottom: 18px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .stat {
+      min-height: 126px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+    }
+
+    .stat span {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(1.55rem, 4vw, 2.08rem);
+      line-height: 1;
+    }
+
+    .stat small {
+      display: block;
+      margin-top: 10px;
+      color: var(--subtle);
+      line-height: 1.45;
+    }
+
+    .callout {
+      margin: 16px 0 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(57, 208, 255, 0.24);
+      border-left: 5px solid var(--cyan);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+    }
+
+    .callout.warning {
+      border-color: rgba(255, 159, 67, 0.25);
+      border-left-color: var(--orange);
+      background: rgba(255, 159, 67, 0.08);
+    }
+
+    .callout strong {
+      color: #fff;
+    }
+
+    .policy-line {
+      display: block;
+      margin: 15px 0;
+      padding: 13px 14px;
+      overflow-x: auto;
+      border: 1px solid rgba(57, 208, 255, 0.22);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.34);
+      color: #dff8ff;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--muted);
+    }
+
+    .num {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ok {
+      color: var(--green);
+    }
+
+    .warn {
+      color: var(--orange);
+    }
+
+    .risk {
+      color: var(--red);
+    }
+
+    .steps {
+      counter-reset: step;
+      display: grid;
+      gap: 10px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 14px 14px 14px 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      background: rgba(237, 28, 36, 0.22);
+      color: #fff;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 800;
+    }
+
+    .refs {
+      margin-bottom: 0;
+      padding-left: 18px;
+    }
+
+    .refs li {
+      margin-bottom: 8px;
+    }
+
+    footer {
+      margin: 24px 0 0;
+      color: var(--subtle);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .grid,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      section,
+      .panel,
+      header {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 2.25rem;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        width: min(calc(100% - 18px), var(--max));
+      }
+
+      .brand-lockup {
+        align-items: flex-start;
+      }
+
+      .logo-plate {
+        width: 42px;
+        height: 42px;
+      }
+
+      nav {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="brand-lockup" href="../">
+      <span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span>
+      <span>
+        <span class="brand-title">Ciru Inference Lab</span>
+        <span class="brand-subtitle">llm.ciru.ai / research</span>
+      </span>
+    </a>
+
+    <header>
+      <p class="kicker">Crown Citadel Research Note</p>
+      <h1>Dynamic Draft Proposal</h1>
+      <p class="lede">
+        Dynamic Draft is a server-side policy layer for llama.cpp speculative decoding. It selects draft settings
+        from the actual tokenized prompt length, so clients do not have to guess whether a request should use
+        short-context or long-context MTP behavior.
+      </p>
+      <div class="meta-row">
+        <span class="tag">ACE/SABER 35B</span>
+        <span class="tag">ROCmFP4 MTP</span>
+        <span class="tag">262144 context</span>
+        <span class="tag">2048-token generations</span>
+        <span class="tag">2026-06-21</span>
+      </div>
+    </header>
+
+    <nav aria-label="Report sections">
+      <a href="#idea">Idea</a>
+      <a href="#why">Reasoning</a>
+      <a href="#design">Design</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#limits">Limits</a>
+      <a href="#next">Next</a>
+    </nav>
+
+    <section id="idea">
+      <div class="two-col">
+        <div>
+          <h2>The Proposal</h2>
+          <p>
+            Speculative decoding already has the low-level machinery needed to accelerate generation: draft
+            depth, draft acceptance thresholds, and MTP draft paths. The missing layer is a practical serving
+            policy. A static setting can be good at 4k context and poor at 128k or 256k context, while external
+            clients often cannot know the final prompt token count after chat templating and server-side formatting.
+          </p>
+          <p>
+            Dynamic Draft moves that decision into the server. After tokenization and before generation, the
+            server reads the exact prompt token count, applies a configured breakpoint policy, and sets the
+            request's speculative parameters.
+          </p>
+          <span class="policy-line">0:n4,p0.25;49152:n4,p0.0;98304:n2,p0.0</span>
+        </div>
+        <div class="panel">
+          <h3>One-sentence claim</h3>
+          <p>
+            Dynamic Draft makes context-conditioned speculative decoding executable and auditable inside the
+            runtime instead of asking every client or user to manually infer draft settings per request.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="why">
+      <h2>Reasoning</h2>
+      <div class="grid">
+        <div class="stat">
+          <span>Problem</span>
+          <b>Static knobs</b>
+          <small>One server-wide speculative profile is too blunt for prompt lengths ranging from 4k to 256k.</small>
+        </div>
+        <div class="stat">
+          <span>Observation</span>
+          <b>Context shifts</b>
+          <small>The best observed draft behavior changed between short and long prompts on ACE/SABER 35B.</small>
+        </div>
+        <div class="stat">
+          <span>Mechanism</span>
+          <b>0-1 us</b>
+          <small>Persisted DD rows measured policy decision overhead at 0-1 microseconds.</small>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Core reasoning:</strong> the server is the only place that reliably sees the final tokenized prompt.
+        Therefore, the draft policy should run after tokenization, not in a model card footnote or in client-side
+        guessing logic.
+      </div>
+    </section>
+
+    <section id="design">
+      <h2>Design</h2>
+      <ol class="steps">
+        <li><strong>Tokenize the request.</strong> The prompt length is counted after server-side formatting and tokenizer behavior are applied.</li>
+        <li><strong>Select a breakpoint rule.</strong> The last rule whose lower bound is less than or equal to the prompt token count is selected.</li>
+        <li><strong>Clamp to allocation caps.</strong> DD can lower draft depth per request but cannot exceed the server's configured draft allocation.</li>
+        <li><strong>Respect explicit overrides.</strong> Request-level <code>speculative.*</code> fields win unless the server is launched with a force policy.</li>
+        <li><strong>Record the decision.</strong> Generation metadata includes whether DD applied, the reason, prompt tokens, selected settings, and decision time.</li>
+      </ol>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidence From ACE/SABER 35B</h2>
+      <p>
+        The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
+        prompt caching disabled. The final DD policy selected the intended settings at 64k, 128k, and 256k context.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Context</th>
+              <th>DD selected</th>
+              <th class="num">DD TG</th>
+              <th class="num">No-draft TG</th>
+              <th class="num">Gain</th>
+              <th class="num">Draft accepted/generated</th>
+              <th class="num">Decision</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>64k</td>
+              <td><code>n4,p0.0</code></td>
+              <td class="num">58.96 tok/s</td>
+              <td class="num">49.22 tok/s</td>
+              <td class="num ok">+19.8%</td>
+              <td class="num">1372 / 2693</td>
+              <td class="num">1 us</td>
+            </tr>
+            <tr>
+              <td>128k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">52.95 tok/s</td>
+              <td class="num">37.00 tok/s</td>
+              <td class="num ok">+43.1%</td>
+              <td class="num">1218 / 1658</td>
+              <td class="num">0 us</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">35.82 tok/s</td>
+              <td class="num">25.06 tok/s</td>
+              <td class="num ok">+42.9%</td>
+              <td class="num">1215 / 1662</td>
+              <td class="num">1 us</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top: 22px;">Explicit setting checks</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Context</th>
+              <th>Setting</th>
+              <th class="num">TG</th>
+              <th>Readout</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>4k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">90.64 tok/s</td>
+              <td>Strong short-context draft behavior.</td>
+            </tr>
+            <tr>
+              <td>4k</td>
+              <td>No draft</td>
+              <td class="num">72.46 tok/s</td>
+              <td>Drafting is useful at short context.</td>
+            </tr>
+            <tr>
+              <td>128k</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">43.26 tok/s</td>
+              <td>Short-context setting loses at long context.</td>
+            </tr>
+            <tr>
+              <td>128k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">54.61 tok/s</td>
+              <td>Shallower long-context draft setting wins this band.</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">33.51 tok/s</td>
+              <td>Still materially above no-draft at the near-limit prompt.</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td>No draft</td>
+              <td class="num">25.06 tok/s</td>
+              <td>Long-context baseline.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="limits">
+      <h2>Limits</h2>
+      <div class="callout warning">
+        <strong>64k is not settled.</strong> One early explicit <code>n4,p0.0</code> row reached 87.94 tok/s, but a
+        post-DD repeat on the same final-policy server reached 59.63 tok/s and matched the DD row at 58.96 tok/s.
+        That means DD overhead was not responsible, but the 64k breakpoint should not be published as final without
+        repeated calibration.
+      </div>
+      <p style="margin-top: 16px;">
+        DD also does not discover an optimal policy by itself. The mechanism is general, but the policy still needs
+        to be measured per model, quantization, backend, and workload. The tested policy is evidence for ACE/SABER
+        35B on this serving stack, not a universal MTP default.
+      </p>
+    </section>
+
+    <section id="next">
+      <h2>Next Steps</h2>
+      <ol class="steps">
+        <li>Repeat 64k rows for <code>n2,p0.0</code>, <code>n3,p0.0</code>, and <code>n4,p0.0</code>.</li>
+        <li>Run a small breakpoint sweep between 64k and 128k to decide whether 98304 is the right transition.</li>
+        <li>Test whether requested generation length should also affect policy selection.</li>
+        <li>Package DD as a clean llama.cpp fork feature with documented flags, response metadata, and model-card guidance.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>References</h2>
+      <ol class="refs">
+        <li>Yaniv Leviathan, Matan Kalman, and Yossi Matias. <a href="https://arxiv.org/abs/2211.17192">Fast Inference from Transformers via Speculative Decoding</a>.</li>
+        <li>Charlie Chen, Sebastian Borgeaud, Geoffrey Irving, Jean-Baptiste Lespiau, Laurent Sifre, and John Jumper. <a href="https://arxiv.org/abs/2302.01318">Accelerating Large Language Model Decoding with Speculative Sampling</a>.</li>
+        <li>Fabian Gloeckle, Badr Youbi Idrissi, Baptiste Roziere, David Lopez-Paz, and Gabriel Synnaeve. <a href="https://arxiv.org/abs/2404.19737">Better &amp; Faster Large Language Models via Multi-token Prediction</a>.</li>
+        <li>ggml-org. <a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md">llama.cpp HTTP Server README</a>.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Source artifact: <span class="mono">/srv/desktop-data/cirudata/reports/DDproposal.html</span>
+    </footer>
+  </main>
+</body>
+</html>
