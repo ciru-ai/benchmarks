@@ -551,7 +551,7 @@
             server reads the exact prompt token count, applies a configured breakpoint policy, and sets the
             request's speculative parameters.
           </p>
-          <span class="policy-line">0:n4,p0.25;49152:n4,p0.0;98304:n2,p0.0</span>
+          <span class="policy-line">Fixed baseline: n2,p0.0 / DD candidate: 0:n4,p0.25;49152:n2,p0.0</span>
         </div>
         <div class="panel">
           <h3>One-sentence claim</h3>
@@ -573,8 +573,8 @@
         </div>
         <div class="stat">
           <span>Observation</span>
-          <b>Context shifts</b>
-          <small>The best observed draft behavior changed between short and long prompts on Qwen 3.6 35B.</small>
+          <b>Calibration matters</b>
+          <small>The Qwen 3.6 35B proof set kept <code>n2,p0.0</code> as the fixed baseline and rejected one bad 64k breakpoint.</small>
         </div>
         <div class="stat">
           <span>Mechanism</span>
@@ -604,32 +604,39 @@
       <h2>Evidence From Qwen 3.6 35B</h2>
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
-        prompt caching disabled. The static comparison below holds one measured long-context draft setting,
-        <code>n2,p0.0</code>, constant across every row where it was measured, then compares it to the tested
-        DD policy row for the same context.
+        prompt caching disabled. A static draft baseline means one draft setting for every request. In this comparison
+        the fixed baseline is <code>n2,p0.0</code>, because that is the strongest measured long-context static setting
+        in the proof set. DD is the only policy allowed to change by prompt length, and any change has to beat or match
+        that fixed baseline at the context where it is used.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Static draft</th>
+              <th>Fixed static baseline</th>
               <th class="num">Static TG</th>
-              <th>DD policy draft</th>
-              <th class="num">DD TG</th>
-              <th class="num">Delta</th>
+              <th>DD setting</th>
+              <th class="num">DD / candidate TG</th>
               <th>Readout</th>
             </tr>
           </thead>
           <tbody>
             <tr>
+              <td>4k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">not measured in this proof set</td>
+              <td><code>n4,p0.25</code></td>
+              <td class="num">90.64 tok/s explicit; 92.54 tok/s DD row</td>
+              <td>Short-context DD remains a candidate branch, not a scored win against fixed <code>n2,p0.0</code>.</td>
+            </tr>
+            <tr>
               <td>64k</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">74.85 tok/s</td>
-              <td><code>n4,p0.0</code></td>
+              <td><code>n4,p0.0</code> prototype</td>
               <td class="num">58.96 tok/s</td>
-              <td class="num risk">-21.2%</td>
-              <td>The tested DD breakpoint was too aggressive at this context.</td>
+              <td>The prototype DD breakpoint was wrong. This branch is rejected.</td>
             </tr>
             <tr>
               <td>128k</td>
@@ -637,8 +644,7 @@
               <td class="num">54.61 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">52.95 tok/s</td>
-              <td class="num warn">-3.0%</td>
-              <td>DD selected the same static setting class and landed near parity.</td>
+              <td>DD selected the same setting class as the fixed baseline and landed near parity.</td>
             </tr>
             <tr>
               <td>256k</td>
@@ -646,34 +652,32 @@
               <td class="num">33.51 tok/s</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">35.82 tok/s</td>
-              <td class="num ok">+6.9%</td>
-              <td>DD selected the same static setting class and remained strong at the near-limit prompt.</td>
+              <td>DD selected the same setting class as the fixed baseline at the measured context limit.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="callout">
-        <strong>Interpretation:</strong> this run does not show that the tested DD policy is already the best
-        possible policy at every context. It shows why the policy belongs in the runtime: once calibrated, the
-        server can apply the intended draft setting from the exact tokenized prompt length instead of forcing one
-        static setting onto every request.
+        <strong>Interpretation:</strong> the fair static comparison is fixed <code>n2,p0.0</code> across the table.
+        The current proof set does not prove a complete DD speed win over that fixed baseline. It proves the runtime
+        mechanism, identifies <code>n2,p0.0</code> as the long-context branch, and rejects the old 64k
+        <code>n4,p0.0</code> breakpoint.
       </div>
 
-      <h3 style="margin-top: 22px;">DD policy execution rows</h3>
+      <h3 style="margin-top: 22px;">Prototype lesson</h3>
       <p>
-        These rows show the server-side policy applying request settings after tokenization. The decision time was
-        0-1 microseconds in the persisted benchmark rows.
+        The original prototype policy selected <code>n4,p0.0</code> at 64k and reached 58.96 tok/s. That is not the
+        proposed policy. It is the calibration result that removed <code>n4,p0.0</code> from the long-context branch.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>DD selected</th>
+              <th>Prototype selected</th>
               <th class="num">TG</th>
-              <th class="num">Draft accepted/generated</th>
-              <th class="num">Decision</th>
+              <th>What it taught</th>
             </tr>
           </thead>
           <tbody>
@@ -681,22 +685,19 @@
               <td>64k</td>
               <td><code>n4,p0.0</code></td>
               <td class="num">58.96 tok/s</td>
-              <td class="num">1372 / 2693</td>
-              <td class="num">1 us</td>
+              <td>Discard this breakpoint; the measured <code>n2,p0.0</code> row was 74.85 tok/s.</td>
             </tr>
             <tr>
               <td>128k</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">52.95 tok/s</td>
-              <td class="num">1218 / 1658</td>
-              <td class="num">0 us</td>
+              <td>Correct policy class for the long-context branch.</td>
             </tr>
             <tr>
               <td>256k</td>
               <td><code>n2,p0.0</code></td>
               <td class="num">35.82 tok/s</td>
-              <td class="num">1215 / 1662</td>
-              <td class="num">1 us</td>
+              <td>Correct policy class near the measured context limit.</td>
             </tr>
           </tbody>
         </table>
@@ -704,17 +705,17 @@
     </section>
 
     <section id="limits">
-      <h2>Limits</h2>
+      <h2>Calibration Note</h2>
       <div class="callout warning">
-        <strong>64k is not settled.</strong> One early explicit <code>n4,p0.0</code> row reached 87.94 tok/s, but a
-        post-DD repeat on the same final-policy server reached 59.63 tok/s and matched the DD row at 58.96 tok/s.
-        That means DD overhead was not responsible, but the 64k breakpoint should not be published as final without
-        repeated calibration.
+        <strong>Policy quality comes from calibration.</strong> One early explicit <code>n4,p0.0</code> row reached
+        87.94 tok/s, but a post-DD repeat on the same final-policy server reached 59.63 tok/s and matched the
+        prototype DD row at 58.96 tok/s. That means the slower 64k result was a breakpoint-quality problem, not
+        DD decision overhead.
       </div>
       <p style="margin-top: 16px;">
         DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
-        measured per model, quantization, backend, and workload. The tested policy is evidence for Qwen 3.6 35B
-        on this serving stack, not a universal MTP default.
+        measured per model, quantization, backend, and workload. The public claim here is the mechanism plus the
+        calibration evidence for Qwen 3.6 35B on this serving stack, not a universal MTP default.
       </p>
     </section>
 
