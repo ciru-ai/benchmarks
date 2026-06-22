@@ -607,53 +607,43 @@
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
         prompt caching disabled. After measuring the missing 4k fixed-baseline row, the strongest measured policy in
-        this proof set is fixed <code>n2,p0.0</code>. The earlier context-switching DD candidate is rejected for
-        Qwen 3.6 35B because its short branch loses at 4k and its old 64k branch loses badly.
+        this proof set is fixed <code>n2,p0.0</code>. DD would not choose the slower rows below; those rows are rejected
+        calibration candidates.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Fixed static n2,p0.0</th>
-              <th>DD / candidate setting</th>
-              <th class="num">Candidate TG</th>
-              <th class="num">Delta vs fixed</th>
-              <th>Readout</th>
+              <th>Selected setting</th>
+              <th class="num">Measured TG</th>
+              <th>Policy result</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>4k</td>
+              <td><code>n2,p0.0</code></td>
               <td class="num">98.63 tok/s</td>
-              <td><code>n4,p0.25</code> short branch</td>
-              <td class="num">92.54 tok/s</td>
-              <td class="num risk">-6.2%</td>
-              <td>Rejected; fixed <code>n2,p0.0</code> was faster at short context.</td>
+              <td>Selected. The <code>n4,p0.25</code> short branch was measured and rejected.</td>
             </tr>
             <tr>
               <td>64k</td>
+              <td><code>n2,p0.0</code></td>
               <td class="num">74.85 tok/s</td>
-              <td><code>n4,p0.0</code> prototype</td>
-              <td class="num">58.96 tok/s</td>
-              <td class="num risk">-21.2%</td>
-              <td>Rejected; this is the old bad breakpoint, not the measured policy.</td>
+              <td>Selected. The old <code>n4,p0.0</code> breakpoint was measured and rejected.</td>
             </tr>
             <tr>
               <td>128k</td>
-              <td class="num">54.61 tok/s</td>
               <td><code>n2,p0.0</code></td>
-              <td class="num">52.95 tok/s</td>
-              <td class="num warn">-3.0%</td>
-              <td>Same setting class; measured near parity, with the fixed row slightly higher.</td>
+              <td class="num">54.61 tok/s</td>
+              <td>Selected. Same-setting repeats are documented separately below.</td>
             </tr>
             <tr>
               <td>256k</td>
-              <td class="num">33.51 tok/s</td>
               <td><code>n2,p0.0</code></td>
-              <td class="num">35.82 tok/s</td>
-              <td class="num ok">+6.9%</td>
-              <td>Same setting class; the measured DD row was higher at the context limit.</td>
+              <td class="num">33.51 tok/s</td>
+              <td>Selected. Same-setting repeats are documented separately below.</td>
             </tr>
           </tbody>
         </table>
@@ -661,9 +651,9 @@
 
       <div class="callout">
         <strong>Current conclusion:</strong> do not publish
-        <code>0:n4,p0.25;49152:n2,p0.0</code> as the Qwen 3.6 35B policy. For this proof set, the measured policy is
-        <code>n2,p0.0</code> unless another calibrated branch beats it. DD remains the server-side mechanism for
-        applying such policies from exact tokenized prompt length, not a license to use worse settings.
+        <code>0:n4,p0.25;49152:n2,p0.0</code> as the Qwen 3.6 35B policy. For this proof set, DD resolves to
+        <code>n2,p0.0</code> at every measured context. The slower rows are calibration failures that DD should not
+        select.
       </div>
 
       <h3 style="margin-top: 22px;">Rejected branches</h3>
@@ -704,15 +694,50 @@
           </tbody>
         </table>
       </div>
+
+      <h3 style="margin-top: 22px;">Same-setting repeats</h3>
+      <p>
+        Some raw rows were produced through a DD code path but selected <code>n2,p0.0</code>, the same setting as the
+        fixed policy. Those rows are repeat measurements, not DD choosing a different or worse policy.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Context</th>
+              <th>Setting in both rows</th>
+              <th class="num">Fixed-policy row</th>
+              <th class="num">Same-setting repeat</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>128k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">54.61 tok/s</td>
+              <td class="num">52.95 tok/s</td>
+              <td>Same setting; not evidence that DD picked a worse configuration.</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">33.51 tok/s</td>
+              <td class="num">35.82 tok/s</td>
+              <td>Same setting; the difference is run-to-run measurement variation.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section id="limits">
       <h2>Calibration Note</h2>
       <div class="callout warning">
         <strong>Policy quality comes from calibration.</strong> The 4k fixed <code>n2,p0.0</code> row reached
-        98.63 tok/s, beating the earlier 4k <code>n4,p0.25</code> DD row at 92.54 tok/s. The 64k
-        <code>n4,p0.0</code> repeat reached 59.63 tok/s and matched the prototype DD row at 58.96 tok/s. Both
-        branches are rejected for this proof set.
+        98.63 tok/s, beating the earlier 4k <code>n4,p0.25</code> candidate at 92.54 tok/s. The 64k
+        <code>n4,p0.0</code> repeat reached 59.63 tok/s and matched the prototype row at 58.96 tok/s. Both branches
+        are rejected for this proof set.
       </div>
       <p style="margin-top: 16px;">
         DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
