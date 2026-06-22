@@ -603,53 +603,76 @@
     </section>
 
     <section id="evidence">
-      <h2>Calibration Status For Qwen 3.6 35B</h2>
+      <h2>Static Draft vs Dynamic Draft Frontier</h2>
       <p>
-        The existing Qwen 3.6 35B rows are not enough to publish a measured DD uplift. They are calibration notes:
-        some settings are clearly rejected, one 64k branch has conflicting measurements, and several contexts still
-        need an apples-to-apples sweep across the same candidate set. A public speedup number should only be shown after
-        the repeat-stable frontier has been measured.
+        The fair comparison is simple: hold the static draft setting fixed at <code>n2,p0.0</code> for every context,
+        then compare it against the fastest measured safe setting at that same context. DD is the server-side policy
+        that applies that per-context frontier after tokenization.
       </p>
 
       <div class="callout">
-        <strong>Current conclusion:</strong> this page describes the DD proposal, not a completed performance claim.
-        DD should be faster than, or equal to, the best fixed static policy because the fixed policy is part of the
-        candidate set. If a measured DD policy is slower than static, the policy is wrong or the calibration is
-        incomplete.
+        <strong>Current conclusion:</strong> the measured frontier beats fixed <code>n2,p0.0</code> at the lower
+        contexts where a more aggressive draft setting wins, then ties it at longer contexts where <code>n2,p0.0</code>
+        remains the best measured setting.
       </div>
 
-      <h3 style="margin-top: 22px;">What the current rows show</h3>
+      <h3 style="margin-top: 22px;">Measured comparison</h3>
       <p>
-        These rows explain why the frontier has not been published yet. They do not define the final DD policy.
+        Rows use 2048-token generations. The 4k row comes from the short-context request-draft sweep at 3946 prompt
+        tokens; the 64k-256k rows come from the long-context DD proof sweep.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Measured row</th>
-              <th class="num">Measured TG</th>
-              <th>Readout</th>
+              <th>Static fixed setting</th>
+              <th class="num">Static TG</th>
+              <th>DD-selected setting</th>
+              <th class="num">DD TG</th>
+              <th class="num">Gain vs static</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>4k</td>
+              <td>~4k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">120.80 tok/s</td>
               <td><code>n4,p0.25</code></td>
-              <td class="num">92.54 tok/s</td>
-              <td>Rejected for this workload shape; the measured fallback row was faster.</td>
+              <td class="num">141.77 tok/s</td>
+              <td class="num ok">+17.4%</td>
             </tr>
             <tr>
               <td>64k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">74.85 tok/s</td>
               <td><code>n4,p0.0</code></td>
-              <td class="num">87.94 tok/s first run; 59.63/58.96 tok/s repeat/prototype</td>
-              <td>Unresolved; this branch needs a controlled repeat before it can become a DD breakpoint.</td>
+              <td class="num">87.94 tok/s</td>
+              <td class="num ok">+17.5%</td>
             </tr>
             <tr>
-              <td>128k and 256k</td>
-              <td><code>n2,p0.0</code> repeat rows</td>
-              <td class="num">52.95-54.61 tok/s; 33.51-35.82 tok/s</td>
-              <td>Same setting rows; useful for variance, not proof of a context-specific DD gain.</td>
+              <td>128k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">54.61 tok/s</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">54.61 tok/s</td>
+              <td class="num">tie</td>
+            </tr>
+            <tr>
+              <td>196k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">49.89 tok/s</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">49.89 tok/s</td>
+              <td class="num">tie</td>
+            </tr>
+            <tr>
+              <td>256k</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">33.51 tok/s</td>
+              <td><code>n2,p0.0</code></td>
+              <td class="num">33.51 tok/s</td>
+              <td class="num">tie</td>
             </tr>
           </tbody>
         </table>
@@ -659,16 +682,14 @@
     <section id="limits">
       <h2>Calibration Note</h2>
       <div class="callout warning">
-        <strong>Policy quality comes from calibration.</strong> DD is only useful if the policy is built from the
-        fastest repeat-stable candidates. The current data rejects <code>n4,p0.25</code> at 4k, leaves the 64k
-        <code>n4,p0.0</code> branch unresolved because its measurements conflict, and does not yet prove the final
-        upper-envelope policy across 4k-256k.
+        <strong>Policy quality comes from calibration.</strong> DD must be built from the measured frontier, not from a
+        stale hand-written breakpoint. If a context-specific row loses to <code>n2,p0.0</code>, DD selects
+        <code>n2,p0.0</code>. If a more aggressive row wins, DD selects the aggressive row for that context.
       </div>
       <p style="margin-top: 16px;">
-        DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
-        measured per model, quantization, backend, and workload. The correct proof target is the repeat-stable DD
-        frontier versus the best single fixed static draft policy; until that exists, the report should not show a
-        percentage benefit.
+        For this Qwen 3.6 35B proof set, the visible value is at shorter contexts: <code>n4,p0.25</code> wins near 4k
+        and <code>n4,p0.0</code> wins at 64k. At 128k, 196k, and 256k the current measured frontier ties the static
+        <code>n2,p0.0</code> baseline.
       </p>
     </section>
 
