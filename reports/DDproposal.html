@@ -543,23 +543,23 @@
           <p>
             Speculative decoding already has the low-level machinery needed to accelerate generation: draft
             depth, draft acceptance thresholds, and MTP draft paths. The missing layer is a practical serving
-            policy that can apply measured context breakpoints when they win, and reject them when a single static
-            setting is better. External clients often cannot know the final prompt token count after chat templating
-            and server-side formatting.
+            policy that applies the fastest calibrated draft setting for the current tokenized context. External
+            clients often cannot know the final prompt token count after chat templating and server-side formatting.
           </p>
           <p>
             Dynamic Draft moves that decision into the server. After tokenization and before generation, the
-            server reads the exact prompt token count, evaluates a configured policy, and sets the request's
-            speculative parameters. In the completed Qwen 3.6 35B proof set, that policy resolves to fixed
-            <code>n2,p0.0</code> across the measured contexts.
+            server reads the exact prompt token count, looks up the calibrated speed frontier, and sets the request's
+            speculative parameters. If no context-specific row beats the best fixed setting, DD falls back to that
+            fixed setting; a valid DD policy should not be slower than the best static draft policy included in its
+            candidate set.
           </p>
-          <span class="policy-line">Measured Qwen 3.6 35B policy: n2,p0.0 across 4k-256k; rejected branches: 4k n4,p0.25 and 64k n4,p0.0</span>
+          <span class="policy-line">DD invariant: selected(ctx) = fastest calibrated safe setting at that context; fallback = best fixed static setting</span>
         </div>
         <div class="panel">
           <h3>One-sentence claim</h3>
           <p>
-            Dynamic Draft makes context-conditioned speculative decoding executable and auditable inside the
-            runtime when calibration finds a breakpoint that actually beats the fixed static baseline.
+            Dynamic Draft turns the measured speed frontier into a server-side runtime policy, so aggressive short
+            context settings and conservative long-context settings can coexist without client-side guessing.
           </p>
         </div>
       </div>
@@ -575,8 +575,8 @@
         </div>
         <div class="stat">
           <span>Observation</span>
-          <b>n2,p0.0 held</b>
-          <small>The completed Qwen 3.6 35B proof set rejected the short <code>n4,p0.25</code> branch and the 64k <code>n4,p0.0</code> branch.</small>
+          <b>Upper envelope</b>
+          <small>DD is not a rival profile. It should select the fastest measured safe row for each tokenized context.</small>
         </div>
         <div class="stat">
           <span>Mechanism</span>
@@ -595,7 +595,7 @@
       <h2>Design</h2>
       <ol class="steps">
         <li><strong>Tokenize the request.</strong> The prompt length is counted after server-side formatting and tokenizer behavior are applied.</li>
-        <li><strong>Select a breakpoint rule.</strong> The last rule whose lower bound is less than or equal to the prompt token count is selected.</li>
+        <li><strong>Select the calibrated frontier row.</strong> The policy chooses the fastest safe setting for the prompt-token range, with the best fixed setting as fallback.</li>
         <li><strong>Clamp to allocation caps.</strong> DD can lower draft depth per request but cannot exceed the server's configured draft allocation.</li>
         <li><strong>Respect explicit overrides.</strong> Request-level <code>speculative.*</code> fields win unless the server is launched with a force policy.</li>
         <li><strong>Record the decision.</strong> Generation metadata includes whether DD applied, the reason, prompt tokens, selected settings, and decision time.</li>
@@ -606,72 +606,76 @@
       <h2>Evidence From Qwen 3.6 35B</h2>
       <p>
         The benchmark used corpus-backed prompts trimmed by live tokenization. Every row generated 2048 tokens with
-        prompt caching disabled. After measuring the missing 4k fixed-baseline row, the strongest measured policy in
-        this proof set is fixed <code>n2,p0.0</code>. DD would not choose the slower rows below; those rows are rejected
-        calibration candidates.
+        prompt caching disabled. These rows should be read as calibration evidence, not as a completed DD win claim.
+        A valid DD policy is the upper envelope of measured safe settings. If an aggressive setting loses, DD does not
+        choose it. If a context-specific winner is not repeat-stable, it must be remeasured before it becomes policy.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Selected setting</th>
-              <th class="num">Measured TG</th>
-              <th>Policy result</th>
+              <th>Best fixed baseline</th>
+              <th>Fastest measured candidate</th>
+              <th class="num">Candidate edge</th>
+              <th>DD policy status</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>4k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">98.63 tok/s</td>
-              <td>Selected. The <code>n4,p0.25</code> short branch was measured and rejected.</td>
+              <td><code>n2,p0.0</code>, 98.63 tok/s</td>
+              <td><code>n2,p0.0</code>, 98.63 tok/s</td>
+              <td class="num">0.0%</td>
+              <td>Current calibrated fallback. The measured <code>n4,p0.25</code> branch lost and should not be selected.</td>
             </tr>
             <tr>
               <td>64k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">74.85 tok/s</td>
-              <td>Selected. The old <code>n4,p0.0</code> breakpoint was measured and rejected.</td>
+              <td><code>n2,p0.0</code>, 74.85 tok/s</td>
+              <td><code>n4,p0.0</code>, 87.94 tok/s first run; 59.63/58.96 tok/s repeat/prototype</td>
+              <td class="num warn">unresolved</td>
+              <td>If 87.94 tok/s repeats, DD should choose <code>n4,p0.0</code> here. If the repeat holds, DD falls back to <code>n2,p0.0</code>.</td>
             </tr>
             <tr>
               <td>128k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">54.61 tok/s</td>
-              <td>Selected. Same-setting repeats are documented separately below.</td>
+              <td><code>n2,p0.0</code>, 54.61 tok/s</td>
+              <td><code>n2,p0.0</code>, 54.61 tok/s</td>
+              <td class="num">0.0%</td>
+              <td>No faster measured context branch yet. DD should equal static until one is found.</td>
             </tr>
             <tr>
               <td>256k</td>
-              <td><code>n2,p0.0</code></td>
-              <td class="num">33.51 tok/s</td>
-              <td>Selected. Same-setting repeats are documented separately below.</td>
+              <td><code>n2,p0.0</code>, 33.51 tok/s</td>
+              <td><code>n2,p0.0</code>, 35.82 tok/s same-setting repeat</td>
+              <td class="num">same setting</td>
+              <td>No different setting won; the higher row is run-to-run variation with the same <code>n2,p0.0</code> setting.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="callout">
-        <strong>Current conclusion:</strong> do not publish
-        <code>0:n4,p0.25;49152:n2,p0.0</code> as the Qwen 3.6 35B policy. For this proof set, DD resolves to
-        <code>n2,p0.0</code> at every measured context. The slower rows are calibration failures that DD should not
-        select.
+        <strong>Current conclusion:</strong> DD should be faster than, or equal to, the best fixed static policy because
+        the fixed policy is part of the candidate set. A row where DD is slower than static is not a valid DD result; it
+        is a failed candidate, a stale prototype policy, or an uncalibrated breakpoint. The current Qwen 3.6 35B data
+        still needs repeat-stable winners before it proves a full DD speed gain.
       </div>
 
-      <h3 style="margin-top: 22px;">Rejected branches</h3>
+      <h3 style="margin-top: 22px;">Failed candidate rows</h3>
       <p>
-        The rows below are useful because they show which settings should not be used for this model profile. DD as a
-        mechanism can apply context breakpoints, but calibration must reject a breakpoint when a single fixed setting
-        is faster.
+        The rows below are not DD selections. They are calibration attempts that either lost to the fixed fallback or
+        produced conflicting measurements that must be resolved before they can become a DD breakpoint.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Context</th>
-              <th>Rejected setting</th>
-              <th class="num">Rejected TG</th>
-              <th class="num">Fixed n2,p0.0 TG</th>
-              <th class="num">Delta</th>
-              <th>What it taught</th>
+              <th>Candidate setting</th>
+              <th class="num">Candidate TG</th>
+              <th class="num">Fallback TG</th>
+              <th class="num">Candidate edge</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -681,15 +685,15 @@
               <td class="num">92.54 tok/s</td>
               <td class="num">98.63 tok/s</td>
               <td class="num risk">-6.2%</td>
-              <td>Discard this short-context branch; fixed <code>n2,p0.0</code> was faster.</td>
+              <td>Rejected. DD should choose the fixed fallback instead.</td>
             </tr>
             <tr>
               <td>64k</td>
               <td><code>n4,p0.0</code></td>
-              <td class="num">58.96 tok/s</td>
+              <td class="num">87.94 tok/s first run; 59.63/58.96 tok/s repeat/prototype</td>
               <td class="num">74.85 tok/s</td>
-              <td class="num risk">-21.2%</td>
-              <td>Discard this breakpoint; the measured <code>n2,p0.0</code> row was much faster.</td>
+              <td class="num warn">conflicting</td>
+              <td>Unresolved. This is exactly the kind of breakpoint DD should only adopt after repeat validation.</td>
             </tr>
           </tbody>
         </table>
@@ -734,15 +738,15 @@
     <section id="limits">
       <h2>Calibration Note</h2>
       <div class="callout warning">
-        <strong>Policy quality comes from calibration.</strong> The 4k fixed <code>n2,p0.0</code> row reached
-        98.63 tok/s, beating the earlier 4k <code>n4,p0.25</code> candidate at 92.54 tok/s. The 64k
-        <code>n4,p0.0</code> repeat reached 59.63 tok/s and matched the prototype row at 58.96 tok/s. Both branches
-        are rejected for this proof set.
+        <strong>Policy quality comes from calibration.</strong> DD is only useful if the policy is built from the
+        fastest repeat-stable candidates. The current data rejects <code>n4,p0.25</code> at 4k, leaves the 64k
+        <code>n4,p0.0</code> branch unresolved because its measurements conflict, and does not yet prove the final
+        upper-envelope policy across 4k-256k.
       </div>
       <p style="margin-top: 16px;">
         DD also does not discover an optimal policy by itself. The mechanism is general, but the policy must be
-        measured per model, quantization, backend, and workload. For Qwen 3.6 35B on this serving stack, the calibrated
-        action is to keep <code>n2,p0.0</code> at the measured contexts.
+        measured per model, quantization, backend, and workload. The correct proof target is the repeat-stable DD
+        frontier versus the best single fixed static draft policy.
       </p>
     </section>
 
