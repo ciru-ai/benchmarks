@@ -555,8 +555,9 @@ def summarize_loadouts():
         })
     return {"path": compact_path(path), "rows": len(rows), "loadouts": out}
 
-CODING_LAB_ROOT = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs"
-QUALITY_DB = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/quality-results.sqlite3"
+LAB_ROOT = os.environ.get("BENCHLAB_ROOT") or os.environ.get("LLM_BENCHMARKING_LAB_ROOT") or "/srv/ssd/p3700ba/data/llm-benchmarking-lab"
+CODING_LAB_ROOT = os.environ.get("BENCHV2_CODING_LAB_ROOT") or os.path.join(LAB_ROOT, "runs")
+QUALITY_DB = os.environ.get("BENCHV2_QUALITY_DB") or os.path.join(LAB_ROOT, "quality-results.sqlite3")
 
 PROFILE_LABELS = {
     "qwen3-coder-next-q4-k-l": "Qwen3 Coder Next Q4_K_L",
@@ -577,6 +578,9 @@ PROFILE_LABELS = {
     "chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler": "Chadrock 35B ACE/SABER ROCmFP4 Docsampler",
     "CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN": "Chadrock3.6 35B Uncensored MTP",
     "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
+    "qwen3.6-27b-chadrock-agent-rocmfp4": "qwen3.6 27b CHADROCK AGENT ROCMFP4",
+    "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
+    "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
     "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
     "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
     "nex-n2-mini-q4-k-xl": "Nex N2 Mini Q4_K_XL",
@@ -792,6 +796,11 @@ def completed_quality_score(row):
         # Superseded HA-07 repair used diagnostic max_tokens=4096. Keep it out
         # of public official rows; the official-settings repair is 20260609T035738Z.
         "20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20",
+        # Superseded DeepSeek Flash BigCodeBench runs had mismatched thinking
+        # controls or mislabeled profile metadata. Keep only the corrected API
+        # and public local rows in the site data.
+        "20260619T092533Z-long-context-test-medium",
+        "20260619T130812Z-long-context-test-medium",
     }
     if row["run_id"] in invalid_run_ids:
         return False
