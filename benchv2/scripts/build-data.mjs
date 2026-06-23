@@ -207,7 +207,7 @@ def fetch_rows(cur, view):
     """
     return [row_from_db(row) for row in cur.execute(sql)]
 
-def fetch_api_tg_rows(cur):
+def fetch_api_throughput_rows(cur):
     sql = """
     SELECT b.seq,b.timestamp_utc,b.label,b.kind,b.mode,b.ctx,b.gen,b.avg_tps,b.stddev_tps,b.ttfp_ms,
            b.model,b.model_type,b.model_size_bytes,b.model_params,b.backend,b.type_k,b.type_v,
@@ -217,7 +217,7 @@ def fetch_api_tg_rows(cur):
            b.settings_json,b.row_json
     FROM benchmark_rows b
     WHERE b.kind='llama-server-api'
-      AND b.mode='tg'
+      AND b.mode IN ('pp', 'pg', 'tg')
       AND b.avg_tps IS NOT NULL
       AND (b.label NOT LIKE 'context-sweep-%' OR b.label LIKE 'context-sweep-nocache-force-%')
     ORDER BY b.seq
@@ -1849,9 +1849,9 @@ except FileNotFoundError:
 
 strict_rows = fetch_rows(cur, "llama_bench_strict")
 comparable_rows = fetch_rows(cur, "llama_bench_comparable")
-api_tg_rows = fetch_api_tg_rows(cur)
-strict_rows.extend(api_tg_rows)
-comparable_rows.extend(api_tg_rows)
+api_throughput_rows = fetch_api_throughput_rows(cur)
+strict_rows.extend(api_throughput_rows)
+comparable_rows.extend(api_throughput_rows)
 api_rows = summarize_api_rows(cur)
 server_tuning = summarize_server_tuning()
 supplemental_gemma_qat_mtp = supplemental_gemma_qat_mtp_rows()
@@ -1883,7 +1883,7 @@ payload = {
     "notes": [
         {"title": "Validated results", "kind": "method", "text": "Validated results use runs with complete settings and comparable measurement fields."},
         {"title": "Context metric", "kind": "metric", "text": "PG rows include prompt processing plus generation. PP rows measure prompt processing. The atlas labels each cell with the metric that was recorded."},
-        {"title": "Serving measurements", "kind": "serving", "text": "Serving latency, MTP sweeps, race pages, and loadout tests answer different questions, so they are shown separately from raw throughput charts."},
+        {"title": "Serving measurements", "kind": "serving", "text": "Serving latency, MTP sweeps, race pages, and loadout tests answer different questions. Validated served pp/tg rows are also promoted into the main throughput charts when they carry complete model and settings metadata."},
         {"title": "Historical results", "kind": "archive", "text": "All Results includes older measurements that are useful for trend checks, even when their settings are less complete."}
     ]
 }
