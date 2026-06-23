@@ -98,6 +98,10 @@ def family_for(text):
         if "mtp" in low:
             return "Qwen3.6 MTP"
         return "Qwen3.6"
+    if "qwen3.5" in low or "qwen35" in low:
+        if "mtp" in low:
+            return "Qwen3.5 MTP"
+        return "Qwen3.5"
     if "lfm2.5" in low or "lfm25" in low:
         return "Liquid"
     if "nex-n2" in low:
@@ -581,6 +585,7 @@ PROFILE_LABELS = {
     "qwen3.6-27b-chadrock-agent-rocmfp4": "qwen3.6 27b CHADROCK AGENT ROCMFP4",
     "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
     "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
+    "qwen35-122b-rocmfp4-mtp-64k-q8kv": "Qwen3.5 122B ROCmFP4 MTP 64k Q8 KV",
     "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
     "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
     "nex-n2-mini-q4-k-xl": "Nex N2 Mini Q4_K_XL",
@@ -650,6 +655,8 @@ def profile_quant(profile_id):
         ("q5-k-m", "Q5_K_M"), ("q4-km", "Q4_K_M"),
         ("q4-k-m", "Q4_K_M"), ("iq3", "IQ3"), ("bf16", "BF16")
     ]
+    if "rocmfp4" in text:
+        return "ROCmFP4"
     for needle, label in patterns:
         if needle in text:
             return label
