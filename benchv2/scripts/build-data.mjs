@@ -193,6 +193,132 @@ def row_from_db(row):
         "matrix": sq.get("matrix") or rj.get("matrix"),
     }
 
+def finite_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+def served_lab_signal(row):
+    text = " ".join(str(row.get(k) or "") for k in ("label", "sourcePath", "rawOutput", "matrix")).lower()
+    lab_terms = (
+        "sweep", "matrix", "smoke", "check", "probe", "race", "compare", "repeat",
+        "quick", "test", "debug", "curve", "ladder", "baseline", "target"
+    )
+    return any(term in text for term in lab_terms)
+
+def served_quant_key(row):
+    text = " ".join(str(row.get(k) or "") for k in (
+        "model", "modelName", "modelType", "label", "sourcePath", "rawOutput", "matrix"
+    )).lower().replace("_", "-")
+    quant_patterns = (
+        ("rocmfp6", "rocmfp6"),
+        ("rocmfpx", "rocmfpx"),
+        ("rocmfp4", "rocmfp4"),
+        ("rocmfp3", "rocmfp3"),
+        ("mxfp4", "mxfp4"),
+        ("iq1-m", "iq1-m"),
+        ("iq1m", "iq1-m"),
+        ("q8-k-xl", "q8-k-xl"),
+        ("q8-0", "q8-0"),
+        ("q8kv", "q8kv"),
+        ("q6-k-xl", "q6-k-xl"),
+        ("q6-k", "q6-k"),
+        ("q6-0", "q6-0"),
+        ("q5-k-m", "q5-k-m"),
+        ("q5km", "q5-k-m"),
+        ("q4-k-m", "q4-k-m"),
+        ("q4km", "q4-k-m"),
+        ("q4-k-xl", "q4-k-xl"),
+        ("q3-k-xl", "q3-k-xl"),
+        ("q2-k-xl", "q2-k-xl"),
+        ("bf16", "bf16"),
+        ("f16", "f16"),
+        ("fp16", "f16"),
+    )
+    for needle, key in quant_patterns:
+        if needle in text:
+            return key
+    return "unknown-quant"
+
+def normalized_served_model_key(row):
+    model = str(row.get("model") or row.get("modelName") or "")
+    label = str(row.get("label") or "")
+    text = f"{model} {label}".lower().replace("_", "-")
+    if "ace-saber" in text:
+        return "qwen36-35b-ace-saber"
+    if "qwen3.6-35b" in text and "mtp" in text:
+        return "qwen36-35b-mtp"
+    if "qwable" in text and "27b" in text and "chadrock" in text:
+        return "qwable5-27b-chadrock"
+    if "qwable" in text and "27b" in text:
+        return "qwable5-27b-coder"
+    if "qwopus" in text and "27b" in text:
+        return "qwopus36-27b-coder"
+    if "deckard" in text and "40b" in text:
+        return "qwen36-40b-deckard"
+    if "gemma4-12b" in text or "gemma-4-12b" in text:
+        return "gemma4-12b"
+    if "gemma4-e2b" in text:
+        return "gemma4-e2b"
+    if "gemma4-26b" in text or "gemma-4-26b" in text:
+        return "gemma4-26b"
+
+    base = model_name(model)
+    base = base.lower().replace("_", "-")
+    base = re.sub(r"\.gguf$", "", base)
+    base = re.sub(r"-(ctx|context)-?\d+[km]?", "", base)
+    base = re.sub(r"-gen\d+", "", base)
+    base = re.sub(r"-g\d+", "", base)
+    base = re.sub(r"-b\d+u\d+", "", base)
+    base = re.sub(r"-(req-)?n\d+p\d+(?:\.\d+)?", "", base)
+    base = re.sub(r"-(nmax|n)\d+", "", base)
+    base = re.sub(r"-(pmin|p)\d+(?:\.\d+)?", "", base)
+    base = re.sub(r"-(quick|smoke|repeat\d*|matrix|sweep|curve|ladder|probe|check|test|baseline|target).*$", "", base)
+    base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    return base or model_name(model).lower()
+
+def served_promotion_score(row):
+    mode = row.get("mode")
+    gen = row.get("gen") if finite_number(row.get("gen")) else 0
+    ctx = row.get("ctx") if finite_number(row.get("ctx")) else 0
+    tps = row.get("tps") if finite_number(row.get("tps")) else 0
+    formal = 0 if served_lab_signal(row) else 1
+    if mode == "pp":
+        context_depth = 1 if ctx >= 2048 else 0
+        return (context_depth, tps, min(ctx, 131072), formal)
+    long_enough = 1 if gen >= 512 else 0
+    return (long_enough, tps, min(gen, 2048), min(ctx, 131072), formal)
+
+def select_served_chart_rows(rows):
+    groups = collections.defaultdict(list)
+    for row in rows:
+        mode = row.get("mode")
+        if mode not in ("pp", "tg"):
+            continue
+        if not finite_number(row.get("tps")):
+            continue
+        if row.get("tps") >= 1000:
+            continue
+        if mode == "tg":
+            if not finite_number(row.get("gen")) or row.get("gen") <= 1:
+                continue
+        if mode == "pp":
+            if not finite_number(row.get("ctx")) or row.get("ctx") <= 0:
+                continue
+        if row.get("modelName") == "Unknown model":
+            continue
+        key = (normalized_served_model_key(row), served_quant_key(row), mode)
+        groups[key].append(row)
+
+    selected = []
+    for key, group in sorted(groups.items()):
+        best = sorted(group, key=served_promotion_score, reverse=True)[0].copy()
+        model_key, quant_key, mode = key
+        best["chartPromotion"] = f"served-best-{mode}-per-model-quant"
+        best["chartGroup"] = f"{model_key}|{quant_key}"
+        best["chartClass"] = "lab-derived" if served_lab_signal(best) else "formal"
+        best["quantKey"] = quant_key
+        selected.append(best)
+    return selected
+
 def fetch_rows(cur, view):
     sql = f"""
     SELECT b.seq,b.timestamp_utc,b.label,b.kind,b.mode,b.ctx,b.gen,b.avg_tps,b.stddev_tps,b.ttfp_ms,
@@ -222,7 +348,7 @@ def fetch_api_throughput_rows(cur):
       AND (b.label NOT LIKE 'context-sweep-%' OR b.label LIKE 'context-sweep-nocache-force-%')
     ORDER BY b.seq
     """
-    return [row_from_db(row) for row in cur.execute(sql)]
+    return select_served_chart_rows([row_from_db(row) for row in cur.execute(sql)])
 
 def parse_metric_text(text):
     out = {}
