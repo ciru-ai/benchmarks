@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="assets/echarts.min.js"></script>
-  <script src="benchv2/data/benchv2-data.js?v=20260624-serving-grid"></script>
+  <script src="benchv2/data/benchv2-data.js?v=20260624-peer-classes"></script>
   <style>
     :root {
       --bg: #070707;
@@ -986,7 +986,7 @@
 
     .serving-controls {
       display: grid;
-      grid-template-columns: 1.3fr 1.1fr 0.7fr 1fr;
+      grid-template-columns: 1.25fr 1fr 1fr 0.7fr 1fr;
       gap: 10px;
       padding: 12px 16px;
       border-bottom: 1px solid var(--line);
@@ -2102,6 +2102,10 @@
             <select id="servingModelSelect"></select>
           </label>
           <label class="field">
+            <span>Peer class</span>
+            <select id="servingClassSelect"></select>
+          </label>
+          <label class="field">
             <span>Flag</span>
             <select id="servingFlagSelect"></select>
           </label>
@@ -2139,8 +2143,8 @@
           <section class="serving-matrix-section">
             <div class="matrix-heading">
               <div>
-                <h3>Flag Comparison</h3>
-                <p id="servingFlagNote">Pick a flag to compare the same setting across models. With all flags selected, this shows the strongest flag/model pairs.</p>
+                <h3>Peer Class Comparison</h3>
+                <p id="servingFlagNote">One best row per comparable model. Change peer class to compare by parameter/ability tier instead of global speed.</p>
               </div>
               <small id="servingFlagCount"></small>
             </div>
@@ -2148,9 +2152,9 @@
               <table class="compare-matrix matrix-table">
                 <thead>
                   <tr>
-                    <th class="matrix-sticky">Model / flag</th>
+                    <th class="matrix-sticky">Model / peer</th>
                     <th>Selected metric</th>
-                    <th>Vs model best</th>
+                    <th>Vs class best</th>
                     <th>Decode</th>
                     <th>Prompt</th>
                     <th>Latency</th>
@@ -3135,15 +3139,124 @@
       return `${row.label || "row"} • ${row.testType || "test"} • ${row.flagLabel || row.flagFamily || "flag"}`;
     }
 
+    function servingRowText(row) {
+      return [row?.modelName, row?.modelKey, row?.family, row?.label, row?.testType, row?.flagFamily, row?.flagLabel, row?.sourcePath, row?.rawOutput]
+        .join(" ")
+        .toLowerCase();
+    }
+
+    function servingModelBillions(row) {
+      const text = servingRowText(row).replace(/_/g, "-");
+      if (/(?:qwen|qwopus|ornstein|saber|chadrock|crown|rocmfp3).*35b|35b.*(?:qwen|qwopus|ornstein|saber|chadrock|crown|rocmfp3)|crown-dynamic|rocmfp3/.test(text)) return 35;
+      const matches = [...text.matchAll(/(?:^|[^0-9])(\d+(?:\.\d+)?)\s*b\b/g)]
+        .map((match) => Number(match[1]))
+        .filter((value) => Number.isFinite(value) && value >= 1 && value <= 250);
+      return matches.length ? Math.max(...matches) : null;
+    }
+
+    function servingIsAgentClass(row) {
+      return /(agent|coder|coding|hermes|qwable|qwopus|deckard|pi-agent|tool|reason)/.test(servingRowText(row));
+    }
+
+    function servingIsMtpClass(row) {
+      return /(mtp|draft|speculative|n\d+p|minp|pmin|crown-dynamic|rocmfp3)/.test(servingRowText(row));
+    }
+
+    function servingPeerClassLabel(row) {
+      const size = servingModelBillions(row);
+      if (size != null && size < 8) return "Tiny / draft";
+      if (size != null && size < 16) return "8-15B";
+      if (size != null && size < 32) return "20-31B";
+      if (size != null && size <= 45) return "32-45B";
+      if (size != null && size > 45) return "70B+";
+      if (servingIsAgentClass(row)) return "Agent/coder";
+      if (servingIsMtpClass(row)) return "MTP/draft";
+      return "Unclassified";
+    }
+
+    const SERVING_PEER_CLASSES = [
+      {
+        value: "class-35",
+        label: "32-45B / active-MoE",
+        description: "35B-class, 40B, and inferred 35B MTP systems",
+        matches: (row) => {
+          const size = servingModelBillions(row);
+          return (size != null && size >= 32 && size <= 45) || /(rocmfp3|crown-dynamic|saber|ornstein|qwopus3\.6|qwen36-35b|35b-mtp)/.test(servingRowText(row));
+        }
+      },
+      {
+        value: "class-20-31",
+        label: "20-31B workhorse",
+        description: "27B, 30B, 31B, and similar local workhorse models",
+        matches: (row) => {
+          const size = servingModelBillions(row);
+          return size != null && size >= 20 && size < 32;
+        }
+      },
+      {
+        value: "ability-agent",
+        label: "Agent / coder tuned",
+        description: "Rows with agent, coder, Hermes, Qwable/Qwopus, Deckard, or tool-use identity",
+        matches: servingIsAgentClass
+      },
+      {
+        value: "ability-mtp",
+        label: "MTP / draft capable",
+        description: "Speculative, MTP, draft, and request-level tuning rows",
+        matches: servingIsMtpClass
+      },
+      {
+        value: "class-8-15",
+        label: "8-15B class",
+        description: "12B and nearby small-capability models",
+        matches: (row) => {
+          const size = servingModelBillions(row);
+          return size != null && size >= 8 && size < 16;
+        }
+      },
+      {
+        value: "class-tiny",
+        label: "Tiny / draft class",
+        description: "Sub-8B rows, useful for draft-model speed but not main-model comparison",
+        matches: (row) => {
+          const size = servingModelBillions(row);
+          return size != null && size < 8;
+        }
+      },
+      {
+        value: "all",
+        label: "All classes",
+        description: "Every archived row, including tiny draft models",
+        matches: () => true
+      }
+    ];
+
+    function servingPeerClassDef(value) {
+      return SERVING_PEER_CLASSES.find((item) => item.value === value) || SERVING_PEER_CLASSES[0];
+    }
+
+    function servingMatchesPeerClass(row, value) {
+      return servingPeerClassDef(value).matches(row);
+    }
+
     function populateServingLabControls() {
       const data = DATA.servingLab || { models: [], flags: [], rows: [] };
       const modelSelect = $("servingModelSelect");
       const flagSelect = $("servingFlagSelect");
-      if (!modelSelect || !flagSelect) return;
+      const classSelect = $("servingClassSelect");
+      if (!modelSelect || !flagSelect || !classSelect) return;
       if (!modelSelect.options.length) {
         modelSelect.innerHTML = `<option value="all">All models</option>` + (data.models || []).map((model) => `
           <option value="${escapeHtml(model.modelKey)}">${escapeHtml(model.modelName || model.modelKey)} (${intFmt(model.rows)})</option>
         `).join("");
+      }
+      if (!classSelect.options.length) {
+        classSelect.innerHTML = SERVING_PEER_CLASSES.map((klass) => {
+          const rows = (data.rows || []).filter((row) => klass.matches(row));
+          const models = new Set(rows.map((row) => row.modelKey)).size;
+          return `<option value="${escapeHtml(klass.value)}">${escapeHtml(klass.label)} (${intFmt(models)} profiles)</option>`;
+        }).join("");
+        classSelect.value = "class-35";
       }
       if (!flagSelect.options.length) {
         flagSelect.innerHTML = `<option value="all">All flags</option>` + (data.flags || []).map((flag) => {
@@ -3156,10 +3269,12 @@
     function servingFilteredRows(ignoreModel = false) {
       const data = DATA.servingLab || { rows: [] };
       const modelValue = $("servingModelSelect")?.value || "all";
+      const classValue = $("servingClassSelect")?.value || "class-35";
       const flagValue = $("servingFlagSelect")?.value || "all";
       const query = ($("servingSearch")?.value || "").trim().toLowerCase();
       return (data.rows || []).filter((row) => {
         if (!ignoreModel && modelValue !== "all" && row.modelKey !== modelValue) return false;
+        if ((ignoreModel || modelValue === "all") && classValue !== "all" && !servingMatchesPeerClass(row, classValue)) return false;
         if (flagValue !== "all" && `${row.flagFamily || "General"}|${row.flagLabel || ""}` !== flagValue) return false;
         if (query) {
           const hay = [row.label, row.modelName, row.testType, row.flagFamily, row.flagLabel, row.backend, row.quantKey, row.sourceKind].join(" ").toLowerCase();
@@ -3171,13 +3286,15 @@
 
     function renderServingSummary(rows, metric) {
       const data = DATA.servingLab || { meta: {} };
+      const modelValue = $("servingModelSelect")?.value || "all";
+      const classDef = servingPeerClassDef($("servingClassSelect")?.value || "class-35");
       const bestDecode = servingSortRows(rows.filter((row) => isNum(row.decodeTps)), "decodeTps")[0];
       const bestPrompt = servingSortRows(rows.filter((row) => isNum(row.promptTps)), "promptTps")[0];
       const selectedMetric = servingSortRows(rows.filter((row) => isNum(row[metric])), metric)[0];
       const sourceCounts = Object.entries(data.meta?.sourceCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3)
         .map(([source, count]) => `${source}: ${intFmt(count)}`).join(" • ");
       const cards = [
-        { kind: "use", label: "Rows", value: intFmt(rows.length), detail: `${intFmt(data.meta?.rowCount)} archived serving rows across ${intFmt(data.meta?.modelCount)} models.` },
+        { kind: "use", label: "Rows", value: intFmt(rows.length), detail: modelValue === "all" ? `${classDef.label}; ${intFmt(data.meta?.rowCount)} archived rows total.` : `${intFmt(data.meta?.rowCount)} archived serving rows across ${intFmt(data.meta?.modelCount)} models.` },
         { kind: "use", label: "Best decode", value: speed(bestDecode?.decodeTps), detail: bestDecode ? servingRowLabel(bestDecode) : "No decode rows in this selection." },
         { kind: "use", label: "Best prompt", value: speed(bestPrompt?.promptTps), detail: bestPrompt ? servingRowLabel(bestPrompt) : "No prompt rows in this selection." },
         { kind: "warn", label: servingMetricLabel(metric), value: servingMetricText(selectedMetric, metric), detail: selectedMetric ? servingRowLabel(selectedMetric) : (sourceCounts || "No matching rows.") }
@@ -3359,35 +3476,35 @@
     }
 
     function renderServingFlagMatrix(metric) {
-      const allRows = DATA.servingLab?.rows || [];
+      const classValue = $("servingClassSelect")?.value || "class-35";
+      const classDef = servingPeerClassDef(classValue);
       const flagValue = $("servingFlagSelect")?.value || "all";
       const flagRows = servingFilteredRows(true);
-      const keyFn = flagValue === "all"
-        ? (row) => `${row.flagFamily}|${row.flagLabel}|${row.modelKey}`
-        : (row) => row.modelKey;
+      const keyFn = (row) => row.modelKey;
       const rows = servingSortRows(bestRowsByKey(flagRows, keyFn, metric), metric).slice(0, 32);
-      $("servingFlagCount").textContent = `${intFmt(rows.length)} rows`;
+      const classBest = servingBestValue(rows, metric);
+      $("servingFlagCount").textContent = `${intFmt(rows.length)} models`;
       $("servingFlagNote").textContent = flagValue === "all"
-        ? "All flags selected: strongest flag/model pairs are shown, with each row compared to that model's own best result."
-        : "Selected flag: one best row per model is shown, with deltas against each model's own best result.";
+        ? (classValue === "class-tiny"
+          ? `${classDef.label}: isolated draft-model speed view. Use another peer class for main-model comparisons.`
+          : `${classDef.label}: one best row per comparable model/profile. Tiny draft models stay out unless that peer class is selected.`)
+        : `${classDef.label}: one best matching row per model/profile for the selected flag. Deltas are against the best row in this peer class.`;
       $("servingFlagMatrixBody").innerHTML = rows.map((row) => {
-        const modelRows = allRows.filter((candidate) => candidate.modelKey === row.modelKey);
-        const modelBest = servingBestValue(modelRows, metric);
         const value = servingMetricValue(row, metric);
-        const metricClass = servingRelativeClass(value, modelBest, metric);
+        const metricClass = servingRelativeClass(value, classBest, metric);
         const latency = `${ms(row.ttfpMs)} / ${ms(row.totalMs)}`;
         return `
           <tr>
-            <td class="matrix-sticky profile-cell"><strong>${escapeHtml(row.modelName || "n/a")}</strong><small>${escapeHtml(row.flagFamily || "flag")} • ${escapeHtml(row.flagLabel || "setting")} • ${escapeHtml(row.label || "run")}</small></td>
+            <td class="matrix-sticky profile-cell"><strong>${escapeHtml(row.modelName || "n/a")}</strong><small>${escapeHtml(servingPeerClassLabel(row))} • ${escapeHtml(row.flagFamily || "flag")} • ${escapeHtml(row.flagLabel || "setting")}</small></td>
             <td class="matrix-cell ${metricClass} metric-cell"><strong>${escapeHtml(servingMetricDisplay(metric, value))}</strong><small>${escapeHtml(servingMetricLabel(metric))}</small></td>
-            <td class="matrix-cell ${metricClass}"><strong>${escapeHtml(servingDeltaText(value, modelBest, metric))}</strong><small>vs model best</small></td>
+            <td class="matrix-cell ${metricClass}"><strong>${escapeHtml(servingDeltaText(value, classBest, metric))}</strong><small>vs class best</small></td>
             <td class="matrix-cell metric-cell">${speed(row.decodeTps)}</td>
             <td class="matrix-cell metric-cell">${speed(row.promptTps)}</td>
             <td class="matrix-cell metric-cell">${escapeHtml(latency)}</td>
-            <td class="matrix-cell"><small>${escapeHtml(servingSettingsText(row))}<br>${intFmt(row.ctx)} ctx / ${intFmt(row.gen)} gen</small></td>
+            <td class="matrix-cell"><small>${escapeHtml(servingSettingsText(row))}<br>${escapeHtml(row.label || "run")}<br>${intFmt(row.ctx)} ctx / ${intFmt(row.gen)} gen</small></td>
           </tr>
         `;
-      }).join("") || `<tr><td colspan="7">No flag rows match this selection.</td></tr>`;
+      }).join("") || `<tr><td colspan="7">No peer-class rows match this selection.</td></tr>`;
     }
 
     function renderServingDetailRows(rows, metric) {
@@ -3984,7 +4101,7 @@
         $(id).addEventListener("input", renderAtlas);
         $(id).addEventListener("change", renderAtlas);
       });
-      ["servingModelSelect", "servingFlagSelect", "servingMetricSelect", "servingSearch"].forEach((id) => {
+      ["servingModelSelect", "servingClassSelect", "servingFlagSelect", "servingMetricSelect", "servingSearch"].forEach((id) => {
         $(id).addEventListener("input", renderServingLab);
         $(id).addEventListener("change", renderServingLab);
       });
