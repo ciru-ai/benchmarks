@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Grid</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-back: #2c3e50;
+            --card-front: #ffffff;
+            --accent: #3498db;
+            --success: #2ecc71;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+
+        .stats-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #34495e;
+        }
+
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-gap: 15px;
+            perspective: 1000px;
+        }
+
+        @media (max-width: 480px) {
+            #game-grid { grid-template-columns: repeat(4, 75px); }
+        }
+
+        .card {
+            width: 100%;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) { .card { height: 75px; } }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched {
+            transform: rotateY(180deg) scale(0.95);
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-back {
+            background-color: var(--card-back);
+            color: white;
+        }
+
+        .card-front {
+            background-color: var(--card-front);
+            transform: rotateY(180deg);
+        }
+
+        button {
+            margin-top: 30px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover { background-color: #2980b9; }
+
+        /* Win Animation */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .win-msg {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Memory Grid</h1>
+
+    <div class="stats-container">
+        <div>Moves: <span id="moves">0</span></div>
+        <div>Time: <span id="timer">0s</span></div>
+    </div>
+
+    <div id="game-grid"></div>
+
+    <button onclick="resetGame()">New Game</button>
+
+    <div id="win-modal" class="win-msg">
+        <h2>🎉 You Won!</h2>
+        <p id="final-stats"></p>
+        <button onclick="resetGame()">Play Again</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('game-grid');
+        const movesDisplay = document.getElementById('moves');
+        const timerDisplay = document.getElementById('timer');
+        const winModal = document.getElementById('win-modal');
+        const finalStats = document.getElementById('final-stats');
+
+        const icons = ['🍎', '🍌', '🍇', '🍓', '🍒', '🍍', '🥝', '🍉'];
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let timerInterval = null;
+        let seconds = 0;
+        let isLockBoard = false;
+
+        function createCardSet() {
+            const pairIcons = [...icons, ...icons];
+            return pairIcons.sort(() => Math.random() - 0.5);
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            timerDisplay.textContent = '0s';
+            timerInterval = setInterval(() => {
+                seconds++;
+                timerDisplay.textContent = seconds + 's';
+            }, 1000);
+        }
+
+        function createBoard() {
+            grid.innerHTML = '';
+            const cardValues = createCardSet();
+            cardValues.forEach(val => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.value = val;
+
+                card.innerHTML = `
+                    <div class="card-face card-back">?</div>
+                    <div class="card-face card-front">${val}</div>
+                `;
+
+                card.addEventListener('click', flipCard);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard() {
+            if (isLockBoard) return;
+            if (this === flippedCards[0]) return;
+            if (this.classList.contains('matched')) return;
+
+            this.classList.add('flipped');
+            flippedCards.push(this);
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            moves++;
+            movesDisplay.textContent = moves;
+            isLockBoard = true;
+
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.value === card2.dataset.value;
+
+            if (isMatch) {
+                disableCards();
+            } else {
+                unflipCards();
+            }
+        }
+
+        function disableCards() {
+            flippedCards[0].classList.add('matched');
+            flippedCards[1].classList.add('matched');
+            matchedPairs++;
+            resetTurn();
+
+            if (matchedPairs === icons.length) {
+                endGame();
+            }
+        }
+
+        function unflipCards() {
+            setTimeout(() => {
+                flippedCards[0].classList.remove('flipped');
+                flippedCards[1].classList.remove('flipped');
+                resetTurn();
+            }, 1000);
+        }
+
+        function resetTurn() {
+            flippedCards = [];
+            isLockBoard = false;
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            finalStats.textContent = `Completed in ${moves} moves and ${seconds} seconds!`;
+            winModal.style.display = 'block';
+        }
+
+        function resetGame() {
+            matchedPairs = 0;
+            moves = 0;
+            seconds = 0;
+            flippedCards = [];
+            isLockBoard = false;
+            movesDisplay.textContent = '0';
+            timerDisplay.textContent = '0s';
+            winModal.style.display = 'none';
+            clearInterval(timerInterval);
+            createBoard();
+        }
+
+        // Initialize game on load
+        window.onload = () => {
+            createBoard();
+            startTimer(); // Timer starts when first move is made in a real scenario, but we'll start it now for simplicity or trigger on first click
+            // Let's adjust to start timer on first card flip
+            const firstCardHandler = function() {
+                if (seconds === 0 && moves === 0) startTimer();
+                this.removeEventListener('click', firstCardHandler);
+            };
+            document.querySelectorAll('.card').forEach(c => c.addEventListener('click', firstCardHandler));
+        };
+
+    </script>
+</body>
+</html>

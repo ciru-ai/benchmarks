@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Clicker</title>
+    <style>
+        :root {
+            --bg-color: #0a0e14;
+            --circuit-green: #00ff41;
+            --panel-bg: rgba(20, 30, 48, 0.8);
+            --accent-blue: #00d4ff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Animated Circuit Background */
+        #circuit-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a2a3a 0%, #0a0e14 100%);
+        }
+
+        .trace {
+            position: absolute;
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 8px var(--circuit-green);
+        }
+
+        /* Game Layout */
+        #game-container {
+            display: grid;
+            grid-template-columns: 300px 400px 300px;
+            gap: 20px;
+            width: 95vw;
+            height: 80vh;
+            z-index: 1;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 2px solid var(--circuit-green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+        }
+
+        /* Main Click Area */
+        #click-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        #core-node {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--circuit-green) 0%, transparent 70%);
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px var(--circuit-green);
+        }
+
+        #core-node:active {
+            transform: scale(0.95);
+        }
+
+        #core-node::after {
+            content: '';
+            width: 80%;
+            height: 80%;
+            border: 2px solid var(--circuit-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        /* Stats Display */
+        h1, h2 { margin: 5px 0; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 2px; }
+        #score-display { font-size: 2.5rem; color: white; margin: 10px 0; }
+        #sps-display { color: var(--circuit-green); font-weight: bold; }
+
+        /* Upgrades List */
+        .upgrade-list {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #444;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upgrade-item:hover {
+            background: rgba(0, 255, 65, 0.2);
+            border-color: var(--circuit-green);
+        }
+
+        .upgrade-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .upgrade-name { font-weight: bold; display: block; color: var(--accent-blue); }
+        .upgrade-cost { font-size: 0.8rem; color: #aaa; }
+
+        /* Floating Text Animation */
+        .floating-text {
+            position: absolute;
+            color: var(--circuit-green);
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="circuit-bg"></div>
+
+    <div id="game-container">
+        <!-- Left Panel: Stats -->
+        <div class="panel" id="stats-panel">
+            <h2>System Status</h2>
+            <hr style="width:100%; border-color: #333;">
+            <p>Data Processed:</p>
+            <div id="score-display">0</div>
+            <p>Throughput (SPS):</p>
+            <div id="sps-display">0.0/s</div>
+        </div>
+
+        <!-- Center Panel: Clicking -->
+        <div class="panel" id="click-area">
+            <h1>Core Node</h1>
+            <div id="core-node"></div>
+            <p style="margin-top: 40px; color: #888;">Click the node to upload data</p>
+        </div>
+
+        <!-- Right Panel: Upgrades -->
+        <div class="panel" id="upgrade-panel">
+            <h2>Upgrades</h2>
+            <div class="upgrade-list" id="upgrades-container">
+                <!-- Upgrades injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const state = {
+            score: 0,
+            sps: 0, // Score Per Second
+            clickValue: 1,
+            upgrades: [
+                { id: 'transistor', name: 'Transistor', cost: 15, spsAdd: 0.5, count: 0 },
+                { id: 'capacitor', name: 'Capacitor', cost: 100, spsAdd: 3, count: 0 },
+                { id: 'resistor', name: 'Resistor', cost: 500, spsAdd: 12, count: 0 },
+                { id: 'logic_gate', name: 'Logic Gate', cost: 2500, spsAdd: 45, count: 0 },
+                { id: 'microchip', name: 'Microchip', cost: 10000, spsAdd: 150, count: 0 },
+                { id: 'processor', name: 'CPU Core', cost: 75000, spsAdd: 600, count: 0 }
+            ]
+        };
+
+        // DOM Elements
+        const scoreEl = document.getElementById('score-display');
+        const spsEl = document.getElementById('sps-display');
+        const coreNode = document.getElementById('core-node');
+        const upgradesContainer = document.getElementById('upgrades-container');
+        const bgContainer = document.getElementById('circuit-bg');
+
+        // Initialize Background Traces
+        function createTraces() {
+            for(let i=0; i<25; i++) {
+                const trace = document.createElement('div');
+                trace.className = 'trace';
+                const width = Math.random() * 300 + 100;
+                const height = Math.random() < 0.5 ? 2 : 8;
+                trace.style.width = width + 'px';
+                trace.style.height = height + 'px';
+                trace.style.top = Math.random() * 100 + '%';
+                trace.style.left = Math.random() * 100 + '%';
+                bgContainer.appendChild(trace);
+            }
+        }
+
+        // Click Logic
+        coreNode.addEventListener('click', (e) => {
+            state.score += state.clickValue;
+            createFloatingText(e.clientX, e.clientY, `+${state.clickValue}`);
+            updateDisplay();
+        });
+
+        function createFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        // Upgrade Logic
+        function renderUpgrades() {
+            upgradesContainer.innerHTML = '';
+            state.upgrades.forEach((upgrade, index) => {
+                const div = document.createElement('div');
+                div.className = `upgrade-item ${state.score < upgrade.cost ? 'disabled' : ''}`;
+                div.onclick = () => buyUpgrade(index);
+                div.innerHTML = `
+                    <span class="upgrade-name">${upgrade.name} (${upgrade.count})</span>
+                    <span class="upgrade-cost">Cost: ${Math.floor(upgrade.cost)} | +${upgrade.spsAdd}/s</span>
+                `;
+                upgradesContainer.appendChild(div);
+            });
+        }
+
+        function buyUpgrade(index) {
+            const upgrade = state.upgrades[index];
+            if (state.score >= upgrade.cost) {
+                state.score -= upgrade.cost;
+                upgrade.count++;
+                upgrade.cost *= 1.25; // Increase cost exponentially
+                calculateSPS();
+                renderUpgrades();
+                updateDisplay();
+            }
+        }
+
+        function calculateSPS() {
+            let totalSPS = 0;
+            state.upgrades.forEach(u => {
+                totalSPS += (u.count * u.spsAdd);
+            });
+            state.sps = totalSPS;
+        }
+
+        // Update Loop
+        function updateDisplay() {
+            scoreEl.innerText = Math.floor(state.score).toLocaleString();
+            spsEl.innerText = state.sps.toFixed(1) + '/s';
+            
+            // Refresh upgrade button availability without full re-render for performance
+            const items = document.querySelectorAll('.upgrade-item');
+            state.upgrades.forEach((u, i) => {
+                if (state.score >= u.cost) {
+                    items[i].classList.remove('disabled');
+                } else {
+                    items[i].classList.add('disabled');
+                }
+            });
+        }
+
+        // Main Game Loop (runs every 100ms for smoothness)
+        setInterval(() => {
+            state.score += (state.sps / 10);
+            updateDisplay();
+        }, 100);
+
+        // Start the game
+        createTraces();
+        renderUpgrades();
+    </script>
+</body>
+</html>

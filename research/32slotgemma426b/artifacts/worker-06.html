@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Catcher Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #0b0e14;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #3498db;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+            background: radial-gradient(circle, #1b2735 0%, #090a0f 100%);
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Game Constants
+canvas.width = 400;
+canvas.height = 600;
+
+const PLAYER_WIDTH = 50;
+const PLAYER_HEIGHT = 15;
+const STAR_RADIUS = 8;
+const GAME_DURATION = 30; // seconds
+
+// Game State
+let score = 0;
+let lives = 3;
+let timeLeft = GAME_DURATION;
+let gameActive = true;
+let lastTime = 0;
+let spawnTimer = 0;
+
+// Player Object
+const player = {
+    x: canvas.width / 2 - PLAYER_WIDTH / 2,
+    y: canvas.height - 40,
+    speed: 7,
+    dx: 0
+};
+
+// Entities
+let stars = [];
+
+// Input Handling
+const keys = {};
+window.addEventListener('keydown', (e) => keys[e.code] = true);
+window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+function spawnStar() {
+    stars.push({
+        x: Math.random() * (canvas.width - STAR_RADIUS * 2) + STAR_RADIUS,
+        y: -10,
+        speed: 2 + Math.random() * 3,
+        color: `hsl(${Math.random() * 60 + 40}, 100%, 70%)` // Yellow/Gold hues
+    });
+}
+
+function drawPlayer() {
+    ctx.fillStyle = '#3498db';
+    ctx.beginPath();
+    ctx.roundRect(player.x, player.y, PLAYER_WIDTH, PLAYER_HEIGHT, 5);
+    ctx.fill();
+    // Glow effect
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#3498db';
+}
+
+function drawStar(star) {
+    ctx.fillStyle = star.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = star.color;
+    ctx.beginPath();
+    // Draw a simple diamond/star shape
+    for (let i = 0; i < 5; i++) {
+        ctx.lineTo(Math.cos((18 + i * 72) / 180 * Math.PI) * STAR_RADIUS + star.x,
+                   Math.sin((18 + i * 72) / 180 * Math.PI) * STAR_RADIUS + star.y);
+        ctx.lineTo(Math.cos((54 + i * 72) / 180 * Math.PI) * (STAR_RADIUS/2) + star.x,
+                   Math.sin((54 + i * 72) / 180 * Math.PI) * (STAR_RADIUS/2) + star.y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0; // Reset shadow for other elements
+}
+
+function update(deltaTime) {
+    if (!gameActive) return;
+
+    // Timer logic
+    timeLeft -= deltaTime / 1000;
+    if (timeLeft <= 0) endGame("TIME'S UP!");
+
+    // Movement logic
+    if (keys['ArrowLeft'] && player.x > 0) {
+        player.x -= player.speed;
+    }
+    if (keys['ArrowRight'] && player.x < canvas.width - PLAYER_WIDTH) {
+        player.x += player.speed;
+    }
+
+    // Star Spawning logic
+    spawnTimer += deltaTime;
+    if (spawnTimer > 600) { // Spawn every 600ms
+        spawnStar();
+        spawnTimer = 0;
+    }
+
+    // Update Stars
+    for (let i = stars.length - 1; i >= 0; i--) {
+        const s = stars[i];
+        s.y += s.speed;
+
+        // Collision Detection (Player)
+        if (s.y + STAR_RADIUS > player.y && 
+            s.x > player.x && 
+            s.x < player.x + PLAYER_WIDTH) {
+            stars.splice(i, 1);
+            score += 10;
+            continue;
+        }
+
+        // Missed Star (Bottom of screen)
+        if (s.y > canvas.height) {
+            stars.splice(i, 1);
+            lives--;
+            if (lives <= 0) endGame("GAME OVER");
+        }
+    }
+}
+
+function drawUI() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.shadowBlur = 0;
+    ctx.fillText(`Score: ${score}`, 15, 30);
+    ctx.fillText(`Lives: ${lives}`, canvas.width - 90, 30);
+    ctx.textAlign = "center";
+    ctx.fillText(`Time: ${Math.ceil(timeLeft)}s`, canvas.width / 2, 30);
+}
+
+function endGame(message) {
+    gameActive = false;
+    setTimeout(() => drawGameOverScreen(message), 10);
+}
+
+function drawGameOverScreen(msg) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(msg, canvas.width / 2, canvas.height / 2 - 20);
+    ctx.font = "20px Arial";
+    ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText("Press 'R' to Restart", canvas.width / 2, canvas.height / 2 + 60);
+}
+
+function resetGame() {
+    score = 0;
+    lives = 3;
+    timeLeft = GAME_DURATION;
+    stars = [];
+    gameActive = true;
+    player.x = canvas.width / 2 - PLAYER_WIDTH / 2;
+    requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('keydown', (e) => {
+    if (!gameActive && e.code === 'KeyR') {
+        resetGame();
+    }
+});
+
+function gameLoop(timestamp) {
+    const deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (gameActive) {
+        update(deltaTime);
+        stars.forEach(drawStar);
+        drawPlayer();
+        drawUI();
+        requestAnimationFrame(gameLoop);
+    } else if (timeLeft <= 0 || lives <= 0) {
+        // Screen is already being redrawn by endGame's timeout/loop logic or waiting for R
+        // We just let the drawGameOverScreen persist.
+    }
+}
+
+// Start Game
+requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>

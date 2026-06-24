@@ -1,0 +1,260 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Demo Title Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --bg-dark: #050505;
+            --text-white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-white);
+        }
+
+        /* Animated Background Canvas */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            filter: blur(40px);
+            opacity: 0.6;
+        }
+
+        /* Overlay Gradient */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(5,5,5,0.8) 100%);
+            z-index: 0;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Headline Animation */
+        .headline-box {
+            height: 120px; /* Prevent layout shift */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            line-height: 1;
+            position: absolute;
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        h1.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Metrics Section */
+        .metrics {
+            display: flex;
+            gap: 40px;
+            margin-top: 40px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .metrics.visible {
+            opacity: 1;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-value {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.6;
+        }
+
+        /* Replay Button */
+        #replayBtn {
+            margin-top: 60px;
+            padding: 12px 30px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        #replayBtn.visible { opacity: 1; }
+
+        #replayBtn:hover {
+            background: white;
+            color: black;
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div class="overlay"></div>
+
+    <div class="container">
+        <div class="headline-box">
+            <h1 id="title1">NEURAL ENGINE</h1>
+            <h1 id="title2">QUANTUM FLOW</h1>
+            <h1 id="title3">MODEL X-1</h1>
+        </div>
+
+        <div class="metrics" id="metricBox">
+            <div class="metric-item">
+                <span class="metric-value" id="val1">0.4ms</span>
+                <span class="metric-label">Latency</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-value" id="val2">99.9%</span>
+                <span class="metric-label">Accuracy</span>
+            </div>
+        </div>
+
+        <button id="replayBtn">REPLAY SEQUENCE</button>
+    </div>
+
+    <script>
+        // --- Background Animation ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 100 + 50;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = Math.random() > 0.5 ? '#00f2ff' : '#7000ff';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < -100 || this.x > canvas.width + 100 || this.y < -100 || this.y > canvas.height + 100) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 15; i++) particles.push(new Particle());
+
+        function animateBackground() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateBackground);
+        }
+        animateBackground();
+
+        // --- Sequence Logic ---
+        const titles = [document.getElementById('title1'), document.getElementById('title2'), document.getElementById('title3')];
+        const metricBox = document.getElementById('metricBox');
+        const replayBtn = document.getElementById('replayBtn');
+        let sequenceIndex = 0;
+
+        function runSequence() {
+            // Reset state
+            sequenceIndex = 0;
+            titles.forEach(t => t.classList.remove('active'));
+            metricBox.classList.remove('visible');
+            replayBtn.classList.remove('visible');
+
+            setTimeout(() => {
+                showNextTitle();
+            }, 500);
+        }
+
+        function showNextTitle() {
+            if (sequenceIndex < titles.length) {
+                titles[sequenceIndex].classList.add('active');
+                sequenceIndex++;
+                setTimeout(showNextTitle, 2000); // Time per title
+            } else {
+                // Show metrics after last title
+                metricBox.classList.add('visible');
+                setTimeout(() => {
+                    replayBtn.classList.add('visible');
+                }, 1000);
+            }
+        }
+
+        replayBtn.addEventListener('click', runSequence);
+
+        // Start initial animation
+        window.onload = () => setTimeout(runSequence, 500);
+
+    </script>
+</body>
+</html>

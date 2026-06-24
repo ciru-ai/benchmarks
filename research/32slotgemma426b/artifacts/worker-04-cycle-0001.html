@@ -1,0 +1,230 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Motion Page</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --accent-color: #00f2ff;
+            --text-color: #ffffff;
+            --secondary-color: #7000ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-color);
+        }
+
+        /* Background Animated Shapes */
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            filter: blur(60px);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-color);
+            top: -10%;
+            left: -10%;
+            animation-duration: 25s;
+        }
+
+        .shape-2 {
+            width: 500px;
+            height: 500px;
+            background: var(--secondary-color);
+            bottom: -10%;
+            right: -10%;
+            animation-duration: 30s;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20vw, 20vh) scale(1.2); }
+            100% { transform: translate(-10vw, 30vh) scale(0.8); }
+        }
+
+        /* Content Overlay */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #countdown {
+            font-size: clamp(5rem, 15vw, 12rem);
+            font-weight: 800;
+            letter-spacing: -5px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+        }
+
+        #caption {
+            font-size: clamp(1rem, 4vw, 2rem);
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            opacity: 0;
+            animation: captionFade 3s forwards ease-in-out;
+        }
+
+        @keyframes captionFade {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 0.8; transform: translateY(0); }
+        }
+
+        /* Progress Bar Container */
+        .progress-wrapper {
+            position: absolute;
+            bottom: 10%;
+            width: 60%;
+            max-width: 500px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--secondary-color));
+            box-shadow: 0 0 15px var(--accent-color);
+        }
+
+        /* Glitch Effect for numbers */
+        .glitch {
+            position: relative;
+            display: inline-block;
+        }
+
+        @keyframes glitch-anim {
+            0% { clip-path: inset(40% 0 61% 0); }
+            20% { clip-path: inset(92% 0 1% 0); }
+            40% { clip-path: inset(43% 0 1% 0); }
+            60% { clip-path: inset(10% 0 85% 0); }
+            80% { clip-path: inset(70% 0 12% 0); }
+            100% { clip-path: inset(43% 0 1% 0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="canvas-container">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <main class="main-container">
+        <div id="countdown" class="glitch">05</div>
+        <div id="caption">Initializing Sequence...</div>
+
+        <div class="progress-wrapper">
+            <div id="progress-bar"></div>
+        </div>
+    </main>
+
+    <script>
+        const countdownEl = document.getElementById('countdown');
+        const captionEl = document.getElementById('caption');
+        const progressEl = document.getElementById('progress-bar');
+
+        let timeLeft = 5;
+        const totalTime = 5;
+
+        function updateDisplay() {
+            // Update Countdown Text
+            countdownEl.textContent = timeLeft.toString().padStart(2, '0');
+            
+            // Add a tiny "glitch" trigger on number change
+            countdownEl.style.animation = 'none';
+            void countdownEl.offsetWidth; // Trigger reflow
+            countdownEl.style.animation = 'glitch-anim 0.1s linear infinite';
+
+            // Update Progress Bar
+            const progressPercent = ((totalTime - timeLeft) / totalTime) * 100;
+            progressEl.style.width = `${progressPercent}%`;
+            progressEl.style.transition = 'width 1s linear';
+
+            if (timeLeft <= 3 && timeLeft > 0) {
+                captionEl.textContent = "System Loading...";
+                document.body.style.backgroundColor = "#1a0505"; // Subtle red tint as countdown nears end
+            } else if (timeLeft === 0) {
+                handleEnd();
+            }
+
+            timeLeft--;
+        }
+
+        function handleEnd() {
+            countdownEl.textContent = "00";
+            captionEl.textContent = "SEQUENCE COMPLETE";
+            progressEl.style.width = '100%';
+            document.body.style.backgroundColor = "#000";
+            
+            // Final cinematic flash effect via JS
+            setTimeout(() => {
+                document.body.style.transition = "background 0.5s ease";
+                document.body.style.backgroundColor = "#ffffff";
+                setTimeout(() => {
+                    document.body.style.backgroundColor = "#0a0a0c";
+                }, 100);
+            }, 300);
+
+            // Restart loop after delay to make it "video-like"
+            setTimeout(resetSequence, 2500);
+        }
+
+        function resetSequence() {
+            timeLeft = totalTime;
+            captionEl.textContent = "Initializing Sequence...";
+            document.body.style.backgroundColor = "#0a0a0c";
+            progressEl.style.transition = 'none';
+            progressEl.style.width = '0%';
+            setTimeout(updateDisplay, 50);
+        }
+
+        // Start the sequence
+        let timer = setInterval(() => {
+            if (timeLeft >= 0) {
+                updateDisplay();
+            } else {
+                clearInterval(timer);
+            }
+        }, 1000);
+
+    </script>
+</body>
+</html>

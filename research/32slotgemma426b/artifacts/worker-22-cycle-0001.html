@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyboard Pilot</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #050505;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            border: 4px solid #333;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        canvas {
+            display: block;
+            background: radial-gradient(circle, #1a1a2e 0%, #050505 100%);
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+        }
+        .score {
+            font-size: 24px;
+            text-shadow: 2px 2px #000;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        h1 { margin: 0; color: #00d4ff; font-size: 48px; }
+        p { font-size: 18px; margin: 10px 0; }
+        button {
+            padding: 12px 30px;
+            font-size: 20px;
+            background: #00d4ff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: black;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        button:hover { background: #fff; }
+        button:active { transform: scale(0.9); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="600" height="800"></canvas>
+        <div id="ui">
+            <div class="score">Score: <span id="scoreVal">0</span></div>
+        </div>
+        <div id="overlay">
+            <h1 id="statusTitle">KEYBOARD PILOT</h1>
+            <p id="statusDesc">Use Arrow Keys to Dodge Meteors</p>
+            <button id="startBtn">START MISSION</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('scoreVal');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('startBtn');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusDesc = document.getElementById('statusDesc');
+
+        // Game State
+        let gameRunning = false;
+        let score = 0;
+        let animationId;
+        let frameCount = 0;
+
+        // Player Object
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 60,
+            w: 30,
+            h: 40,
+            speed: 5,
+            color: '#00d4ff',
+            dx: 0,
+            dy: 0
+        };
+
+        // Input Handling
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Meteors Array
+        let meteors = [];
+
+        class Meteor {
+            constructor() {
+                this.size = Math.random() * 30 + 15;
+                this.x = Math.random() * (canvas.width - this.size);
+                this.y = -this.size;
+                this.speed = Math.random() * 3 + 2 + (score / 500); // Get faster as score increases
+                this.rotation = 0;
+                this.rotSpeed = Math.random() * 0.1 - 0.05;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.size/2, this.y + this.size/2);
+                ctx.rotate(this.rotation);
+                ctx.fillStyle = '#ff4d4d';
+                // Draw a rough polygon for meteor look
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI * 2) / 6;
+                    const r = this.size/2 * (0.8 + Math.random() * 0.4); // Jagged look
+                    ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                }
+                ctx.closePath();
+                ctx.fill();
+                // Add glow
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "red";
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function initGame() {
+            score = 0;
+            meteors = [];
+            player.x = canvas.width / 2 - player.w/2;
+            player.y = canvas.height - 60;
+            frameCount = 0;
+            gameRunning = true;
+            overlay.classList.add('hidden');
+            scoreElement.innerText = '0';
+            animate();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            statusTitle.innerText = "MISSION FAILED";
+            statusDesc.innerText = `Final Score: ${Math.floor(score)}`;
+            startBtn.innerText = "RETRY";
+            overlay.classList.remove('hidden');
+        }
+
+        function update() {
+            // Player Movement
+            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+            if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
+            if (keys['ArrowUp'] && player.y > 0) player.y -= player.speed;
+            if (keys['ArrowDown'] && player.y < canvas.height - player.h) player.y += player.speed;
+
+            // Spawn Meteors
+            frameCount++;
+            let spawnRate = Math.max(5, 30 - Math.floor(score / 100)); // Spawns more often over time
+            if (frameCount % spawnRate === 0) {
+                meteors.push(new Meteor());
+            }
+
+            // Update Meteors
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                meteors[i].update();
+
+                // Collision Detection (AABB)
+                if (player.x < meteors[i].x + meteors[i].size &&
+                    player.x + player.w > meteors[i].x &&
+                    player.y < meteors[i].y + meteors[i].size &&
+                    player.y + player.h > meteors[i].y) {
+                    gameOver();
+                }
+
+                // Remove off-screen meteors
+                if (meteors[i].y > canvas.height) {
+                    meteors.splice(i, 1);
+                }
+            }
+
+            score += 0.1; // Constant score increase
+            scoreElement.innerText = Math.floor(score);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Stars (Static background effect)
+            ctx.fillStyle = "white";
+            for(let i=0; i<20; i++) {
+                ctx.fillRect((i*79)%canvas.width, (i*153 + frameCount)%canvas.height, 1, 1);
+            }
+
+            // Draw Player Ship
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#00d4ff";
+            // Simple triangle ship shape
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.w / 2, player.y);
+            ctx.lineTo(player.x, player.y + player.h);
+            ctx.lineTo(player.x + player.w, player.y + player.h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw Meteors
+            meteors.forEach(m => m.draw());
+        }
+
+        function animate() {
+            if (!gameRunning) return;
+            update();
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        startBtn.addEventListener('click', initGame);
+
+    </script>
+</body>
+</html>

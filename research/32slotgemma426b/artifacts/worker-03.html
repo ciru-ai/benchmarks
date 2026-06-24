@@ -1,0 +1,156 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Neon Cube Field</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border: 1px solid #0ff;
+            border-radius: 8px;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        .control { font-size: 14px; color: #f0f; text-shadow: 0 0 5px #f0f; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>Neon Matrix</h1>
+        <div class="control">• Mouse Move: Rotate View</div>
+        <div class="control">• Auto-Orbiting Camera Active</div>
+    </div>
+
+    <!-- Import Three.js from CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // Create Neon Cube Field
+        const cubes = [];
+        const cubeCount = 200;
+        const range = 40;
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        
+        for (let i = 0; i < cubeCount; i++) {
+            // Random colors for neon effect (Cyan and Magenta)
+            const color = Math.random() > 0.5 ? 0x00ffff : 0xff00ff;
+            
+            // Material with Emissive property to look "Neon"
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 2,
+                transparent: true,
+                opacity: 0.8,
+                shininess: 100
+            });
+
+            const cube = new THREE.Mesh(geometry, material);
+            
+            // Random positions
+            cube.position.x = (Math.random() - 0.5) * range;
+            cube.position.y = (Math.random() - 0.5) * range;
+            cube.position.z = (Math.random() - 0.5) * range;
+
+            // Random rotation speeds
+            cube.userData.rotSpeedX = Math.random() * 0.02;
+            cube.userData.rotSpeedY = Math.random() * 0.02;
+
+            scene.add(cube);
+            cubes.push(cube);
+        }
+
+        // Add a glowing central sphere for focus
+        const coreGeom = new THREE.SphereGeometry(1, 32, 32);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const core = new THREE.Mesh(coreGeom, coreMat);
+        scene.add(core);
+
+        // Interaction Variables
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - window.innerWidth / 2) * 0.001;
+            mouseY = (event.clientY - window.innerHeight / 2) * 0.001;
+        });
+
+        // Camera Animation Variables
+        let time = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // Rotate Cubes internally
+            cubes.forEach(cube => {
+                cube.rotation.x += cube.userData.rotSpeedX;
+                cube.rotation.y += cube.userData.rotSpeedY;
+                
+                // Subtle floating movement
+                cube.position.y += Math.sin(time + cube.position.x) * 0.01;
+            });
+
+            // Smooth Camera Movement (Interpolation)
+            targetRotationX += (mouseX - targetRotationX) * 0.05;
+            targetRotationY += (mouseY - targetRotationY) * 0.05;
+
+            // Orbiting camera logic
+            const orbitRadius = 40;
+            camera.position.x = Math.cos(time * 0.2) * orbitRadius + (targetRotationX * 10);
+            camera.position.z = Math.sin(time * 0.2) * orbitRadius;
+            camera.position.y = Math.sin(time * 0.3) * 15 + (targetRotationY * 10);
+            
+            camera.lookAt(scene.center || new THREE.Vector3(0,0,0));
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

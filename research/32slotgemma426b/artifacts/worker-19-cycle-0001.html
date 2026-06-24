@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Low-Poly Landscape</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87ceeb; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(50, 100, 50);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // Animated light (moving sun)
+        const movingLight = new THREE.PointLight(0xffaa00, 2, 100);
+        scene.add(movingLight);
+
+        // --- Terrain Generation ---
+        const terrainSize = 100;
+        const segments = 40;
+        const geometry = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
+        geometry.rotateX(-Math.PI / 2);
+
+        // Deform vertices for low-poly look
+        const posAttribute = geometry.getAttribute('position');
+        for (let i = 0; i < posAttribute.count; i++) {
+            let x = posAttribute.getX(i);
+            let z = posAttribute.getZ(i);
+            // Simple noise approximation using sine/cosine waves
+            let y = Math.sin(x * 0.2) * Math.cos(z * 0.2) * 3 + 
+                    Math.sin(x * 0.5) * 1.5;
+            posAttribute.setY(i, y);
+        }
+        geometry.computeVertexNormals();
+
+        const terrainMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x4a7c44, 
+            flatShading: true,
+            roughness: 0.8 
+        });
+        const terrain = new THREE.Mesh(geometry, terrainMaterial);
+        terrain.receiveShadow = true;
+        scene.add(terrain);
+
+        // --- Floating Objects (Pyramids/Cubes) ---
+        const floatingObjects = [];
+        const objectColors = [0xff6b6b, 0x4ecdc4, 0xffd93d, 0xffffff];
+
+        for (let i = 0; i < 15; i++) {
+            const size = Math.random() * 2 + 1;
+            const objGeom = new THREE.ConeGeometry(size, size * 2, 4); // Low-poly pyramid
+            const objMat = new THREE.MeshStandardMaterial({ 
+                color: objectColors[Math.floor(Math.random() * objectColors.length)],
+                flatShading: true 
+            });
+            const mesh = new THREE.Mesh(objGeom, objMat);
+
+            mesh.position.set(
+                (Math.random() - 0.5) * terrainSize,
+                10 + Math.random() * 10,
+                (Math.random() - 0.5) * terrainSize
+            );
+            mesh.castShadow = true;
+
+            // Custom property for animation logic
+            mesh.userData.floatOffset = Math.random() * Math.PI * 2;
+            mesh.userData.speed = 0.01 + Math.random() * 0.02;
+
+            scene.add(mesh);
+            floatingObjects.push(mesh);
+        }
+
+        // --- Camera Position ---
+        camera.position.set(30, 25, 30);
+        camera.lookAt(0, 0, 0);
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // 1. Animate Floating Objects (Bobbing and rotating)
+            floatingObjects.forEach((obj, index) => {
+                const offset = obj.userData.floatOffset;
+                obj.position.y += Math.sin(time * obj.userData.speed + offset) * 0.05;
+                obj.rotation.y += 0.01;
+                obj.rotation.z += 0.005;
+            });
+
+            // 2. Animate Light (Sun circling)
+            movingLight.position.x = Math.sin(time * 0.3) * 40;
+            movingLight.position.z = Math.cos(time * 0.3) * 40;
+            movingLight.position.y = 20 + Math.sin(time * 0.5) * 10;
+
+            // 3. Camera Drift (Slow cinematic movement)
+            camera.position.x += Math.sin(time * 0.1) * 0.02;
+            camera.position.z += Math.cos(time * 0.1) * 0.02;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Handle Resize ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

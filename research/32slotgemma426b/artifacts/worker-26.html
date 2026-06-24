@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Reflex</title>
+    <style>
+        :root {
+            --bg: #2c3e50;
+            --panel: #34495e;
+            --text: #ecf0f1;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            background-color: var(--panel);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stat {
+            background: rgba(0,0,0,0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        #menu, #game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(44, 62, 80, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover { background: #2ecc71; }
+
+        .controls-hint {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        kbd {
+            background: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            color: #333;
+            display: inline-block;
+            font-size: .85em;
+            font-weight: 700;
+            line-height: 1.4c;
+            padding: 2px 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Color Reflex</h1>
+
+    <div id="game-container">
+        <!-- UI Stats -->
+        <div id="ui-layer">
+            <div class="stat">Score: <span id="score">0</span></div>
+            <div class="stat">Time: <span id="timer">30</span>s</div>
+        </div>
+
+        <!-- Start Menu -->
+        <div id="menu">
+            <h2>Ready to test your reflexes?</h2>
+            <p>Click the colored circles as fast as you can!</p>
+            <button onclick="startGame()">Start Game</button>
+            <div class="controls-hint">
+                Use <b>Mouse Click</b> or <kbd>Spacebar</kbd><br>
+                (Note: Spacebar hits whatever target is active)
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over" class="hidden">
+            <h2>Time's Up!</h2>
+            <p>Your Final Score: <span id="final-score">0</span></p>
+            <button onclick="startGame()">Play Again</button>
+        </div>
+
+        <!-- Target Container (Targets injected here) -->
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const finalScoreEl = document.getElementById('final-score');
+        const menu = document.getElementById('menu');
+        const gameOverScreen = document.getElementById('game-over');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let timerInterval;
+        let currentTarget = null;
+
+        const colors = [
+            '#e74c3c', // Red
+            '#3498db', // Blue
+            '#f1c40f', // Yellow
+            '#9b59b6', // Purple
+            '#e67e22', // Orange
+            '#1abc9c'  // Teal
+        ];
+
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+            
+            menu.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+
+            // Clear old targets
+            const oldTargets = document.querySelectorAll('.target');
+            oldTargets.forEach(t => t.remove());
+
+            startTimer();
+            spawnTarget();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function spawnTarget() {
+            if (!gameActive) return;
+
+            // Remove previous target if it exists
+            const oldTarget = document.querySelector('.target');
+            if (oldTarget) oldTarget.remove();
+
+            const target = document.createElement('div');
+            target.className = 'target';
+            
+            // Random Position (keeping within container bounds)
+            const size = 50;
+            const maxX = container.clientWidth - size;
+            const maxY = container.clientHeight - size;
+            const x = Math.floor(Math.random() * maxX);
+            const y = Math.floor(Math.random() * maxY);
+
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
+            target.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Target hit event
+            target.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                handleHit();
+            });
+
+            container.appendChild(target);
+            currentTarget = target;
+        }
+
+        function handleHit() {
+            if (!gameActive || !currentTarget) return;
+            
+            score++;
+            scoreEl.textContent = score;
+            spawnTarget();
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            finalScoreEl.textContent = score;
+            gameOverScreen.classList.remove('hidden');
+            const target = document.querySelector('.target');
+            if (target) target.remove();
+        }
+
+        // Keyboard Support: Spacebar hits the current target
+        window.addEventListener('keydown', (e) => {
+            if (gameActive && e.code === 'Space') {
+                e.preventDefault(); // Prevent scrolling
+                handleHit();
+            }
+        });
+
+        // Miss click penalty (optional, but adds difficulty)
+        container.addEventListener('mousedown', (e) => {
+            if (gameActive && e.target === container) {
+                score = Math.max(0, score - 1); // Penalty for clicking empty space
+                scoreEl.textContent = score;
+            }
+        });
+
+    </script>
+</body>
+</html>

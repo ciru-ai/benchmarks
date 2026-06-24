@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURAL_CORE // Local AI Inference Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-black: #050505;
+            --accent-cyan: #00f3ff;
+            --accent-purple: #bc13fe;
+            --text-gray: #a0a0a0;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        header {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #050505 70%);
+            padding: 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        /* Grid Section */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 40px;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            transform: translateX(-100%);
+            transition: 0.5s;
+        }
+
+        .card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.1);
+        }
+
+        .card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .card h3 {
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 15px;
+            color: var(--accent-cyan);
+        }
+
+        .card p {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        /* Status Ticker */
+        #ticker-container {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid var(--accent-cyan);
+            padding: 5px 0;
+            z-index: 1000;
+        }
+
+        #ticker {
+            white-space: nowrap;
+            display: inline-block;
+            color: var(--accent-cyan);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: var(--accent-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--accent-cyan);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            font-size: 0.8rem;
+            color: #333;
+            border-top: 1px solid #111;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .container { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>NEURAL_CORE</h1>
+        <p class="subtitle">LOCAL INFERENCE // EDGE COMPUTING LAB</p>
+        <a href="#services" class="btn">INITIALIZE SEQUENCE</a>
+    </header>
+
+    <section id="services" class="container">
+        <h2 style="font-family: 'Orbitron'; text-align: center; margin-bottom: 50px;">CORE CAPABILITIES</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>LLM_DEPLOY</h3>
+                <p>High-speed local deployment of Llama 3, Mistral, and Phi models. Zero data leakage. Total privacy.</p>
+            </div>
+            <div class="card">
+                <h3>STABLE_DIFF</h3>
+                <p>Real-time latent diffusion generation on dedicated hardware clusters for instant visual synthesis.</p>
+            </div>
+            <div class="card">
+                <h3>RAG_ENGINE</h3>
+                <p>Retrieval Augmented Generation pipelines built on local vector databases. Your data, your context.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="text-align: center;">
+        <h2 style="font-family: 'Orbitron'; margin-bottom: 30px;">HARDWARE STATUS</h2>
+        <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;" id="stats">
+            <div>
+                <div style="color: var(--accent-cyan); font-size: 1.5rem;">98.2%</div>
+                <div style="font-size: 0.7rem; color: var(--text-gray);">GPU UTILIZATION</div>
+            </div>
+            <div>
+                <div style="color: var(--accent-purple); font-size: 1.5rem;">42.5 TFLOPS</div>
+                <div style="font-size: 0.7rem; color: var(--text-gray);">LATENCY AVG</div>
+            </div>
+            <div>
+                <div id="uptime" style="color: white; font-size: 1.5rem;">00:00:00</div>
+                <div style="font-size: 0.7rem; color: var(--text-gray);">SYSTEM UPTIME</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        &copy; <span id="year"></span> NEURAL_CORE LABS // NO CLOUD. ONLY LOCAL.
+    </footer>
+
+    <div id="ticker-container">
+        <div id="ticker">SYSTEM STATUS: STABLE // NODES ACTIVE: 12 // TEMPERATURE: 42°C // DATA ENCRYPTION: AES-512 ENABLED // WAITING FOR INPUT...</div>
+    </div>
+
+    <script>
+        // Set Year
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Uptime Counter
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+
+        // Ticker Randomizer (Simulated Logs)
+        const logs = [
+            "SYSTEM STATUS: STABLE // NODES ACTIVE: 12",
+            "LATENCY: 4ms // GPU_TEMP: 44°C",
+            "MODEL_LOADED: llama-3-70b-instruct // SUCCESS",
+            "ENCRYPTION: AES-512 ENABLED // SECURE",
+            "BUFFERING VECTOR EMBEDDINGS... COMPLETE",
+            "NEURAL_PATHWAY: OPTIMIZED"
+        ];
+
+        let logIndex = 0;
+        setInterval(() => {
+            logIndex = (logIndex + 1) % logs.length;
+            document.getElementById('ticker').textContent = logs[logIndex] + " // WAITING FOR INPUT...";
+        }, 5000);
+    </script>
+
+</body>
+</html>

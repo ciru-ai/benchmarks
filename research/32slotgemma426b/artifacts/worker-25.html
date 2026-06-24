@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumTrade | Market Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --up: #22c55e;
+            --down: #ef4444;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background-color: var(--bg-dark); 
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: bold; margin-bottom: 5px; }
+        .stat-card .trend { font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
+        .up { color: var(--up); }
+        .down { color: var(--down); }
+
+        /* Chart Section */
+        .chart-container { grid-column: span 3; height: 400px; }
+        .sidebar { grid-column: span 1; }
+
+        /* Table Section */
+        .table-container { grid-column: span 4; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
+        th { 
+            background: #2d3748; 
+            padding: 15px; 
+            cursor: pointer; 
+            color: var(--text-muted); 
+            font-size: 0.8rem; 
+            text-transform: uppercase;
+        }
+        th:hover { color: var(--accent); }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-family: 'Courier New', monospace; }
+        tr:hover { background: rgba(255,255,255,0.03); }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-container, .table-container { grid-column: span 2; }
+            .sidebar { display: none; }
+        }
+        @media (max-width: 600px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .chart-container, .table-container, .stat-card { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="max-width: 1400px; margin: 0 auto 30px auto;">
+        <h1>Market Terminal <span style="color: var(--accent); font-weight: 200;">Live</span></h1>
+        <p style="color: var(--text-muted);">Real-time asset monitoring and analytics</p>
+    </header>
+
+    <div class="dashboard-grid">
+        <!-- Stats -->
+        <div class="card stat-card">
+            <h3>Total Portfolio</h3>
+            <div class="value">$124,592.00</div>
+            <div class="trend up">▲ 2.4% <span style="color: var(--text-muted); font-size: 0.7rem;">(24h)</span></div>
+        </div>
+        <div class="card stat-card">
+            <h3>Active Trades</h3>
+            <div class="value">12</div>
+            <div class="trend down">▼ 1 <span style="color: var(--text-muted); font-size: 0.7rem;">(Closed)</span></div>
+        </div>
+        <div class="card stat-card">
+            <h3>Daily PNL</h3>
+            <div class="value" style="color: var(--up);">+$1,240.50</div>
+            <div class="trend up">▲ 5.2%</div>
+        </div>
+        <div class="card stat-card">
+            <h3>Volatility Index</h3>
+            <div class="value">18.4</div>
+            <div class="trend down" style="color: var(--text-muted);">Stable</div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card chart-container">
+            <canvas id="marketChart"></canvas>
+        </div>
+
+        <!-- Sidebar/Watchlist -->
+        <div class="card sidebar">
+            <h3 style="margin-bottom: 15px; font-size: 1rem;">Top Watchlist</h3>
+            <ul style="list-style: none;">
+                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                    <span>BTC/USD</span> <span class="up">$64,230</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                    <span>ETH/USD</span> <span class="down">$3,450</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                    <span>SOL/USD</span> <span class="up">$145.20</span>
+                </li>
+                <li style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span>AAPL</span> <span class="up">$189.40</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Table -->
+        <div class="card table-container">
+            <h3 style="margin-bottom: 15px; font-size: 1rem;">Market Assets</h3>
+            <table id="assetTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Asset</th>
+                        <th onclick="sortTable(1)">Price</th>
+                        <th onclick="sortTable(2)">Change %</th>
+                        <th onclick="sortTable(3)">Volume (24h)</th>
+                        <th onclick="sortTable(4)">Market Cap</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JS injected -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Fake Data
+        const marketData = [
+            { name: "Bitcoin", price: 64230.50, change: 2.45, vol: "$32B", cap: "$1.2T" },
+            { name: "Ethereum", price: 3450.12, change: -1.20, vol: "$15B", cap: "$410B" },
+            { name: "Solana", price: 145.80, change: 5.67, vol: "$4B", cap: "$65B" },
+            { name: "Apple Inc.", price: 189.45, change: 0.32, vol: "$85B", cap: "$2.9T" },
+            { name: "Tesla Motors", price: 175.22, change: -3.15, vol: "$22B", cap: "$560B" },
+            { name: "NVIDIA Corp", price: 890.40, change: 4.12, vol: "$45B", cap: "$2.2T" }
+        ];
+
+        // Initialize Table
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const row = `<tr>
+                    <td style="font-family: inherit; font-weight: bold;">${item.name}</td>
+                    <td>$${item.price.toLocaleString()}</td>
+                    <td class="${item.change >= 0 ? 'up' : 'down'}">${item.change > 0 ? '+' : ''}${item.change}%</td>
+                    <td>$${item.vol}</td>
+                    <td>$${item.cap}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Sort Logic
+        let sortDirection = true;
+        function sortTable(colIndex) {
+            sortDirection = !sortDirection;
+            const sortedData = [...marketData].sort((a, b) => {
+                let valA = Object.values(a)[colIndex];
+                let valB = Object.values(b)[colIndex];
+                
+                if (typeof valA === 'string') {
+                    valA = parseFloat(valA.replace(/[$,%]/g, ''));
+                    valB = parseFloat(valB.replace(/[$,%]/g, ''));
+                }
+
+                return sortDirection ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+            });
+            renderTable(sortedData);
+        }
+
+        // Chart Logic
+        const ctx = document.getElementById('marketChart').getContext('2d');
+        let chart;
+
+        function initChart() {
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
+                    datasets: [{
+                        label: 'Market Index (Live)',
+                        data: [62000, 62500, 62300, 63000, 64000, 63800, 64230],
+                        borderColor: '#38bdf8',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // Simulate Live Updates
+        function simulateLive() {
+            setInterval(() => {
+                const newData = chart.data.datasets[0].data;
+                newData.shift();
+                const lastVal = newData[newData.length - 1];
+                newData.push(lastVal + (Math.random() * 400 - 200));
+                chart.update('none'); // 'none' for performance during high-frequency updates
+            }, 3000);
+        }
+
+        // Entry Point
+        window.onload = () => {
+            renderTable(marketData);
+            initChart();
+            simulateLive();
+        };
+    </script>
+</body>
+</html>

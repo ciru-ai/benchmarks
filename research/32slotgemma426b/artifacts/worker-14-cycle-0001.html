@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Target Pop</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #2c3e50;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 90vw;
+            max-width: 600px;
+            height: 70vh;
+            background-color: #34495e;
+            border: 4px solid #ecf0f1;
+            border-radius: 10px;
+            cursor: crosshair;
+            overflow: hidden;
+        }
+
+        #ui {
+            width: 90vw;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .target {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: scale(0);
+            transition: transform 0.1s ease-out;
+            animation: popIn 0.2s forwards;
+        }
+
+        @keyframes popIn {
+            to { transform: scale(1); }
+        }
+
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            z-index: 10;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2ecc71;
+        }
+
+        h1 { margin-top: 0; color: #f1c40f; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="timer">30</span>s</div>
+    </div>
+
+    <div id="game-container">
+        <div id="menu">
+            <h1 id="title">Target Pop</h1>
+            <p id="final-score"></p>
+            <button onclick="startGame()">Start Game</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const menu = document.getElementById('menu');
+        const title = document.getElementById('title');
+        const finalScoreEl = document.getElementById('final-score');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameInterval;
+        let spawnTimer;
+        let isGameActive = false;
+
+        // Configuration
+        const GAME_DURATION = 30;
+        const TARGETS_COLORS = ['#e74c3c', '#f1c40f', '#3498db', '#9b59b6', '#e67e22'];
+
+        function startGame() {
+            // Reset State
+            score = 0;
+            timeLeft = GAME_DURATION;
+            isGameActive = true;
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+            menu.style.display = 'none';
+            
+            // Clear any existing targets
+            const oldTargets = document.querySelectorAll('.target');
+            oldTargets.forEach(t => t.remove());
+
+            // Start loops
+            gameInterval = setInterval(updateTimer, 1000);
+            spawnTarget();
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function spawnTarget() {
+            if (!isGameActive) return;
+
+            const target = document.createElement('div');
+            target.className = 'target';
+            
+            // Random size between 40 and 70px
+            const size = Math.floor(Math.random() * 30) + 40;
+            // Random position within container bounds
+            const maxX = container.clientWidth - size;
+            const maxY = container.clientHeight - size;
+            const x = Math.floor(Math.random() * maxX);
+            const y = Math.floor(Math.random() * maxY);
+
+            target.style.width = `${size}px`;
+            target.style.height = `${size}px`;
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
+            target.style.backgroundColor = TARGETS_COLORS[Math.floor(Math.random() * TARGETS_COLORS.length)];
+
+            // Click event for target
+            target.addEventListener('mousedown', (e) => {
+                e.stopPropagation(); // Prevent container click logic
+                popTarget(target);
+            });
+
+            container.appendChild(target);
+
+            // Speed up spawning as time goes on
+            let nextSpawn = Math.max(400, 1000 - (score * 5));
+            spawnTimer = setTimeout(spawnTarget, nextSpawn);
+        }
+
+        function popTarget(element) {
+            if (!isGameActive) return;
+            
+            // Increment score
+            score++;
+            scoreEl.textContent = score;
+
+            // Visual feedback: remove and add a little particle effect (simple version)
+            element.style.transform = 'scale(1.5)';
+            element.style.opacity = '0';
+            setTimeout(() => element.remove(), 100);
+        }
+
+        function endGame() {
+            isGameActive = false;
+            clearInterval(gameInterval);
+            clearTimeout(spawnTimer);
+            
+            // Show menu
+            menu.style.display = 'block';
+            title.textContent = "Game Over!";
+            finalScoreEl.textContent = `You popped ${score} targets!`;
+        }
+
+        // Prevent accidental double clicks/zoom on mobile
+        container.addEventListener('touchstart', (e) => {
+            if(e.target === container) e.preventDefault();
+        }, {passive: false});
+
+    </script>
+</body>
+</html>

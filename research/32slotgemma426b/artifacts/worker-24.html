@@ -1,0 +1,317 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Journey Timeline</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 3rem;
+        }
+
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 4rem;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Timeline Styles */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        .progress-bar {
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 4px;
+            height: 0%; /* Animated via JS */
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            transition: height 0.5s ease-out;
+            z-index: 1;
+        }
+
+        .milestone {
+            position: relative;
+            margin-bottom: 3rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .milestone:hover {
+            transform: translateX(10px);
+        }
+
+        .milestone::before {
+            content: '';
+            position: absolute;
+            left: -2.5rem;
+            top: 0.5rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 4px solid #334155;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .milestone.active::before {
+            border-color: var(--primary);
+            background: var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .milestone.active .card {
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
+        }
+
+        .date {
+            font-weight: bold;
+            color: var(--secondary);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Detail Panel Styles */
+        .detail-panel {
+            position: sticky;
+            top: 4rem;
+            height: fit-content;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            min-height: 300px;
+        }
+
+        .detail-content {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .detail-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .placeholder-text {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        h3 { margin-bottom: 1rem; font-size: 1.5rem; }
+        p { color: var(--text-muted); line-height: 1.8; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div>
+            <h1>Project Evolution</h1>
+            <div class="timeline" id="timelineContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                
+                <!-- Milestone 1 -->
+                <div class="milestone active" data-id="1" onclick="selectMilestone(1)">
+                    <div class="card">
+                        <span class="date">January 2023</span>
+                        <h3>Concept Phase</h3>
+                        <p>The initial spark of the idea...</p>
+                    </div>
+                </div>
+
+                <!-- Milestone 2 -->
+                <div class="milestone" data-id="2" onclick="selectMilestone(2)">
+                    <div class="card">
+                        <span class="date">March 2023</span>
+                        <h3>Prototyping</h3>
+                        <p>Building the first functional model...</p>
+                    </div>
+                </div>
+
+                <!-- Milestone 3 -->
+                <div class="milestone" data-id="3" onclick="selectMilestone(3)">
+                    <div class="card">
+                        <span class="date">June 2023</span>
+                        <h3>Beta Testing</h3>
+                        <p>Gathering user feedback and iterating...</p>
+                    </div>
+                </div>
+
+                <!-- Milestone 4 -->
+                <div class="milestone" data-id="4" onclick="selectMilestone(4)">
+                    <div class="card">
+                        <span class="date">September 2023</span>
+                        <h3>Global Launch</h3>
+                        <p>The product goes live to the world...</p>
+                    </div>
+                </div>
+
+                <!-- Milestone 5 -->
+                <div class="milestone" data-id="5" onclick="selectMilestone(5)">
+                    <div class="card">
+                        <span class="date">December 2023</span>
+                        <h3>Scale Up</h3>
+                        <p>Expanding infrastructure and features...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="detail-panel" id="detailPanel">
+            <div id="placeholder" class="placeholder-text">Select a milestone to view details.</div>
+            
+            <div id="content-1" class="detail-content active">
+                <h3>Concept Phase</h3>
+                <p>In this stage, we identified the core problem: users needed a more streamlined way to visualize complex timelines. We conducted 50+ interviews and mapped out user workflows.</p>
+                <br>
+                <strong>Key Outcome:</strong> Product Requirement Document finalized.
+            </div>
+
+            <div id="content-2" class="detail-content">
+                <h3>Prototyping</h3>
+                <p>Using Figma and React, we built a high-fidelity prototype. We focused heavily on the interaction between the timeline scroll position and the detail panel updates.</p>
+                <br>
+                <strong>Key Outcome:</strong> Interactive UI framework established.
+            </div>
+
+            <div id="content-3" class="detail-content">
+                <h3>Beta Testing</h3>
+                <p>A closed group of 200 users tested the application. We discovered that mobile responsiveness was a priority, leading to a significant redesign of the timeline component.</p>
+                <br>
+                <strong>Key Outcome:</strong> 95% satisfaction rate on core UX.
+            </div>
+
+            <div id="content-4" class="detail-content">
+                <h3>Global Launch</h3>
+                <p>The application was deployed via AWS across multiple regions to ensure low latency. We saw an immediate influx of users from over 30 different countries.</p>
+                <br>
+                <strong>Key Outcome:</strong> 10,000+ registered users in month one.
+            </div>
+
+            <div id="content-5" class="detail-content">
+                <h3>Scale Up</h3>
+                <p>With the user base growing, we implemented advanced caching strategies and microservices to handle increased traffic seamlessly.</p>
+                <br>
+                <strong>Key Outcome:</strong> Infrastructure supports 100k+ concurrent users.
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        function selectMilestone(id) {
+            // Update Milestones UI
+            document.querySelectorAll('.milestone').forEach(el => {
+                el.classList.remove('active');
+            });
+            const selectedEl = document.querySelector(`.milestone[data-id="${id}"]`);
+            selectedEl.classList.add('active');
+
+            // Update Detail Panel UI
+            document.querySelectorAll('.detail-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            const selectedContent = document.getElementById(`content-${id}`);
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+
+            // Update Progress Bar
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const milestones = Array.from(document.querySelectorAll('.milestone'));
+            const activeIndex = milestones.findIndex(el => el.classList.contains('active'));
+            const progressPercent = ((activeIndex + 1) / milestones.length) * 100;
+            
+            document.getElementById('progressBar').style.height = `${progressPercent}%`;
+        }
+
+        // Initialize Progress Bar on load
+        window.onload = () => {
+            updateProgressBar();
+        };
+
+        // Intersection Observer for scroll-based animation effect
+        const observerOptions = {
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    updateProgressBar();
+                } else {
+                    // Optional: remove 'active' to allow re-animation on scroll up/down
+                    // entry.target.classList.remove('active'); 
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.milestone').forEach(m => observer.observe(m));
+    </script>
+</body>
+</html>
