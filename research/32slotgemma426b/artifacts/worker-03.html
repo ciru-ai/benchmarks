@@ -1,4 +1,3 @@
-html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,24 +14,21 @@ html
             color: #0ff;
             text-shadow: 0 0 10px #0ff;
             pointer-events: none;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px;
-            border: 1px solid #0ff;
-            border-radius: 8px;
+            user-select: none;
         }
-        h1 { margin: 0 0 10px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
-        .control { font-size: 14px; color: #f0f; text-shadow: 0 0 5px #f0f; }
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; }
+        p { margin: 5px 0; opacity: 0.8; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div id="ui">
         <h1>Neon Matrix</h1>
-        <div class="control">• Mouse Move: Rotate View</div>
-        <div class="control">• Auto-Orbiting Camera Active</div>
+        <p>Camera: Auto-Orbiting</p>
+        <p>Cubes: Procedural Neon Field</p>
     </div>
 
-    <!-- Import Three.js from CDN -->
+    <!-- Load Three.js from CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -45,105 +41,104 @@ html
     <script type="module">
         import * as THREE from 'three';
 
-        // Scene Setup
+        // --- Scene Setup ---
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x000000, 0.015);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // --- Lights ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
         scene.add(ambientLight);
 
-        // Create Neon Cube Field
-        const cubes = [];
-        const cubeCount = 200;
-        const range = 40;
+        const pointLight1 = new THREE.PointLight(0x00ffff, 2, 50);
+        pointLight1.position.set(10, 10, 10);
+        scene.add(pointLight1);
 
+        // --- Cube Field Creation ---
+        const cubeCount = 400;
+        const cubes = [];
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        
+
+        // Colors for the neon effect (Cyan, Magenta, Lime)
+        const colors = [0x00ffff, 0xff00ff, 0x39ff14];
+
         for (let i = 0; i < cubeCount; i++) {
-            // Random colors for neon effect (Cyan and Magenta)
-            const color = Math.random() > 0.5 ? 0x00ffff : 0xff00ff;
-            
-            // Material with Emissive property to look "Neon"
-            const material = new THREE.MeshPhongMaterial({
-                color: color,
-                emissive: color,
+            // Use MeshStandardMaterial with high metalness/low roughness for "glow" look
+            const material = new THREE.MeshStandardMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emissive: colors[Math.floor(Math.random() * colors.length)],
                 emissiveIntensity: 2,
-                transparent: true,
-                opacity: 0.8,
-                shininess: 100
+                metalness: 0.8,
+                roughness: 0.2
             });
 
             const cube = new THREE.Mesh(geometry, material);
-            
-            // Random positions
-            cube.position.x = (Math.random() - 0.5) * range;
-            cube.position.y = (Math.random() - 0.5) * range;
-            cube.position.z = (Math.random() - 0.5) * range;
 
-            // Random rotation speeds
-            cube.userData.rotSpeedX = Math.random() * 0.02;
-            cube.userData.rotSpeedY = Math.random() * 0.02;
+            // Random positions in a large volume
+            cube.position.x = (Math.random() - 0.5) * 100;
+            cube.position.y = (Math.random() - 0.5) * 100;
+            cube.position.z = (Math.random() - 0.5) * 100;
+
+            // Random rotation starts
+            cube.rotation.x = Math.random() * Math.PI;
+            cube.rotation.y = Math.random() * Math.PI;
+
+            // Store initial scale for animation variety
+            cube.userData.rotSpeed = (Math.random() - 0.5) * 0.02;
+            cube.userData.scaleTarget = Math.random();
 
             scene.add(cube);
             cubes.push(cube);
         }
 
-        // Add a glowing central sphere for focus
-        const coreGeom = new THREE.SphereGeometry(1, 32, 32);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const core = new THREE.Mesh(coreGeom, coreMat);
-        scene.add(core);
+        // Add a starfield/dust effect using Points
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2000;
+        const posArray = new Float32Array(particlesCount * 3);
 
-        // Interaction Variables
-        let mouseX = 0;
-        let mouseY = 0;
-        let targetRotationX = 0;
-        let targetRotationY = 0;
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 150;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.1, color: 0xffffff });
+        const starField = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(starField);
 
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX - window.innerWidth / 2) * 0.001;
-            mouseY = (event.clientY - window.innerHeight / 2) * 0.001;
-        });
-
-        // Camera Animation Variables
+        // --- Animation Loop ---
         let time = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             time += 0.01;
 
-            // Rotate Cubes internally
-            cubes.forEach(cube => {
-                cube.rotation.x += cube.userData.rotSpeedX;
-                cube.rotation.y += cube.userData.rotSpeedY;
+            // Rotate Cubes
+            cubes.forEach((cube, index) => {
+                cube.rotation.x += cube.userData.rotSpeed;
+                cube.rotation.y += cube.userData.rotSpeed * 0.5;
                 
-                // Subtle floating movement
-                cube.position.y += Math.sin(time + cube.position.x) * 0.01;
+                // Subtle pulsing effect
+                const pulse = Math.sin(time + index) * 0.2 + 1;
+                cube.scale.set(pulse, pulse, pulse);
             });
 
-            // Smooth Camera Movement (Interpolation)
-            targetRotationX += (mouseX - targetRotationX) * 0.05;
-            targetRotationY += (mouseY - targetRotationY) * 0.05;
+            // Animate Camera (Orbiting movement)
+            camera.position.x = Math.sin(time * 0.3) * 40;
+            camera.position.z = Math.cos(time * 0.3) * 40;
+            camera.position.y = Math.sin(time * 0.2) * 15;
+            camera.lookAt(0, 0, 0);
 
-            // Orbiting camera logic
-            const orbitRadius = 40;
-            camera.position.x = Math.cos(time * 0.2) * orbitRadius + (targetRotationX * 10);
-            camera.position.z = Math.sin(time * 0.2) * orbitRadius;
-            camera.position.y = Math.sin(time * 0.3) * 15 + (targetRotationY * 10);
-            
-            camera.lookAt(scene.center || new THREE.Vector3(0,0,0));
+            // Rotate starfield slightly for depth perception
+            starField.rotation.y += 0.0005;
 
             renderer.render(scene, camera);
         }
 
-        // Handle Window Resize
+        // --- Handle Resize ---
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();

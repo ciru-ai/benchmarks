@@ -20,52 +20,55 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- Configuration ---
-        const RING_COUNT = 100;
-        const TUNNEL_LENGTH = 200;
-        const RING_SPACING = 5;
+        let scene, camera, renderer, tunnelGroup;
+        const ringCount = 50;
+        const tunnelSpeed = 0.2;
+        const rings = [];
 
-        let scene, camera, renderer, rings = [];
+        init();
+        animate();
 
         function init() {
-            // Scene & Camera
+            // Scene setup
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 30;
+            camera.position.z = 5;
 
-            // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
-            // Create Rings
-            const geometry = new THREE.TorusGeometry(10, 0.5, 16, 100);
-            
-            for (let i = 0; i < RING_COUNT; i++) {
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: new THREE.Color(), 
-                    transparent: true, 
-                    opacity: 0.8 
-                });
-                const ring = new THREE.Mesh(geometry, material);
+            tunnelGroup = new THREE.Group();
+            scene.add(tunnelGroup);
 
-                // Distribute rings along Z axis (tunnel depth)
-                ring.position.z = -i * RING_SPACING;
+            // Create Rings
+            const geometry = new THREE.TorusGeometry(10, 0.1, 16, 100);
+            
+            for (let i = 0; i < ringCount; i++) {
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: new THREE.Color().setHSL(i / ringCount, 1, 0.5),
+                    transparent: true,
+                    opacity: 0.8
+                });
                 
-                // Random initial rotation for variety
+                const ring = new THREE.Mesh(geometry, material);
+                
+                // Distribute rings along the Z axis
+                ring.position.z = -i * (25 / ringCount);
+                
+                // Add some variety to rotation/scale
                 ring.rotation.x = Math.random() * Math.PI;
                 ring.rotation.y = Math.random() * Math.PI;
-
-                scene.add(ring);
-                rings.push({
-                    mesh: ring,
-                    speed: 0.5 + Math.random() * 1.5 // Individual speed variation
-                });
+                
+                tunnelGroup.add(ring);
+                rings.push(ring);
             }
 
+            // Lights (though using BasicMaterial, added for potential expansion)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
             window.addEventListener('resize', onWindowResize, false);
-            animate();
         }
 
         function onWindowResize() {
@@ -79,29 +82,28 @@
 
             const time = Date.now() * 0.001;
 
-            rings.forEach((ringObj, index) => {
-                const mesh = ringObj.mesh;
-                
-                // Move toward camera (decreasing Z)
-                mesh.position.z += ringObj.speed;
+            rings.forEach((ring, index) => {
+                // Move ring towards camera (negative Z direction)
+                ring.position.z += tunnelSpeed;
 
-                // Color Cycling based on time and position
-                const hue = (time * 0.1 + (index / RING_COUNT)) % 1;
-                mesh.material.color.setHSL(hue, 0.8, 0.5);
+                // Color cycling effect
+                const hue = (index / ringCount + time * 0.1) % 1;
+                ring.material.color.setHSL(hue, 0.8, 0.5);
 
-                // Subtle rotation for the "swirl" effect
-                mesh.rotation.z += 0.01;
-
-                // Reset ring to back of tunnel once it passes camera
-                if (mesh.position.z > 30) {
-                    mesh.position.z = -RING_COUNT * RING_SPACING + 30;
+                // Reset ring to the back when it passes the camera
+                if (ring.position.z > 5) {
+                    ring.position.z = -45; // Start far away
+                    // Randomize rotation for variety each time it loops
+                    ring.rotation.x += Math.PI / 2;
                 }
+
+                // Slight wobble effect
+                ring.position.x = Math.sin(time + index) * 0.5;
+                ring.position.y = Math.cos(time + index) * 0.5;
             });
 
             renderer.render(scene, camera);
         }
-
-        init();
     </script>
 </body>
 </html>

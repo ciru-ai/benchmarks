@@ -7,182 +7,217 @@ html
     <title>Three.js Data Center Visualization</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #ui {
+        canvas { display: block; }
+        #overlay {
             position: absolute;
             top: 20px;
             left: 20px;
             color: #00f2ff;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(0, 242, 255, 0.7);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
         }
         h1 { margin: 0; font-size: 18px; letter-spacing: 2px; text-transform: uppercase; }
-        p { margin: 5px 0; font-size: 12px; opacity: 0.7; }
+        p { font-size: 12px; opacity: 0.7; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <h1>Neural Core Node v4.2</h1>
-        <p>Status: OPERATIONAL</p>
-        <p>Data Throughput: 842 TB/s</p>
-    </div>
 
-    <!-- Load Three.js from CDN -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+<div id="overlay">
+    <h1>Core Network Node</h1>
+    <p>Status: Operational | Latency: 0.4ms</p>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020205);
+    scene.fog = new THREE.FogExp2(0x020205, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(15, 10, 25);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = false;
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
+
+    const bluePointLight = new THREE.PointLight(0x0077ff, 2, 50);
+    bluePointLight.position.set(10, 10, 10);
+    scene.add(bluePointLight);
+
+    // --- Data Center Geometry Generation ---
+    const rackGroup = new THREE.Group();
+    scene.add(rackGroup);
+
+    const racksCountX = 4;
+    const racksCountZ = 3;
+    const rackWidth = 2;
+    const rackHeight = 6;
+    const rackDepth = 2;
+    const spacing = 4;
+
+    // Materials
+    const rackMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.8 });
+    const lightEmissiveMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+
+    for (let i = 0; i < racksCountX; i++) {
+        for (let j = 0; j < racksCountZ; j++) {
+            // Main Rack Body
+            const geometry = new THREE.BoxGeometry(rackWidth, rackHeight, rackDepth);
+            const rack = new THREE.Mesh(geometry, rackMaterial);
+            
+            rack.position.set(
+                (i - (racksCountX-1)/2) * spacing,
+                rackHeight / 2,
+                (j - (racksCountZ-1)/2) * spacing
+            );
+
+            // Server Slots (Glow strips)
+            const slotGeom = new THREE.PlaneGeometry(rackWidth * 0.8, 0.15);
+            for (let k = 0; k < 15; k++) {
+                const slotY = -2.5 + (k * 0.4) + 0.2;
+                const slotMat = new THREE.MeshBasicMaterial({ 
+                    color: i % 2 === 0 ? 0x00f2ff : 0xff00aa,
+                    transparent: true,
+                    opacity: Math.random() * 0.5 + 0.2
+                });
+                const slot = new THREE.Mesh(slotGeom, slotMat);
+                slot.position.set(rack.position.x, rackYToWorld(rack.position.y, slotY), rack.position.z + 1.01);
+                rackGroup.add(slot);
+
+                // Data Pulse Effect (Moving light)
+                const pulseGeom = new THREE.PlaneGeometry(rackWidth * 0.8, 0.05);
+                const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+                const pulse = new THREE.Mesh(pulseGeom, pulseMat);
+                pulse.position.set(rack.position.x, rackYToWorld(rack.position.y, slotY), rack.position.z + 1.02);
+                rackGroup.add(pulse);
+                slot.userData = { type: 'slot', speed: Math.random() * 0.05 + 0.02 };
             }
+
+            // Add Frame details
+            const wireframeGeom = new THREE.EdgesGeometry(geometry);
+            const wireframeMat = new THREE.LineBasicMaterial({ color: 0x333333 });
+            const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
+            rack.add(wireframe);
+
+            rackGroup.add(rack);
         }
-    </script>
+    }
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    function rackYToWorld(baseY, offset) { return baseY + offset; }
 
-        // --- Scene Setup ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020205);
-        scene.fog = new THREE.FogExp2(0x020205, 0.15);
+    // --- Floor (Reflective Grid) ---
+    const gridHelper = new THREE.GridHelper(100, 50, 0x00f2ff, 0x050505);
+    gridHelper.position.y = 0.01;
+    scene.add(gridHelper);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(12, 8, 12);
+    const floorGeo = new THREE.PlaneGeometry(100, 100);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.5 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.body.appendChild(renderer.domElement);
+    // --- Data Pulses (Lines between racks) ---
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0 });
+    const lines = [];
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+    function createDataStream() {
+        const points = [new THREE.Vector3(0, 1, 0), new THREE.Vector3(5, 2, -5)];
+        const geom = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geom, lineMaterial.clone());
+        line.userData = { progress: 0 };
+        scene.add(line);
+        lines.push(line);
+    }
 
-        // --- Lighting ---
-        const ambientLight = new THREE.AmbientLight(0x4040ff, 0.2);
-        scene.add(ambientLight);
+    for(let i=0; i<15; i++) createDataStream();
 
-        const pointLight = new THREE.PointLight(0x00f2ff, 1, 50);
-        pointLight.position.set(0, 10, 0);
-        scene.add(pointLight);
+    // --- Labels (Using Canvas Text approach via Sprites) ---
+    function createLabel(text, pos) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 64;
+        ctx.fillStyle = 'rgba(0, 242, 255, 1)';
+        ctx.font = 'Bold 32px Arial';
+        ctx.fillText(text, 10, 40);
 
-        // --- Data Center Components ---
-        const rackGroup = new THREE.Group();
-        scene.add(rackGroup);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.copy(pos);
+        sprite.scale.set(3, 0.75, 1);
+        scene.add(sprite);
+    }
 
-        const racks = [];
-        const numRacksX = 4;
-        const numRacksZ = 3;
-        const spacing = 4;
+    createLabel("CORE_SERVER_A", new THREE.Vector3(-8, 8, -8));
+    createLabel("GATEWAY_NODE_01", new THREE.Vector3(8, 8, 4));
 
-        // Materials
-        const metalMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.8 });
-        const glowMaterial = new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.8 });
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
 
-        // Create Server Racks
-        for (let i = 0; i < numRacksX; i++) {
-            for (let j = 0; j < numRacksZ; j++) {
-                const rackGeometry = new THREE.BoxGeometry(2, 5, 2);
-                const rack = new THREE.Mesh(rackGeometry, metalMaterial);
-                
-                // Position racks in a grid
-                rack.position.set(
-                    (i - (numRacksX-1)/2) * spacing,
-                    2.5,
-                    (j - (numRacksZ-1)/2) * spacing
-                );
-                
-                // Add "LED" strips to the front of racks
-                const ledGeom = new THREE.PlaneGeometry(0.1, 4);
-                const ledMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
-                const ledStrip = new THREE.Mesh(ledGeom, ledMat);
-                ledStrip.position.set(1.01, 2.5, 0); // Slightly in front of rack face
-                rack.add(ledStrip);
+    function animate() {
+        requestAnimationFrame(animate);
+        const time = clock.getElapsedTime();
 
-                // Add "Server Slots" (small glowing boxes)
-                const slotCount = 8;
-                for(let s=0; s < slotCount; s++) {
-                    const slotGeom = new THREE.BoxGeometry(1.8, 0.2, 1.8);
-                    const slotMat = new THREE.MeshBasicMaterial({ color: 0x0044ff });
-                    const slot = new THREE.Mesh(slotGeom, slotMat);
-                    slot.position.set(0, -2 + (s * 0.6), 1.05); // Positioned on rack face
-                    rack.add(slot);
-
-                    // Create a pulse light for each slot
-                    const pulseLight = new THREE.PointLight(0x00f2ff, 0.5, 2);
-                    pulseLight.position.set(0, -2 + (s * 0.6), 1.5);
-                    rack.add(pulseLight);
-                }
-
-                racks.push({ mesh: rack, lights: ledStrip });
-                rackGroup.add(rack);
+        // Animate Racks & Pulses
+        rackGroup.children.forEach(child => {
+            if (child.userData.type === 'slot') {
+                child.material.opacity = 0.2 + Math.sin(time * 2 + child.position.y) * 0.1;
+                // Pulse logic simulated by shifting opacity of a separate mesh if we had one, 
+                // here we just flicker the slot for simplicity in single-file
             }
-        }
-
-        // Floor grid
-        const gridHelper = new THREE.GridHelper(40, 40, 0x00f2ff, 0x111133);
-        gridHelper.position.y = 0.05;
-        scene.add(gridHelper);
-
-        // Data Pulses (Moving light particles)
-        const particleCount = 100;
-        const pulseGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-        const pulseMaterial = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
-        const pulses = [];
-
-        for (let i = 0; i < particleCount; i++) {
-            const p = new THREE.Mesh(pulseGeometry, pulseMaterial);
-            resetPulse(p);
-            scene.add(p);
-            pulses.push(p);
-        }
-
-        function resetPulse(p) {
-            // Randomly pick a rack to start from and move towards another direction
-            const rx = (Math.floor(Math.random() * numRacksX) - (numRacksX-1)/2) * spacing;
-            const rz = (Math.floor(Math.random() * numRacksZ) - (numRacksZ-1)/2) * spacing;
-            p.position.set(rx, 2, rz + 5);
-            p.userData = {
-                speed: 0.05 + Math.random() * 0.1,
-                direction: new THREE.Vector3((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, -0.2)
-            };
-        }
-
-        // --- Animation Loop ---
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = clock.getElapsedTime();
-
-            // 1. Animate Pulses
-            pulses.forEach(p => {
-                p.position.addScaledVector(p.userData.direction, p.userData.speed);
-                if (Math.abs(p.position.x) > 20 || Math.abs(p.position.z) < -5) {
-                    resetPulse(p);
-                }
-            });
-
-            // 2. Animate Rack LEDs (Flicker/Glow effect)
-            racks.forEach((r, idx) => {
-                const scale = 0.8 + Math.sin(time * 2 + idx) * 0.2;
-                r.lights.material.opacity = scale;
-            });
-
-            // 3. Camera subtle movement (Cinematic drift)
-            camera.position.y += Math.sin(time * 0.5) * 0.005;
-
-            controls.update();
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate();
-    </script>
+        // Animate Data Streams (Lines moving through space)
+        lines.forEach(line => {
+            line.userData.progress += 0.01;
+            if (line.userData.progress > 1) line.userData.progress = 0;
+            
+            const start = new THREE.Vector3(-20, Math.sin(time + line.id) * 5, -20);
+            const end = new THREE.Vector3(20, Math.cos(time + line.id) * 5, 20);
+            line.geometry.setFromPoints([
+                new THREE.Vector3().lerpVectors(start, end, line.userData.progress),
+                new THREE.Vector3().lerpVectors(start, end, line.userData.progress + 0.1)
+            ]);
+            line.material.opacity = Math.sin(time * 5 - line.userData.progress * 10);
+        });
+
+        // Camera Animation (Cinematic drift)
+        camera.position.x += Math.sin(time * 0.2) * 0.01;
+        camera.position.z += Math.cos(time * 0.2) * 0.01;
+        controls.update();
+
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
 </body>
 </html>

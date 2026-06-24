@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inference Kinetic Typography</title>
+    <title>Kinetic Typography: Local Inference</title>
     <style>
         :root {
-            --bg-color: #050505;
-            --text-color: #ffffff;
-            --accent-color: #00ffcc;
-            --secondary-color: #7000ff;
+            --bg: #050505;
+            --fg: #ffffff;
+            --accent: #00ffcc;
         }
 
         body, html {
@@ -17,9 +16,10 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-color);
+            background-color: var(--bg);
+            color: var(--fg);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -39,120 +39,146 @@
             white-space: nowrap;
             pointer-events: none;
             will-change: transform, opacity;
-            mix-blend-mode: screen;
+            font-size: clamp(2rem, 15vw, 8rem);
         }
 
-        .glitch {
-            color: var(--accent-color);
-            text-shadow: 2px 0 var(--secondary-color), -2px 0 #ff00c8;
+        .highlight {
+            color: var(--accent);
+            text-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
         }
 
         #overlay {
             position: absolute;
             bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.3);
+            left: 40px;
             font-family: monospace;
-            letter-spacing: 2px;
+            color: #444;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
 
     <div id="canvas-container"></div>
-    <div id="overlay">RUNNING LOCAL INFERENCE...</div>
+    <div id="overlay">> SYSTEM_READY: LOCAL_INFERENCE_MODE</div>
 
     <script>
         const container = document.getElementById('canvas-container');
-        const wordsData = [
-            { text: "LOCAL", color: "#ffffff" },
-            { text: "INFERENCE", color: "#00ffcc", weight: "900" },
-            { text: "TOKENS", color: "#7000ff" },
-            { text: "SLOTS", color: "#ff00c8" },
-            { text: "THROUGHPUT", color: "#ffffff", glitch: true },
-            { text: "LATENCY", color: "#7000ff" },
-            { text: "QUANTIZED", color: "#00ffcc" },
-            { text: "ON-DEVICE", color: "#ffffff" },
-            { text: "KV CACHE", color: "#7000ff" },
-            { text: "FAST", color: "#00ffcc" }
+        const phrases = [
+            { text: "LOCAL", type: "standard" },
+            { text: "INFERENCE", type: "highlight" },
+            { text: "NO CLOUD", type: "standard" },
+            { text: "PRIVACY FIRST", type: "highlight" },
+            { text: "TOKENS", type: "standard" },
+            { text: "STREAMING...", type: "highlight" },
+            { text: "MAX THROUGHPUT", type: "standard" },
+            { text: "LOW LATENCY", type: "highlight" },
+            { text: "SLOTS", type: "standard" },
+            { text: "BATCH PROCESSING", type: "highlight" },
+            { text: "ON DEVICE", type: "standard" },
+            { text: "FULL CONTROL", type: "highlight" }
         ];
 
         class KineticWord {
-            constructor(text, color, glitch = false) {
-                this.element = document.createElement('div');
-                this.element.className = 'word' + (glitch ? ' glitch' : '');
-                this.element.innerText = text;
-                this.element.style.color = color;
-                this.element.style.fontSize = Math.random() * (80 - 30) + 30 + 'px';
-                
-                container.appendChild(this.element);
+            constructor(text, isHighlight) {
+                this.el = document.createElement('div');
+                this.el.className = `word ${isHighlight ? 'highlight' : ''}`;
+                this.el.innerText = text;
+                container.appendChild(this.el);
 
-                this.x = Math.random() * window.innerWidth;
-                this.y = Math.random() * window.innerHeight;
-                this.z = Math.random() * -500;
-                this.vx = (Math.random() - 0.5) * 10;
-                this.vy = (Math.random() - 0.5) * 10;
-                this.vz = (Math.random() - 0.5) * 5;
-                this.life = 1.0;
-                this.decay = Math.random() * 0.005 + 0.002;
+                this.reset();
+            }
+
+            reset() {
+                const isCenter = Math.random() > 0.7;
+                
+                // Random position or center
+                if (isCenter) {
+                    this.x = window.innerWidth / 2;
+                    this.y = window.innerHeight / 2;
+                    this.scale = 1;
+                    this.opacity = 1;
+                    this.z = 0;
+                } else {
+                    const side = Math.floor(Math.random() * 4);
+                    if (side === 0) { // Top
+                        this.x = Math.random() * window.innerWidth;
+                        this.y = -100;
+                    } else if (side === 1) { // Bottom
+                        this.x = Math.random() * window.innerWidth;
+                        this.y = window.innerHeight + 100;
+                    } else if (side === 2) { // Left
+                        this.x = -400;
+                        this.y = Math.random() * window.innerHeight;
+                    } else { // Right
+                        this.x = window.innerWidth + 400;
+                        this.y = Math.random() * window.innerHeight;
+                    }
+                    this.scale = Math.random() * 0.5 + 0.2;
+                    this.opacity = 0;
+                    this.z = -500;
+                }
+
+                this.targetY = this.y + (Math.random() - 0.5) * 600;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = 1.0; // For fading out
+                this.decay = Math.random() * 0.005 + 0.003;
             }
 
             update() {
+                // Movement logic (Drift and flow)
                 this.x += this.vx;
                 this.y += this.vy;
-                this.z += this.vz;
-                this.life -= this.decay;
+                this.z -= 2; // Moving towards camera
+                
+                if (this.opacity < 1) this.opacity += 0.05;
 
-                // Boundary bounce (simplified)
-                if(this.x < 0 || this.x > window.innerWidth) this.vx *= -1;
-                if(this.y < 0 || this.y > window.innerHeight) this.vy *= -1;
+                // Animate toward target or just drift
+                this.el.style.transform = `translate3d(${this.x}px, ${this.y}px, ${this.z}px) scale(${this.scale})`;
+                this.el.style.opacity = this.opacity;
 
-                const scale = Math.max(0.5, this.life);
-                this.element.style.transform = `translate3d(${this.x}px, ${this.y}px, ${this.z}px) scale(${scale})`;
-                this.element.style.opacity = this.life;
-            }
-
-            remove() {
-                container.removeChild(this.element);
+                // Life cycle management
+                if (this.z < -1000 || this.opacity <= 0) {
+                    this.reset();
+                }
             }
         }
 
-        let activeWords = [];
+        const activeWords = [];
+        let phraseIndex = 0;
 
-        function spawnWord() {
-            const data = wordsData[Math.floor(Math.random() * wordsData.length)];
-            activeWords.push(new KineticWord(data.text, data.color, data.glitch));
+        function init() {
+            // Create initial particles/words
+            for (let i = 0; i < 15; i++) {
+                createWordFromPhrase();
+            }
+            animate();
+        }
+
+        function createWordFromPhrase() {
+            const phraseObj = phrases[phraseIndex];
+            activeWords.push(new KineticWord(phraseObj.text, phraseObj.type === 'highlight'));
+            
+            // Cycle through the array of words
+            phraseIndex = (phraseIndex + 1) % phrases.length;
+
+            // Staggered timing for new words appearing
+            setTimeout(() => {
+                createWordFromPhrase();
+            }, 800);
         }
 
         function animate() {
-            for (let i = activeWords.length - 1; i >= 0; i--) {
-                activeWords[i].update();
-                if (activeWords[i].life <= 0) {
-                    activeWords[i].remove();
-                    activeWords.splice(i, 1);
-                }
-            }
-
-            // Randomly spawn new words based on "throughput" simulation logic
-            if (Math.random() > 0.85) {
-                spawnWord();
-            }
-
+            activeWords.forEach(word => word.update());
             requestAnimationFrame(animate);
         }
 
-        // Initial burst
-        for(let i=0; i<15; i++) {
-            setTimeout(spawnWord, i * 200);
-        }
-
         window.addEventListener('resize', () => {
-            container.innerHTML = '';
-            activeWords = [];
+            // Refresh logic if needed, but CSS handles responsiveness well here
         });
 
-        animate();
+        init();
     </script>
 </body>
 </html>

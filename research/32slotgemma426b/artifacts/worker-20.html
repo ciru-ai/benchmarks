@@ -4,256 +4,303 @@ html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Demo Title Card</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Model Demo Showcase</title>
     <style>
         :root {
             --primary: #00f2ff;
             --secondary: #7000ff;
-            --bg-dark: #050505;
-            --text-white: #ffffff;
+            --bg: #050505;
+            --text: #ffffff;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body, html {
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: var(--bg-dark);
-            font-family: 'Inter', sans-serif;
-            color: var(--text-white);
+            background-color: var(--bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
         }
 
-        /* Animated Background Canvas */
-        #canvas {
-            position: absolute;
+        /* Animated Gradient Background */
+        .canvas-container {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
-            filter: blur(40px);
-            opacity: 0.6;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #050505 100%);
         }
 
-        /* Overlay Gradient */
-        .overlay {
+        .orb {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(5,5,5,0.8) 100%);
-            z-index: 0;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s infinite alternate ease-in-out;
         }
 
-        /* Main Container */
+        @keyframes float {
+            0% { transform: translate(-10%, -10%) scale(1); }
+            50% { transform: translate(30%, 20%) scale(1.2); }
+            100% { transform: translate(-20%, 40%) scale(0.8); }
+        }
+
+        /* Main Layout */
         .container {
-            position: relative;
-            z-index: 10;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             text-align: center;
-            padding: 20px;
+            padding: 0 20px;
         }
 
-        /* Headline Animation */
-        .headline-box {
-            height: 120px; /* Prevent layout shift */
+        /* Headline Animations */
+        .headline-wrapper {
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 40px;
         }
 
-        h1 {
-            font-size: clamp(3rem, 8vw, 6rem);
-            font-weight: 900;
-            text-transform: uppercase;
+        .headline {
+            font-size: 5rem;
+            font-weight: 800;
             letter-spacing: -2px;
-            line-height: 1;
             position: absolute;
             opacity: 0;
-            transform: translateY(30px) scale(0.95);
+            transform: translateY(30px);
             transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        h1.active {
+        .headline.active {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
         }
 
-        /* Metrics Section */
-        .metrics {
-            display: flex;
+        /* Metrics Grid */
+        .metrics-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 40px;
-            margin-top: 40px;
+            margin-bottom: 60px;
             opacity: 0;
-            transition: opacity 1s ease;
+            transform: scale(0.9);
+            transition: all 1s ease-out;
         }
 
-        .metrics.visible {
+        .metrics-container.visible {
             opacity: 1;
+            transform: scale(1);
         }
 
-        .metric-item {
-            display: flex;
-            flex-direction: column;
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px 40px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
         }
 
         .metric-value {
-            font-size: clamp(2rem, 4vw, 3.5rem);
+            display: block;
+            font-size: 2.5rem;
             font-weight: 700;
             color: var(--primary);
+            margin-bottom: 5px;
         }
 
         .metric-label {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 2px;
             opacity: 0.6;
         }
 
-        /* Replay Button */
-        #replayBtn {
-            margin-top: 60px;
-            padding: 12px 30px;
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            cursor: pointer;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
+        /* Controls */
+        .controls {
+            margin-top: 40px;
             opacity: 0;
+            transition: opacity 1s ease;
         }
 
-        #replayBtn.visible { opacity: 1; }
+        .controls.visible {
+            opacity: 1;
+        }
 
-        #replayBtn:hover {
-            background: white;
+        button {
+            background: transparent;
+            color: white;
+            border: 2px solid var(--primary);
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--primary);
             color: black;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+            width: 0%;
         }
 
     </style>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
-    <div class="overlay"></div>
-
-    <div class="container">
-        <div class="headline-box">
-            <h1 id="title1">NEURAL ENGINE</h1>
-            <h1 id="title2">QUANTUM FLOW</h1>
-            <h1 id="title3">MODEL X-1</h1>
-        </div>
-
-        <div class="metrics" id="metricBox">
-            <div class="metric-item">
-                <span class="metric-value" id="val1">0.4ms</span>
-                <span class="metric-label">Latency</span>
-            </div>
-            <div class="metric-item">
-                <span class="metric-value" id="val2">99.9%</span>
-                <span class="metric-label">Accuracy</span>
-            </div>
-        </div>
-
-        <button id="replayBtn">REPLAY SEQUENCE</button>
+    <div class="canvas-container">
+        <div class="orb" style="background: var(--secondary); top: -10%; left: -10%;"></div>
+        <div class="orb" style="background: #4e00ff; bottom: 10%; right: -5%; animation-delay: -5s;"></div>
     </div>
 
+    <div class="container">
+        <div class="headline-wrapper">
+            <h1 class="headline" id="h1">NEURAL CORE V2</h1>
+            <h1 class="headline" id="h2">ULTRA FAST INFERENCE</h1>
+            <h1 class="headline" id="h3">NEXT GEN AI</h1>
+        </div>
+
+        <div class="metrics-container" id="metrics">
+            <div class="metric-card">
+                <span class="metric-value" id="m1">0ms</span>
+                <span class="metric-label">Latency</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="m2">0%</span>
+                <span class="metric-label">Accuracy</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="m3">0x</span>
+                <span class="metric-label">Speedup</span>
+            </div>
+        </div>
+
+        <div class="controls" id="controls">
+            <button onclick="startSequence()">REPLAY DEMO</button>
+        </div>
+    </div>
+
+    <div class="progress-bar" id="progress"></div>
+
     <script>
-        // --- Background Animation ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
+        const headlines = [document.getElementById('h1'), document.getElementById('h2'), document.getElementById('h3')];
+        const metricsContainer = document.getElementById('metrics');
+        const progress = document.getElementById('progress');
+        const controls = document.getElementById('controls');
+        
+        // Metric values to animate towards
+        const targetMetrics = [
+            { id: 'm1', val: '12ms', type: 'text' },
+            { id: 'm2', val: '99.8%', type: 'text' },
+            { id: 'm3', val: '50x', type: 'text' }
+        ];
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        async function startSequence() {
+            // Reset everything
+            resetUI();
+            
+            // 1. Headline Transitions
+            for (let i = 0; i < headlines.length; i++) {
+                await wait(1500);
+                headlines[i].classList.add('active');
+                updateProgress((i + 1) / (headlines.length + 2));
+            }
 
-        class Particle {
-            constructor() {
-                this.reset();
-            }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 100 + 50;
-                this.speedX = (Math.random() - 0.5) * 2;
-                this.speedY = (Math.random() - 0.5) * 2;
-                this.color = Math.random() > 0.5 ? '#00f2ff' : '#7000ff';
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < -100 || this.x > canvas.width + 100 || this.y < -100 || this.y > canvas.height + 100) {
-                    this.reset();
-                }
-            }
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            // 2. Show Metrics & Animate Numbers
+            await wait(800);
+            metricsContainer.classList.add('visible');
+            updateProgress(0.7);
+            animateNumbers();
+
+            // 3. Final State / Replay Button
+            await wait(3000);
+            controls.classList.add('visible');
+            updateProgress(1);
         }
 
-        for (let i = 0; i < 15; i++) particles.push(new Particle());
-
-        function animateBackground() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
+        function resetUI() {
+            headlines.forEach(h => h.classList.remove('active'));
+            metricsContainer.classList.remove('visible');
+            controls.classList.remove('visible');
+            progress.style.width = '0%';
+            targetMetrics.forEach(m => {
+                document.getElementById(m.id).innerText = m.val.split('.')[0] + (m.type === 'text' ? '' : '%'); 
+                // Simplified for demo, real logic would use counters
+                if(m.id === 'm1') document.getElementById('m1').innerText = '--';
+                if(m.id === 'm2') document.getElementById('m2').innerText = '--';
+                if(m.id === 'm3') document.getElementById('m3').innerText = '--';
             });
-            requestAnimationFrame(animateBackground);
-        }
-        animateBackground();
-
-        // --- Sequence Logic ---
-        const titles = [document.getElementById('title1'), document.getElementById('title2'), document.getElementById('title3')];
-        const metricBox = document.getElementById('metricBox');
-        const replayBtn = document.getElementById('replayBtn');
-        let sequenceIndex = 0;
-
-        function runSequence() {
-            // Reset state
-            sequenceIndex = 0;
-            titles.forEach(t => t.classList.remove('active'));
-            metricBox.classList.remove('visible');
-            replayBtn.classList.remove('visible');
-
-            setTimeout(() => {
-                showNextTitle();
-            }, 500);
         }
 
-        function showNextTitle() {
-            if (sequenceIndex < titles.length) {
-                titles[sequenceIndex].classList.add('active');
-                sequenceIndex++;
-                setTimeout(showNextTitle, 2000); // Time per title
-            } else {
-                // Show metrics after last title
-                metricBox.classList.add('visible');
-                setTimeout(() => {
-                    replayBtn.classList.add('visible');
-                }, 1000);
-            }
+        function animateNumbers() {
+            // Simple simulated counter for demo effect
+            const counters = targetMetrics.map(tm => ({
+                el: document.getElementById(tm.id),
+                target: tm.val,
+                current: 0
+            }));
+
+            counters.forEach((c, idx) => {
+                let start = 0;
+                const end = parseFloat(c.target);
+                const duration = 1500;
+                const startTime = performance.now();
+
+                function update(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progressVal = Math.min(elapsed / duration, 1);
+                    
+                    // Basic easing
+                    const easeOutQuad = (t) => t * (2 - t);
+                    const currentNum = (progressVal * end).toFixed(idx === 0 ? 0 : 1);
+
+                    if (c.target.includes('ms')) c.el.innerText = Math.floor(currentNum) + 'ms';
+                    else if (c.target.includes('%')) c.el.innerText = currentNum + '%';
+                    else c.el.innerText = currentNum + 'x';
+
+                    if (progressVal < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            });
         }
 
-        replayBtn.addEventListener('click', runSequence);
+        function updateProgress(val) {
+            progress.style.width = (val * 100) + '%';
+        }
 
-        // Start initial animation
-        window.onload = () => setTimeout(runSequence, 500);
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Auto-start on load and loop logic
+        window.onload = () => {
+            startSequence();
+            // Loop every 15 seconds
+            setInterval(() => {
+                if(!controls.classList.contains('visible')) return; // Don't interrupt if user is watching end
+                startSequence();
+            }, 15000);
+        };
 
     </script>
 </body>

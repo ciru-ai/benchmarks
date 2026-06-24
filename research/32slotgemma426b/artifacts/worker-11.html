@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,15 +7,7 @@
     <title>Three.js Solar System Toy</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            pointer-events: none;
-            text-shadow: 1px 1px 2px black;
-        }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
@@ -40,7 +33,7 @@
         // --- Scene Setup ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 150, 300);
+        camera.position.set(0, 100, 150);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -54,65 +47,63 @@
         const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
         scene.add(ambientLight);
 
-        const sunLight = new THREE.PointLight(0xffffff, 5000, 1000);
-        sunLight.position.set(0, 0, 0);
+        const sunLight = new THREE.PointLight(0xffffff, 3, 500);
         scene.add(sunLight);
 
-        // --- Textures Placeholder (Colors) ---
-        const createPlanet = (size, color, distance, speed, name) => {
-            // Orbit Path (Ring)
-            const orbitGeom = new THREE.RingGeometry(distance - 0.5, distance + 0.5, 64);
-            const orbitMat = new THREE.MeshBasicMaterial({ color: 0x444444, side: THREE.DoubleSide });
-            const orbit = new THREE.Mesh(orbitGeom, orbitMat);
-            orbit.rotation.x = Math.PI / 2;
-            scene.add(orbit);
-
-            // Planet Sphere
-            const geom = new THREE.SphereGeometry(size, 32, 32);
-            const mat = new THREE.MeshStandardMaterial({ color: color });
-            const mesh = new THREE.Mesh(geom, mat);
-            
-            // Pivot object for rotation around sun
-            const pivot = new THREE.Object3D();
-            scene.add(pivot);
-            pivot.add(mesh);
-            mesh.position.set(distance, 0, 0);
-
-            return { mesh, pivot, speed };
-        };
-
-        // --- Stars Background ---
+        // --- Starfield Background ---
         const starGeometry = new THREE.BufferGeometry();
         const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
         const starVertices = [];
         for (let i = 0; i < 5000; i++) {
-            const x = (Math.random() - 0.5) * 2000;
-            const y = (Math.random() - 0.5) * 2000;
-            const z = (Math.random() - 0.5) * 2000;
-            starVertices.push(x, y, z);
+            starVertices.push(THREE.MathUtils.randFloatSpread(1000));
+            starVertices.push(THREE.MathUtils.randFloatSpread(1000));
+            starVertices.push(THREE.MathUtils.randFloatSpread(1000));
         }
         starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
         const stars = new THREE.Points(starGeometry, starMaterial);
         scene.add(stars);
 
-        // --- Celestial Bodies ---
-        // Sun
+        // --- Solar System Objects ---
+        const textureLoader = new THREE.TextureLoader();
+        const planets = [];
+
+        function createPlanet(radius, color, distance, speed) {
+            // Orbit Path (Ring)
+            const orbitGeom = new THREE.RingGeometry(distance - 0.1, distance + 0.1, 64);
+            const orbitMat = new THREE.MeshBasicMaterial({ color: 0x444444, side: THREE.DoubleSide });
+            const orbitRing = new THREE.Mesh(orbitGeom, orbitMat);
+            orbitRing.rotation.x = Math.PI / 2;
+            scene.add(orbitRing);
+
+            // Planet Mesh
+            const geometry = new THREE.SphereGeometry(radius, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Group to handle rotation around sun
+            const orbitGroup = new THREE.Object3D();
+            scene.add(orbitGroup);
+            orbitGroup.add(mesh);
+            mesh.position.x = distance;
+
+            return { mesh, orbitGroup, speed };
+        }
+
+        // The Sun
         const sunGeom = new THREE.SphereGeometry(15, 32, 32);
         const sunMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
         const sun = new THREE.Mesh(sunGeom, sunMat);
         scene.add(sun);
 
-        // Planet Data: size, color, distance, speed
-        const planets = [
-            createPlanet(2, 0xaaaaaa, 30, 0.04),  // Mercury
-            createPlanet(3.5, 0xffcc99, 50, 0.015), // Venus
-            createPlanet(4, 0x2277ff, 70, 0.01),   // Earth
-            createPlanet(3, 0xff4422, 90, 0.008),  // Mars
-            createPlanet(8, 0xddbb99, 130, 0.004), // Jupiter
-            createPlanet(7, 0xeebb99, 170, 0.002)  // Saturn
-        ];
+        // Add Planets (Radius, Color, Distance, Speed)
+        planets.push(createPlanet(2, 0x8c8c8c, 30, 0.04));   // Mercury
+        planets.push(createPlanet(3.5, 0xe3bb76, 45, 0.015)); // Venus
+        planets.push(createPlanet(4, 0x2271b3, 65, 0.01));   // Earth
+        planets.push(createPlanet(3, 0xe27b58, 85, 0.008));  // Mars
+        planets.push(createPlanet(8, 0xdcae8a, 120, 0.004)); // Jupiter
+        planets.push(createPlanet(6, 0xf5d39f, 160, 0.002)); // Saturn
 
-        // --- Labels (CSS Overlay Method for performance) ---
+        // --- Labels (CSS/HTML Overlay approach for simplicity) ---
         const labels = [];
         function createLabel(text, distance) {
             const div = document.createElement('div');
@@ -120,28 +111,61 @@
             div.style.color = 'white';
             div.style.fontSize = '12px';
             div.style.pointerEvents = 'none';
+            div.textContent = text;
             document.body.appendChild(div);
-            return { element: div, distance };
+            labels.push({ element: div, planetMesh: null }); // Will link in loop
         }
-
-        const labelNames = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"];
-        // Note: In this simplified version, we'll just update positions in the loop.
 
         // --- Animation Loop ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Rotate Sun
-            sun.rotation.y += 0.005;
+            sun.rotation.y += 0.004;
 
-            // Orbit Planets
             planets.forEach((p, index) => {
-                p.pivot.rotation.y += p.speed;
-                p.mesh.rotation.y += 0.02; // Self-rotation
+                p.orbitGroup.rotation.y += p.speed; // Orbit movement
+                p.mesh.rotation.y += 0.02;         // Self rotation
             });
 
             controls.update();
+            renderLabels();
             renderer.render(scene, camera);
+        }
+
+        function renderLabels() {
+            // Simple logic to position text labels near planets
+            // In a production app, use CSS2DRenderer for better accuracy
+            const planetNames = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"];
+            planets.forEach((p, i) => {
+                const vector = new THREE.Vector3();
+                // Get world position of the mesh (the planet itself)
+                p.mesh.getWorldPosition(vector); 
+                vector.project(camera);
+
+                const x = (vector.x *  0.5 + 0.5) * window.innerWidth;
+                const y = (-vector.y *  0.5 + 0.5) * window.innerHeight;
+
+                // Only show if in front of camera
+                if(vector.z < 1) {
+                    let el = document.getElementById(`label-${i}`);
+                    if(!el) {
+                        el = document.createElement('div');
+                        el.id = `label-${i}`;
+                        el.style.position = 'absolute';
+                        el.style.color = 'white';
+                        el.style.fontSize = '14px';
+                        el.style.pointerEvents = 'none';
+                        document.body.appendChild(el);
+                    }
+                    el.style.display = 'block';
+                    el.style.left = `${x + 10}px`;
+                    el.style.top = `${y - 10}px`;
+                    el.textContent = planetNames[i];
+                } else {
+                    const el = document.getElementById(`label-${i}`);
+                    if(el) el.style.display = 'none';
+                }
+            });
         }
 
         // Handle Resize

@@ -24,7 +24,7 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // Scene setup
+    // Scene Setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
@@ -37,93 +37,85 @@
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.5;
 
-    // Starfield
+    // --- Objects ---
+
+    // 1. Stars Background
     const starGeometry = new THREE.BufferGeometry();
-    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 });
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
     const starVertices = [];
     for (let i = 0; i < 5000; i++) {
-        const x = (Math.random() - 0.5) * 1000;
-        const y = (Math.random() - 0.5) * 1000;
-        const z = (Math.random() - 0.5) * 1000;
+        const x = (Math.random() - 0.5) * 2000;
+        const y = (Math.random() - 0.5) * 2000;
+        const z = (Math.random() - 0.5) * 2000;
         starVertices.push(x, y, z);
     }
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
-    // Crystal Sculpture Group
-    const crystalGroup = new THREE.Group();
-    scene.add(crystalGroup);
-
-    // Material for the crystals (Physical material for reflections/refractions)
+    // 2. The Crystal Sculpture (Octahedron)
+    // We use MeshPhysicalMaterial for high-end "glass/crystal" look
+    const crystalGeometry = new THREE.OctahedronGeometry(1.5, 0); // Low detail for sharp edges
     const crystalMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x00ffff,
         metalness: 0.1,
-        roughness: 0.05,
-        transmission: 0.9, // Transparency
-        thickness: 2.0,   // Refraction thickness
-        ior: 1.5,         // Index of refraction (Glass-like)
+        roughness: 0.02,
+        transmission: 0.9, // Transparency/Refraction
+        thickness: 1.5,    // Refraction depth
+        ior: 2.4,          // Index of refraction (Diamond-like)
         specularIntensity: 1,
         clearcoat: 1,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.8
     });
 
-    const octahedronGeom = new THREE.OctahedronGeometry(1, 0);
-    const dodecahedronGeom = new THREE.DodecahedronGeometry(1, 0);
-    const icoGeom = new THREE.IcosahedronGeometry(1, 0);
+    const crystal = new THREE.Mesh(crystalGeometry, crystalMaterial);
+    scene.add(crystal);
 
-    // Create multiple crystal shards
-    for (let i = 0; i < 8; i++) {
-        const mesh = new THREE.Mesh(icoGeom, crystalMaterial);
-        const angle = (i / 8) * Math.PI * 2;
-        mesh.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
-        mesh.rotation.set(Math.random(), Math.random(), Math.random());
-        mesh.scale.setScalar(Math.random() * 0.8 + 0.4);
-        crystalGroup.add(mesh);
-    }
+    // Inner core (adds depth to the refraction)
+    const innerGeometry = new THREE.IcosahedronGeometry(0.5, 0);
+    const innerMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x44aaff });
+    const innerCore = new THREE.Mesh(innerGeometry, innerMaterial);
+    crystal.add(innerCore);
 
-    // Central Core Crystal
-    const coreGeom = new THREE.IcosahedronGeometry(1, 1);
-    const coreMat = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        metalness: 0.9,
-        roughness: 0.01,
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.5,
-    });
-    const core = new THREE.Mesh(coreGeom, coreMat);
-    crystalGroup.add(core);
-
-    // Orbiting Lights
-    const light1 = new THREE.PointLight(0xff00ff, 2, 10); // Magenta
+    // 3. Orbiting Lights
+    const light1 = new THREE.PointLight(0xff00ff, 50, 20); // Magenta
     scene.add(light1);
 
-    const light2 = new THREE.PointLight(0x00ffff, 2, 10); // Cyan
+    const light2 = new THREE.PointLight(0x00ffff, 50, 20); // Cyan
     scene.add(light2);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
     scene.add(ambientLight);
 
-    // Animation Loop
+    // --- Animation Loop ---
+
+    let time = 0;
     function animate() {
         requestAnimationFrame(animate);
+        time += 0.01;
 
-        const time = Date.now() * 0.001;
+        // Rotate Crystal
+        crystal.rotation.y += 0.005;
+        crystal.rotation.z += 0.003;
+        innerCore.rotation.x -= 0.01;
 
-        // Rotate the main crystal group
-        crystalGroup.rotation.y += 0.005;
-        crystalGroup.rotation.z += 0.003;
+        // Orbit Lights around the crystal
+        light1.position.set(
+            Math.sin(time * 0.7) * 4,
+            Math.cos(time * 0.5) * 3,
+            Math.sin(time * 0.3) * 4
+        );
 
-        // Orbit lights around the center
-        light1.position.set(Math.sin(time * 0.7) * 4, Math.cos(time * 0.5) * 4, Math.sin(time * 0.3) * 2);
-        light2.position.set(Math.cos(time * 0.8) * 4, Math.sin(time * 1.1) * 4, Math.cos(time * 0.5) * 2);
+        light2.position.set(
+            Math.cos(time * 0.5) * 4,
+            Math.sin(time * 0.8) * 3,
+            Math.cos(time * 0.6) * 4
+        );
 
-        // Pulse core light
-        coreMat.emissiveIntensity = 0.5 + Math.sin(time * 3) * 0.3;
+        // Subtle star movement
+        stars.rotation.y += 0.0002;
 
         controls.update();
         renderer.render(scene, camera);

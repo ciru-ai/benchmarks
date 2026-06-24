@@ -4,35 +4,28 @@ html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cinematic Motion Page</title>
+    <title>Animated Video Experience</title>
     <style>
         :root {
-            --bg-color: #0a0a0c;
+            --bg-color: #0a0a12;
             --accent-color: #00f2ff;
             --text-color: #ffffff;
             --secondary-color: #7000ff;
         }
 
-        * {
+        body, html {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
             background-color: var(--bg-color);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: var(--text-color);
         }
 
         /* Background Animated Shapes */
         .canvas-container {
             position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
@@ -67,49 +60,51 @@ html
         }
 
         @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(20vw, 20vh) scale(1.2); }
-            100% { transform: translate(-10vw, 30vh) scale(0.8); }
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(20vw, 20vh) rotate(180deg); }
+            100% { transform: translate(-10vw, 30vh) rotate(360deg); }
         }
 
-        /* Content Overlay */
-        .main-container {
+        /* Main Content Overlay */
+        .overlay {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100%;
             text-align: center;
-            padding: 20px;
+            color: var(--text-color);
+            z-index: 10;
         }
 
+        /* Countdown Styles */
         #countdown {
-            font-size: clamp(5rem, 15vw, 12rem);
+            font-size: 8rem;
             font-weight: 800;
+            margin: 0;
             letter-spacing: -5px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
         }
 
+        /* Caption Styles */
         #caption {
-            font-size: clamp(1rem, 4vw, 2rem);
-            text-transform: uppercase;
-            letter-spacing: 8px;
+            font-size: 1.5rem;
+            margin-top: 20px;
             opacity: 0;
-            animation: captionFade 3s forwards ease-in-out;
+            transform: translateY(20px);
+            transition: all 0.8s ease;
         }
 
-        @keyframes captionFade {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 0.8; transform: translateY(0); }
+        #caption.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        /* Progress Bar Container */
-        .progress-wrapper {
+        /* Progress Bar */
+        .progress-container {
             position: absolute;
-            bottom: 10%;
+            bottom: 50px;
             width: 60%;
-            max-width: 500px;
             height: 4px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
@@ -123,19 +118,16 @@ html
             box-shadow: 0 0 15px var(--accent-color);
         }
 
-        /* Glitch Effect for numbers */
+        /* Cinematic Glitch Effect */
         .glitch {
-            position: relative;
-            display: inline-block;
+            animation: glitch-anim 2s infinite;
         }
 
         @keyframes glitch-anim {
-            0% { clip-path: inset(40% 0 61% 0); }
-            20% { clip-path: inset(92% 0 1% 0); }
-            40% { clip-path: inset(43% 0 1% 0); }
-            60% { clip-path: inset(10% 0 85% 0); }
-            80% { clip-path: inset(70% 0 12% 0); }
-            100% { clip-path: inset(43% 0 1% 0); }
+            0% { text-shadow: 2px 0 red, -2px 0 blue; }
+            5% { text-shadow: -3px 0 red, 3px 0 blue; }
+            10% { text-shadow: 2px 0 red, -2px 0 blue; }
+            15% { text-shadow: none; }
         }
 
     </style>
@@ -147,14 +139,14 @@ html
         <div class="shape shape-2"></div>
     </div>
 
-    <main class="main-container">
-        <div id="countdown" class="glitch">05</div>
-        <div id="caption">Initializing Sequence...</div>
+    <div class="overlay">
+        <h1 id="countdown" class="glitch">05</h1>
+        <p id="caption">INITIALIZING SEQUENCE...</p>
+    </div>
 
-        <div class="progress-wrapper">
-            <div id="progress-bar"></div>
-        </div>
-    </main>
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
 
     <script>
         const countdownEl = document.getElementById('countdown');
@@ -164,64 +156,85 @@ html
         let timeLeft = 5;
         const totalTime = 5;
 
-        function updateDisplay() {
-            // Update Countdown Text
-            countdownEl.textContent = timeLeft.toString().padStart(2, '0');
-            
-            // Add a tiny "glitch" trigger on number change
-            countdownEl.style.animation = 'none';
-            void countdownEl.offsetWidth; // Trigger reflow
-            countdownEl.style.animation = 'glitch-anim 0.1s linear infinite';
+        // Captions sequence
+        const captions = [
+            "INITIALIZING SEQUENCE...",
+            "LOADING ASSETS...",
+            "STABILIZING CORE...",
+            "PREPARING LAUNCH...",
+            "SYSTEM READY."
+        ];
 
-            // Update Progress Bar
-            const progressPercent = ((totalTime - timeLeft) / totalTime) * 100;
-            progressEl.style.width = `${progressPercent}%`;
-            progressEl.style.transition = 'width 1s linear';
+        function updateVideo() {
+            if (timeLeft > 0) {
+                // Update Countdown Text
+                countdownEl.textContent = timeLeft.toString().padStart(2, '0');
+                
+                // Update Progress Bar
+                const progressPercent = ((totalTime - timeLeft) / totalTime) * 100;
+                progressEl.style.width = `${progressPercent}%`;
 
-            if (timeLeft <= 3 && timeLeft > 0) {
-                captionEl.textContent = "System Loading...";
-                document.body.style.backgroundColor = "#1a0505"; // Subtle red tint as countdown nears end
-            } else if (timeLeft === 0) {
-                handleEnd();
-            }
+                // Update Captions based on time
+                const captionIndex = Math.floor(((totalTime - timeLeft) / totalTime) * captions.length);
+                if (captionEl.textContent !== captions[captionIndex]) {
+                    captionEl.classList.remove('visible');
+                    setTimeout(() => {
+                        captionEl.textContent = captions[captionIndex];
+                        captionEl.classList.add('visible');
+                    }, 300);
+                }
 
-            timeLeft--;
-        }
-
-        function handleEnd() {
-            countdownEl.textContent = "00";
-            captionEl.textContent = "SEQUENCE COMPLETE";
-            progressEl.style.width = '100%';
-            document.body.style.backgroundColor = "#000";
-            
-            // Final cinematic flash effect via JS
-            setTimeout(() => {
-                document.body.style.transition = "background 0.5s ease";
+                timeLeft--;
+            } else {
+                // Final State
+                countdownEl.textContent = "GO";
+                countdownEl.style.fontSize = "12rem";
+                progressEl.style.width = "100%";
+                captionEl.textContent = "ENGAGED";
+                captionEl.classList.add('visible');
+                
+                // Trigger a final screen flash effect via JS
                 document.body.style.backgroundColor = "#ffffff";
                 setTimeout(() => {
-                    document.body.style.backgroundColor = "#0a0a0c";
+                    document.body.style.transition = "background-color 2s ease";
+                    document.body.style.backgroundColor = "#0a0a12";
                 }, 100);
-            }, 300);
 
-            // Restart loop after delay to make it "video-like"
-            setTimeout(resetSequence, 2500);
+                // Loop the video experience after a delay
+                setTimeout(resetSequence, 3000);
+            }
         }
 
         function resetSequence() {
             timeLeft = totalTime;
-            captionEl.textContent = "Initializing Sequence...";
-            document.body.style.backgroundColor = "#0a0a0c";
-            progressEl.style.transition = 'none';
-            progressEl.style.width = '0%';
-            setTimeout(updateDisplay, 50);
+            progressEl.style.width = "0%";
+            countdownEl.style.fontSize = "8rem";
+            updateVideo();
         }
 
-        // Start the sequence
-        let timer = setInterval(() => {
-            if (timeLeft >= 0) {
-                updateDisplay();
+        // Start the loop
+        updateVideo();
+        setInterval(() => {
+            // This handles logic if we weren't using a controlled countdown, 
+            // but here we use our custom interval logic inside updateVideo via timeout-like flow.
+        }, 1000);
+
+        // Manual Interval to drive the animation loop
+        const timer = setInterval(() => {
+            if (timeLeft <= 0 && countdownEl.textContent !== "GO") {
+                // This is handled by the else block in updateVideo, 
+                // but we need an interval that keeps running for the logic flow.
+            }
+        }, 1000);
+
+        // Refined timing loop
+        let clock = setInterval(() => {
+            if (timeLeft > 0) {
+                updateVideo();
+            } else if (countdownEl.textContent === "GO") {
+                // Just waiting for the resetSequence timeout
             } else {
-                clearInterval(timer);
+                clearInterval(clock);
             }
         }, 1000);
 

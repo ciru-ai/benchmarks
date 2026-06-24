@@ -7,28 +7,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-dark: #0f172a;
+            --bg: #0f172a;
             --card-bg: #1e293b;
             --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --text-dim: #94a3b8;
             --accent: #38bdf8;
             --up: #22c55e;
             --down: #ef4444;
             --border: #334155;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background-color: var(--bg-dark); 
-            color: var(--text-main);
-            padding: 20px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); padding: 2rem; }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            grid-gap: 20px;
+            gap: 1.5rem;
             max-width: 1400px;
             margin: 0 auto;
         }
@@ -38,213 +33,232 @@
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 20px;
+            padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .stat-card h3 { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 10px; }
-        .stat-card .value { font-size: 1.8rem; font-weight: bold; margin-bottom: 5px; }
-        .stat-card .trend { font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
-        .up { color: var(--up); }
-        .down { color: var(--down); }
+        .stat-card h3 { font-size: 0.875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card .value { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+        .trend { font-size: 0.875rem; display: flex; align-items: center; gap: 4px; }
+        .trend.up { color: var(--up); }
+        .trend.down { color: var(--down); }
 
         /* Chart Section */
-        .chart-container { grid-column: span 3; height: 400px; }
-        .sidebar { grid-column: span 1; }
+        .chart-container {
+            grid-column: span 3;
+            height: 400px;
+        }
+        .market-summary { grid-column: span 1; }
 
         /* Table Section */
-        .table-container { grid-column: span 4; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
-        th { 
-            background: #2d3748; 
-            padding: 15px; 
-            cursor: pointer; 
-            color: var(--text-muted); 
-            font-size: 0.8rem; 
-            text-transform: uppercase;
+        .table-section {
+            grid-column: span 4;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            text-align: left;
+        }
+        th {
+            color: var(--text-dim);
+            font-weight: 500;
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: color 0.2s;
         }
         th:hover { color: var(--accent); }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-family: 'Courier New', monospace; }
-        tr:hover { background: rgba(255,255,255,0.03); }
+        td { padding: 16px 12px; border-bottom: 1px solid #33415544; font-size: 0.9rem; }
+        tr:hover { background: rgba(255,255,255,0.02); }
 
         @media (max-width: 1024px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .chart-container, .table-container { grid-column: span 2; }
-            .sidebar { display: none; }
-        }
-        @media (max-width: 600px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .chart-container, .table-container, .stat-card { grid-column: span 1; }
+            .chart-container, .table-section { grid-column: span 2; }
         }
     </style>
 </head>
 <body>
 
-    <header style="max-width: 1400px; margin: 0 auto 30px auto;">
-        <h1>Market Terminal <span style="color: var(--accent); font-weight: 200;">Live</span></h1>
-        <p style="color: var(--text-muted);">Real-time asset monitoring and analytics</p>
+    <header style="max-width: 1400px; margin: 0 auto 2rem auto;">
+        <h1>Market Overview</h1>
+        <p style="color: var(--text-dim);">Real-time simulated market data</p>
     </header>
 
     <div class="dashboard-grid">
-        <!-- Stats -->
+        <!-- Stats Row -->
         <div class="card stat-card">
-            <h3>Total Portfolio</h3>
-            <div class="value">$124,592.00</div>
-            <div class="trend up">▲ 2.4% <span style="color: var(--text-muted); font-size: 0.7rem;">(24h)</span></div>
+            <h3>Total Balance</h3>
+            <div class="value">$42,850.12</div>
+            <div class="trend up">▲ 2.4%</div>
         </div>
         <div class="card stat-card">
             <h3>Active Trades</h3>
             <div class="value">12</div>
-            <div class="trend down">▼ 1 <span style="color: var(--text-muted); font-size: 0.7rem;">(Closed)</span></div>
+            <div class="trend down">▼ 1</div>
         </div>
         <div class="card stat-card">
             <h3>Daily PNL</h3>
-            <div class="value" style="color: var(--up);">+$1,240.50</div>
+            <div class="value" style="color: var(--up);">+$840.30</div>
             <div class="trend up">▲ 5.2%</div>
         </div>
         <div class="card stat-card">
-            <h3>Volatility Index</h3>
-            <div class="value">18.4</div>
-            <div class="trend down" style="color: var(--text-muted);">Stable</div>
+            <h3>Volatility (Index)</h3>
+            <div class="value">14.2%</div>
+            <div class="trend down">▼ 0.8%</div>
         </div>
 
-        <!-- Chart -->
+        <!-- Chart Row -->
         <div class="card chart-container">
             <canvas id="marketChart"></canvas>
         </div>
-
-        <!-- Sidebar/Watchlist -->
-        <div class="card sidebar">
-            <h3 style="margin-bottom: 15px; font-size: 1rem;">Top Watchlist</h3>
-            <ul style="list-style: none;">
-                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                    <span>BTC/USD</span> <span class="up">$64,230</span>
-                </li>
-                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                    <span>ETH/USD</span> <span class="down">$3,450</span>
-                </li>
-                <li style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                    <span>SOL/USD</span> <span class="up">$145.20</span>
-                </li>
-                <li style="display: flex; justify-content: space-between; padding: 8px 0;">
-                    <span>AAPL</span> <span class="up">$189.40</span>
-                </li>
-            </ul>
+        <div class="card market-summary">
+            <h3>Market Sentiment</h3>
+            <div style="margin-top: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Fear & Greed Index</p>
+                <h2 style="color: #fbbf24;">72 (Greed)</h2>
+            </div>
         </div>
 
-        <!-- Table -->
-        <div class="card table-container">
-            <h3 style="margin-bottom: 15px; font-size: 1rem;">Market Assets</h3>
+        <!-- Table Row -->
+        <div class="card table-section">
+            <h3>Watchlist</h3>
             <table id="assetTable">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(0)">Asset</th>
-                        <th onclick="sortTable(1)">Price</th>
-                        <th onclick="sortTable(2)">Change %</th>
-                        <th onclick="sortTable(3)">Volume (24h)</th>
-                        <th onclick="sortTable(4)">Market Cap</th>
+                        <th onclick="sortTable(0)">Asset ↕</th>
+                        <th onclick="sortTable(1)">Price ↕</th>
+                        <th onclick="sortTable(2)">Change ↕</th>
+                        <th onclick="sortTable(3)">Volume ↕</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- JS injected -->
+                    <!-- Data injected via JS -->
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // Fake Data
+        // --- FAKE DATA ---
         const marketData = [
-            { name: "Bitcoin", price: 64230.50, change: 2.45, vol: "$32B", cap: "$1.2T" },
-            { name: "Ethereum", price: 3450.12, change: -1.20, vol: "$15B", cap: "$410B" },
-            { name: "Solana", price: 145.80, change: 5.67, vol: "$4B", cap: "$65B" },
-            { name: "Apple Inc.", price: 189.45, change: 0.32, vol: "$85B", cap: "$2.9T" },
-            { name: "Tesla Motors", price: 175.22, change: -3.15, vol: "$22B", cap: "$560B" },
-            { name: "NVIDIA Corp", price: 890.40, change: 4.12, vol: "$45B", cap: "$2.2T" }
+            { asset: 'Bitcoin', price: 64230.50, change: 2.45, vol: '$1.2B' },
+            { asset: 'Ethereum', price: 3450.12, change: -1.20, vol: '$850M' },
+            { asset: 'Solana', price: 145.67, change: 5.82, vol: '$210M' },
+            { asset: 'Cardano', price: 0.45, change: -0.32, vol: '$45M' },
+            { asset: 'Polkadot', price: 7.21, change: 1.15, vol: '$92M' },
+            { asset: 'Avalanche', price: 38.90, change: -2.45, vol: '$120M' }
         ];
 
-        // Initialize Table
+        // --- CHART LOGIC ---
+        const ctx = document.getElementById('marketChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
+        gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
+                datasets: [{
+                    label: 'Market Index',
+                    data: [6200, 6250, 6220, 6300, 6280, 6350, 6420],
+                    borderColor: '#38bdf8',
+                    borderWidth: 3,
+                    fill: true,
+                    backgroundColor: gradient,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // --- TABLE LOGIC ---
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
-            data.forEach(item => {
-                const row = `<tr>
-                    <td style="font-family: inherit; font-weight: bold;">${item.name}</td>
-                    <td>$${item.price.toLocaleString()}</td>
-                    <td class="${item.change >= 0 ? 'up' : 'down'}">${item.change > 0 ? '+' : ''}${item.change}%</td>
-                    <td>$${item.vol}</td>
-                    <td>$${item.cap}</td>
-                </tr>`;
-                tbody.innerHTML += row;
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                const changeClass = row.change >= 0 ? 'up' : 'down';
+                const sign = row.change >= 0 ? '+' : '';
+                tr.innerHTML = `
+                    <td style="font-weight: 600;">${row.asset}</td>
+                    <td>$${row.price.toLocaleString()}</td>
+                    <td class="${changeClass}">${sign}${row.change}%</td>
+                    <td>${row.vol}</td>
+                    <td><button style="background: var(--accent); border:none; padding: 4px 12px; border-radius: 4px; cursor:pointer;">Trade</button></td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        // Sort Logic
-        let sortDirection = true;
-        function sortTable(colIndex) {
-            sortDirection = !sortDirection;
-            const sortedData = [...marketData].sort((a, b) => {
-                let valA = Object.values(a)[colIndex];
-                let valB = Object.values(b)[colIndex];
-                
-                if (typeof valA === 'string') {
-                    valA = parseFloat(valA.replace(/[$,%]/g, ''));
-                    valB = parseFloat(valB.replace(/[$,%]/g, ''));
-                }
+        function sortTable(n) {
+            const table = document.getElementById("assetTable");
+            let switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
+            while (switching) {
+                switching = false;
+                const rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+                    
+                    let xVal = x.innerText.replace(/[$,%]/g, '');
+                    let yVal = y.innerText.replace(/[$,%]/g, '');
+                    
+                    if (!isNaN(parseFloat(xVal))) {
+                        xVal = parseFloat(xVal);
+                        yVal = parseFloat(yVal);
+                    }
 
-                return sortDirection ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
-            });
-            renderTable(sortedData);
-        }
-
-        // Chart Logic
-        const ctx = document.getElementById('marketChart').getContext('2d');
-        let chart;
-
-        function initChart() {
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
-                    datasets: [{
-                        label: 'Market Index (Live)',
-                        data: [62000, 62500, 62300, 63000, 64000, 63800, 64230],
-                        borderColor: '#38bdf8',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        backgroundColor: 'rgba(56, 189, 248, 0.1)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    if (dir == "asc") {
+                        if (xVal > yVal) { shouldSwitch = true; break; }
+                    } else if (dir == "desc") {
+                        if (xVal < yVal) { shouldSwitch = true; break; }
                     }
                 }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+
+        // Initial Load & Real-time Simulation
+        renderTable(marketData);
+
+        setInterval(() => {
+            // Simulate price movement
+            marketData.forEach(item => {
+                const change = (Math.random() - 0.5) * 2;
+                item.price += item.price * (change / 100);
             });
-        }
-
-        // Simulate Live Updates
-        function simulateLive() {
-            setInterval(() => {
-                const newData = chart.data.datasets[0].data;
-                newData.shift();
-                const lastVal = newData[newData.length - 1];
-                newData.push(lastVal + (Math.random() * 400 - 200));
-                chart.update('none'); // 'none' for performance during high-frequency updates
-            }, 3000);
-        }
-
-        // Entry Point
-        window.onload = () => {
             renderTable(marketData);
-            initChart();
-            simulateLive();
-        };
+
+            // Simulate chart movement
+            chart.data.datasets[0].data.shift();
+            const lastVal = chart.data.datasets[0].data[chart.data.datasets[0].data.length - 1];
+            chart.data.datasets[0].data.push(lastVal + (Math.random() - 0.5) * 20);
+            chart.update('none');
+        }, 3000);
+
     </script>
 </body>
 </html>

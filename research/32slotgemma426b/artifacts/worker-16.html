@@ -10,8 +10,8 @@
             --card: #1e293b;
             --primary: #38bdf8;
             --secondary: #fbbf24;
-            --accent: #c084fc;
             --text: #f1f5f9;
+            --accent-green: #4ade80;
         }
 
         body {
@@ -26,28 +26,27 @@
             padding: 20px;
         }
 
-        h1 { margin-bottom: 0.5rem; color: var(--primary); }
-        p.subtitle { margin-bottom: 2rem; opacity: 0.8; text-align: center; max-width: 600px;}
+        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--primary); }
+        p.subtitle { margin-bottom: 2rem; color: #94a3b8; text-align: center; max-width: 600px; }
 
-        /* Tabs Styling */
+        /* Tabs Navigation */
         .tabs {
             display: flex;
             gap: 10px;
             margin-bottom: 30px;
             background: var(--card);
             padding: 5px;
-            border-radius: 8px;
+            border-radius: 50px;
         }
 
         .tab-btn {
-            padding: 12px 24px;
+            padding: 12px 30px;
             border: none;
             background: transparent;
-            color: white;
+            color: #94a3b8;
             cursor: pointer;
-            font-size: 1rem;
+            border-radius: 40px;
             font-weight: bold;
-            border-radius: 6px;
             transition: all 0.3s ease;
         }
 
@@ -59,115 +58,95 @@
         /* Content Area */
         .container {
             width: 100%;
-            max-width: 800px;
-            min-height: 450px;
-            position: relative;
+            max-width: 900px;
+            min-height: 500px;
         }
 
-        .tab-content {
+        .content-section {
             display: none;
-            background: var(--card);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            animation: fadeIn 0.4s ease-out;
+            animation: fadeIn 0.5s ease forwards;
         }
 
-        .tab-content.active { display: block; }
+        .content-section.active {
+            display: block;
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Diagram Elements */
+        /* Diagram Styling */
         .diagram-box {
-            height: 250px;
-            width: 100%;
-            background: #0f172a;
-            border-radius: 8px;
+            background: var(--card);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
             position: relative;
             overflow: hidden;
-            margin: 20px 0;
-            border: 1px solid #334155;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* Prompt Processing Animation */
-        .prompt-stream {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
+        /* --- Prompt Processing Diagram Elements --- */
+        .prompt-container {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            width: 80%;
         }
 
         .token-block {
-            width: 60px;
-            height: 24px;
+            height: 30px;
             background: var(--primary);
             border-radius: 4px;
-            opacity: 0;
-            animation: slideInPrompt 1s forwards linear;
+            position: relative;
+            opacity: 0.7;
         }
 
-        @keyframes slideInPrompt {
-            from { transform: translateX(-50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 0.8; }
-        }
-
-        .processor-core {
-            position: absolute;
-            right: 100px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 60px;
-            height: 60px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            box-shadow: 0 0 20px var(--accent);
-        }
-
-        .processing-pulse {
-            position: absolute;
+        .processing-line {
             width: 100%;
-            height: 100%;
-            border: 4px solid var(--accent);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
+            height: 4px;
+            background: var(--accent-green);
+            margin-top: 20px;
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: scan 2s infinite ease-in-out;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
+        @keyframes scan {
+            0% { transform: scaleX(0); opacity: 0; }
+            50% { transform: scaleX(1); opacity: 1; }
+            100% { transform: scaleX(0); opacity: 0; }
         }
 
-        /* Generation Animation */
-        .output-area {
-            position: absolute;
-            bottom: 40px;
-            left: 20px;
-            right: 20px;
-            height: 60px;
-            border-top: 1px dashed #475569;
+        .batch-animation .token-block {
+            animation: slideIn 0.8s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 0.7; }
+        }
+
+        /* --- Token Generation Diagram Elements --- */
+        .gen-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 10px;
+            justify-content: center;
+            max-width: 500px;
         }
 
         .gen-token {
-            padding: 2px 8px;
+            padding: 8px 16px;
             background: var(--secondary);
             color: #000;
             border-radius: 4px;
-            font-size: 14px;
             font-weight: bold;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes popIn {
@@ -175,63 +154,83 @@
             to { transform: scale(1); }
         }
 
-        /* Info Text */
-        .info-text { line-height: 1.6; font-size: 1rem;}
-        .highlight { color: var(--primary); font-weight: bold; }
-        code { background: #334155; padding: 2px 5px; border-radius: 4px; }
+        /* Explanation Text */
+        .explanation-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-left: 4px solid var(--primary);
+            line-height: 1.6;
+        }
 
+        .feature-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            background: #334155;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .feature-item h4 { margin: 0 0 10px 0; color: var(--secondary); }
     </style>
 </head>
 <body>
 
-    <h1>LLM Mechanics</h1>
-    <p class="subtitle">Understanding the two distinct phases of Large Language Model inference.</p>
+    <h1>LLM Inference Lifecycle</h1>
+    <p class="subtitle">Understanding the two distinct phases of Large Language Model computation.</p>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('prompt')">1. Prompt Processing</button>
-        <button class="tab-btn" onclick="showTab('generation')">2. Token Generation</button>
+        <button class="tab-btn active" onclick="showTab('prompt')">1. Prompt Processing (Prefill)</button>
+        <button class="tab-btn" onclick="showTab('gen')">2. Token Generation (Decoding)</button>
     </div>
 
     <div class="container">
-        <!-- PROMPT PROCESSING TAB -->
-        <div id="prompt" class="tab-content active">
-            <div class="info-text">
-                <h3>The "Prefill" Phase</h3>
-                <p>When you hit enter, the model must read your entire input at once. This is <strong>parallelizable</strong>.</p>
-                <ul>
-                    <li>The GPU processes all tokens simultaneously.</li>
-                    <li>It calculates the <span class="highlight">KV Cache</span> (Key-Value) for every token.</li>
-                    <li>Speed is measured in <strong>Tokens per Second (TPS)</strong> during prefill.</li>
-                </ul>
-            </div>
-
-            <div class="diagram-box" id="promptDiagram">
-                <div class="prompt-stream" id="tokenStream">
-                    <!-- Tokens injected by JS -->
+        <!-- PROMPT PROCESSING SECTION -->
+        <div id="prompt" class="content-section active">
+            <div class="diagram-box batch-animation">
+                <div class="prompt-container" id="promptContainer">
+                    <!-- Tokens generated by JS -->
                 </div>
-                <div class="processor-core">
-                    <div class="processing-pulse"></div>
-                    GPU
+            </div>
+            <div class="explanation-card">
+                <h3>The "Prefill" Phase</h3>
+                <p>When you hit enter, the model reads your entire input at once. This is a <strong>parallel</strong> operation. The GPU processes all tokens simultaneously to understand context and build the initial KV Cache.</p>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <h4>Nature</h4>
+                        <p>Parallelized computation across all input tokens.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>Bottleneck</h4>
+                        <p>Compute Bound (FLOPs). The GPU works hard to crunch math.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- TOKEN GENERATION TAB -->
-        <div id="generation" class="tab-content">
-            <div class="info-text">
-                <h3>The "Decoding" Phase</h3>
-                <p>Now, the model predicts one token at a time. This is <strong>sequential</strong>.</p>
-                <ul>
-                    <li>Each new token depends on all previous tokens.</li>
-                    <li>It cannot be parallelized; it's a loop.</li>
-                    <li>This is where you see the "typing" effect in ChatGPT.</li>
-                </ul>
-            </div>
-
+        <!-- TOKEN GENERATION SECTION -->
+        <div id="gen" class="content-section">
             <div class="diagram-box">
-                <div style="position:absolute; top:10px; left:20px; font-size: 0.8rem; color: var(--secondary);">Predicting next token...</div>
-                <div class="output-area" id="outputArea">
-                    <!-- Generated tokens injected by JS -->
+                <div class="gen-container" id="genContainer">
+                    <!-- Tokens generated by JS -->
+                </div>
+            </div>
+            <div class="explanation-card" style="border-left-color: var(--secondary);">
+                <h3>The "Decoding" Phase</h3>
+                <p>Once the prompt is understood, the model starts writing. This is a <strong>sequential</strong> operation. Each new token depends on every previous token generated.</p>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <h4>Nature</h4>
+                        <p>One token at a time. Auto-regressive loop.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>Bottleneck</h4>
+                        <p>Memory Bandwidth Bound. Moving weights from memory to chip is the slow part.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -239,57 +238,57 @@
 
     <script>
         function showTab(tabId) {
-            // Update Buttons
+            // Update Tabs UI
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
 
-            // Update Content
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            // Update Content Display
+            document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
 
-            if(tabId === 'prompt') startPromptAnimation();
-            if(tabId === 'generation') startGenAnimation();
+            if(tabId === 'prompt') initPrompt();
+            if(tabId === 'gen') initGen();
         }
 
-        // --- PROMPT ANIMATION LOGIC ---
-        function startPromptAnimation() {
-            const stream = document.getElementById('tokenStream');
-            stream.innerHTML = ''; // Clear
-            for(let i=0; i<12; i++) {
-                setTimeout(() => {
-                    const t = document.createElement('div');
-                    t.className = 'token-block';
-                    // Staggered entrance
-                    t.style.animationDelay = (i * 0.1) + 's';
-                    stream.appendChild(t);
-                }, i * 50);
+        function initPrompt() {
+            const container = document.getElementById('promptContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const div = document.createElement('div');
+                div.className = 'token-block';
+                div.style.width = Math.floor(Math.random() * 40 + 60) + '%';
+                div.style.animationDelay = (i * 0.1) + 's';
+                container.appendChild(div);
             }
+            const line = document.createElement('div');
+            line.className = 'processing-line';
+            container.appendChild(line);
         }
 
-        // --- GENERATION ANIMATION LOGIC ---
         let genInterval;
-        function startGenAnimation() {
-            const area = document.getElementById('outputArea');
-            area.innerHTML = ''; // Clear
-            const words = ["The", "future", "of", "AI", "is", "fast,", "but", "the", "math", "is", "sequential."];
-            let i = 0;
-
+        function initGen() {
             clearInterval(genInterval);
+            const container = document.getElementById('genContainer');
+            container.innerHTML = ''; // Clear previous
+            
+            const words = ["The", "AI", "is", "thinking", "and", "generating", "text", "token", "by", "token..."];
+            let idx = 0;
+
             genInterval = setInterval(() => {
-                if(i < words.length) {
+                if (idx < words.length) {
                     const span = document.createElement('span');
                     span.className = 'gen-token';
-                    span.innerText = words[i];
-                    area.appendChild(span);
-                    i++;
+                    span.innerText = words[idx];
+                    container.appendChild(span);
+                    idx++;
                 } else {
                     clearInterval(genInterval);
                 }
-            }, 400); // Simulate typing speed
+            }, 400);
         }
 
-        // Initialize first tab animation
-        window.onload = startPromptAnimation;
+        // Initialize default view
+        window.onload = () => initPrompt();
     </script>
 </body>
 </html>

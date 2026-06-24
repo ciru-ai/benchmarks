@@ -6,17 +6,17 @@
     <title>Color Reflex</title>
     <style>
         :root {
-            --bg: #2c3e50;
-            --panel: #34495e;
-            --text: #ecf0f1;
+            --bg-color: #2c3e50;
+            --panel-color: #34495e;
+            --text-color: #ecf0f1;
         }
 
         body {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg-color);
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -30,7 +30,7 @@
             position: relative;
             width: 600px;
             height: 400px;
-            background-color: var(--panel);
+            background-color: var(--panel-color);
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             overflow: hidden;
@@ -55,210 +55,204 @@
             font-weight: bold;
         }
 
-        .target {
+        #target {
             position: absolute;
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            cursor: pointer;
+            display: none;
             transition: transform 0.1s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 2px black;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+
+        #target:active {
+            transform: scale(0.8);
         }
 
         #menu, #game-over {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(44, 62, 80, 0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 20;
         }
+
+        h1 { margin-bottom: 10px; color: #3498db; }
+        p { margin-bottom: 20px; text-align: center; line-height: 1.6; }
 
         button {
             padding: 12px 30px;
             font-size: 1.2rem;
-            background: #27ae60;
+            background-color: #27ae60;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-top: 20px;
+            transition: background 0.2s;
         }
 
-        button:hover { background: #2ecc71; }
+        button:hover { background-color: #2ecc71; }
 
         .controls-hint {
             margin-top: 20px;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #bdc3c7;
-            text-align: center;
         }
 
         .hidden { display: none !important; }
 
-        kbd {
-            background: #eee;
-            border-radius: 3px;
-            border: 1px solid #b4b4b4;
-            color: #333;
-            display: inline-block;
-            font-size: .85em;
-            font-weight: 700;
-            line-height: 1.4c;
-            padding: 2px 4px;
+        #last-score {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #f1c40f;
         }
     </style>
 </head>
 <body>
 
-    <h1>Color Reflex</h1>
-
     <div id="game-container">
         <!-- UI Stats -->
         <div id="ui-layer">
-            <div class="stat">Score: <span id="score">0</span></div>
             <div class="stat">Time: <span id="timer">30</span>s</div>
+            <div class="stat">Score: <span id="score">0</span></div>
         </div>
 
-        <!-- Start Menu -->
+        <!-- The Target -->
+        <div id="target"></div>
+
+        <!-- Main Menu -->
         <div id="menu">
-            <h2>Ready to test your reflexes?</h2>
-            <p>Click the colored circles as fast as you can!</p>
-            <button onclick="startGame()">Start Game</button>
-            <div class="controls-hint">
-                Use <b>Mouse Click</b> or <kbd>Spacebar</kbd><br>
-                (Note: Spacebar hits whatever target is active)
-            </div>
+            <h1>Color Reflex</h1>
+            <p>Click the targets as fast as you can!<br>Don't let them disappear.</p>
+            <button onclick="startGame()">START GAME</button>
+            <div class="controls-hint">Goal: Maximize score in 30 seconds</div>
         </div>
 
         <!-- Game Over Screen -->
         <div id="game-over" class="hidden">
-            <h2>Time's Up!</h2>
-            <p>Your Final Score: <span id="final-score">0</span></p>
-            <button onclick="startGame()">Play Again</button>
+            <h1>Time's Up!</h1>
+            <div id="last-score">Score: 0</div>
+            <p>Your reaction speed matters!</p>
+            <button onclick="startGame()">PLAY AGAIN</button>
         </div>
-
-        <!-- Target Container (Targets injected here) -->
     </div>
 
     <script>
         const container = document.getElementById('game-container');
+        const target = document.getElementById('target');
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
-        const finalScoreEl = document.getElementById('final-score');
         const menu = document.getElementById('menu');
         const gameOverScreen = document.getElementById('game-over');
+        const lastScoreEl = document.getElementById('last-score');
 
         let score = 0;
         let timeLeft = 30;
         let gameActive = false;
         let timerInterval;
-        let currentTarget = null;
+        let targetTimeout;
+        let startTime;
 
-        const colors = [
-            '#e74c3c', // Red
-            '#3498db', // Blue
-            '#f1c40f', // Yellow
-            '#9b59b6', // Purple
-            '#e67e22', // Orange
-            '#1abc9c'  // Teal
-        ];
+        const colors = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#e67e22'];
 
         function startGame() {
+            // Reset variables
             score = 0;
             timeLeft = 30;
             gameActive = true;
-            scoreEl.textContent = score;
-            timerEl.textContent = timeLeft;
+            scoreEl.innerText = score;
+            timerEl.innerText = timeLeft;
             
+            // UI Toggles
             menu.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
 
-            // Clear old targets
-            const oldTargets = document.querySelectorAll('.target');
-            oldTargets.forEach(t => t.remove());
+            // Start Timer
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
 
-            startTimer();
             spawnTarget();
         }
 
-        function startTimer() {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.textContent = timeLeft;
-                if (timeLeft <= 0) endGame();
-            }, 1000);
+        function updateTimer() {
+            timeLeft--;
+            timerEl.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
         }
 
         function spawnTarget() {
             if (!gameActive) return;
 
-            // Remove previous target if it exists
-            const oldTarget = document.querySelector('.target');
-            if (oldTarget) oldTarget.remove();
-
-            const target = document.createElement('div');
-            target.className = 'target';
+            // Randomize Position (keeping target inside container boundaries)
+            const padding = 60;
+            const maxX = container.clientWidth - padding;
+            const maxY = container.clientHeight - padding;
             
-            // Random Position (keeping within container bounds)
-            const size = 50;
-            const maxX = container.clientWidth - size;
-            const maxY = container.clientHeight - size;
-            const x = Math.floor(Math.random() * maxX);
-            const y = Math.floor(Math.random() * maxY);
+            const x = Math.floor(Math.random() * maxX) + (padding / 2);
+            const y = Math.floor(Math.random() * maxY) + (padding / 2);
 
-            target.style.left = `${x}px`;
-            target.style.top = `${y}px`;
-            target.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Target hit event
-            target.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                handleHit();
-            });
+            // Randomize Color
+            const color = colors[Math.floor(Math.random() * colors.length)];
 
-            container.appendChild(target);
-            currentTarget = target;
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
+            target.style.backgroundColor = color;
+            target.style.boxShadow = `0 0 20px ${color}`;
+            target.style.display = 'block';
+
+            startTime = Date.now();
+
+            // Target disappears after a random time (difficulty increases as time decreases)
+            const duration = Math.max(600, 1500 - (score * 10)); 
+            clearTimeout(targetTimeout);
+            targetTimeout = setTimeout(() => {
+                if (gameActive) spawnTarget();
+            }, duration);
         }
 
-        function handleHit() {
-            if (!gameActive || !currentTarget) return;
+        // Handle clicking the target
+        target.addEventListener('mousedown', function(e) {
+            if (!gameActive) return;
             
-            score++;
-            scoreEl.textContent = score;
+            const reactionTime = Date.now() - startTime;
+            
+            // Scoring logic: faster clicks give more points
+            // Base 100 pts, minus penalty for time taken
+            let points = Math.max(10, 100 - Math.floor(reactionTime / 10));
+            score += points;
+            
+            scoreEl.innerText = score;
+            target.style.display = 'none';
+            clearTimeout(targetTimeout);
             spawnTarget();
-        }
+
+            // Prevent click from triggering container events if added later
+            e.stopPropagation();
+        });
 
         function endGame() {
             gameActive = false;
             clearInterval(timerInterval);
-            finalScoreEl.textContent = score;
+            clearTimeout(targetTimeout);
+            target.style.display = 'none';
+            
+            lastScoreEl.innerText = "Final Score: " + score;
             gameOverScreen.classList.remove('hidden');
-            const target = document.querySelector('.target');
-            if (target) target.remove();
         }
 
-        // Keyboard Support: Spacebar hits the current target
+        // Keyboard shortcut for testing/accessibility (Space to start)
         window.addEventListener('keydown', (e) => {
-            if (gameActive && e.code === 'Space') {
-                e.preventDefault(); // Prevent scrolling
-                handleHit();
-            }
-        });
-
-        // Miss click penalty (optional, but adds difficulty)
-        container.addEventListener('mousedown', (e) => {
-            if (gameActive && e.target === container) {
-                score = Math.max(0, score - 1); // Penalty for clicking empty space
-                scoreEl.textContent = score;
+            if(e.code === 'Space' && !gameActive && menu.classList.contains('hidden') === false) {
+                startGame();
             }
         });
 

@@ -18,233 +18,251 @@
             height: 100vh;
             overflow: hidden;
         }
-        #game-container {
-            position: relative;
-            border: 4px solid #333;
+        canvas {
+            border: 2px solid #444;
+            background: radial-gradient(circle, #1a1a2e 0%, #050505 100%);
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
         }
-        canvas {
-            display: block;
-            background: radial-gradient(circle, #1a1a2e 0%, #050505 100%);
-        }
-        #ui {
+        .ui {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 20px;
+            text-align: center;
             pointer-events: none;
+            width: 100%;
         }
-        .score {
+        #scoreBoard {
             font-size: 24px;
-            text-shadow: 2px 2px #000;
+            font-weight: bold;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
         #overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
+            width: 600px;
+            height: 400px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
         }
-        h1 { margin: 0; color: #00d4ff; font-size: 48px; }
-        p { font-size: 18px; margin: 10px 0; }
         button {
             padding: 12px 30px;
-            font-size: 20px;
+            font-size: 18px;
             background: #00d4ff;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
             color: black;
+            cursor: pointer;
+            border-radius: 5px;
             font-weight: bold;
-            transition: transform 0.1s;
+            margin-top: 20px;
         }
-        button:hover { background: #fff; }
-        button:active { transform: scale(0.9); }
-        .hidden { display: none !important; }
+        button:hover {
+            background: #fff;
+        }
+        .controls {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #888;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="600" height="800"></canvas>
-        <div id="ui">
-            <div class="score">Score: <span id="scoreVal">0</span></div>
-        </div>
-        <div id="overlay">
-            <h1 id="statusTitle">KEYBOARD PILOT</h1>
-            <p id="statusDesc">Use Arrow Keys to Dodge Meteors</p>
-            <button id="startBtn">START MISSION</button>
-        </div>
+    <div class="ui">
+        <div id="scoreBoard">Score: 0</div>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <div id="overlay">
+        <h1 id="title">KEYBOARD PILOT</h1>
+        <p id="finalScore"></p>
+        <button onclick="startGame()">START MISSION</button>
+        <p class="controls">Use ARROW KEYS to navigate</p>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('scoreVal');
+        const scoreElement = document.getElementById('scoreBoard');
         const overlay = document.getElementById('overlay');
-        const startBtn = document.getElementById('startBtn');
-        const statusTitle = document.getElementById('statusTitle');
-        const statusDesc = document.getElementById('statusDesc');
+        const finalScoreText = document.getElementById('finalScore');
+        const titleText = document.getElementById('title');
 
-        // Game State
-        let gameRunning = false;
+        let gameActive = false;
         let score = 0;
-        let animationId;
-        let frameCount = 0;
+        let player, meteors, particles, animationId, spawnRate;
+        let keys = {};
 
-        // Player Object
-        const player = {
-            x: canvas.width / 2,
-            y: canvas.height - 60,
-            w: 30,
-            h: 40,
-            speed: 5,
-            color: '#00d4ff',
-            dx: 0,
-            dy: 0
-        };
-
-        // Input Handling
-        const keys = {};
+        // Input Listeners
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
 
-        // Meteors Array
-        let meteors = [];
+        class Player {
+            constructor() {
+                this.width = 30;
+                this.height = 30;
+                this.x = canvas.width / 2 - this.width / 2;
+                this.y = canvas.height / 2 - this.height / 2;
+                this.speed = 5;
+                this.color = '#00d4ff';
+            }
+
+            draw() {
+                // Draw ship shape
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width / 2, this.y);
+                ctx.lineTo(this.x + this.width, this.y + this.height);
+                ctx.lineTo(this.x, this.y + this.height);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+            }
+
+            update() {
+                if (keys['ArrowUp'] && this.y > 0) this.y -= this.speed;
+                if (keys['ArrowDown'] && this.y < canvas.height - this.height) this.y += this.speed;
+                if (keys['ArrowLeft'] && this.x > 0) this.x -= this.speed;
+                if (keys['ArrowRight'] && this.x < canvas.width - this.width) this.x += this.speed;
+            }
+        }
 
         class Meteor {
             constructor() {
                 this.size = Math.random() * 30 + 15;
-                this.x = Math.random() * (canvas.width - this.size);
-                this.y = -this.size;
-                this.speed = Math.random() * 3 + 2 + (score / 500); // Get faster as score increases
-                this.rotation = 0;
-                this.rotSpeed = Math.random() * 0.1 - 0.05;
-            }
+                // Spawn from edges
+                const side = Math.floor(Math.random() * 4);
+                if (side === 0) { // Top
+                    this.x = Math.random() * canvas.width;
+                    this.y = -this.size;
+                } else if (side === 1) { // Right
+                    this.x = canvas.width + this.size;
+                    this.y = Math.random() * canvas.height;
+                } else if (side === 2) { // Bottom
+                    this.x = Math.random() * canvas.width;
+                    this.y = canvas.height + this.size;
+                } else { // Left
+                    this.x = -this.size;
+                    this.y = Math.random() * canvas.height;
+                }
 
-            update() {
-                this.y += this.speed;
-                this.rotation += this.rotSpeed;
+                const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                const speed = 1 + (score / 500); // Get faster as score increases
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
             }
 
             draw() {
-                ctx.save();
-                ctx.translate(this.x + this.size/2, this.y + this.size/2);
-                ctx.rotate(this.rotation);
+                ctx.shadowBlur = 0;
                 ctx.fillStyle = '#ff4d4d';
-                // Draw a rough polygon for meteor look
                 ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (i * Math.PI * 2) / 6;
-                    const r = this.size/2 * (0.8 + Math.random() * 0.4); // Jagged look
-                    ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                }
-                ctx.closePath();
+                ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
                 ctx.fill();
-                // Add glow
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = "red";
-                ctx.stroke();
-                ctx.restore();
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
             }
         }
 
-        function initGame() {
-            score = 0;
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3 + 1;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6;
+                this.life = 1.0;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.02;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 77, 77, ${this.life})`;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        }
+
+        function startGame() {
+            player = new Player();
             meteors = [];
-            player.x = canvas.width / 2 - player.w/2;
-            player.y = canvas.height - 60;
-            frameCount = 0;
-            gameRunning = true;
-            overlay.classList.add('hidden');
-            scoreElement.innerText = '0';
+            particles = [];
+            score = 0;
+            spawnRate = 1000;
+            gameActive = true;
+            overlay.style.display = 'none';
+            lastSpawnTime = Date.now();
             animate();
         }
 
         function gameOver() {
-            gameRunning = false;
+            gameActive = false;
             cancelAnimationFrame(animationId);
-            statusTitle.innerText = "MISSION FAILED";
-            statusDesc.innerText = `Final Score: ${Math.floor(score)}`;
-            startBtn.innerText = "RETRY";
-            overlay.classList.remove('hidden');
+            titleText.innerText = "MISSION FAILED";
+            finalScoreText.innerText = `Final Score: ${Math.floor(score)}`;
+            overlay.style.display = 'flex';
         }
 
-        function update() {
-            // Player Movement
-            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
-            if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
-            if (keys['ArrowUp'] && player.y > 0) player.y -= player.speed;
-            if (keys['ArrowDown'] && player.y < canvas.height - player.h) player.y += player.speed;
+        let lastSpawnTime = 0;
+
+        function animate() {
+            if (!gameActive) return;
+            animationId = requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update Score
+            score += 0.1;
+            scoreElement.innerText = `Score: ${Math.floor(score)}`;
 
             // Spawn Meteors
-            frameCount++;
-            let spawnRate = Math.max(5, 30 - Math.floor(score / 100)); // Spawns more often over time
-            if (frameCount % spawnRate === 0) {
+            let now = Date.now();
+            if (now - lastSpawnTime > Math.max(200, spawnRate - (score / 5))) {
                 meteors.push(new Meteor());
+                lastSpawnTime = now;
             }
 
-            // Update Meteors
+            player.update();
+            player.draw();
+
+            // Handle Meteors
             for (let i = meteors.length - 1; i >= 0; i--) {
                 meteors[i].update();
+                meteors[i].draw();
 
-                // Collision Detection (AABB)
-                if (player.x < meteors[i].x + meteors[i].size &&
-                    player.x + player.w > meteors[i].x &&
-                    player.y < meteors[i].y + meteors[i].size &&
-                    player.y + player.h > meteors[i].y) {
+                // Collision Detection
+                const dx = player.x + player.width/2 - meteors[i].x;
+                const dy = player.y + player.height/2 - meteors[i].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < (player.width/2 + meteors[i].size/2)) {
+                    // Explosion particles
+                    for(let p=0; p<15; p++) particles.push(new Particle(meteors[i].x, meteors[i].y));
                     gameOver();
                 }
 
                 // Remove off-screen meteors
-                if (meteors[i].y > canvas.height) {
+                if (meteors[i].x < -100 || meteors[i].x > canvas.width + 100 || 
+                    meteors[i].y < -100 || meteors[i].y > canvas.height + 100) {
                     meteors.splice(i, 1);
                 }
             }
 
-            score += 0.1; // Constant score increase
-            scoreElement.innerText = Math.floor(score);
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Stars (Static background effect)
-            ctx.fillStyle = "white";
-            for(let i=0; i<20; i++) {
-                ctx.fillRect((i*79)%canvas.width, (i*153 + frameCount)%canvas.height, 1, 1);
+            // Handle Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) particles.splice(i, 1);
             }
-
-            // Draw Player Ship
-            ctx.fillStyle = player.color;
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#00d4ff";
-            // Simple triangle ship shape
-            ctx.beginPath();
-            ctx.moveTo(player.x + player.w / 2, player.y);
-            ctx.lineTo(player.x, player.y + player.h);
-            ctx.lineTo(player.x + player.w, player.y + player.h);
-            ctx.closePath();
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // Draw Meteors
-            meteors.forEach(m => m.draw());
         }
-
-        function animate() {
-            if (!gameRunning) return;
-            update();
-            draw();
-            animationId = requestAnimationFrame(animate);
-        }
-
-        startBtn.addEventListener('click', initGame);
 
     </script>
 </body>

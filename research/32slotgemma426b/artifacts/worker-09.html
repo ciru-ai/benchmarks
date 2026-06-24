@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Swarm Monitor</title>
+    <title>AI Worker Fleet Monitor</title>
     <style>
         :root {
-            --bg: #0f172a;
+            --bg-dark: #0f172a;
             --card-bg: #1e293b;
-            --text: #f8fafc;
-            --accent: #38bdf8;
-            --success: #4ade80;
-            --warning: #fbbf24;
-            --danger: #f87171;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-primary: #38bdf8;
+            --accent-success: #4ade80;
+            --accent-warning: #fbbf24;
+            --accent-danger: #f87171;
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             padding: 20px;
         }
 
@@ -29,7 +30,7 @@
             align-items: center;
             margin-bottom: 30px;
             border-bottom: 1px solid #334155;
-            padding-bottom: 10px;
+            padding-bottom: 20px;
         }
 
         .stats-summary {
@@ -37,35 +38,31 @@
             gap: 20px;
         }
 
-        .stat-item {
-            font-size: 0.9rem;
-            color: #94a3b8;
-        }
-
-        .stat-value {
-            color: var(--accent);
-            font-weight: bold;
-            margin-left: 5px;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 20px;
-        }
-
-        .worker-card {
+        .stat-pill {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s ease;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
             border: 1px solid #334155;
         }
 
-        .worker-card:hover {
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #334155;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
             transform: translateY(-4px);
-            border-color: var(--accent);
+            border-color: var(--accent-primary);
         }
 
         .card-header {
@@ -77,35 +74,40 @@
 
         .worker-id {
             font-weight: bold;
+            color: var(--accent-primary);
             letter-spacing: 0.5px;
-            color: var(--accent);
         }
 
-        .status-indicator {
+        .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             display: inline-block;
+            margin-right: 6px;
         }
 
-        .status-online { background: var(--success); box-shadow: 0 0 8px var(--success); }
-        .status-busy { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
-        .status-error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .status-online { background-color: var(--accent-success); box-shadow: 0 0 8px var(--accent-success); }
+        .status-busy { background-color: var(--accent-warning); box-shadow: 0 0 8px var(--accent-warning); }
 
         .metric-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-size: 0.85rem;
         }
 
-        .metric-label { color: #94a3b8; }
-        .metric-value { font-family: monospace; font-weight: bold; }
+        .metric-label { color: var(--text-dim); }
+        .metric-value { font-family: 'Courier New', monospace; font-weight: bold; }
 
         canvas {
             width: 100%;
             height: 40px;
             margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            header { flex-direction: column; align-items: flex-start; gap: 15px; }
         }
     </style>
 </head>
@@ -113,138 +115,145 @@
 
 <header>
     <div>
-        <h1 style="margin:0; font-size: 1.5rem;">AI Swarm Control Center</h1>
-        <div id="clock" style="font-family: monospace; color: #64748b;"></div>
+        <h1>AI Fleet Command</h1>
+        <p style="color: var(--text-dim); font-size: 0.9rem;">Real-time telemetry for 32 autonomous agents</p>
     </div>
     <div class="stats-summary">
-        <div class="stat-item">ACTIVE: <span class="stat-value" id="total-active">0</span></div>
-        <div class="stat-item">LOAD: <span class="stat-value" id="avg-load">0%</span></div>
+        <div class="stat-pill">Active: <span id="active-count" style="color: var(--accent-success);">32</span></div>
+        <div class="stat-pill">Avg Load: <span id="avg-load" style="color: var(--accent-primary);">0%</span></div>
     </div>
 </header>
 
-<div class="dashboard-grid" id="dashboard">
-    <!-- Cards generated by JS -->
+<div class="grid" id="worker-grid">
+    <!-- Cards injected by JS -->
 </div>
 
 <script>
     const TOTAL_WORKERS = 32;
     const workers = [];
-    const dashboard = document.getElementById('dashboard');
+    const grid = document.getElementById('worker-grid');
 
-    // Initialize Worker Data
+    // Initialize Data Structure
     function init() {
         for (let i = 1; i <= TOTAL_WORKERS; i++) {
             workers.push({
-                id: `AGENT-${i.toString().padStart(2, '0')}`,
-                status: 'online',
-                load: Math.floor(Math.random() * 30) + 10,
-                tokens: Math.floor(Math.random() * 500),
-                history: Array.from({length: 20}, () => Math.floor(Math.random() * 40) + 10)
+                id: `AGENT-${i.toString().padStart(3, '0')}`,
+                status: Math.random() > 0.2 ? 'online' : 'busy',
+                load: Math.floor(Math.random() * 40) + 10,
+                tokensPerSec: Math.floor(Math.random() * 500) + 100,
+                history: Array.from({length: 20}, () => Math.floor(Math.random() * 100))
             });
+        }
 
+        // Create DOM elements
+        workers.forEach((w, idx) => {
             const card = document.createElement('div');
-            card.className = 'worker-card';
-            card.id = `card-${i}`;
+            card.className = 'card';
+            card.id = `card-${idx}`;
             card.innerHTML = `
                 <div class="card-header">
-                    <span class="worker-id">${workers[i-1].id}</span>
-                    <span id="status-${i}" class="status-indicator status-online"></span>
+                    <span class="worker-id">${w.id}</span>
+                    <span><span class="status-dot status-${w.status}" id="dot-${idx}"></span><small id="stat-text-${idx}">${w.status.toUpperCase()}</small></span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">CPU Load</span>
-                    <span class="metric-value" id="load-${i}">${workers[i-1].load}%</span>
+                    <span class="metric-label">Compute Load</span>
+                    <span class="metric-value" id="load-${idx}">${w.load}%</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">Tokens/s</span>
-                    <span class="metric-value" id="token-${i}">${workers[i-1].tokens}</span>
+                    <span class="metric-label">Throughput</span>
+                    <span class="metric-value" id="tps-${idx}">${w.tokensPerSec} t/s</span>
                 </div>
-                <canvas id="chart-${i}" width="240" height="40"></canvas>
+                <canvas id="canvas-${idx}" width="260" height="40"></canvas>
             `;
-            dashboard.appendChild(card);
-        }
+            grid.appendChild(card);
+        });
+
+        requestAnimationFrame(updateLoop);
     }
 
-    function drawSparkline(workerIdx) {
-        const canvas = document.getElementById(`chart-${workerIdx + 1}`);
+    function drawSparkline(canvasId, data) {
+        const canvas = document.getElementById(`canvas-${canvasId}`);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const data = workers[workerIdx].history;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
         ctx.beginPath();
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 2;
         ctx.lineJoin = 'round';
 
-        const step = canvas.width / (data.length - 1);
-        for(let i = 0; i < data.length; i++) {
-            // Scale value to height (assuming max load is ~100)
+        const step = width / (data.length - 1);
+        for (let i = 0; i < data.length; i++) {
+            // Normalize data to height (assuming max value 100)
             const x = i * step;
-            const y = canvas.height - (data[i] / 100 * canvas.height);
-            if(i === 0) ctx.moveTo(x, y);
+            const y = height - (data[i] / 100 * height);
+            if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
         ctx.stroke();
 
         // Fill area
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
         gradient.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
         gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
         ctx.fillStyle = gradient;
         ctx.fill();
     }
 
-    function update() {
-        let totalLoad = 0;
-        let activeCount = 0;
+    let lastUpdate = 0;
+    function updateLoop(timestamp) {
+        if (timestamp - lastUpdate > 1000) { // Update every second
+            updateData();
+            lastUpdate = timestamp;
+        }
+        requestAnimationFrame(updateLoop);
+    }
 
-        workers.forEach((w, i) => {
-            // Randomize values for "live" effect
+    function updateData() {
+        let totalLoad = 0;
+
+        workers.forEach((w, idx) => {
+            // Simulate movement/activity
             const change = (Math.random() - 0.5) * 10;
             w.load = Math.max(5, Math.min(98, w.load + change));
-            w.tokens = Math.max(10, Math.floor(w.tokens + (Math.random() - 0.4) * 20));
+            w.tokensPerSec = Math.floor(w.load * 12 + (Math.random() * 50));
             
-            // Update history array for sparkline
+            // Update History for Sparkline
             w.history.push(w.load);
-            if(w.history.length > 20) w.history.shift();
+            if (w.history.length > 30) w.history.shift();
 
-            // Randomly change status
-            const rand = Math.random();
-            let statusClass = 'status-online';
-            if (rand > 0.95) {
-                statusClass = 'status-error';
-                w.load = 98;
-            } else if (rand > 0.7) {
-                statusClass = 'status-busy';
-            }
+            // Randomly toggle status if high load
+            if (w.load > 85 && Math.random() > 0.7) w.status = 'busy';
+            else if (w.load < 40 && Math.random() > 0.9) w.status = 'online';
 
             // Update DOM
-            document.getElementById(`status-${i+1}`).className = `status-indicator ${statusClass}`;
-            document.getElementById(`load-${i+1}`).innerText = `${Math.round(w.load)}%`;
-            document.getElementById(`token-${i+1}`).innerText = w.tokens;
+            document.getElementById(`load-${idx}`).innerText = `${Math.round(w.load)}%`;
+            document.getElementById(`tps-${idx}`).innerText = `${w.tokensPerSec} t/s`;
+            
+            const dot = document.getElementById(`dot-${idx}`);
+            const txt = document.getElementById(`stat-text-${idx}`);
+            dot.className = `status-dot status-${w.status}`;
+            txt.innerText = w.status.toUpperCase();
 
-            drawSparkline(i);
+            // Color coding load
+            const loadEl = document.getElementById(`load-${idx}`);
+            if (w.load > 80) loadEl.style.color = 'var(--accent-danger)';
+            else if (w.load > 50) loadEl.style.color = 'var(--accent-warning)';
+            else loadEl.style.color = 'var(--accent-success)';
 
-            // Summary Stats logic
+            drawSparkline(`canvas-${idx}`, w.history);
             totalLoad += w.load;
-            if (statusClass !== 'status-error') activeCount++;
         });
 
-        document.getElementById('total-active').innerText = `${activeCount}/${TOTAL_WORKERS}`;
+        // Update Header Stats
         document.getElementById('avg-load').innerText = `${Math.round(totalLoad / TOTAL_WORKERS)}%`;
     }
 
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.toLocaleTimeString();
-    }
-
-    // Start system
     init();
-    setInterval(update, 1000); // Update data every second
-    setInterval(updateClock, 1000);
 </script>
 
 </body>

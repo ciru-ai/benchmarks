@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Target Pop</title>
     <style>
         body {
@@ -22,48 +22,47 @@
 
         #game-container {
             position: relative;
-            width: 90vw;
+            width: 80vw;
             max-width: 600px;
             height: 70vh;
             background-color: #34495e;
             border: 4px solid #ecf0f1;
-            border-radius: 10px;
+            border-radius: 15px;
             cursor: crosshair;
             overflow: hidden;
         }
 
         #ui {
-            width: 90vw;
-            max-width: 600px;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
+            gap: 30px;
             font-size: 24px;
-            font-weight: bold;
+            margin-bottom: 10px;
         }
 
         .target {
             position: absolute;
             border-radius: 50%;
             cursor: pointer;
-            transform: scale(0);
             transition: transform 0.1s ease-out;
-            animation: popIn 0.2s forwards;
+            animation: spawn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes popIn {
+        @keyframes spawn {
+            from { transform: scale(0); }
             to { transform: scale(1); }
         }
 
-        #menu {
+        #overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 30px;
-            border-radius: 15px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             z-index: 10;
         }
 
@@ -75,137 +74,163 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background 0.3s;
+            margin-top: 15px;
         }
 
         button:hover {
             background-color: #2ecc71;
         }
 
-        h1 { margin-top: 0; color: #f1c40f; }
+        .score-pop {
+            position: absolute;
+            color: #f1c40f;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.5s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-40px); }
+        }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div>Score: <span id="score">0</span></div>
-        <div>Time: <span id="timer">30</span>s</div>
+        <div>Score: <span id="score-val">0</span></div>
+        <div>Time: <span id="timer-val">30</span>s</div>
     </div>
 
     <div id="game-container">
-        <div id="menu">
-            <h1 id="title">Target Pop</h1>
-            <p id="final-score"></p>
-            <button onclick="startGame()">Start Game</button>
+        <div id="overlay">
+            <h1 id="msg-title">Target Pop</h1>
+            <p id="msg-score"></p>
+            <button id="start-btn">Start Game</button>
         </div>
     </div>
 
     <script>
         const container = document.getElementById('game-container');
-        const scoreEl = document.getElementById('score');
-        const timerEl = document.getElementById('timer');
-        const menu = document.getElementById('menu');
-        const title = document.getElementById('title');
-        const finalScoreEl = document.getElementById('final-score');
+        const scoreEl = document.getElementById('score-val');
+        const timerEl = document.getElementById('timer-val');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
+        const msgTitle = document.getElementById('msg-title');
+        const msgScore = document.getElementById('msg-score');
 
         let score = 0;
         let timeLeft = 30;
-        let gameInterval;
-        let spawnTimer;
-        let isGameActive = false;
-
-        // Configuration
-        const GAME_DURATION = 30;
-        const TARGETS_COLORS = ['#e74c3c', '#f1c40f', '#3498db', '#9b59b6', '#e67e22'];
+        let gameActive = false;
+        let timerInterval;
+        let spawnTimeout;
 
         function startGame() {
-            // Reset State
             score = 0;
-            timeLeft = GAME_DURATION;
-            isGameActive = true;
+            timeLeft = 30;
+            gameActive = true;
             scoreEl.textContent = score;
             timerEl.textContent = timeLeft;
-            menu.style.display = 'none';
+            overlay.style.display = 'none';
             
-            // Clear any existing targets
-            const oldTargets = document.querySelectorAll('.target');
-            oldTargets.forEach(t => t.remove());
-
-            // Start loops
-            gameInterval = setInterval(updateTimer, 1000);
+            startTimer();
             spawnTarget();
         }
 
-        function updateTimer() {
-            timeLeft--;
-            timerEl.textContent = timeLeft;
-
-            if (timeLeft <= 0) {
-                endGame();
-            }
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
         }
 
         function spawnTarget() {
-            if (!isGameActive) return;
+            if (!gameActive) return;
+
+            // Clear previous targets if any exist to prevent clutter, 
+            // though we usually wait for click.
+            const existing = document.querySelector('.target');
+            if (existing && gameActive) {
+                // If you want multiple targets on screen at once, remove this check
+                // but it makes the game harder/easier depending on design.
+            }
 
             const target = document.createElement('div');
-            target.className = 'target';
-            
-            // Random size between 40 and 70px
-            const size = Math.floor(Math.random() * 30) + 40;
-            // Random position within container bounds
-            const maxX = container.clientWidth - size;
-            const maxY = container.clientHeight - size;
-            const x = Math.floor(Math.random() * maxX);
-            const y = Math.floor(Math.random() * maxY);
+            const size = Math.floor(Math.random() * 40) + 30; // Size between 30-70px
+            const x = Math.random() * (container.clientWidth - size);
+            const y = Math.random() * (container.clientHeight - size);
+            const colors = ['#e74c3c', '#f1c40f', '#9b59b6', '#3498db', '#e67e22'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
 
+            target.className = 'target';
             target.style.width = `${size}px`;
             target.style.height = `${size}px`;
             target.style.left = `${x}px`;
             target.style.top = `${y}px`;
-            target.style.backgroundColor = TARGETS_COLORS[Math.floor(Math.random() * TARGETS_COLORS.length)];
+            target.style.backgroundColor = color;
+            target.style.boxShadow = `0 0 15px ${color}`;
 
-            // Click event for target
             target.addEventListener('mousedown', (e) => {
-                e.stopPropagation(); // Prevent container click logic
-                popTarget(target);
+                popTarget(e, target);
             });
 
             container.appendChild(target);
 
-            // Speed up spawning as time goes on
-            let nextSpawn = Math.max(400, 1000 - (score * 5));
-            spawnTimer = setTimeout(spawnTarget, nextSpawn);
+            // Schedule next spawn
+            const delay = Math.max(400, 1000 - (score * 5)); // Gets faster as score increases
+            spawnTimeout = setTimeout(spawnTarget, delay);
         }
 
-        function popTarget(element) {
-            if (!isGameActive) return;
+        function popTarget(e, target) {
+            if (!gameActive) return;
             
-            // Increment score
+            // Prevent click bubbling to container if needed
+            e.stopPropagation();
+
             score++;
             scoreEl.textContent = score;
+            
+            // Visual Feedback: Floating Score
+            const pop = document.createElement('div');
+            pop.className = 'score-pop';
+            pop.style.left = `${target.offsetLeft}px`;
+            pop.style.top = `${target.offsetTop}px`;
+            pop.textContent = '+1';
+            container.appendChild(pop);
+            setTimeout(() => pop.remove(), 500);
 
-            // Visual feedback: remove and add a little particle effect (simple version)
-            element.style.transform = 'scale(1.5)';
-            element.style.opacity = '0';
-            setTimeout(() => element.remove(), 100);
+            // Remove target
+            target.remove();
         }
 
         function endGame() {
-            isGameActive = false;
-            clearInterval(gameInterval);
-            clearTimeout(spawnTimer);
+            gameActive = false;
+            clearInterval(timerInterval);
+            clearTimeout(spawnTimeout);
             
-            // Show menu
-            menu.style.display = 'block';
-            title.textContent = "Game Over!";
-            finalScoreEl.textContent = `You popped ${score} targets!`;
+            // Clean up remaining targets
+            const targets = document.querySelectorAll('.target');
+            targets.forEach(t => t.remove());
+
+            msgTitle.textContent = "Game Over!";
+            msgScore.textContent = `Final Score: ${score}`;
+            startBtn.textContent = "Play Again";
+            overlay.style.display = 'flex';
         }
 
-        // Prevent accidental double clicks/zoom on mobile
-        container.addEventListener('touchstart', (e) => {
-            if(e.target === container) e.preventDefault();
-        }, {passive: false});
+        // Handle clicking on background (miss)
+        container.addEventListener('mousedown', () => {
+            if(gameActive && score > 0) {
+                // Optional: Penalty for missing?
+                // score--;
+                // scoreEl.textContent = score;
+            }
+        });
+
+        startBtn.addEventListener('click', startGame);
 
     </script>
 </body>

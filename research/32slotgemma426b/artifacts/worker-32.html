@@ -6,41 +6,35 @@
     <title>Cinematic Model Loader</title>
     <style>
         :root {
-            --bg: #050505;
-            --accent: #00f2ff;
-            --accent-dim: rgba(0, 242, 255, 0.3);
-            --grid-color: rgba(255, 255, 255, 0.1);
-            --text: #ffffff;
+            --bg-color: #05070a;
+            --accent-primary: #00f2ff;
+            --accent-secondary: #7000ff;
+            --slot-empty: rgba(255, 255, 255, 0.05);
+            --text-main: #e0e0e0;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg-color);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
+            overflow: hidden;
+            color: var(--text-main);
         }
 
-        /* Background Grid Effect */
+        /* Background Ambient Glow */
         body::before {
-            content: "";
+            content: '';
             position: absolute;
-            width: 200%;
-            height: 200%;
-            background-image: 
-                linear-gradient(var(--grid-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-            background-size: 50px 50px;
-            transform: perspective(500px) rotateX(60deg);
-            top: -50%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(112, 0, 255, 0.15) 0%, transparent 70%);
             z-index: -1;
-            opacity: 0.3;
         }
 
         .container {
@@ -52,14 +46,14 @@
         h1 {
             font-weight: 200;
             letter-spacing: 8px;
+            margin-bottom: 40px;
             text-transform: uppercase;
-            margin-bottom: 30px;
-            font-size: 1.5rem;
-            color: var(--accent);
-            text-shadow: 0 0 15px var(--accent-dim);
+            background: linear-gradient(to right, #fff, var(--accent-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Grid Layout for Slots */
+        /* Grid System */
         .grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -67,13 +61,18 @@
             margin-bottom: 40px;
         }
 
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
         .slot {
             aspect-ratio: 1/1;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--grid-color);
+            background: var(--slot-empty);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
             position: relative;
             overflow: hidden;
-            transition: all 0.4s ease;
+            transition: all 0.3s ease;
         }
 
         .slot::after {
@@ -81,21 +80,21 @@
             position: absolute;
             top: 0; left: -100%;
             width: 50%; height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
             transition: none;
         }
 
         .slot.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent-dim);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
         }
 
         .slot.active::after {
-            animation: sweep 1.5s infinite ease-in-out;
+            animation: shine 1.5s infinite;
         }
 
-        @keyframes sweep {
-            to { left: 200%; }
+        @keyframes shine {
+            to { left: 150%; }
         }
 
         /* Progress Section */
@@ -103,170 +102,179 @@
             margin-top: 20px;
         }
 
-        #caption {
-            font-family: monospace;
-            font-size: 14px;
-            color: var(--accent);
-            height: 20px;
-            margin-bottom: 15px;
+        .caption {
+            font-size: 0.8rem;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            height: 20px;
         }
 
         .progress-wrapper {
             width: 100%;
             height: 4px;
             background: rgba(255, 255, 255, 0.1);
-            position: relative;
             border-radius: 2px;
+            overflow: hidden;
         }
 
         #progress-bar {
             width: 0%;
             height: 100%;
-            background: var(--accent);
-            box-shadow: 0 0 15px var(--accent);
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+            box-shadow: 0 0 10px var(--accent-primary);
+            transition: width 0.2s ease;
         }
 
         /* Controls */
         .controls {
-            margin-top: 40px;
+            margin-top: 50px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
         }
 
         button {
             background: transparent;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: 8px 25px;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 24px;
             cursor: pointer;
-            font-family: monospace;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
             text-transform: uppercase;
             transition: all 0.3s ease;
         }
 
         button:hover {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 0 20px var(--accent-dim);
+            background: white;
+            color: black;
         }
 
-        button:active { transform: scale(0.95); }
-
-        @media (max-width: 600px) {
-            .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        button.active {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
         }
+
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Neural Model Initialization</h1>
+        <h1>Model Initialization</h1>
         
-        <div id="slot-grid" class="grid">
-            <!-- JS will inject 32 slots here -->
+        <div id="grid" class="grid">
+            <!-- 32 slots generated by JS -->
         </div>
 
         <div class="status-container">
-            <div id="caption">SYSTEM READY...</div>
+            <div id="caption" class="caption">System Standby</div>
             <div class="progress-wrapper">
                 <div id="progress-bar"></div>
             </div>
+            <div style="margin-top: 10px; font-size: 0.7rem; color: #555;" id="percentage">0%</div>
         </div>
 
         <div class="controls">
-            <button onclick="toggleLoop()" id="loopBtn">LOOP: ON</button>
-            <button onclick="resetLoader()">RESET</button>
+            <button id="btn-play" onclick="toggleLoop()">Stop Loop</button>
+            <button id="btn-reset" onclick="resetLoader()">Reset</button>
         </div>
     </div>
 
     <script>
-        const grid = document.getElementById('slot-grid');
+        const grid = document.getElementById('grid');
         const progressBar = document.getElementById('progress-bar');
         const caption = document.getElementById('caption');
-        const loopBtn = document.getElementById('loopBtn');
+        const percentageText = document.getElementById('percentage');
+        const btnPlay = document.getElementById('btn-play');
         
+        const TOTAL_SLOTS = 32;
         let isLooping = true;
         let currentSlot = 0;
-        const totalSlots = 32;
-        const statuses = [
-            "Allocating memory buffers...",
-            "Loading weights: Layer {n}...",
-            "Optimizing tensor shapes...",
-            "Synchronizing GPU kernels...",
-            "Validating checksums...",
-            "Initializing attention heads...",
-            "Finalizing model state..."
+        let timer = null;
+
+        // Status messages for cinematic feel
+        const messages = [
+            "Allocating Memory...",
+            "Mapping Neural Pathways...",
+            "Synchronizing Voxels...",
+            "Optimizing Geometry...",
+            "Loading Textures...",
+            "Compiling Shaders...",
+            "Verifying Integrity...",
+            "Finalizing Model..."
         ];
 
         // Create 32 slots
-        for (let i = 0; i < totalSlots; i++) {
+        for (let i = 0; i < TOTAL_SLOTS; i++) {
             const slot = document.createElement('div');
             slot.className = 'slot';
-            slot.id = `slot-${i}`;
             grid.appendChild(slot);
         }
 
+        const slots = document.querySelectorAll('.slot');
+
         function updateLoader() {
-            if (currentSlot >= totalSlots) {
-                caption.innerText = "INITIALIZATION COMPLETE";
-                progressBar.style.width = "100%";
-                
-                if (!isLooping) return;
-                
-                setTimeout(resetLoader, 2000);
-                return;
+            if (!isLooping && currentSlot >= TOTAL_SLOTS) return;
+
+            // Update Progress Bar & Text
+            const progress = (currentSlot / TOTAL_SLOTS) * 100;
+            progressBar.style.width = `${progress}%`;
+            percentageText.innerText = `${Math.round(progress)}%`;
+
+            // Update Caption based on progress segments
+            const msgIndex = Math.floor((currentSlot / TOTAL_SLOTS) * messages.length);
+            caption.innerText = messages[msgIndex] || messages[messages.length - 1];
+
+            // Visual Slot Activation
+            if (currentSlot < TOTAL_SLOTS) {
+                slots[currentSlot].classList.add('active');
+                currentSlot++;
+            } else {
+                if (isLooping) {
+                    setTimeout(() => resetLoader(), 2000); // Pause at end before loop
+                } else {
+                    caption.innerText = "Sequence Complete";
+                    return;
+                }
             }
 
-            // Update Slots Visuals
-            const slotElements = document.querySelectorAll('.slot');
-            slotElements.forEach((el, idx) => {
-                if (idx < currentSlot) {
-                    el.classList.add('active');
-                    el.style.borderColor = 'var(--accent)';
-                    el.style.background = 'rgba(0, 242, 255, 0.1)';
-                } else if (idx === currentSlot) {
-                    el.classList.add('active');
-                } else {
-                    el.classList.remove('active');
-                    el.style.borderColor = 'var(--grid-color)';
-                    el.style.background = 'rgba(255, 255, 255, 0.03)';
-                }
-            });
-
-            // Update Progress & Text
-            const progressPercent = (currentSlot / totalSlots) * 100;
-            progressBar.style.width = `${progressPercent}%`;
-            
-            const statusIdx = Math.floor((currentSlot / totalSlots) * statuses.length);
-            let msg = statuses[statusIdx].replace('{n}', currentSlot + 1);
-            caption.innerText = msg;
-
-            currentSlot++;
-            setTimeout(updateLoader, 80 + Math.random() * 150);
+            // Speed variation for cinematic effect
+            let nextTick = 150 - (currentSlot * 3); 
+            if(nextTick < 20) nextTick = 20;
+            timer = setTimeout(updateLoader, nextTick);
         }
 
         function resetLoader() {
+            clearTimeout(timer);
             currentSlot = 0;
-            progressBar.style.width = "0%";
-            const slotElements = document.querySelectorAll('.slot');
-            slotElements.forEach(el => {
-                el.classList.remove('active');
-                el.style.borderColor = '';
-                el.style.background = '';
-            });
-            caption.innerText = "RESTARTING SEQUENCE...";
-            setTimeout(updateLoader, 1000);
+            progressBar.style.width = '0%';
+            percentageText.innerText = '0%';
+            caption.innerText = "System Reset";
+            slots.forEach(s => s.classList.remove('active'));
+            setTimeout(() => {
+                if(isLooping) updateLoader();
+            }, 500);
         }
 
         function toggleLoop() {
             isLooping = !isLooping;
-            loopBtn.innerText = `LOOP: ${isLooping ? 'ON' : 'OFF'}`;
-            if (isLooping) resetLoader();
+            btnPlay.innerText = isLooping ? "Stop Loop" : "Start Loop";
+            btnPlay.classList.toggle('active', !isLooping);
+            
+            if (isLooping) {
+                updateLoader();
+            } else {
+                clearTimeout(timer);
+                caption.innerText = "Sequence Paused";
+            }
         }
 
-        // Start the demo
-        window.onload = updateLoader;
+        // Initialize
+        window.onload = () => {
+            updateLoader();
+        };
     </script>
 </body>
 </html>

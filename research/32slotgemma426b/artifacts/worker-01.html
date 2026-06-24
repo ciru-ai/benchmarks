@@ -6,15 +6,15 @@
     <title>NEURAL_CORE // Local AI Inference Lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-black: #050505;
-            --accent-cyan: #00f3ff;
-            --accent-purple: #bc13fe;
-            --text-gray: #a0a0a0;
-            --glass: rgba(255, 255, 255, 0.05);
-            --border: rgba(255, 255, 255, 0.1);
+            --bg-color: #050505;
+            --accent-primary: #00f2ff;
+            --accent-secondary: #7000ff;
+            --text-main: #e0e0e0;
+            --card-bg: rgba(20, 20, 25, 0.8);
+            --border-glow: rgba(0, 242, 255, 0.3);
         }
 
         * {
@@ -24,24 +24,23 @@
         }
 
         body {
-            background-color: var(--bg-black);
-            color: white;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             font-family: 'JetBrains Mono', monospace;
-            overflow-x: hidden;
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        /* Scanline Effect */
+        /* Background Grid Effect */
         body::before {
-            content: " ";
-            display: block;
+            content: "";
             position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 999;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
         }
 
         header {
@@ -51,8 +50,8 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            background: radial-gradient(circle at center, #1a1a2e 0%, #050505 70%);
-            padding: 20px;
+            padding: 2rem;
+            background: radial-gradient(circle at center, rgba(112, 0, 255, 0.1) 0%, transparent 70%);
         }
 
         h1 {
@@ -60,38 +59,73 @@
             font-size: clamp(2.5rem, 8vw, 5rem);
             text-transform: uppercase;
             letter-spacing: 8px;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, var(--accent-cyan), var(--accent-purple));
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.4));
         }
 
         .subtitle {
-            font-size: 1rem;
-            color: var(--accent-cyan);
-            letter-spacing: 4px;
-            margin-bottom: 30px;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            color: var(--accent-primary);
             opacity: 0.8;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 80px 20px;
+        /* Ticker Style */
+        #status-ticker {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid var(--accent-primary);
+            padding: 5px 0;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        #ticker-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: ticker 30s linear infinite;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+        }
+
+        @keyframes ticker {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
         }
 
         /* Grid Section */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2rem;
+            color: #fff;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 50px;
+            gap: 2rem;
         }
 
+        /* Cards */
         .card {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            padding: 40px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2.5rem;
             position: relative;
             transition: all 0.3s ease;
             overflow: hidden;
@@ -101,15 +135,15 @@
             content: "";
             position: absolute;
             top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
             transform: translateX(-100%);
-            transition: 0.5s;
+            transition: transform 0.5s ease;
         }
 
         .card:hover {
-            border-color: var(--accent-cyan);
+            border-color: var(--accent-primary);
             transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
         }
 
         .card:hover::before {
@@ -118,67 +152,40 @@
 
         .card h3 {
             font-family: 'Orbitron', sans-serif;
-            margin-bottom: 15px;
-            color: var(--accent-cyan);
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
         }
 
-        .card p {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-
-        /* Status Ticker */
-        #ticker-container {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            border-top: 1px solid var(--accent-cyan);
-            padding: 5px 0;
-            z-index: 1000;
-        }
-
-        #ticker {
-            white-space: nowrap;
-            display: inline-block;
-            color: var(--accent-cyan);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            animation: marquee 20s linear infinite;
-        }
-
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
+        /* CTA Button */
         .btn {
-            padding: 15px 40px;
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
             text-decoration: none;
             font-weight: bold;
-            transition: 0.3s;
-            display: inline-block;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
         }
 
         .btn:hover {
-            background: var(--accent-cyan);
-            color: black;
-            box-shadow: 0 0 20px var(--accent-cyan);
+            background: var(--accent-primary);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-primary);
         }
 
         footer {
             text-align: center;
-            padding: 40px;
+            padding: 4rem 2rem;
             font-size: 0.8rem;
-            color: #333;
-            border-top: 1px solid #111;
+            opacity: 0.5;
         }
 
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .container { padding: 40px 20px; }
+            h1 { font-size: 3rem; }
+            .grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -186,84 +193,79 @@
 
     <header>
         <h1>NEURAL_CORE</h1>
-        <p class="subtitle">LOCAL INFERENCE // EDGE COMPUTING LAB</p>
-        <a href="#services" class="btn">INITIALIZE SEQUENCE</a>
+        <p class="subtitle">// LOCAL INFERENCE LAB // NO CLOUD REQUIRED</p>
+        <a href="#services" class="btn">INITIALIZE PROTOCOL</a>
     </header>
 
     <section id="services" class="container">
-        <h2 style="font-family: 'Orbitron'; text-align: center; margin-bottom: 50px;">CORE CAPABILITIES</h2>
+        <h2 class="section-title">Capabilities</h2>
         <div class="grid">
             <div class="card">
-                <h3>LLM_DEPLOY</h3>
-                <p>High-speed local deployment of Llama 3, Mistral, and Phi models. Zero data leakage. Total privacy.</p>
+                <h3>LLM_EXECUTION</h3>
+                <p>Run massive language models locally on dedicated hardware. Zero latency, zero data leakage, total privacy.</p>
             </div>
             <div class="card">
-                <h3>STABLE_DIFF</h3>
-                <p>Real-time latent diffusion generation on dedicated hardware clusters for instant visual synthesis.</p>
+                <h3>DIFFUSION_GEN</h3>
+                <p>High-fidelity image synthesis via local Stable Diffusion clusters. Instant generation for creative workflows.</p>
             </div>
             <div class="card">
-                <h3>RAG_ENGINE</h3>
-                <p>Retrieval Augmented Generation pipelines built on local vector databases. Your data, your context.</p>
+                <h3>QUANTIZED_CORE</h3>
+                <p>Optimized 4-bit and 8-bit weight quantization to maximize throughput on edge computing nodes.</p>
             </div>
         </div>
     </section>
 
-    <section class="container" style="text-align: center;">
-        <h2 style="font-family: 'Orbitron'; margin-bottom: 30px;">HARDWARE STATUS</h2>
-        <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;" id="stats">
-            <div>
-                <div style="color: var(--accent-cyan); font-size: 1.5rem;">98.2%</div>
-                <div style="font-size: 0.7rem; color: var(--text-gray);">GPU UTILIZATION</div>
+    <section id="hardware" class="container" style="background: rgba(112, 0, 255, 0.05); border-radius: 20px;">
+        <h2 class="section-title">Infrastructure</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>NVIDIA_H100_CLUSTER</h3>
+                <p>High-bandwidth memory architectures for massive parallel processing.</p>
             </div>
-            <div>
-                <div style="color: var(--accent-purple); font-size: 1.5rem;">42.5 TFLOPS</div>
-                <div style="font-size: 0.7rem; color: var(--text-gray);">LATENCY AVG</div>
-            </div>
-            <div>
-                <div id="uptime" style="color: white; font-size: 1.5rem;">00:00:00</div>
-                <div style="font-size: 0.7rem; color: var(--text-gray);">SYSTEM UPTIME</div>
+            <div class="card">
+                <h3>EDGE_NODES</h3>
+                <p>Distributed inference at the edge. Low power, high efficiency deployment.</p>
             </div>
         </div>
     </section>
 
     <footer>
-        &copy; <span id="year"></span> NEURAL_CORE LABS // NO CLOUD. ONLY LOCAL.
+        &copy; 20XX NEURAL_CORE LABS. ALL SYSTEMS OPERATIONAL.
     </footer>
 
-    <div id="ticker-container">
-        <div id="ticker">SYSTEM STATUS: STABLE // NODES ACTIVE: 12 // TEMPERATURE: 42°C // DATA ENCRYPTION: AES-512 ENABLED // WAITING FOR INPUT...</div>
+    <div id="status-ticker">
+        <div id="ticker-content">
+            SYSTEM STATUS: OPTIMAL // GPU TEMP: 42°C // LATENCY: 12ms // LOAD: 14% // MODEL_LOADED: Llama-3-70B // ENCRYPTION: AES-256 ACTIVE // NO CLOUD DETECTED...
+        </div>
     </div>
 
     <script>
-        // Set Year
-        document.getElementById('year').textContent = new Date().getFullYear();
-
-        // Uptime Counter
-        let seconds = 0;
-        setInterval(() => {
-            seconds++;
-            const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
-            const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-            const secs = (seconds % 60).toString().padStart(2, '0');
-            document.getElementById('uptime').textContent = `${hrs}:${mins}:${secs}`;
-        }, 1000);
-
-        // Ticker Randomizer (Simulated Logs)
-        const logs = [
-            "SYSTEM STATUS: STABLE // NODES ACTIVE: 12",
-            "LATENCY: 4ms // GPU_TEMP: 44°C",
-            "MODEL_LOADED: llama-3-70b-instruct // SUCCESS",
-            "ENCRYPTION: AES-512 ENABLED // SECURE",
-            "BUFFERING VECTOR EMBEDDINGS... COMPLETE",
-            "NEURAL_PATHWAY: OPTIMIZED"
+        // Tiny status ticker logic to rotate messages
+        const messages = [
+            "SYSTEM STATUS: OPTIMAL",
+            "GPU TEMP: 42°C",
+            "LATENCY: 12ms",
+            "LOAD: 14%",
+            "MODEL_LOADED: Llama-3-70B",
+            "ENCRYPTION: AES-256 ACTIVE",
+            "NO CLOUD DETECTED..."
         ];
 
-        let logIndex = 0;
-        setInterval(() => {
-            logIndex = (logIndex + 1) % logs.length;
-            document.getElementById('ticker').textContent = logs[logIndex] + " // WAITING FOR INPUT...";
-        }, 5000);
-    </script>
+        const ticker = document.getElementById('ticker-content');
+        let index = 0;
 
+        function updateTicker() {
+            // This script simply adds variety by periodically injecting a new message sequence
+            // but for this simple implementation, we'll just let the CSS handle the loop
+            // and use JS to simulate "live" data updates every few seconds.
+            const randomTemp = Math.floor(Math.random() * (50 - 38) + 38);
+            const randomLoad = Math.floor(Math.random() * (20 - 10) + 10);
+            
+            // We don't want to break the CSS animation, so we just log "heartbeats"
+            console.log(`[HEARTBEAT] Temp: ${randomTemp}C | Load: ${randomLoad}%`);
+        }
+
+        setInterval(updateTicker, 5000);
+    </script>
 </body>
 </html>

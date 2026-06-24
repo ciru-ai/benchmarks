@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AetherCore | Local LLM Appliance</title>
+    <title>Nexus Core | The Ultimate Local LLM Appliance</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -14,8 +14,8 @@
             --bg: #0f172a;
             --card-bg: #1e293b;
             --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-            --accent: #2dd4bf;
+            --text-muted: #94a3b8;
+            --accent: #22d3ee;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,41 +27,48 @@
             overflow-x: hidden;
         }
 
-        /* Layout Containers */
-        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
-        section { padding: 80px 0; }
-
         /* Hero Section */
         header {
             height: 100vh;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
+            align-items: center;
             text-align: center;
-            background: radial-gradient(circle at top right, #1e1b4b, var(--bg));
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            padding: 20px;
         }
 
-        .hero h1 {
+        .hero-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+
+        h1 {
             font-size: clamp(2.5rem, 8vw, 4.5rem);
             font-weight: 800;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(to bottom right, #fff, #94a3b8);
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #fff, #94a3b8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .hero p {
+        .hero-sub {
             font-size: 1.25rem;
-            color: var(--text-dim);
+            color: var(--text-muted);
             max-width: 600px;
-            margin: 0 auto 2rem;
+            margin-bottom: 40px;
         }
 
         .cta-button {
-            display: inline-block;
             background: var(--primary);
             color: white;
-            padding: 1rem 2.5rem;
+            padding: 16px 32px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
@@ -69,74 +76,93 @@
         }
 
         .cta-button:hover {
+            transform: translateY(-3px);
             background: var(--primary-dark);
-            transform: translateY(-2px);
+        }
+
+        /* Container */
+        .container { max-width: 1100px; margin: 0 auto; padding: 80px 20px; }
+
+        section h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 50px;
         }
 
         /* Specs Table */
         .specs-container {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        th, td {
             text-align: left;
-            padding: 1.2rem;
-            border-bottom: 1px solid #334155;
         }
 
-        th { color: var(--accent); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
-        td { color: var(--text-main); }
-        tr:last-child td, tr:last-child th { border: none; }
+        th, td { padding: 20px; border-bottom: 1px solid #334155; }
+        th { background: rgba(255,255,255,0.05); color: var(--accent); width: 40%; }
+        td { font-family: monospace; color: #cbd5e1; }
 
         /* Comparison Cards */
-        .grid {
+        .comparison-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
+            gap: 30px;
         }
 
         .card {
             background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 16px;
-            transition: transform 0.3s ease;
+            padding: 40px;
+            border-radius: 20px;
             border: 1px solid #334155;
+            transition: border-color 0.3s;
         }
 
-        .card:hover { transform: translateY(-10px); }
-        .card h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-        .card .price { font-size: 2rem; font-weight: 800; color: var(--accent); margin-bottom: 1.5rem; }
-        .card ul { list-style: none; }
-        .card li { margin-bottom: 0.75rem; color: var(--text-dim); display: flex; align-items: center; }
-        .card li::before { content: "✓"; color: var(--accent); margin-right: 10px; font-weight: bold; }
+        .card.featured {
+            border: 2px solid var(--primary);
+            position: relative;
+        }
+
+        .card.featured::after {
+            content: "MOST POPULAR";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 10px;
+        }
+
+        .card h3 { margin-bottom: 15px; font-size: 1.5rem; }
+        .price { font-size: 2rem; font-weight: 800; margin-bottom: 20px; }
+        .price span { font-size: 1rem; color: var(--text-muted); }
+
+        ul.features-list { list-style: none; margin-bottom: 30px; }
+        ul.features-list li { margin-bottom: 12px; display: flex; align-items: center; }
+        ul.features-list li::before { content: "✓"; color: var(--accent); margin-right: 10px; font-weight: bold; }
 
         /* FAQ Accordion */
         .faq-item {
-            background: var(--card-bg);
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
             border-radius: 8px;
+            background: #1e293b;
             overflow: hidden;
         }
 
         .faq-question {
+            padding: 20px;
             width: 100%;
-            padding: 1.5rem;
             text-align: left;
             background: none;
             border: none;
-            color: var(--text-main);
+            color: white;
             font-size: 1.1rem;
-            font-weight: 600;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
@@ -144,170 +170,149 @@
         }
 
         .faq-answer {
-            padding: 0 1.5rem;
+            padding: 0 20px;
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease, padding 0.3s ease;
-            color: var(--text-dim);
+            color: var(--text-muted);
         }
 
-        .faq-item.active .faq-answer {
-            max-height: 200px;
-            padding-bottom: 1.5rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 4rem 0;
-            color: var(--text-dim);
-            border-top: 1px solid #334155;
-        }
+        /* Footer */
+        footer { text-align: center; padding: 40px; color: var(--text-muted); border-top: 1px solid #334155; }
 
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            section { padding: 50px 0; }
+            th, td { display: block; width: 100%; }
+            th { text-align: right; padding-bottom: 5px; }
+            td { padding-top: 5px; font-size: 1.2rem; }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="container hero">
-            <h1>AetherCore One</h1>
-            <p>Your private, lightning-fast gateway to local intelligence. No subscriptions. No data leaks. Just pure LLM performance.</p>
-            <a href="#pricing" class="cta-button">Pre-order Now</a>
-        </div>
+        <div class="hero-badge">Privacy First • Zero Cloud Dependency</div>
+        <h1>Nexus Core</h1>
+        <p class="hero-sub">Run Llama 3, Mistral, and Mixtral at lightning speeds. Your data never leaves your desk.</p>
+        <a href="#pricing" class="cta-button">Configure Yours</a>
     </header>
 
-    <section id="specs">
-        <div class="container">
-            <h2 style="text-align: center; margin-bottom: 3rem; font-size: 2.5rem;">Technical Specifications</h2>
+    <div class="container">
+        <!-- Specs Section -->
+        <section id="specs">
+            <h2>Technical Specifications</h2>
             <div class="specs-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Specification</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Inference Engine</td><td>Dual NVIDIA RTX 4090 (48GB Total VRAM)</td></tr>
-                        <tr><td>Processor</td><td>AMD Threadripper Pro 5975WX</td></tr>
-                        <tr><td>Memory</td><td>128GB DDR5 ECC RAM</td></tr>
-                        <tr><td>Storage</td><td>4TB NVMe Gen5 SSD (Read/Write up to 10,000 MB/s)</td></tr>
-                        <tr><td>Connectivity</td><td>Dual 10GbE SFP+, Wi-Fi 6E</td></tr>
-                        <tr><td>OS Support</td><td>Ubuntu LTS / Docker / Windows Pro via WSL2</td></tr>
-                    </tbody>
+                    <tr><th>Compute Engine</th><td>Dual NVIDIA RTX 4090 (48GB VRAM Total)</td></tr>
+                    <tr><th>Processor</th><td>AMD Ryzen Threadripper PRO 5975WX</td></tr>
+                    <tr><th>Memory</th><td>128GB DDR5 ECC RAM</td>
+                        <td style="display: none;"></td> <!-- Spacer -->
+                    </tr>
+                    <tr><th>Storage</th><td>4TB NVMe Gen5 SSD (Read/Write up to 10,000 MB/s)</td></tr>
+                    <tr><th>Connectivity</th><td>Dual 10GbE SFP+, WiFi 6E, Bluetooth 5.3</td></tr>
+                    <tr><th>OS Support</th><td>Ubuntu LTS, Windows Pro, macOS (via Docker)</td></tr>
                 </table>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="pricing" style="background: #111827;">
-        <div class="container">
-            <h2 style="text-align: center; font-size: 2.5rem;">Choose Your Power</h2>
-            <div class="grid">
-                <!-- Card 1 -->
+        <!-- Comparison Section -->
+        <section id="pricing" style="margin-top: 100px;">
+            <h2>Choose Your Power</h2>
+            <div class="comparison-grid">
                 <div class="card">
                     <h3>Lite Node</h3>
-                    <div class="price">$2,499</div>
-                    <ul>
-                        <li>Single RTX 4090 (24GB VRAM)</li>
-                        <li>32GB System RAM</li>
-                        <li>512GB NVMe Storage</li>
-                        <li>Standard Cooling</li>
+                    <p class="price">$2,499<span> / unit</span></p>
+                    <ul class="features-list">
+                        <li>16GB VRAM (RTX 4080 Super)</li>
+                        <li>Supports 7B - 13B models</li>
+                        <li>Silent Cooling Design</li>
+                        <li>Standard Support</li>
                     </ul>
+                    <a href="#" class="cta-button" style="display: block; text-align: center;">Buy Lite</a>
                 </div>
-                <!-- Card 2 -->
-                <div class="card" style="border-color: var(--primary); transform: scale(1.05);">
-                    <h3>Pro Studio</h3>
-                    <div class="price">$4,999</div>
-                    <ul>
-                        <li>Dual RTX 4090 (48GB VRAM)</li>
-                        <li>128GB System RAM</li>
-                        <li>4TB NVMe Storage</li>
-                        <li>Liquid Cooling Included</li>
+
+                <div class="card featured">
+                    <h3>Nexus Pro</h3>
+                    <p class="price">$5,899<span> / unit</span></p>
+                    <ul class="features-list">
+                        <li>48GB VRAM (Dual 4090)</li>
+                        <li>Supports 70B+ models</li>
+                        <li>Liquid Cooled System</li>
+                        <li>Priority Tech Support</li>
                     </ul>
+                    <a href="#" class="cta-button" style="display: block; text-align: center;">Buy Pro</a>
                 </div>
-                <!-- Card 3 -->
+
                 <div class="card">
-                    <h3>Enterprise</h3>
-                    <div class="price">Custom</div>
-                    <ul>
-                        <li>Multi-GPU Scalability</li>
-                        <li>256GB+ System RAM</li>
-                        <li>Rackmount Form Factor</li>
-                        <li>24/7 Support SLA</li>
+                    <h3>Enterprise Rack</h3>
+                    <p class="price">$14,500<span> / unit</span></p>
+                    <ul class="features-list">
+                        <li>96GB VRAM (A6000 Ada)</li>
+                        <li>Supports massive 120B+ models</li>
+                        <li>Hot-swappable Drives</li>
+                        <li>24/7 Dedicated Engineer</li>
                     </ul>
+                    <a href="#" class="cta-button" style="display: block; text-align: center;">Contact Sales</a>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="faq">
-        <div class="container" style="max-width: 800px;">
-            <h2 style="text-align: center; margin-bottom: 3rem; font-size: 2.5rem;">Frequently Asked Questions</h2>
+        <!-- FAQ Section -->
+        <section id="faq" style="margin-top: 100px;">
+            <h2>Frequently Asked Questions</h2>
             
             <div class="faq-item">
-                <button class="faq-question">Do I need an internet connection? <span>+</span></button>
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    Do I need an internet connection? <span>+</span>
+                </button>
                 <div class="faq-answer">
-                    No. Once the initial models are downloaded, AetherCore operates entirely offline. Your data never leaves your local network.
+                    <p style="padding: 20px 0;">No. Once the initial model weights are downloaded, Nexus Core operates entirely offline. This ensures absolute privacy for your prompts and data.</p>
                 </div>
             </div>
 
             <div class="faq-item">
-                <button class="faq-question">Which LLMs can I run? <span>+</span></button>
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    Which models can I run? <span>+</span>
+                </button>
                 <div class="faq-answer">
-                    You can run any model compatible with llama.cpp, Ollama, or vLLM, including Llama 3, Mistral, Mixtral, and Phi-3.
+                    <p style="padding: 20px 0;">Nexus Core is compatible with any GGUF, EXL2, or AWQ quantized model. This includes Llama 3, Mistral, Mixtral, Command R, and many more via Ollama or LM Studio.</p>
                 </div>
             </div>
 
             <div class="faq-item">
-                <button class="faq-question">How hard is the setup? <span>+</span></button>
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    Is it easy to set up? <span>+</span>
+                </button>
                 <div class="faq-answer">
-                    It's plug-and-play. We provide a pre-configured web interface (Dashboard) that allows you to download and run models with one click.
+                    <p style="padding: 20px 0;">Yes. It comes pre-configured with a web-based dashboard. Just plug in power and Ethernet, and you can start chatting via your browser immediately.</p>
                 </div>
             </div>
-
-            <div class="faq-item">
-                <button class="faq-question">What is the power consumption? <span>+</span></button>
-                <div class="faq-answer">
-                    The Pro Studio model consumes approximately 850W under full inference load. We recommend a dedicated 15A circuit.
-                </div>
-            </div>
-        </div>
-    </section>
+        </section>
+    </div>
 
     <footer>
-        <div class="container">
-            <p>&copy; 2024 AetherCore Technologies. All rights reserved.</p>
-            <p style="font-size: 0.8rem; margin-top: 1rem;">Designed for privacy-first AI deployment.</p>
-        </div>
+        <p>&copy; 2023 Nexus Computing Systems. All rights reserved.</p>
+        <p style="font-size: 0.8rem; margin-top: 10px;">Designed for the future of private intelligence.</p>
     </footer>
 
     <script>
-        // FAQ Accordion Logic
-        document.querySelectorAll('.faq-question').forEach(button => {
-            button.addEventListener('click', () => {
-                const faqItem = button.parentElement;
-                const isOpen = faqItem.classList.contains('active');
+        function toggleFaq(btn) {
+            const answer = btn.nextElementSibling;
+            const icon = btn.querySelector('span');
+            
+            if (answer.style.maxHeight && answer.style.maxHeight !== '0px') {
+                answer.style.maxHeight = '0px';
+                icon.textContent = '+';
+            } else {
+                // Close other FAQs
+                document.querySelectorAll('.faq-answer').forEach(el => el.style.maxHeight = '0px');
+                document.querySelectorAll('.faq-question span').forEach(el => el.textContent = '+');
                 
-                // Close all other items
-                document.querySelectorAll('.faq-item').forEach(item => {
-                    item.classList.remove('active');
-                    item.querySelector('span').innerText = '+';
-                });
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+                icon.textContent = '-';
+            }
+        }
 
-                if (!isOpen) {
-                    faqItem.classList.add('active');
-                    button.querySelector('span').innerText = '−';
-                } else {
-                    button.querySelector('span').innerText = '+';
-                }
-            });
-        });
-
-        // Smooth Scroll
+        // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();

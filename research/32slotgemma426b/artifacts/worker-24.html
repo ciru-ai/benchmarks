@@ -18,7 +18,7 @@ html
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             line-height: 1.6;
@@ -26,292 +26,226 @@ html
         }
 
         .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 4rem 2rem;
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 3rem;
+            grid-template-columns: 40% 60%;
+            height: 100vh;
         }
 
-        @media (max-width: 850px) {
-            .container { grid-template-columns: 1fr; }
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 4rem;
-            font-size: 2.5rem;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Timeline Styles */
-        .timeline {
+        /* Left Side: Timeline Navigation */
+        .timeline-nav {
+            padding: 2rem;
+            border-right: 1px solid #334155;
+            overflow-y: auto;
             position: relative;
-            padding-left: 2rem;
         }
 
-        .timeline::before {
-            content: '';
+        h1 { margin-bottom: 2rem; font-size: 1.5rem; color: var(--primary); }
+
+        .timeline-track {
             position: absolute;
-            left: 0;
-            top: 0;
+            left: 40px;
+            top: 100px;
+            bottom: 50px;
             width: 4px;
-            height: 100%;
             background: #334155;
-            border-radius: 2px;
+            z-index: 1;
         }
 
         .progress-bar {
             position: absolute;
-            left: -4px;
+            left: 0;
             top: 0;
             width: 4px;
-            height: 0%; /* Animated via JS */
+            height: 0%;
             background: linear-gradient(to bottom, var(--primary), var(--secondary));
-            transition: height 0.5s ease-out;
-            z-index: 1;
+            transition: height 0.3s ease;
         }
 
         .milestone {
             position: relative;
-            margin-bottom: 3rem;
+            padding-left: 50px;
+            margin-bottom: 2.5rem;
             cursor: pointer;
+            z-index: 2;
             transition: transform 0.2s ease;
         }
 
-        .milestone:hover {
-            transform: translateX(10px);
-        }
+        .milestone:hover { transform: translateX(10px); }
 
-        .milestone::before {
-            content: '';
+        .dot {
             position: absolute;
-            left: -2.5rem;
-            top: 0.5rem;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
+            left: -7px;
+            top: 5px;
+            width: 18px;
+            height: 18px;
             background: var(--bg);
             border: 4px solid #334155;
-            z-index: 2;
+            border-radius: 50%;
             transition: all 0.3s ease;
         }
 
-        .milestone.active::before {
-            border-color: var(--primary);
+        .milestone.active .dot {
             background: var(--primary);
+            border-color: var(--secondary);
             box-shadow: 0 0 15px var(--primary);
         }
 
-        .card {
-            background: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            transition: all 0.3s ease;
-        }
+        .milestone-content h3 { font-size: 1rem; margin-bottom: 4px; }
+        .milestone-content span { font-size: 0.85rem; color: var(--text-muted); }
 
-        .milestone.active .card {
-            border-color: var(--primary);
-            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
-        }
-
-        .date {
-            font-weight: bold;
-            color: var(--secondary);
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        /* Detail Panel Styles */
+        /* Right Side: Detail Panel */
         .detail-panel {
-            position: sticky;
-            top: 4rem;
-            height: fit-content;
+            padding: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+        }
+
+        .card {
+            max-width: 600px;
+            width: 100%;
             background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid #334155;
-            min-height: 300px;
+            padding: 3rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .detail-content {
-            display: none;
-            animation: fadeIn 0.4s ease forwards;
+        .card.active {
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        .detail-content.active {
-            display: block;
-        }
+        .card h2 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--primary); }
+        .card .date { display: block; font-weight: bold; color: var(--secondary); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        .card p { font-size: 1.1rem; color: var(--text-muted); line-height: 1.8; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; overflow-y: auto; height: auto; }
+            .timeline-nav { height: auto; border-right: none; padding-bottom: 4rem; }
+            .detail-panel { min-height: 50vh; padding: 2rem; }
         }
-
-        .placeholder-text {
-            color: var(--text-muted);
-            font-style: italic;
-            text-align: center;
-            margin-top: 4rem;
-        }
-
-        h3 { margin-bottom: 1rem; font-size: 1.5rem; }
-        p { color: var(--text-muted); line-height: 1.8; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div>
-            <h1>Project Evolution</h1>
-            <div class="timeline" id="timelineContainer">
-                <div class="progress-bar" id="progressBar"></div>
-                
-                <!-- Milestone 1 -->
-                <div class="milestone active" data-id="1" onclick="selectMilestone(1)">
-                    <div class="card">
-                        <span class="date">January 2023</span>
-                        <h3>Concept Phase</h3>
-                        <p>The initial spark of the idea...</p>
-                    </div>
-                </div>
-
-                <!-- Milestone 2 -->
-                <div class="milestone" data-id="2" onclick="selectMilestone(2)">
-                    <div class="card">
-                        <span class="date">March 2023</span>
-                        <h3>Prototyping</h3>
-                        <p>Building the first functional model...</p>
-                    </div>
-                </div>
-
-                <!-- Milestone 3 -->
-                <div class="milestone" data-id="3" onclick="selectMilestone(3)">
-                    <div class="card">
-                        <span class="date">June 2023</span>
-                        <h3>Beta Testing</h3>
-                        <p>Gathering user feedback and iterating...</p>
-                    </div>
-                </div>
-
-                <!-- Milestone 4 -->
-                <div class="milestone" data-id="4" onclick="selectMilestone(4)">
-                    <div class="card">
-                        <span class="date">September 2023</span>
-                        <h3>Global Launch</h3>
-                        <p>The product goes live to the world...</p>
-                    </div>
-                </div>
-
-                <!-- Milestone 5 -->
-                <div class="milestone" data-id="5" onclick="selectMilestone(5)">
-                    <div class="card">
-                        <span class="date">December 2023</span>
-                        <h3>Scale Up</h3>
-                        <p>Expanding infrastructure and features...</p>
-                    </div>
-                </div>
-            </div>
+<div class="container">
+    <!-- Timeline Selection -->
+    <aside class="timeline-nav">
+        <h1>Project Roadmap</h1>
+        <div class="timeline-track">
+            <div id="progress" class="progress-bar"></div>
         </div>
 
-        <aside class="detail-panel" id="detailPanel">
-            <div id="placeholder" class="placeholder-text">Select a milestone to view details.</div>
-            
-            <div id="content-1" class="detail-content active">
-                <h3>Concept Phase</h3>
-                <p>In this stage, we identified the core problem: users needed a more streamlined way to visualize complex timelines. We conducted 50+ interviews and mapped out user workflows.</p>
-                <br>
-                <strong>Key Outcome:</strong> Product Requirement Document finalized.
-            </div>
+        <div id="milestones-list">
+            <!-- Milestones injected via JS -->
+        </div>
+    </aside>
 
-            <div id="content-2" class="detail-content">
-                <h3>Prototyping</h3>
-                <p>Using Figma and React, we built a high-fidelity prototype. We focused heavily on the interaction between the timeline scroll position and the detail panel updates.</p>
-                <br>
-                <strong>Key Outcome:</strong> Interactive UI framework established.
-            </div>
+    <!-- Detail Display -->
+    <main class="detail-panel">
+        <div id="detail-card" class="card">
+            <span class="date" id="detail-date"></span>
+            <h2 id="detail-title">Select a milestone</h2>
+            <p id="detail-desc">Click on the timeline to explore the journey of our innovation.</p>
+        </div>
+    </main>
+</div>
 
-            <div id="content-3" class="detail-content">
-                <h3>Beta Testing</h3>
-                <p>A closed group of 200 users tested the application. We discovered that mobile responsiveness was a priority, leading to a significant redesign of the timeline component.</p>
-                <br>
-                <strong>Key Outcome:</strong> 95% satisfaction rate on core UX.
-            </div>
-
-            <div id="content-4" class="detail-content">
-                <h3>Global Launch</h3>
-                <p>The application was deployed via AWS across multiple regions to ensure low latency. We saw an immediate influx of users from over 30 different countries.</p>
-                <br>
-                <strong>Key Outcome:</strong> 10,000+ registered users in month one.
-            </div>
-
-            <div id="content-5" class="detail-content">
-                <h3>Scale Up</h3>
-                <p>With the user base growing, we implemented advanced caching strategies and microservices to handle increased traffic seamlessly.</p>
-                <br>
-                <strong>Key Outcome:</strong> Infrastructure supports 100k+ concurrent users.
-            </div>
-        </aside>
-    </div>
-
-    <script>
-        function selectMilestone(id) {
-            // Update Milestones UI
-            document.querySelectorAll('.milestone').forEach(el => {
-                el.classList.remove('active');
-            });
-            const selectedEl = document.querySelector(`.milestone[data-id="${id}"]`);
-            selectedEl.classList.add('active');
-
-            // Update Detail Panel UI
-            document.querySelectorAll('.detail-content').forEach(el => {
-                el.classList.remove('active');
-            });
-            const selectedContent = document.getElementById(`content-${id}`);
-            if (selectedContent) {
-                selectedContent.classList.add('active');
-            }
-
-            // Update Progress Bar
-            updateProgressBar();
+<script>
+    const data = [
+        {
+            id: 1,
+            year: "JANUARY 2023",
+            title: "The Concept",
+            desc: "Everything started with a simple idea in a small garage. We identified the core problem and sketched out the first architectural diagrams that would form our foundation."
+        },
+        {
+            id: 2,
+            year: "MARCH 2023",
+            title: "Prototype Phase",
+            desc: "Our engineering team spent months building a functional MVP. It was messy and unpolished, but it proved that the core logic worked as intended."
+        },
+        {
+            id: 3,
+            year: "AUGUST 2023",
+            title: "Beta Launch",
+            desc: "We released our first closed beta to a select group of 100 users. The feedback was overwhelming and helped us refine the user experience significantly."
+        },
+        {
+            id: 4,
+            year: "DECEMBER 2023",
+            title: "Global Expansion",
+            desc: "Scaling our infrastructure to support thousands of concurrent users across three continents. This marked our transition from a startup to a global player."
+        },
+        {
+            id: 5,
+            year: "CURRENTLY",
+            title: "Continuous Evolution",
+            desc: "We are now integrating AI-driven insights and expanding our ecosystem of integrations to provide even more value to our community."
         }
+    ];
 
-        function updateProgressBar() {
-            const milestones = Array.from(document.querySelectorAll('.milestone'));
-            const activeIndex = milestones.findIndex(el => el.classList.contains('active'));
-            const progressPercent = ((activeIndex + 1) / milestones.length) * 100;
+    const milestonesList = document.getElementById('milestones-list');
+    const detailCard = document.getElementById('detail-card');
+    const progressBar = document.getElementById('progress');
+    
+    // DOM Elements for content updates
+    const dTitle = document.getElementById('detail-title');
+    const dDate = document.getElementById('detail-date');
+    const dDesc = document.getElementById('detail-desc');
+
+    function init() {
+        data.forEach((item, index) => {
+            const milestoneDiv = document.createElement('div');
+            milestoneDiv.className = 'milestone';
+            if(index === 0) milestoneDiv.classList.add('active');
+            milestoneDiv.dataset.id = item.id;
             
-            document.getElementById('progressBar').style.height = `${progressPercent}%`;
-        }
+            milestoneDiv.innerHTML = `
+                <div class="dot"></div>
+                <div class="milestone-content">
+                    <h3>${item.title}</h3>
+                    <span>${item.year}</span>
+                </div>
+            `;
 
-        // Initialize Progress Bar on load
-        window.onload = () => {
-            updateProgressBar();
-        };
+            milestoneDiv.addEventListener('click', () => selectMilestone(item, milestoneDiv));
+            milestonesList.appendChild(milestoneDiv);
+        });
 
-        // Intersection Observer for scroll-based animation effect
-        const observerOptions = {
-            threshold: 0.5
-        };
+        // Set initial state
+        selectMilestone(data[0], document.querySelector('.milestone'));
+    }
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('active');
-                    updateProgressBar();
-                } else {
-                    // Optional: remove 'active' to allow re-animation on scroll up/down
-                    // entry.target.classList.remove('active'); 
-                }
-            });
-        }, observerOptions);
+    function selectMilestone(item, element) {
+        // Update Active State in Sidebar
+        document.querySelectorAll('.milestone').forEach(m => m.classList.remove('active'));
+        element.classList.add('active');
 
-        document.querySelectorAll('.milestone').forEach(m => observer.observe(m));
-    </script>
+        // Update Progress Bar Height
+        const allMilestones = Array.from(document.querySelectorAll('.milestone'));
+        const index = allMilestones.indexOf(element);
+        const progressPercent = (index / (data.length - 1)) * 100;
+        progressBar.style.height = `${progressPercent}%`;
+
+        // Update Detail Card with animation trigger
+        detailCard.classList.remove('active');
+        
+        setTimeout(() => {
+            dTitle.textContent = item.title;
+            dDate.textContent = item.year;
+            dDesc.textContent = item.desc;
+            detailCard.classList.add('active');
+        }, 300);
+    }
+
+    // Initialize the page
+    init();
+</script>
+
 </body>
 </html>

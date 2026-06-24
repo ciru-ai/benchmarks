@@ -9,9 +9,8 @@
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             background-color: #1a1a2e;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -19,10 +18,10 @@
             color: white;
         }
 
-        #game-container {
+        #gameContainer {
             position: relative;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
             border: 4px solid #0f3460;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
         canvas {
@@ -30,7 +29,7 @@
             background-color: #16213e;
         }
 
-        #ui-layer {
+        #uiLayer {
             position: absolute;
             top: 0;
             left: 0;
@@ -38,14 +37,14 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             pointer-events: none;
         }
 
-        #score-board {
+        #scoreBoard {
             position: absolute;
-            top: 10px;
+            top: 20px;
             left: 20px;
             font-size: 24px;
             font-weight: bold;
@@ -53,18 +52,18 @@
             text-shadow: 2px 2px #000;
         }
 
-        #menu {
+        #gameOverScreen {
             display: none;
             pointer-events: auto;
             background: rgba(15, 52, 96, 0.9);
             padding: 30px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 0 30px #e94560;
+            border: 2px solid #e94560;
         }
 
-        h1 { margin: 0 0 20px 0; color: #e94560; }
-        p { font-size: 18px; margin-bottom: 20px; }
+        h1 { margin: 0 0 10px 0; color: #e94560; }
+        p { margin-bottom: 20px; font-size: 18px; }
 
         button {
             padding: 12px 30px;
@@ -74,200 +73,205 @@
             color: white;
             cursor: pointer;
             border-radius: 5px;
-            transition: transform 0.1s, background 0.2s;
+            transition: transform 0.1s, background-color 0.2s;
         }
 
         button:hover { background-color: #ff4d6d; }
         button:active { transform: scale(0.95); }
 
         .controls-hint {
-            margin-top: 20px;
+            position: absolute;
+            bottom: 20px;
             font-size: 14px;
-            color: #888;
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        <div id="score-board">Score: 0</div>
-        <div id="ui-layer">
-            <div id="menu">
-                <h1 id="status-text">PULSE RUNNER</h1>
-                <p id="final-score">Final Score: 0</p>
-                <button onclick="resetGame()">START GAME</button>
-            </div>
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="scoreBoard">Score: 0</div>
+    
+    <div id="uiLayer">
+        <div id="gameOverScreen">
+            <h1>GAME OVER</h1>
+            <p id="finalScoreText">Score: 0</p>
+            <button onclick="resetGame()">RESTART</button>
         </div>
+        <div class="controls-hint" id="hint">Press SPACE or CLICK to Jump</div>
     </div>
+</div>
 
-    <div class="controls-hint">Press SPACE or TAP to Jump</div>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('scoreBoard');
+    const finalScoreText = document.getElementById('finalScoreText');
+    const gameOverScreen = document.getElementById('gameOverScreen');
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score-board');
-        const menu = document.getElementById('menu');
-        const finalScoreText = document.getElementById('final-score');
-        const statusText = document.getElementById('status-text');
+    // Game Constants
+    canvas.width = 800;
+    canvas.height = 400;
+    const GRAVITY = 0.6;
+    const JUMP_FORCE = -12;
+    const INITIAL_SPEED = 5;
+    const SPEED_INCREMENT = 0.001;
 
-        // Game Constants
-        const GRAVITY = 0.6;
-        const JUMP_FORCE = -12;
-        const INITIAL_SPEED = 5;
-        const SPEED_INCREMENT = 0.001;
-        const OBSTACLE_SPAWN_CHANCE = 0.02;
+    // Game State
+    let score = 0;
+    let gameActive = true;
+    let speed = INITIAL_SPEED;
+    let obstacles = [];
+    let frameCount = 0;
 
-        // Game State
-        let player, obstacles, score, gameSpeed, isGameOver, animationId;
+    const player = {
+        x: 80,
+        y: canvas.height - 50,
+        width: 35,
+        height: 35,
+        velocityY: 0,
+        color: '#4ecca3',
+        jump() {
+            if (this.y === canvas.height - this.height) {
+                this.velocityY = JUMP_FORCE;
+            }
+        },
+        update() {
+            this.velocityY += GRAVITY;
+            this.y += this.velocityY;
 
-        class Player {
-            constructor() {
-                this.width = 35;
-                this.height = 35;
-                this.x = 80;
-                this.y = canvas.height - this.height - 20;
-                this.vy = 0;
-                this.color = '#e94560';
+            // Floor collision
+            if (this.y > canvas.height - this.height) {
+                this.y = canvas.height - this.height;
+                this.velocityY = 0;
+            }
+        },
+        draw() {
+            ctx.fillStyle = this.color;
+            // Add a little "pulse" effect to player
+            const pulse = Math.sin(Date.now() / 100) * 3;
+            ctx.fillRect(this.x - pulse/2, this.y - pulse/2, this.width + pulse, this.height + pulse);
+        }
+    };
+
+    class Obstacle {
+        constructor() {
+            this.width = 30 + Math.random() * 40;
+            this.height = 30 + Math.random() * 50;
+            this.x = canvas.width;
+            this.y = canvas.height - this.height;
+            this.color = '#e94560';
+        }
+
+        update() {
+            this.x -= speed;
+        }
+
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            // Glow effect
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = this.color;
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    function spawnObstacle() {
+        const minGap = 70; // minimum frames between obstacles
+        if (frameCount > frameCount + minGap) {
+             // logic handled by random probability to vary distance
+        }
+        // Randomly spawn based on speed and chance
+        if (Math.random() < 0.02 && frameCount % 10 === 0) {
+            obstacles.push(new Obstacle());
+        }
+    }
+
+    function checkCollision(p, o) {
+        return p.x < o.x + o.width &&
+               p.x + p.width > o.x &&
+               p.y < o.y + o.height &&
+               p.y + p.height > o.y;
+    }
+
+    function resetGame() {
+        score = 0;
+        speed = INITIAL_SPEED;
+        obstacles = [];
+        gameActive = true;
+        frameCount = 0;
+        player.y = canvas.height - player.height;
+        player.velocityY = 0;
+        gameOverScreen.style.display = 'none';
+        scoreElement.innerText = `Score: 0`;
+        requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        finalScoreText.innerText = `Final Score: ${Math.floor(score)}`;
+        gameOverScreen.style.display = 'block';
+    }
+
+    // Input Handling
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') player.jump();
+    });
+    canvas.addEventListener('mousedown', () => player.jump());
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        player.jump();
+    }, {passive: false});
+
+    function gameLoop() {
+        if (!gameActive) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Background Grid Effect
+        ctx.strokeStyle = '#1f4068';
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.width; i+=50) {
+            ctx.beginPath(); ctx.moveTo(i - (frameCount % 50), 0); ctx.lineTo(i - (frameCount % 50), canvas.height); ctx.stroke();
+        }
+
+        // Update Player
+        player.update();
+        player.draw();
+
+        // Handle Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            obstacles[i].update();
+            obstacles[i].draw();
+
+            // Collision Detection
+            if (checkCollision(player, obstacles[i])) {
+                gameOver();
             }
 
-            jump() {
-                if (this.y === canvas.height - this.height - 20) {
-                    this.vy = JUMP_FORCE;
-                }
-            }
-
-            update() {
-                this.vy += GRAVITY;
-                this.y += this.vy;
-
-                // Ground collision
-                const groundY = canvas.height - this.height - 20;
-                if (this.y > groundY) {
-                    this.y = groundY;
-                    this.vy = 0;
-                }
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                // Draw player with a slight glow effect
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.shadowBlur = 0;
+            // Remove off-screen obstacles and increase score
+            if (obstacles[i].x + obstacles[i].width < 0) {
+                obstacles.splice(i, 1);
+                score += 10;
+                speed += SPEED_INCREMENT; // Speed ramping
+                scoreElement.innerText = `Score: ${Math.floor(score)}`;
             }
         }
 
-        class Obstacle {
-            constructor(speed) {
-                this.width = 25 + Math.random() * 30;
-                this.height = 40 + Math.random() * 40;
-                this.x = canvas.width;
-                this.y = canvas.height - this.height - 20;
-                this.speed = speed;
-                this.color = '#0f3460'; // Darker contrast for the obstacle itself
-            }
-
-            update() {
-                this.x -= this.speed;
-            }
-
-            draw() {
-                ctx.fillStyle = '#533483';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                // Outline for obstacle
-                ctx.strokeStyle = '#e94560';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, this.y, this.width, this.height);
-            }
+        // Spawn logic (frequency increases with speed)
+        if (frameCount % Math.max(20, Math.floor(60 - speed)) === 0) {
+             if (Math.random() < 0.3) obstacles.push(new Obstacle());
         }
 
-        function init() {
-            player = new Player();
-            obstacles = [];
-            score = 0;
-            gameSpeed = INITIAL_SPEED;
-            isGameOver = false;
-            menu.style.display = 'block';
-            statusText.innerText = "PULSE RUNNER";
-            finalScoreText.innerText = "";
-        }
+        frameCount++;
+        requestAnimationFrame(gameLoop);
+    }
 
-        function resetGame() {
-            init();
-            animate();
-        }
-
-        function gameOver() {
-            isGameOver = true;
-            cancelAnimationFrame(animationId);
-            statusText.innerText = "GAME OVER";
-            finalScoreText.innerText = "Final Score: " + Math.floor(score);
-            menu.style.display = 'block';
-        }
-
-        function animate() {
-            if (isGameOver) return;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Ground Line
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height - 20);
-            ctx.lineTo(canvas.width, canvas.height - 20);
-            ctx.strokeStyle = '#533483';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Update & Draw Player
-            player.update();
-            player.draw();
-
-            // Handle Obstacles
-            if (Math.random() < OBSTACLE_SPAWN_CHANCE) {
-                obstacles.push(new Obstacle(gameSpeed));
-            }
-
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].update();
-                obstacles[i].draw();
-
-                // Collision Detection
-                if (
-                    player.x < obstacles[i].x + obstacles[i].width &&
-                    player.x + player.width > obstacles[i].x &&
-                    player.y < obstacles[i].y + obstacles[i].height &&
-                    player.y + player.height > obstacles[i].y
-                ) {
-                    gameOver();
-                }
-
-                // Remove off-screen obstacles and increase score
-                if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1);
-                    score += 1;
-                    gameSpeed += SPEED_INCREMENT; // Speed ramping
-                }
-            }
-
-            // Update Score UI
-            scoreElement.innerText = `Score: ${Math.floor(score)}`;
-
-            animationId = requestAnimationFrame(animate);
-        }
-
-        // Controls
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') player.jump();
-        });
-
-        canvas.addEventListener('touchstart', () => {
-            player.jump();
-        }, false);
-
-        // Initial Load
-        init();
-    </script>
+    // Start the game
+    resetGame();
+</script>
 </body>
 </html>

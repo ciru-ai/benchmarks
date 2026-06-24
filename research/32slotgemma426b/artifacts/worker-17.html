@@ -10,8 +10,7 @@
             --display-bg: #0f3460;
             --text-color: #00ffcc;
             --warning: #ff4d4d;
-            --success: #00ff88;
-            --accent: #e94560;
+            --accent: #4ecca3;
         }
 
         body {
@@ -24,299 +23,298 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            text-transform: uppercase;
+            user-select: none;
         }
 
-        #cockpit {
-            width: 95vw;
-            height: 85vh;
+        #control-panel {
             background: var(--panel-bg);
+            width: 90vw;
+            max-width: 1000px;
+            height: 80vh;
             border: 4px solid #333;
             border-radius: 20px;
             display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
-            grid-template-rows: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1.5fr;
+            grid-template-rows: auto 1fr auto;
             gap: 15px;
             padding: 20px;
-            box-shadow: inset 0 0 50px #000, 0 0 30px rgba(0,255,204,0.2);
+            box-shadow: 0 0 50px rgba(0, 255, 204, 0.2);
         }
 
-        .module {
-            background: var(--display-bg);
-            border: 2px solid #16213e;
-            padding: 15px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
-        }
-
-        h2 {
-            margin: 0 0 10px 0;
-            font-size: 0.9rem;
-            border-bottom: 1px solid var(--text-color);
-            padding-bottom: 5px;
+        /* Header / Status Bar */
+        header {
+            grid-column: span 3;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 10px;
+            font-weight: bold;
             letter-spacing: 2px;
         }
 
-        /* Gauges */
-        .gauge-container {
+        /* Gauges Section */
+        .gauges {
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-            height: 100%;
+            gap: 20px;
         }
 
-        .gauge-bar-outer {
+        .gauge-container {
+            background: #000;
+            padding: 15px;
+            border: 1px solid var(--accent);
+            text-align: center;
+        }
+
+        .gauge-bar-bg {
             width: 100%;
-            height: 25px;
-            background: #0a0a1a;
-            border: 1px solid var(--text-color);
-            margin: 5px 0;
+            height: 20px;
+            background: #222;
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
         }
 
-        .gauge-bar-inner {
+        .gauge-fill {
             height: 100%;
             width: 50%;
-            background: linear-gradient(90deg, #00ffcc, #0088ff);
-            transition: width 0.3s ease;
+            background: var(--accent);
+            transition: width 0.3s ease, background 0.5s;
         }
 
-        /* Controls */
+        /* Controls Section */
         .controls {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
         button {
-            background: #16213e;
-            border: 2px solid var(--text-color);
-            color: var(--text-color);
-            padding: 15px;
+            background: #222;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 15px 5px;
             cursor: pointer;
-            font-family: inherit;
+            font-family: 'Courier New', monospace;
             font-weight: bold;
-            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: #000;
         }
 
         button:active {
             transform: scale(0.95);
-            background: var(--text-color);
-            color: black;
         }
 
-        button.danger { border-color: var(--warning); color: var(--warning); }
-        button.danger:hover { background: var(--warning); color: white; }
+        button.danger {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
 
-        /* Log */
-        #log {
-            font-size: 0.75rem;
-            height: 120px;
+        button.danger:hover {
+            background: var(--warning);
+            color: #000;
+        }
+
+        /* Log Section */
+        .log-panel {
+            background: black;
+            border: 1px solid #444;
+            padding: 10px;
+            font-size: 0.85rem;
             overflow-y: auto;
-            color: #88aaff;
-            scrollbar-width: none;
+            display: flex;
+            flex-direction: column-reverse;
         }
-        #log::-webkit-scrollbar { display: none; }
+
+        .log-entry { margin-bottom: 5px; }
+        .log-time { color: #888; margin-right: 10px; }
+        .log-warn { color: var(--warning); font-weight: bold; }
 
         /* Warning Light */
-        .warning-light {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 20px;
-            height: 20px;
+        #alert-light {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: #300;
-            box-shadow: none;
+            box-shadow: inset 0 0 10px #000;
+            display: inline-block;
         }
 
-        .warning-active {
+        .alert-active {
             animation: blink 0.5s infinite alternate;
             background: var(--warning) !important;
-            box-shadow: 0 0 15px var(--warning);
+            box-shadow: 0 0 20px var(--warning);
         }
 
         @keyframes blink {
             from { opacity: 1; }
-            to { opacity: 0.2; }
+            to { opacity: 0.3; }
         }
 
-        /* Map/Radar */
-        #radar {
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, #1b4332 0%, #081c15 100%);
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .radar-sweep {
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(from 0deg, transparent 70%, rgba(0, 255, 136, 0.4) 100%);
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            animation: sweep 4s linear infinite;
-        }
-
-        @keyframes sweep {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .blip {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            opacity: 0.6;
-        }
     </style>
 </head>
 <body>
 
-<div id="cockpit">
-    <!-- Left Column -->
-    <div class="module">
-        <h2>Systems Status</h2>
+<div id="control-panel">
+    <header>
+        <span>USS-ENTERPRISE // STATUS: <span id="ship-status">NOMINAL</span></span>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="clock">00:00:00</span>
+            <div id="alert-light"></div>
+        </div>
+    </header>
+
+    <section class="gauges">
         <div class="gauge-container">
-            <div>
-                <label>Engine Power</label>
-                <div class="gauge-bar-outer"><div id="engine-gauge" class="gauge-bar-inner" style="width: 65%"></div></div>
-            </div>
-            <div>
-                <label>Shield Integrity</label>
-                <div class="gauge-bar-outer"><div id="shield-gauge" class="gauge-bar-inner" style="width: 100%"></div></div>
-            </div>
-            <div>
-                <label>Oxygen Level</label>
-                <div class="gauge-bar-outer"><div id="oxygen-gauge" class="gauge-bar-inner" style="width: 92%"></div></div>
-            </div>
+            <div>ENGINE OUTPUT</div>
+            <div class="gauge-bar-bg"><div id="engine-fill" class="gauge-fill"></div></div>
         </div>
-    </div>
-
-    <!-- Center Column -->
-    <div class="module">
-        <h2>Tactical Radar</h2>
-        <div id="radar">
-            <div class="radar-sweep"></div>
-            <div id="blip" class="blip" style="top: 30%; left: 60%;"></div>
+        <div class="gauge-container">
+            <div>SHIELD INTEGRITY</div>
+            <div class="gauge-bar-bg"><div id="shield-fill" class="gauge-fill"></div></div>
         </div>
-    </div>
-
-    <!-- Right Column -->
-    <div class="module">
-        <h2>Command Input</h2>
-        <div class="controls">
-            <button onclick="updateSystem('engine', 10)">THRUST</button>
-            <button onclick="updateSystem('engine', -10)">RETARD</button>
-            <button onclick="toggleShields()" id="shield-btn">SHIELDS: ON</button>
-            <button class="danger" onclick="triggerAlert()">ALARM</button>
+        <div class="gauge-container">
+            <div>OXYGEN LEVEL</div>
+            <div class="gauge-bar-bg"><div id="oxygen-fill" class="gauge-fill"></div></div>
         </div>
-    </div>
+    </section>
 
-    <!-- Bottom Left -->
-    <div class="module">
-        <h2>Comms Log</h2>
-        <div id="log">
-            <div>[SYS] All systems nominal...</div>
-        </div>
-    </div>
+    <section class="controls">
+        <button onclick="adjustEngine(10)">Engage Warp</button>
+        <button onclick="adjustEngine(-10)">Reduce Power</button>
+        <button onclick="repairShields()">Repair Shields</button>
+        <button onclick="toggleLifeSupport()" id="life-support-btn">LS: ON</button>
+        <button class="danger" style="grid-column: span 2;" onclick="triggerEmergency()">EMERGENCY VENT</button>
+    </section>
 
-    <!-- Bottom Center/Right (Combined via grid span) -->
-    <div class="module" style="grid-column: 2 / 4;">
-        <h2>Core Diagnostics</h2>
-        <div id="diag-text">READY FOR COMMANDS...</div>
-        <div id="warning-light" class="warning-light"></div>
-    </div>
+    <section class="log-panel" id="log-display">
+        <!-- Logs appear here -->
+    </section>
 </div>
 
 <script>
-    const state = {
-        engine: 65,
-        shields: true,
-        oxygen: 92,
-        alertMode: false
+    // State Management
+    let state = {
+        engine: 40,
+        shields: 100,
+        oxygen: 95,
+        lifeSupport: true,
+        isAlert: false,
+        status: 'NOMINAL'
     };
 
-    function log(msg) {
-        const logEl = document.getElementById('log');
+    const logDisplay = document.getElementById('log-display');
+    const alertLight = document.getElementById('alert-light');
+
+    // Helper functions
+    function addLog(msg, type = '') {
         const entry = document.createElement('div');
-        entry.textContent = `[${new Date().toLocaleTimeString([], {hour12:false})}] ${msg}`;
-        logEl.prepend(entry);
+        entry.className = `log-entry ${type}`;
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        entry.innerHTML = `<span class="log-time">[${time}]</span><span>${msg}</span>`;
+        logDisplay.prepend(entry);
     }
 
-    function updateSystem(type, val) {
-        if (type === 'engine') {
-            state.engine = Math.min(Math.max(state.engine + val, 0), 100);
-            document.getElementById('engine-gauge').style.width = state.engine + '%';
-            log(`Engine thrust adjusted to ${state.engine}%`);
-        }
-    }
+    function updateUI() {
+        // Update Gauges
+        document.getElementById('engine-fill').style.width = `${state.engine}%`;
+        document.getElementById('shield-fill').style.width = `${state.shields}%`;
+        document.getElementById('oxygen-fill').style.width = `${state.oxygen}%`;
 
-    function toggleShields() {
-        state.shields = !state.shields;
-        const btn = document.getElementById('shield-btn');
-        const shieldGauge = document.getElementById('shield-gauge');
-        
-        if (state.shields) {
-            btn.innerText = "SHIELDS: ON";
-            btn.style.color = "#00ff88";
-            shieldGauge.style.width = '100%';
-            log("Shield generators stabilized.");
+        // Color logic for gauges
+        document.getElementById('shield-fill').style.background = state.shields < 30 ? 'var(--warning)' : 'var(--accent)';
+        document.getElementById('engine-fill').style.background = state.engine > 90 ? '#ffcc00' : 'var(--accent)';
+
+        // Status Text and Alert Light
+        const statusEl = document.getElementById('ship-status');
+        if (state.shields < 30 || state.oxygen < 25) {
+            state.isAlert = true;
+            statusEl.innerText = "CRITICAL";
+            statusEl.style.color = "var(--warning)";
+            alertLight.classList.add('alert-active');
+        } else if (state.engine > 90) {
+            state.isAlert = false;
+            statusEl.innerText = "OVERLOAD";
+            statusEl.style.color = "#ffcc00";
+            alertLight.classList.remove('alert-active');
         } else {
-            btn.innerText = "SHIELDS: OFF";
-            btn.style.color = "#ff4d4d";
-            shieldGauge.style.width = '0%';
-            log("WARNING: Shields offline!");
+            state.isAlert = false;
+            statusEl.innerText = "NOMINAL";
+            statusEl.style.color = "var(--text-color)";
+            alertLight.classList.remove('alert-active');
         }
+
+        document.getElementById('life-support-btn').innerText = `LS: ${state.lifeSupport ? 'ON' : 'OFF'}`;
     }
 
-    function triggerAlert() {
-        state.alertMode = !state.alertMode;
-        const light = document.getElementById('warning-light');
-        if (state.alertMode) {
-            light.classList.add('warning-active');
-            document.body.style.boxShadow = "inset 0 0 100px rgba(255,77,77,0.3)";
-            log("!!! CRITICAL ALERT ACTIVATED !!!");
-            document.getElementById('diag-text').innerText = "SYSTEM ERROR: UNKNOWN ANOMALY DETECTED";
+    // Control Actions
+    function adjustEngine(val) {
+        state.engine = Math.min(100, Math.max(0, state.engine + val));
+        addLog(`Engine output adjusted to ${state.engine}%`);
+        updateUI();
+    }
+
+    function repairShields() {
+        if (state.shields < 100) {
+            state.shields = Math.min(100, state.shields + 15);
+            addLog("Shield reinforcement sequence initiated.");
+            updateUI();
         } else {
-            light.classList.remove('warning-active');
-            document.body.style.boxShadow = "none";
-            log("Alert cleared by command.");
-            document.getElementById('diag-text').innerText = "READY FOR COMMANDS...";
+            addLog("Shields at maximum capacity.");
         }
     }
 
-    // Random events simulation
+    function toggleLifeSupport() {
+        state.lifeSupport = !state.lifeSupport;
+        addLog(`Life support toggled: ${state.lifeSupport ? 'ENABLED' : 'DISABLED'}`, state.lifeSupport ? '' : 'log-warn');
+        updateUI();
+    }
+
+    function triggerEmergency() {
+        state.engine = 0;
+        state.shields -= 20;
+        addLog("!!! EMERGENCY VENTING INITIATED !!!", "log-warn");
+        updateUI();
+    }
+
+    // Simulation Loop (Passive decay/events)
     setInterval(() => {
-        if (!state.alertMode) {
-            // Subtle oxygen depletion
-            state.oxygen -= 0.1;
-            document.getElementById('oxygen-gauge').style.width = state.oxygen + '%';
-            
-            if (Math.random() > 0.95) {
-                log("Minor cosmic radiation detected.");
-            }
+        // Oxygen decays if life support is off or engine is high
+        if (!state.lifeSupport) {
+            state.oxygen = Math.max(0, state.oxygen - 1);
         } else {
-            // Chaos mode during alert
-            state.engine -= Math.random() * 2;
-            document.getElementById('engine-gauge').style.width = state.engine + '%';
+            state.oxygen = Math.min(100, state.oxygen + 0.2);
         }
 
-        // Random blip movement
-        const blip = document.getElementById('blip');
-        if (Math.random() > 0.7) {
-            blip.style.top = Math.random() * 80 + "%";
-            blip.style.left = Math.random() * 80 + "%";
+        // Random damage events
+        if (Math.random() > 0.98 && state.shields < 100) {
+            const dmg = Math.floor(Math.random() * 5) + 1;
+            state.shields = Math.max(0, state.shields - dmg);
+            addLog(`Micrometeoroid impact! Shields lost ${dmg}%`, 'log-warn');
         }
 
+        // Engine heat/drain logic
+        if (state.engine > 80) {
+            state.oxygen -= 0.1; // High engine usage consumes more air
+        }
+
+        updateUI();
+    }, 2000);
+
+    // Clock update
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], { hour12: false });
     }, 1000);
 
-</script>
+    // Init
+    addLog("System Boot Sequence Complete.");
+    addLog("All systems operational.");
+    updateUI();
 
+</script>
 </body>
 </html>

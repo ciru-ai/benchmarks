@@ -17,7 +17,7 @@
             display: block;
         }
 
-        .controls {
+        #ui-layer {
             position: absolute;
             bottom: 30px;
             left: 50%;
@@ -26,18 +26,18 @@
             padding: 15px 25px;
             border-radius: 50px;
             display: flex;
-            gap: 20px;
             align-items: center;
+            gap: 20px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 10;
+            user-select: none;
         }
 
         .control-group {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            gap: 10px;
             color: white;
             font-size: 12px;
             text-transform: uppercase;
@@ -46,105 +46,65 @@
 
         input[type=range] {
             cursor: pointer;
-            accent-color: #ff0055;
+            accent-color: #ff007a;
         }
 
-        .label {
-            margin-bottom: 5px;
-            opacity: 0.7;
+        .label-val {
+            min-width: 35px;
+            text-align: right;
         }
 
-        h1 {
+        #status {
             position: absolute;
             top: 20px;
-            left: 30px;
-            color: white;
-            font-weight: 200;
-            letter-spacing: 5px;
-            margin: 0;
-            opacity: 0.5;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
 
-    <h1>SYNTH_VISUAL</h1>
+    <div id="status">SYNTHETIC AUDIO SIMULATION ACTIVE</div>
 
-    <div class="controls">
+    <div id="ui-layer">
         <div class="control-group">
-            <span class="label">Intensity</span>
-            <input type="range" id="intensity" min="0.5" max="3" step="0.1" value="1.5">
+            <span>Intensity</span>
+            <input type="range" id="intensity" min="1" max="10" step="0.1" value="5">
         </div>
         <div class="control-group">
-            <span class="label">Speed</span>
-            <input type="range" id="speed" min="0.2" max="2" step="0.1" value="1">
+            <span>Speed</span>
+            <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
         </div>
         <div class="control-group">
-            <span class="label">Color Shift</span>
-            <input type="range" id="hue" min="0" max="360" step="1" value="280">
+            <span>Color Shift</span>
+            <input type="range" id="colorShift" min="0" max="360" step="1" value="280">
         </div>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="visualizer"></canvas>
 
     <script>
-        const canvas = document.getElementById('canvas');
+        const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         const intensityInput = document.getElementById('intensity');
         const speedInput = document.getElementById('speed');
-        const hueInput = document.getElementById('hue');
+        const colorInput = document.getElementById('colorShift');
 
         let width, height;
         let bars = [];
         const barCount = 64;
         let frame = 0;
+
+        // Simulation variables (The "Fake" Audio Data)
         let beatPulse = 0;
-
-        // Configuration
-        class Bar {
-            constructor(index) {
-                this.index = index;
-                this.reset();
-            }
-
-            reset() {
-                this.height = Math.random() * height / 2;
-                this.targetHeight = this.height;
-                this.offset = (Math.sin(this.index * 0.5) * 100);
-            }
-
-            update(intensity, speed) {
-                // Simulate audio frequency fluctuation using sine waves + randomness
-                const noise = Math.sin(frame * 0.02 * speed + this.index) * 50;
-                const pulseMod = beatPulse * 150 * intensity;
-                this.targetHeight = (Math.abs(noise) + (beatPulse * 300)) * intensity;
-                
-                // Smooth transition to target height
-                this.height += (this.targetHeight - this.height) * 0.2;
-            }
-
-            draw(ctx, hueBase) {
-                const barWidth = width / barCount;
-                const x = this.index * barWidth;
-                const y = height / 2 - this.height / 2;
-
-                // Create Gradient
-                const grad = ctx.createLinearGradient(0, height/2 - this.height, 0, height/2 + this.height);
-                grad.addColorStop(0, `hsla(${hueBase}, 80%, 60%, 0)`);
-                grad.addColorStop(0.5, `hsla(${(hueBase + 40) % 360}, 100%, 50%, ${0.5 * beatPulse + 0.2})`);
-                grad.addColorStop(1, `hsla(${hueBase}, 80%, 60%, 0)`);
-
-                ctx.fillStyle = grad;
-                ctx.fillRect(x + 2, y, barWidth - 4, this.height);
-            }
-        }
+        let targetBeatPulse = 0;
+        let audioData = new Array(barCount).fill(0);
 
         function init() {
             resize();
-            bars = [];
-            for (let i = 0; i < barCount; i++) {
-                bars.push(new Bar(i));
-            }
+            createBars();
             animate();
         }
 
@@ -153,73 +113,105 @@
             height = canvas.height = window.innerHeight;
         }
 
-        window.addEventListener('resize', resize);
+        function createBars() {
+            bars = [];
+            for (let i = 0; i < barCount; i++) {
+                bars.push({
+                    x: 0,
+                    w: width / barCount + 4,
+                    h: 0,
+                    targetH: 0
+                });
+            }
+        }
+
+        function updateSimulation() {
+            const intensity = parseFloat(intensityInput.value);
+            const speed = parseFloat(speedInput.value);
+            
+            frame += 0.05 * speed;
+
+            // Simulate a rhythmic beat pulse every ~60 frames
+            if (Math.random() > 0.97) {
+                targetBeatPulse = intensity * 50;
+            }
+            beatPulse += (targetBeatPulse - beatPulse) * 0.15;
+            targetBeatPulse *= 0.85;
+
+            // Generate fake frequency data
+            for (let i = 0; i < barCount; i++) {
+                const noise = Math.sin(frame + i * 0.2) * 20;
+                const beatEffect = Math.sin((frame * speed) + (i * 0.1)) * (beatPulse * intensity);
+                // Create complex waveform pattern using multiple sine waves
+                const wave = Math.sin(frame * 0.5 + i * 0.3) * 40;
+                const randomJitter = Math.random() * (intensity * 5);
+                
+                audioData[i] = Math.max(10, 200 + beatEffect + wave + noise + randomJitter);
+            }
+
+            // Update bar heights and positions
+            bars.forEach((bar, i) => {
+                bar.w = (width / barCount) * 0.8;
+                bar.x = i * (width / barCount);
+                bar.h = audioData[i] * intensity;
+            });
+        }
 
         function drawWaveform() {
             ctx.beginPath();
-            ctx.lineWidth = 3;
-            const hueBase = parseInt(hueInput.value);
-            
-            for (let i = 0; i <= barCount; i++) {
-                const x = (i / barCount) * width;
-                // Create a complex waveform using multiple sine waves
-                const wave1 = Math.sin(i * 0.2 + frame * 0.05);
-                const wave2 = Math.sin(i * 0.5 - frame * 0.1);
-                const wave3 = Math.cos(frame * 0.02);
-                
-                const y = (height / 2) + (wave1 * wave2 * wave3 * 100 * intensityInput.value * beatPulse);
+            ctx.lineWidth = 2;
+            const hueBase = parseInt(colorInput.value);
+            ctx.strokeStyle = `hsla(${hueBase}, 80%, 60%, 0.5)`;
 
+            for (let i = 0; i < barCount; i++) {
+                const x = bars[i].x + bars[i].w / 2;
+                const y = height / 2 - audioData[i] * 0.5;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
-            ctx.strokeStyle = `hsla(${hueBase}, 100%, 70%, ${beatPulse})`;
-            ctx.shadowBlur = 20 * beatPulse;
-            ctx.shadowColor = `hsla(${hueBase}, 100%, 50%, 1)`;
             ctx.stroke();
-            ctx.shadowBlur = 0;
         }
 
-        function animate() {
-            // Clear with slight trail effect
+        function drawBars() {
+            const hueBase = parseInt(colorInput.value);
+            bars.forEach((bar, i) => {
+                // Gradient for bars
+                const grad = ctx.createLinearGradient(0, height / 2 - bar.h/2, 0, height / 2 + bar.h/2);
+                grad.addColorStop(0, `hsla(${hueBase}, 80%, 60%, 0)`);
+                grad.addColorStop(0.5, `hsla(${(hueBase + 40) % 360}, 80%, 60%, 1)`);
+                grad.addColorStop(1, `hsla(${hueBase}, 80%, 60%, 0)`);
+
+                ctx.fillStyle = grad;
+                
+                // Draw symmetric bars (top and bottom)
+                const barHeight = bar.h * 2;
+                ctx.fillRect(bar.x, height / 2 - bar.h, bar.w, bar.h); // Top half
+                ctx.fillRect(bar.x, height / 2, bar.w, bar.h);        // Bottom half (inverted style)
+            });
+        }
+
+        function drawBackground() {
+            // Dark trail effect
             ctx.fillStyle = 'rgba(5, 5, 5, 0.15)';
             ctx.fillRect(0, 0, width, height);
 
-            frame++;
+            // Center Glow
+            const glow = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width * 0.6);
+            glow.addColorStop(0, `hsla(${colorInput.value}, 50%, 10%, ${beatPulse / 1000})`);
+            glow.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, width, height);
+        }
 
-            // Simulate a "beat" every ~60 frames using a decaying sine wave pulse
-            // This creates the rhythmic pulsing effect without audio
-            const beatCycle = Math.sin(frame * 0.15);
-            if (beatCycle > 0.9) {
-                beatPulse += (beatCycle - beatPulse) * 0.3;
-            } else {
-                beatPulse *= 0.92; // Decay
-            }
-
-            const intensity = parseFloat(intensityInput.value);
-            const speed = parseFloat(speedInput.value);
-            const hueBase = parseInt(hueInput.value);
-
-            // Draw Background Grid/Glow
-            ctx.strokeStyle = `rgba(${Math.sin(frame*0.01)*50 + 20}, 0, ${Math.cos(frame*0.01)*50 + 20}, 0.1)`;
-            ctx.lineWidth = 1;
-            for(let i=0; i<width; i+=100) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
-            }
-            for(let j=0; j<height; j+=100) {
-                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(width, j); ctx.stroke();
-            }
-
-            // Draw Bars
-            bars.forEach(bar => {
-                bar.update(intensity, speed);
-                bar.draw(ctx, hueBase);
-            });
-
+        function animate() {
+            updateSimulation();
+            drawBackground();
             drawWaveform();
-
+            drawBars();
             requestAnimationFrame(animate);
         }
 
+        window.addEventListener('resize', resize);
         init();
     </script>
 </body>

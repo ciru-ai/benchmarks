@@ -7,8 +7,8 @@
     <style>
         :root {
             --neon-blue: #00f2ff;
-            --neon-pink: #ff00ff;
-            --bg-dark: #0a0a0c;
+            --neon-pink: #ff00e5;
+            --bg-dark: #0a0a12;
         }
 
         body {
@@ -44,11 +44,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            pointer-events: none;
         }
 
         .stats {
@@ -57,26 +57,25 @@
             width: 95%;
             display: flex;
             justify-content: space-between;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             text-shadow: 0 0 10px var(--neon-blue);
             pointer-events: none;
         }
 
         #menu {
-            pointer-events: auto;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(10, 10, 18, 0.9);
             padding: 30px;
             border: 2px solid var(--neon-pink);
             text-align: center;
-            box-shadow: 0 0 30px var(--neon-pink);
+            pointer-events: auto;
         }
 
         h1 {
             margin: 0 0 20px 0;
             font-size: 48px;
             color: var(--neon-blue);
-            text-shadow: 0 0 15px var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
             letter-spacing: 5px;
         }
 
@@ -84,22 +83,24 @@
             padding: 12px 30px;
             font-size: 20px;
             background: transparent;
-            color: white;
+            color: var(--neon-pink);
             border: 2px solid var(--neon-pink);
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
+            font-weight: bold;
         }
 
         button:hover {
             background: var(--neon-pink);
+            color: white;
             box-shadow: 0 0 20px var(--neon-pink);
         }
 
         .controls-hint {
             margin-top: 20px;
             font-size: 14px;
-            color: #aaa;
+            color: #888;
         }
     </style>
 </head>
@@ -109,16 +110,16 @@
         <canvas id="gameCanvas" width="600" height="400"></canvas>
         
         <div class="stats">
-            <span id="scoreDisplay">Score: 0</span>
-            <span id="timerDisplay">Time: 30</span>
+            <span id="scoreDisplay">SCORE: 0</span>
+            <span id="timerDisplay">TIME: 30s</span>
         </div>
 
         <div id="ui-layer">
             <div id="menu">
                 <h1 id="title">NEON DASH</h1>
-                <p id="finalScore" style="display:none; font-size: 24px; margin-bottom: 20px;"></p>
+                <p id="finalScore" style="display:none; font-size: 24px; margin-bottom: 20px;">Final Score: 0</p>
                 <button id="startBtn">Start Game</button>
-                <div class="controls-hint">Use [Arrow Keys] or [WASD] to move</div>
+                <div class="controls-hint">Use Arrow Keys or WASD to move</div>
             </div>
         </div>
     </div>
@@ -128,8 +129,8 @@
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('scoreDisplay');
         const timerDisplay = document.getElementById('timerDisplay');
-        const menu = document.getElementById('menu');
         const startBtn = document.getElementById('startBtn');
+        const menu = document.getElementById('menu');
         const title = document.getElementById('title');
         const finalScoreText = document.getElementById('finalScore');
 
@@ -144,68 +145,78 @@
         let timeLeft = INITIAL_TIME;
         let gameActive = false;
         let player = { x: 300, y: 200, speed: 5 };
-        let targets = [];
+        let target = { x: 0, y: 0 };
         let enemies = [];
+        let particles = [];
         let keys = {};
-        let lastTime = 0;
-        let spawnTimer = 0;
+        let timerInterval;
 
-        // Event Listeners
+        // Input Listeners
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
-        startBtn.addEventListener('click', startGame);
 
-        function startGame() {
+        function initGame() {
             score = 0;
             timeLeft = INITIAL_TIME;
-            player = { x: canvas.width / 2, y: canvas.height / 2, speed: 5 };
-            targets = [];
-            enemies = [];
             gameActive = true;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            enemies = [];
+            particles = [];
+            spawnTarget();
+            
+            scoreDisplay.innerText = `SCORE: ${score}`;
+            timerDisplay.innerText = `TIME: ${timeLeft}s`;
             menu.style.display = 'none';
-            scoreDisplay.innerText = `Score: ${score}`;
-            timerDisplay.innerText = `Time: ${timeLeft}`;
-            requestAnimationFrame(gameLoop);
+            finalScoreText.style.display = 'none';
 
-            // Countdown Timer
-            const timerInterval = setInterval(() => {
-                if (!gameActive) {
-                    clearInterval(timerInterval);
-                    return;
-                }
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
                 timeLeft--;
-                timerDisplay.innerText = `Time: ${timeLeft}`;
+                timerDisplay.innerText = `TIME: ${timeLeft}s`;
                 if (timeLeft <= 0) endGame();
             }, 1000);
+
+            requestAnimationFrame(gameLoop);
         }
 
         function spawnTarget() {
-            targets.push({
-                x: Math.random() * (canvas.width - TARGET_SIZE),
-                y: Math.random() * (canvas.height - TARGET_SIZE),
-                color: '#ff00ff' // Pink targets
-            });
+            target.x = Math.random() * (canvas.width - TARGET_SIZE * 2) + TARGET_SIZE;
+            target.y = Math.random() * (canvas.height - TARGET_SIZE * 2) + TARGET_SIZE;
         }
 
         function spawnEnemy() {
             const side = Math.floor(Math.random() * 4);
             let x, y;
-            if (side === 0) { x = 0; y = Math.random() * canvas.height; } // Left
-            else if (side === 2) { x = canvas.width; y = Math.random() * canvas.height; } // Right
-            else if (side === 1) { x = Math.random() * canvas.width; y = 0; } // Top
+            if(side === 0) { x = 0; y = Math.random() * canvas.height; } // Left
+            else if(side === 1) { x = canvas.width; y = Math.random() * canvas.height; } // Right
+            else if(side === 2) { x = Math.random() * canvas.width; y = 0; } // Top
             else { x = Math.random() * canvas.width; y = canvas.height; } // Bottom
 
             enemies.push({
                 x: x,
                 y: y,
-                vx: (player.x - x) / 150,
-                vy: (player.y - y) / 150,
-                color: '#00f2ff' // Blue enemies
+                vx: (player.x - x) / (timeLeft * 15 + 60), // Speed increases as time decreases
+                vy: (player.y - y) / (timeLeft * 15 + 60),
+                life: 200
             });
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 1.0,
+                    color: color
+                });
+            }
         }
 
         function endGame() {
             gameActive = false;
+            clearInterval(timerInterval);
             menu.style.display = 'block';
             title.innerText = "GAME OVER";
             finalScoreText.innerText = `Final Score: ${score}`;
@@ -213,109 +224,104 @@
             startBtn.innerText = "Try Again";
         }
 
-        function update(dt) {
+        function update() {
             if (!gameActive) return;
 
-            // Player Movement
+            // Movement logic
             if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
             if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
             if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
             if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
 
-            // Boundary Check
+            // Screen bounds
             player.x = Math.max(0, Math.min(canvas.width - PLAYER_SIZE, player.x));
             player.y = Math.max(0, Math.min(canvas.height - PLAYER_SIZE, player.y));
 
-            // Spawn Targets logic (ensure at least one target exists)
-            if (targets.length < 3 && Math.random() < 0.02) spawnTarget();
-            if (targets.length === 0) spawnTarget();
-
-            // Enemy Spawning (gets harder over time)
-            spawnTimer += dt;
-            const spawnRate = Math.max(400, 1500 - (score * 10));
-            if (spawnTimer > spawnRate) {
-                spawnEnemy();
-                spawnTimer = 0;
+            // Target collision
+            const distToTarget = Math.hypot(player.x + PLAYER_SIZE/2 - target.x, player.y + PLAYER_SIZE/2 - target.y);
+            if (distToTarget < PLAYER_SIZE) {
+                score += 10;
+                scoreDisplay.innerText = `SCORE: ${score}`;
+                createParticles(target.x, target.y, '#ff00e5');
+                spawnTarget();
+                // Spawn enemy every time we get a point
+                if (score % 30 === 0) spawnEnemy(); 
             }
 
-            // Update Enemies
+            // Enemy logic
             enemies.forEach((enemy, index) => {
-                enemy.x += enemy.vx * (1 + score/20);
-                enemy.y += enemy.vy * (1 + score/20);
+                enemy.x += enemy.vx * 2;
+                enemy.y += enemy.vy * 2;
 
-                // Collision with Player
-                if (player.x < enemy.x + ENEMY_SIZE &&
-                    player.x + PLAYER_SIZE > enemy.x &&
-                    player.y < enemy.y + ENEMY_SIZE &&
-                    player.y + PLAYER_SIZE > enemy.y) {
+                // Collision with player
+                const distToPlayer = Math.hypot(player.x + PLAYER_SIZE/2 - enemy.x, player.y + PLAYER_SIZE/2 - enemy.y);
+                if (distToPlayer < PLAYER_SIZE / 1.5) {
                     endGame();
                 }
 
-                // Remove enemies that fly off screen
-                if (enemy.x < -50 || enemy.x > canvas.width + 50 || enemy.y < -50 || enemy.y > canvas.height + 50) {
-                    enemies.splice(index, 1);
-                }
+                // Remove old enemies
+                enemy.life--;
+                if (enemy.life <= 0) enemies.splice(index, 1);
             });
 
-            // Update Targets
-            targets.forEach((target, index) => {
-                if (player.x < target.x + TARGET_SIZE &&
-                    player.x + PLAYER_SIZE > target.x &&
-                    player.y < target.y + TARGET_SIZE &&
-                    player.y + PLAYER_SIZE > target.y) {
-                    targets.splice(index, 1);
-                    score++;
-                    scoreDisplay.innerText = `Score: ${score}`;
-                }
+            // Particle logic
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.02;
+                if (p.life <= 0) particles.splice(i, 1);
             });
+
+            // Randomly spawn enemies over time
+            if (Math.random() < 0.02 && score > 50) spawnEnemy();
         }
 
         function draw() {
-            // Clear Canvas
-            ctx.fillStyle = 'rgba(10, 10, 12, 0.3)'; // Motion blur effect
+            ctx.fillStyle = 'rgba(10, 10, 18, 0.3)'; // Motion blur effect
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            if (!gameActive) return;
+            // Draw Target
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff00e5';
+            ctx.fillStyle = '#ff00e5';
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, TARGET_SIZE / 2, 0, Math.PI * 2);
+            ctx.fill();
 
             // Draw Player
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#ffffff';
-            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#00f2ff';
+            ctx.fillStyle = '#00f2ff';
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
 
-            // Draw Targets
-            targets.forEach(target => {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = target.color;
-                ctx.fillStyle = target.color;
-                ctx.fillRect(target.x, target.y, TARGET_SIZE, TARGET_SIZE);
-            });
-
             // Draw Enemies
+            ctx.shadowColor = 'red';
+            ctx.fillStyle = '#ff3333';
             enemies.forEach(enemy => {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = enemy.color;
-                ctx.fillStyle = enemy.color;
                 ctx.beginPath();
-                ctx.arc(enemy.x + ENEMY_SIZE/2, enemy.y + ENEMY_SIZE/2, ENEMY_SIZE/2, 0, Math.PI * 2);
+                ctx.arc(enemy.x, enemy.y, ENEMY_SIZE / 2, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            ctx.shadowBlur = 0; // Reset shadow for performance
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 3, 3);
+            });
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
         }
 
-        function gameLoop(timestamp) {
-            const dt = timestamp - lastTime;
-            lastTime = timestamp;
-
-            update(dt);
+        function gameLoop() {
+            if (!gameActive) return;
+            update();
             draw();
-
-            if (gameActive) {
-                requestAnimationFrame(gameLoop);
-            }
+            requestAnimationFrame(gameLoop);
         }
 
+        startBtn.addEventListener('click', initGame);
     </script>
 </body>
 </html>

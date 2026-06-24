@@ -9,49 +9,42 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #050505;
+            background-color: #000;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        #ui-layer {
+        #ui {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
             text-align: center;
-            pointer-events: none; /* Allows mouse to pass through to canvas */
-            z-index: 10;
+            pointer-events: none; /* Allows mouse interaction to pass through to canvas */
+            user-select: none;
         }
-
         h1 {
             font-size: 3rem;
-            letter-spacing: 8px;
-            text-transform: uppercase;
+            letter-spacing: 0.5rem;
             margin: 0;
+            text-transform: uppercase;
             opacity: 0.8;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.3s ease;
         }
-
         p {
-            font-weight: 200;
-            letter-spacing: 4px;
-            color: #aaa;
-        }
-
-        canvas {
-            display: block;
+            font-size: 1rem;
+            letter-spacing: 0.2rem;
+            color: #4af;
         }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
+    <div id="ui">
         <h1>GLOBE</h1>
-        <p>INTERACTIVE PARTICLE SYSTEM</p>
+        <p>INTERACTIVE PARTICLES</p>
     </div>
 
-    <!-- Load Three.js from CDN -->
+    <!-- Import Map for Three.js modules -->
     <script type="importmap">
         {
             "imports": {
@@ -68,7 +61,7 @@
         const PARTICLE_COUNT = 8000;
         const SPHERE_RADIUS = 5;
 
-        let scene, camera, renderer, particles, particleSystem;
+        let scene, camera, renderer, particles;
         let mouseX = 0, mouseY = 0;
         let targetRotationX = 0, targetRotationY = 0;
 
@@ -76,11 +69,12 @@
         animate();
 
         function init() {
-            // Scene setup
+            // Scene & Camera
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 12;
 
+            // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -92,8 +86,8 @@
             const colors = new Float32Array(PARTICLE_COUNT * 3);
 
             for (let i = 0; i < PARTICLE_COUNT; i++) {
-                // Spherical distribution math
-                const phi = Math.acos(-1 + (2 * i) / PARTICLE_COUNT); // Uniformly distributed on sphere
+                // Distribute points on a sphere using spherical coordinates
+                const phi = Math.acos(-1 + (2 * i) / PARTICLE_COUNT);
                 const theta = Math.sqrt(PARTICLE_COUNT * Math.PI) * phi;
 
                 const x = SPHERE_RADIUS * Math.cos(theta) * Math.sin(phi);
@@ -104,10 +98,12 @@
                 positions[i * 3 + 1] = y;
                 positions[i * 3 + 2] = z;
 
-                // Color logic (Blue to Cyan gradient)
-                colors[i * 3] = 0.2;           // R
-                colors[i * 3 + 1] = 0.5 + Math.random() * 0.5; // G
-                colors[i * 3 + 2] = 1.0;       // B
+                // Color Gradient (Blue to Cyan)
+                const color = new THREE.Color();
+                color.setHSL(0.5 + Math.random() * 0.1, 0.8, 0.5);
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -118,21 +114,11 @@
                 vertexColors: true,
                 transparent: true,
                 opacity: 0.8,
-                blending: THREE.AdditiveBlending,
+                blending: THREE.AdditiveBlending
             });
 
-            particleSystem = new THREE.Points(geometry, material);
-            scene.add(particleSystem);
-
-            // Add a subtle glow/core light (optional)
-            const coreGeom = new THREE.SphereGeometry(SPHERE_RADIUS * 0.95, 32, 32);
-            const coreMat = new THREE.MeshBasicMaterial({
-                color: 0x001133,
-                transparent: true,
-                opacity: 0.4
-            });
-            const core = new THREE.Mesh(coreGeom, coreMat);
-            scene.add(core);
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
 
             // Event Listeners
             window.addEventListener('resize', onWindowResize);
@@ -140,9 +126,13 @@
         }
 
         function onMouseMove(event) {
-            // Normalize mouse coordinates (-1 to +1)
+            // Normalize mouse coordinates from -1 to +1
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Subtle UI interaction: fade text on move
+            const ui = document.getElementById('ui');
+            ui.style.opacity = Math.max(0.2, 1 - (Math.abs(mouseX) + Math.abs(mouseY)) / 2);
         }
 
         function onWindowResize() {
@@ -155,23 +145,16 @@
             requestAnimationFrame(animate);
 
             // Auto-rotation logic
-            particleSystem.rotation.y += 0.002;
-            particleSystem.rotation.x += 0.001;
+            particles.rotation.y += 0.002;
+            particles.rotation.x += 0.001;
 
-            // Interactive mouse influence (Smoothing)
-            targetRotationY += (mouseX * 0.5 - particleSystem.rotation.y) * 0.05;
-            targetRotationX += (-mouseY * 0.5 - particleSystem.rotation.x) * 0.05;
+            // Mouse influence (Interpolation for smoothness)
+            targetRotationY = mouseX * 0.5;
+            targetRotationX = -mouseY * 0.5;
 
-            particleSystem.rotation.y += (targetRotationY - particleSystem.rotation.y) * 0.1;
-            particleSystem.rotation.x += (targetRotationX - particleSystem.rotation.x) * 0.1;
-
-            // Subtle pulse effect
-            const time = Date.now() * 0.001;
-            particleSystem.scale.set(
-                1 + Math.sin(time) * 0.05,
-                1 + Math.sin(time) * 0.05,
-                1 + Math.sin(time) * 0.05
-            );
+            particles.rotation.y += (targetRotationY - particles.rotation.y) * 0.05; // Note: This is a simplified approach, we use additive rotation above too.
+            // To make it feel more responsive to mouse without fighting auto-rotate, let's adjust the target behavior:
+            particles.rotation.y += (mouseX * 0.1 - particles.rotation.y * 0.02); // Just a gentle drift
 
             renderer.render(scene, camera);
         }
