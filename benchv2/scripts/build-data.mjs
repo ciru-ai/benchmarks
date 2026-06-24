@@ -470,6 +470,401 @@ def summarize_mtp_server():
             })
     return entries
 
+def round_lab(value, digits=3):
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return round(float(value), digits)
+    return None
+
+def first_number(*values):
+    for value in values:
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+            return value
+        if isinstance(value, str):
+            try:
+                number = float(value)
+                if math.isfinite(number):
+                    return number
+            except Exception:
+                pass
+    return None
+
+def detect_backend(text, explicit=None):
+    if explicit:
+        return explicit
+    low = str(text or "").lower()
+    if "vulkan" in low or "-vk" in low or "_vk" in low:
+        return "Vulkan"
+    if "rocm" in low or "hip" in low:
+        return "ROCm"
+    if "npu" in low or "fastflow" in low:
+        return "NPU"
+    return None
+
+def extract_int(pattern, text):
+    match = re.search(pattern, str(text or ""), re.IGNORECASE)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except Exception:
+        return None
+
+def clean_setting_value(value):
+    if value is None:
+        return None
+    if isinstance(value, float):
+        return round(value, 4)
+    return value
+
+def settings_from_row(row):
+    settings = row.get("generation_settings") if isinstance(row.get("generation_settings"), dict) else {}
+    timings = row.get("timings") if isinstance(row.get("timings"), dict) else {}
+    label = str(row.get("label") or "")
+    source = str(row.get("source_path") or row.get("sourcePath") or row.get("raw_output") or row.get("rawOutput") or "")
+    text = f"{label} {source}".lower().replace("_", "-")
+
+    batch = first_number(row.get("batch"), settings.get("batch"), extract_int(r"(?:^|[-_])b(\d+)(?:u|[-_])", text), extract_int(r"batch[-_ ]?(\d+)", text))
+    ubatch = first_number(row.get("ubatch"), settings.get("ubatch"), extract_int(r"(?:^|[-_])b\d+u(\d+)", text), extract_int(r"ubatch[-_ ]?(\d+)", text))
+    n_max = first_number(settings.get("speculative.n_max"), settings.get("draft_n"), extract_int(r"(?:req-)?n(\d+)p", text), extract_int(r"nmax(\d+)", text), extract_int(r"n-max[-_]?(\d+)", text))
+    p_min = first_number(settings.get("speculative.p_min"))
+    if p_min is None:
+        match = re.search(r"(?:p|minp|pmin|psplit)(\d+)", text)
+        if match:
+            raw = match.group(1)
+            try:
+                p_min = int(raw) / (1000 if len(raw) >= 3 else 100)
+            except Exception:
+                p_min = None
+    kv = None
+    if row.get("type_k") or row.get("type_v"):
+        kv = "/".join([str(v) for v in (row.get("type_k"), row.get("type_v")) if v])
+    elif "q8kv" in text:
+        kv = "q8/q8"
+    elif "q8q5kv" in text:
+        kv = "q8/q5"
+    elif "f16kv" in text or "f16-kv" in text:
+        kv = "f16/f16"
+    elif "kvu" in text:
+        kv = "unified"
+
+    return {
+        "nMax": clean_setting_value(n_max),
+        "pMin": clean_setting_value(p_min),
+        "minP": clean_setting_value(settings.get("min_p")),
+        "topP": clean_setting_value(settings.get("top_p")),
+        "temperature": clean_setting_value(settings.get("temperature")),
+        "batch": int(batch) if batch is not None else None,
+        "ubatch": int(ubatch) if ubatch is not None else None,
+        "kv": kv,
+        "draftN": timings.get("draft_n") or row.get("draft_n"),
+        "draftAccepted": timings.get("draft_n_accepted") or row.get("draft_n_accepted"),
+        "flashAttn": row.get("flash_attn"),
+    }
+
+def classify_lab_row(row, settings, backend):
+    label = str(row.get("label") or "")
+    source = str(row.get("source_path") or row.get("sourcePath") or row.get("raw_output") or row.get("rawOutput") or "")
+    text = f"{label} {source}".lower().replace("_", "-")
+    if settings.get("nMax") is not None or settings.get("draftN") is not None or "draft" in text or "mtp" in text:
+        test_type = "MTP draft"
+        flag_family = "Draft"
+        flag_label = f"n{settings.get('nMax') if settings.get('nMax') is not None else settings.get('draftN') or '?'}"
+        if settings.get("pMin") is not None:
+            flag_label += f" p{settings.get('pMin')}"
+    elif settings.get("kv") or "kv" in text:
+        test_type = "KV cache"
+        flag_family = "KV"
+        flag_label = settings.get("kv") or "kv"
+    elif settings.get("batch") or settings.get("ubatch"):
+        test_type = "Batch / ubatch"
+        flag_family = "Batching"
+        flag_label = f"b{settings.get('batch') or '?'} / u{settings.get('ubatch') or '?'}"
+    elif "context" in text or "ctx" in text:
+        test_type = "Context ladder"
+        flag_family = "Context"
+        flag_label = f"ctx {row.get('ctx') or row.get('tokens_evaluated') or '?'}"
+    elif backend:
+        test_type = "Backend compare"
+        flag_family = "Backend"
+        flag_label = backend
+    elif settings.get("temperature") is not None or settings.get("minP") is not None or settings.get("topP") is not None or "ngram" in text:
+        test_type = "Sampling"
+        flag_family = "Sampling"
+        flag_label = "sampler"
+    elif row.get("mode") == "pp":
+        test_type = "Prefill"
+        flag_family = "Metric"
+        flag_label = "PP"
+    else:
+        test_type = "Decode"
+        flag_family = "General"
+        flag_label = row.get("mode") or "request"
+    return test_type, flag_family, flag_label
+
+def lab_row_from_api_payload(row, source_kind, fallback_source=None, seq=None):
+    timings = row.get("timings") if isinstance(row.get("timings"), dict) else {}
+    settings = settings_from_row(row)
+    server_props = row.get("server_props") if isinstance(row.get("server_props"), dict) else {}
+    model = row.get("model") or server_props.get("model_path")
+    if not model:
+        model = row.get("modelName")
+    label = row.get("label") or "server-api-row"
+    raw_output = row.get("raw_output") or row.get("rawOutput")
+    source_path = row.get("source_path") or row.get("sourcePath") or fallback_source or raw_output
+    text = " ".join(str(v or "") for v in (label, model, source_path, raw_output))
+    backend = detect_backend(text, row.get("backend"))
+    prompt_tps = first_number(timings.get("prompt_per_second"), row.get("promptTps"))
+    decode_tps = first_number(timings.get("predicted_per_second"), row.get("decodeTps"))
+    mode = row.get("mode")
+    avg_tps = first_number(row.get("avg_tps"), row.get("tps"))
+    if mode == "pp" and avg_tps is not None:
+        prompt_tps = avg_tps
+    if mode == "tg" and avg_tps is not None:
+        decode_tps = avg_tps
+    ctx = first_number(row.get("ctx"), row.get("tokens_evaluated"), timings.get("prompt_n"), row.get("promptTokens"))
+    gen = first_number(row.get("gen"), row.get("tokens_predicted"), timings.get("predicted_n"), row.get("predictedTokens"))
+    if decode_tps is None and prompt_tps is None:
+        return None
+    if gen is not None and gen <= 1 and (decode_tps or 0) >= 1000:
+        return None
+
+    model_row = {"model": model, "modelName": model_name(model), "label": label}
+    model_key = normalized_served_model_key(model_row)
+    quant_key = served_quant_key(model_row)
+    test_type, flag_family, flag_label = classify_lab_row({"label": label, "ctx": ctx, "mode": mode, "source_path": source_path}, settings, backend)
+    accept_rate = None
+    if settings.get("draftN") and settings.get("draftAccepted"):
+        try:
+            accept_rate = float(settings["draftAccepted"]) / float(settings["draftN"])
+        except Exception:
+            accept_rate = None
+    row_id = f"{source_kind}:{seq or row.get('seq') or ''}:{label}:{raw_output or source_path or ''}"
+    return {
+        "id": re.sub(r"[^a-zA-Z0-9_.:/-]+", "-", row_id)[:220],
+        "seq": seq or row.get("seq"),
+        "timestamp": row.get("timestamp_utc") or row.get("timestamp"),
+        "label": label,
+        "sourceKind": source_kind,
+        "sourcePath": compact_path(source_path),
+        "rawOutput": compact_path(raw_output),
+        "samples": compact_path(row.get("samples")),
+        "model": compact_path(model),
+        "modelName": model_name(model),
+        "modelKey": model_key,
+        "family": family_for(f"{model} {label}"),
+        "quantKey": quant_key,
+        "backend": backend,
+        "mode": mode,
+        "testType": test_type,
+        "flagFamily": flag_family,
+        "flagLabel": flag_label,
+        "settings": settings,
+        "ctx": int(ctx) if ctx is not None else None,
+        "gen": int(gen) if gen is not None else None,
+        "promptTps": round_lab(prompt_tps),
+        "decodeTps": round_lab(decode_tps),
+        "ttfpMs": round_lab(row.get("ttfp_ms") or row.get("ttfpMs")),
+        "totalMs": round_lab(row.get("total_ms") or row.get("totalMs")),
+        "acceptRate": round_lab(accept_rate, 5),
+        "vramGiB": gib(row.get("peak_vram_used_bytes")) or row.get("vramGiB") or gib((row.get("memory") or {}).get("peak_vram_used_bytes") if isinstance(row.get("memory"), dict) else None),
+        "gttGiB": gib(row.get("peak_gtt_used_bytes")) or row.get("gttGiB") or gib((row.get("memory") or {}).get("peak_gtt_used_bytes") if isinstance(row.get("memory"), dict) else None),
+        "sysGiB": gib(row.get("peak_sys_used_bytes")) or row.get("sysGiB") or gib((row.get("memory") or {}).get("peak_ram_used_bytes") if isinstance(row.get("memory"), dict) else None),
+        "status": "error" if row.get("error") else "ok",
+        "chartPromotion": row.get("chartPromotion"),
+    }
+
+def parse_api_raw_file(path):
+    final_payload = {}
+    content_chars = 0
+    data_events = 0
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            in_stream = False
+            for line in f:
+                if line.strip() == "STREAM":
+                    in_stream = True
+                    continue
+                if not in_stream or not line.startswith("data:"):
+                    continue
+                payload_text = line[5:].strip()
+                if not payload_text or payload_text == "[DONE]":
+                    continue
+                try:
+                    payload = json.loads(payload_text)
+                except Exception:
+                    continue
+                data_events += 1
+                final_payload = payload
+                if isinstance(payload.get("content"), str):
+                    content_chars += len(payload.get("content"))
+    except Exception:
+        return None
+    timings = final_payload.get("timings") if isinstance(final_payload.get("timings"), dict) else {}
+    if not timings:
+        return None
+    base = os.path.basename(path)
+    label = re.sub(r"^\d{8}T\d{6}Z-", "", base)
+    label = re.sub(r"-api\.raw$", "", label)
+    timestamp = None
+    m = re.match(r"(\d{8}T\d{6}Z)-", base)
+    if m:
+        timestamp = m.group(1)
+    row = {
+        "label": label,
+        "timestamp_utc": timestamp,
+        "mode": "tg" if timings.get("predicted_per_second") is not None else None,
+        "model": final_payload.get("model"),
+        "ctx": timings.get("prompt_n") or final_payload.get("tokens_evaluated"),
+        "gen": timings.get("predicted_n") or final_payload.get("tokens_predicted"),
+        "timings": timings,
+        "generation_settings": final_payload.get("generation_settings") if isinstance(final_payload.get("generation_settings"), dict) else {},
+        "tokens_evaluated": final_payload.get("tokens_evaluated"),
+        "tokens_predicted": final_payload.get("tokens_predicted"),
+        "response_chars": content_chars,
+        "raw_output": path,
+        "source_path": path,
+        "data_events": data_events,
+    }
+    return lab_row_from_api_payload(row, "api-raw", fallback_source=path)
+
+def summarize_serving_lab(cur, mtp_rows, server_tuning):
+    rows = []
+    seen = set()
+
+    def add(row):
+        if not row:
+            return
+        key = row.get("rawOutput") or row.get("sourcePath") or row.get("id")
+        if key in seen:
+            return
+        seen.add(key)
+        rows.append(row)
+
+    sql = """
+    SELECT seq,timestamp_utc,label,kind,mode,ctx,gen,avg_tps,ttfp_ms,model,backend,type_k,type_v,
+           batch,ubatch,peak_vram_used_bytes,peak_gtt_used_bytes,peak_sys_used_bytes,row_json,raw_output,samples,source_path
+    FROM benchmark_rows
+    WHERE kind='llama-server-api'
+    ORDER BY seq
+    """
+    for db_row in cur.execute(sql):
+        rj = safe_json(db_row["row_json"])
+        item = dict(rj)
+        for key in ("seq", "timestamp_utc", "label", "mode", "ctx", "gen", "avg_tps", "ttfp_ms", "model", "backend", "type_k", "type_v", "batch", "ubatch", "peak_vram_used_bytes", "peak_gtt_used_bytes", "peak_sys_used_bytes", "raw_output", "samples", "source_path"):
+            value = db_row[key]
+            if value is not None:
+                item[key] = value
+        add(lab_row_from_api_payload(item, "benchmark-store", seq=db_row["seq"]))
+
+    for path in sorted(glob.glob("/home/crown/bench-results/llama/**/results.jsonl", recursive=True)):
+        if path == "/home/crown/bench-results/llama/results.jsonl":
+            continue
+        for item in read_jsonl(path):
+            if item.get("kind") == "llama-server-api":
+                item = dict(item)
+                item.setdefault("source_path", path)
+                add(lab_row_from_api_payload(item, "results-jsonl", fallback_source=path))
+
+    for path in sorted(glob.glob("/home/crown/bench-results/llama/**/*-api.raw", recursive=True)):
+        add(parse_api_raw_file(path))
+
+    for mtp in mtp_rows:
+        pseudo = {
+            "label": mtp.get("label"),
+            "timestamp": None,
+            "mode": "tg",
+            "modelName": mtp.get("modelName"),
+            "model": mtp.get("model") or mtp.get("modelName"),
+            "ctx": mtp.get("ctx"),
+            "gen": mtp.get("predictedTokens"),
+            "decodeTps": mtp.get("decodeTps"),
+            "promptTps": mtp.get("promptTps"),
+            "totalMs": mtp.get("avgTotalMs"),
+            "settings": {},
+            "rawOutput": mtp.get("file"),
+            "sourcePath": mtp.get("file"),
+        }
+        row = lab_row_from_api_payload(pseudo, "mtp-server")
+        if row:
+            row["acceptRate"] = mtp.get("acceptRate")
+            row["flagFamily"] = "Draft"
+            row["flagLabel"] = mtp.get("configId") or row["flagLabel"]
+            row["testType"] = "MTP draft"
+            add(row)
+
+    for tuning in (server_tuning.get("rows") or []):
+        pseudo = {
+            "label": tuning.get("label"),
+            "timestamp": tuning.get("timestamp"),
+            "mode": "tg",
+            "modelName": tuning.get("modelName"),
+            "model": tuning.get("modelName"),
+            "ctx": tuning.get("promptTokens"),
+            "gen": tuning.get("generatedTokens"),
+            "decodeTps": tuning.get("decodeTps"),
+            "promptTps": tuning.get("promptTps"),
+            "totalMs": tuning.get("totalMs"),
+            "ttfpMs": tuning.get("ttfpMs"),
+            "rawOutput": tuning.get("sourcePath"),
+            "sourcePath": tuning.get("sourcePath"),
+        }
+        row = lab_row_from_api_payload(pseudo, "server-tuning")
+        if row:
+            row["acceptRate"] = tuning.get("acceptRate")
+            row["testType"] = tuning.get("group") or row["testType"]
+            row["flagLabel"] = tuning.get("displayLabel") or row["flagLabel"]
+            add(row)
+
+    model_groups = collections.defaultdict(list)
+    flag_groups = collections.defaultdict(list)
+    for row in rows:
+        model_groups[row["modelKey"]].append(row)
+        flag_groups[(row["flagFamily"], row["flagLabel"])].append(row)
+
+    models = []
+    for model_key, group in model_groups.items():
+        best_decode = max(group, key=lambda item: item.get("decodeTps") or -1)
+        best_prompt = max(group, key=lambda item: item.get("promptTps") or -1)
+        models.append({
+            "modelKey": model_key,
+            "modelName": max(group, key=lambda item: len(item.get("modelName") or "")).get("modelName"),
+            "family": group[0].get("family"),
+            "rows": len(group),
+            "quantKeys": sorted({r.get("quantKey") for r in group if r.get("quantKey")}),
+            "testTypes": sorted({r.get("testType") for r in group if r.get("testType")}),
+            "flagFamilies": sorted({r.get("flagFamily") for r in group if r.get("flagFamily")}),
+            "bestDecodeTps": best_decode.get("decodeTps"),
+            "bestDecodeLabel": best_decode.get("label"),
+            "bestPromptTps": best_prompt.get("promptTps"),
+            "bestPromptLabel": best_prompt.get("label"),
+        })
+
+    flags = []
+    for (family, label), group in flag_groups.items():
+        best_decode = max(group, key=lambda item: item.get("decodeTps") or -1)
+        flags.append({
+            "flagFamily": family,
+            "flagLabel": label,
+            "rows": len(group),
+            "models": len({r.get("modelKey") for r in group}),
+            "bestDecodeTps": best_decode.get("decodeTps"),
+            "bestDecodeLabel": best_decode.get("label"),
+            "bestModel": best_decode.get("modelName"),
+        })
+
+    return {
+        "meta": {
+            "generatedAtUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "rowCount": len(rows),
+            "modelCount": len(models),
+            "flagCount": len(flags),
+            "sourceCounts": dict(collections.Counter(row.get("sourceKind") for row in rows)),
+        },
+        "models": sorted(models, key=lambda item: (item.get("bestDecodeTps") or -1, item.get("rows") or 0), reverse=True),
+        "flags": sorted(flags, key=lambda item: (item.get("flagFamily") or "", -(item.get("bestDecodeTps") or -1), item.get("flagLabel") or "")),
+        "rows": sorted(rows, key=lambda item: (item.get("timestamp") or "", item.get("seq") or 0, item.get("label") or "")),
+    }
+
 GEMMA_QAT_MTP_SPEED_PATH = "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260612T142331Z-full-coding-benchmark-large/outputs/speed/full-speed-results.json"
 GEMMA_QAT_MTP_MODEL = "/srv/llm/models/gemma-4-26B-A4B-it-qat-GGUF/gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf"
 GEMMA_QAT_MTP_MODEL_SIZE = 14249045120
@@ -1979,11 +2374,12 @@ api_throughput_rows = fetch_api_throughput_rows(cur)
 strict_rows.extend(api_throughput_rows)
 comparable_rows.extend(api_throughput_rows)
 api_rows = summarize_api_rows(cur)
-server_tuning = summarize_server_tuning()
 supplemental_gemma_qat_mtp = supplemental_gemma_qat_mtp_rows()
 strict_rows.extend(supplemental_gemma_qat_mtp["throughput"])
 comparable_rows.extend(supplemental_gemma_qat_mtp["throughput"])
 mtp_server_rows = summarize_mtp_server() + supplemental_gemma_qat_mtp["mtp"]
+server_tuning = summarize_server_tuning()
+serving_lab = summarize_serving_lab(cur, mtp_server_rows, server_tuning)
 
 payload = {
     "meta": {
@@ -2001,6 +2397,7 @@ payload = {
     "apiRows": api_rows,
     "mtpServer": mtp_server_rows,
     "serverTuning": server_tuning,
+    "servingLab": serving_lab,
     "auxEval": summarize_aux_eval(),
     "loadouts": summarize_loadouts(),
     "codingLab": summarize_coding_lab(),
@@ -2072,6 +2469,8 @@ console.log(JSON.stringify({
   apiRows: data.apiRows.length,
   mtpServerRows: data.mtpServer.length,
   serverTuningRows: data.serverTuning.rows.length,
+  servingLabRows: data.servingLab.meta.rowCount,
+  servingLabModels: data.servingLab.meta.modelCount,
   auxCandidates: data.auxEval.candidateCount,
   loadouts: data.loadouts.rows,
   codingProfiles: data.codingLab.meta.profileCount,

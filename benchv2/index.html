@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="../assets/echarts.min.js"></script>
-  <script src="data/benchv2-data.js?v=20260624-served-promotion-cap"></script>
+  <script src="data/benchv2-data.js?v=20260624-serving-lab"></script>
   <style>
     :root {
       --bg: #070707;
@@ -980,8 +980,63 @@
       gap: 12px;
     }
 
-    .server-tuning-panel {
-      grid-column: 1 / -1;
+    .serving-lab-panel {
+      overflow: hidden;
+    }
+
+    .serving-controls {
+      display: grid;
+      grid-template-columns: 1.3fr 1.1fr 0.7fr 1fr;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .serving-lab-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .serving-lab-grid .table-wrap:first-child {
+      border-right: 1px solid var(--line);
+    }
+
+    .serving-compare {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(360px, 1.2fr);
+      gap: 10px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(57, 208, 255, 0.08), transparent 60%),
+        rgba(0, 0, 0, 0.2);
+    }
+
+    .compare-output {
+      min-height: 76px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+      color: #dce5ee;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .compare-output strong {
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .delta-pos {
+      color: var(--green);
+    }
+
+    .delta-neg {
+      color: var(--red);
     }
 
     .tuning-summary {
@@ -1542,8 +1597,14 @@
       .hero,
       .two-col,
       .lab-grid,
-      .chart-grid {
+      .chart-grid,
+      .serving-lab-grid,
+      .serving-compare {
         grid-template-columns: 1fr;
+      }
+
+      .serving-lab-grid .table-wrap:first-child {
+        border-right: 0;
       }
 
       .race-grid,
@@ -1552,6 +1613,10 @@
       }
 
       .control-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .serving-controls {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -1607,6 +1672,7 @@
       .note-grid,
       .article-card,
       .control-row,
+      .serving-controls,
       .coding-summary,
       .tuning-summary,
       .hermes-category-grid,
@@ -1693,7 +1759,6 @@
       <a href="#frontier">Frontier</a>
       <a href="#atlas">Atlas</a>
       <a href="#server">Serving Lab</a>
-      <a href="#server-tuning">Tuning</a>
       <a href="#quality-suites">Quality</a>
       <a href="#hermes-agent">HermesAgent-20</a>
       <a href="#races">Races</a>
@@ -1872,77 +1937,84 @@
       </article>
     </section>
 
-    <section class="section lab-grid" id="server">
-      <article class="panel">
+    <section class="section" id="server">
+      <article class="panel serving-lab-panel">
         <div class="panel-head">
           <div>
-            <h2>MTP Serving Lab</h2>
-            <p>Speculative serving sweeps: draft settings, acceptance rate, request time, decode speed, and memory deltas.</p>
+            <h2>Serving Lab</h2>
+            <p>All archived serving rows normalized by model, quant, test type, and tested flag. Main charts promote only capped winners; this lab keeps the full experiment trail.</p>
           </div>
         </div>
-        <div id="serverChart" class="chart short"></div>
-        <div class="table-wrap" style="max-height:420px">
-          <table>
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>Config</th>
-                <th>Total</th>
-                <th>Prompt</th>
-                <th>Decode</th>
-                <th>Acceptance</th>
-                <th>Memory</th>
-              </tr>
-            </thead>
-            <tbody id="serverBody"></tbody>
-          </table>
+        <div class="tuning-summary" id="servingLabSummary"></div>
+        <div class="serving-controls">
+          <label class="field">
+            <span>Model</span>
+            <select id="servingModelSelect"></select>
+          </label>
+          <label class="field">
+            <span>Flag</span>
+            <select id="servingFlagSelect"></select>
+          </label>
+          <label class="field">
+            <span>Metric</span>
+            <select id="servingMetricSelect">
+              <option value="decodeTps">Decode</option>
+              <option value="promptTps">Prompt</option>
+              <option value="ttfpMs">First token</option>
+              <option value="totalMs">Total time</option>
+              <option value="acceptRate">Acceptance</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Search</span>
+            <input id="servingSearch" type="search" placeholder="label, test, flag, backend">
+          </label>
         </div>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Serving Request Runs</h2>
-            <p>End-to-end local serving measurements: first-token delay, total request time, prompt size, generated output, and sampled memory.</p>
+        <div id="servingLabChart" class="chart short"></div>
+        <div class="serving-lab-grid">
+          <div class="table-wrap" style="max-height:540px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model Rows</th>
+                  <th>Test</th>
+                  <th>Flag</th>
+                  <th>Shape</th>
+                  <th>Decode</th>
+                  <th>Prompt</th>
+                  <th>Latency</th>
+                  <th>Memory</th>
+                </tr>
+              </thead>
+              <tbody id="servingModelBody"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap" style="max-height:540px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag Rows</th>
+                  <th>Model</th>
+                  <th>Shape</th>
+                  <th>Decode</th>
+                  <th>Prompt</th>
+                  <th>Acceptance</th>
+                </tr>
+              </thead>
+              <tbody id="servingFlagBody"></tbody>
+            </table>
           </div>
         </div>
-        <div class="table-wrap" style="max-height:770px">
-          <table>
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>First token</th>
-                <th>Total</th>
-                <th>Prompt</th>
-                <th>Output</th>
-                <th>Memory</th>
-              </tr>
-            </thead>
-            <tbody id="servingBody"></tbody>
-          </table>
-        </div>
-      </article>
-
-      <article class="panel server-tuning-panel" id="server-tuning">
-        <div class="panel-head">
-          <div>
-            <h2>Server Tuning Takeaways</h2>
-            <p>Short conclusions from focused real-prompt tuning runs. This is not a launch-command reference; it only shows which tested direction is worth using.</p>
-          </div>
-        </div>
-        <div class="tuning-summary" id="tuningSummary"></div>
-        <div class="table-wrap" style="max-height:560px">
-          <table>
-            <thead>
-              <tr>
-                <th>Scenario</th>
-                <th>Use</th>
-                <th>Evidence</th>
-                <th>Caveat</th>
-              </tr>
-            </thead>
-            <tbody id="tuningBody"></tbody>
-          </table>
+        <div class="serving-compare">
+          <label class="field">
+            <span>Compare A</span>
+            <select id="servingCompareA"></select>
+          </label>
+          <label class="field">
+            <span>Compare B</span>
+            <select id="servingCompareB"></select>
+          </label>
+          <div class="compare-output" id="servingCompareOutput"></div>
         </div>
       </article>
     </section>
@@ -2512,7 +2584,7 @@
     const frontierChart = chart("frontierChart");
     const throughputChart = chart("throughputChart");
     const curveChart = chart("curveChart");
-    const serverChart = chart("serverChart");
+    const servingLabChart = chart("servingLabChart");
     const qualitySuiteChart = chart("qualitySuiteChart");
     const textStyle = { color: "#edf5ff", fontFamily: "Space Grotesk, sans-serif" };
 
@@ -2847,154 +2919,205 @@
       });
     }
 
-    function renderServerLab() {
-      const rows = DATA.mtpServer.slice().sort((a, b) => (b.decodeTps || 0) - (a.decodeTps || 0));
-      $("serverBody").innerHTML = rows.map((row) => `
-        <tr>
-          <td class="profile-cell"><strong>${escapeHtml(row.label || "n/a")}</strong><small>${escapeHtml(row.modelName || "")}</small></td>
-          <td>${escapeHtml(row.configId || "default")}</td>
-          <td>${ms(row.avgTotalMs)}<small class="muted">p95 ${ms(row.p95TotalMs)}</small></td>
-          <td>${speed(row.promptTps)}<small class="muted">${intFmt(row.promptTokens)} tok</small></td>
-          <td>${speed(row.decodeTps)}<small class="muted">${intFmt(row.predictedTokens)} tok</small></td>
-          <td>${pct(row.acceptRate)}<small class="muted">draft ${intFmt(row.draftN)}</small></td>
-          <td>${mem(memoryGiB(row))}<small class="muted">${memorySplit(row)}</small></td>
-        </tr>
-      `).join("");
-      $("servingBody").innerHTML = DATA.apiRows.slice().sort((a, b) => b.seq - a.seq).slice(0, 70).map((row) => `
-        <tr>
-          <td class="profile-cell"><strong>${escapeHtml(row.label)}</strong><small>seq ${row.seq} • ${latestDate(row.timestamp)}</small></td>
-          <td>${ms(row.ttfpMs)}</td>
-          <td>${ms(row.totalMs)}</td>
-          <td>${row.promptBytes ? `${intFmt(row.promptBytes)} B` : "n/a"}<small class="muted">${escapeHtml(row.promptFile || "")}</small></td>
-          <td>${intFmt(row.gen)}<small class="muted">${intFmt(row.responseChars)} chars</small></td>
-          <td>${mem(memoryGiB(row))}<small class="muted">${memorySplit(row)}</small></td>
-        </tr>
-      `).join("");
-      if (serverChart) {
-        const chartRows = rows.filter((row) => isNum(row.decodeTps) || isNum(row.acceptRate)).slice(0, 18);
-        serverChart.setOption({
-          grid: { top: 18, right: 20, bottom: 88, left: 56 },
-          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(5,10,16,.95)", textStyle },
-          legend: { bottom: 0, textStyle },
-          xAxis: { type: "category", data: chartRows.map((row) => (row.configId || row.label || "").slice(0, 22)), axisLabel: { color: "#8ea3bb", rotate: 35 } },
-          yAxis: [
-            { type: "value", name: "t/s", axisLabel: { color: "#8ea3bb" }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
-            { type: "value", name: "accept", axisLabel: { color: "#8ea3bb", formatter: (v) => `${v * 100}%` } }
-          ],
-          series: [
-            { name: "Decode t/s", type: "bar", data: chartRows.map((row) => row.decodeTps), itemStyle: { color: "#39d0ff", borderRadius: [4, 4, 0, 0] } },
-            { name: "Acceptance", type: "line", yAxisIndex: 1, data: chartRows.map((row) => row.acceptRate), itemStyle: { color: "#20d1a2" } }
-          ]
-        });
+    function servingMetricValue(row, metric) {
+      return isNum(row?.[metric]) ? Number(row[metric]) : null;
+    }
+
+    function servingMetricLabel(metric) {
+      return {
+        decodeTps: "Decode",
+        promptTps: "Prompt",
+        ttfpMs: "First token",
+        totalMs: "Total time",
+        acceptRate: "Acceptance"
+      }[metric] || metric;
+    }
+
+    function servingMetricText(row, metric) {
+      const value = servingMetricValue(row, metric);
+      if (value == null) return "n/a";
+      if (metric.endsWith("Ms")) return ms(value);
+      if (metric === "acceptRate") return pct(value, 1);
+      return speed(value);
+    }
+
+    function servingSortRows(rows, metric) {
+      const lowerIsBetter = metric.endsWith("Ms");
+      return rows.slice().sort((a, b) => {
+        const av = servingMetricValue(a, metric);
+        const bv = servingMetricValue(b, metric);
+        if (av == null && bv == null) return (b.decodeTps || 0) - (a.decodeTps || 0);
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return lowerIsBetter ? av - bv : bv - av;
+      });
+    }
+
+    function servingRowLabel(row) {
+      return `${row.label || "row"} • ${row.testType || "test"} • ${row.flagLabel || row.flagFamily || "flag"}`;
+    }
+
+    function populateServingLabControls() {
+      const data = DATA.servingLab || { models: [], flags: [], rows: [] };
+      const modelSelect = $("servingModelSelect");
+      const flagSelect = $("servingFlagSelect");
+      if (!modelSelect || !flagSelect) return;
+      if (!modelSelect.options.length) {
+        modelSelect.innerHTML = `<option value="all">All models</option>` + (data.models || []).map((model) => `
+          <option value="${escapeHtml(model.modelKey)}">${escapeHtml(model.modelName || model.modelKey)} (${intFmt(model.rows)})</option>
+        `).join("");
+      }
+      if (!flagSelect.options.length) {
+        flagSelect.innerHTML = `<option value="all">All flags</option>` + (data.flags || []).map((flag) => {
+          const value = `${flag.flagFamily || "General"}|${flag.flagLabel || ""}`;
+          return `<option value="${escapeHtml(value)}">${escapeHtml(flag.flagFamily || "General")} • ${escapeHtml(flag.flagLabel || "default")} (${intFmt(flag.rows)})</option>`;
+        }).join("");
       }
     }
 
-    function renderServerTuning() {
-      const data = DATA.serverTuning || { rows: [] };
-      const rows = (data.rows || []).filter((row) => row.status !== "error");
-      const completeRows = rows.filter((row) => isNum(row.decodeTps));
-      const bestBy = (predicate, getter = (row) => row.decodeTps) => completeRows
-        .filter(predicate)
-        .sort((a, b) => (Number(getter(b)) || 0) - (Number(getter(a)) || 0))[0] || null;
-      const find = (needle) => completeRows.find((row) => `${row.displayLabel || ""} ${row.group || ""} ${row.note || ""}`.toLowerCase().includes(needle));
-
-      const ace = bestBy((row) => /ACE\/SABER/.test(row.group || ""));
-      const qwopusLong = find("4096-token") || bestBy((row) => /Qwopus .*confirmation/.test(row.group || ""));
-      const longContext = find("batch 512 / ubatch 512") || bestBy((row) => /45k/.test(row.group || ""), (row) => row.promptTps);
-      const rawPrefill = find("batch 256 / ubatch 256");
-      const avoidCount = (data.rows || []).filter((row) => /slower|not useful|did not complete/i.test(row.note || "")).length;
-      const measuredText = (row) => `${speed(row.decodeTps)} decode • ${speed(row.promptTps)} prompt • ${pct(row.acceptRate, 1)} acceptance`;
-      const workloadText = (row) => `${intFmt(row.promptTokens)} prompt tokens, ${intFmt(row.generatedTokens)} output tokens`;
-      const cards = [
-        ace && {
-          kind: "use",
-          label: "ACE/SABER 35B",
-          value: "Keep the current server launch",
-          detail: `${measuredText(ace)} on ${workloadText(ace)}. No alternate tested row earned a recommendation.`
-        },
-        qwopusLong && {
-          kind: "use",
-          label: "Qwopus 27B long replies",
-          value: "Use the d4 preset",
-          detail: `${measuredText(qwopusLong)} on ${workloadText(qwopusLong)}.`
-        },
-        longContext && {
-          kind: "use",
-          label: "Qwopus 45k prompt",
-          value: "Use b512/u512",
-          detail: `${measuredText(longContext)} on ${workloadText(longContext)}.`
-        },
-        {
-          kind: "avoid",
-          label: "Do not copy",
-          value: "The proposed experiment bundle",
-          detail: `${intFmt(avoidCount)} rows were slower, unusable, or failed timing. b256/u256 prefills faster, but decoded worse than b512/u512.`
+    function servingFilteredRows(ignoreModel = false) {
+      const data = DATA.servingLab || { rows: [] };
+      const modelValue = $("servingModelSelect")?.value || "all";
+      const flagValue = $("servingFlagSelect")?.value || "all";
+      const query = ($("servingSearch")?.value || "").trim().toLowerCase();
+      return (data.rows || []).filter((row) => {
+        if (!ignoreModel && modelValue !== "all" && row.modelKey !== modelValue) return false;
+        if (flagValue !== "all" && `${row.flagFamily || "General"}|${row.flagLabel || ""}` !== flagValue) return false;
+        if (query) {
+          const hay = [row.label, row.modelName, row.testType, row.flagFamily, row.flagLabel, row.backend, row.quantKey, row.sourceKind].join(" ").toLowerCase();
+          if (!hay.includes(query)) return false;
         }
-      ].filter(Boolean);
+        return true;
+      });
+    }
 
-      $("tuningSummary").innerHTML = cards.length ? cards.map((item) => `
+    function renderServingSummary(rows, metric) {
+      const data = DATA.servingLab || { meta: {} };
+      const bestDecode = servingSortRows(rows.filter((row) => isNum(row.decodeTps)), "decodeTps")[0];
+      const bestPrompt = servingSortRows(rows.filter((row) => isNum(row.promptTps)), "promptTps")[0];
+      const selectedMetric = servingSortRows(rows.filter((row) => isNum(row[metric])), metric)[0];
+      const sourceCounts = Object.entries(data.meta?.sourceCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([source, count]) => `${source}: ${intFmt(count)}`).join(" • ");
+      const cards = [
+        { kind: "use", label: "Rows", value: intFmt(rows.length), detail: `${intFmt(data.meta?.rowCount)} archived serving rows across ${intFmt(data.meta?.modelCount)} models.` },
+        { kind: "use", label: "Best decode", value: speed(bestDecode?.decodeTps), detail: bestDecode ? servingRowLabel(bestDecode) : "No decode rows in this selection." },
+        { kind: "use", label: "Best prompt", value: speed(bestPrompt?.promptTps), detail: bestPrompt ? servingRowLabel(bestPrompt) : "No prompt rows in this selection." },
+        { kind: "warn", label: servingMetricLabel(metric), value: servingMetricText(selectedMetric, metric), detail: selectedMetric ? servingRowLabel(selectedMetric) : (sourceCounts || "No matching rows.") }
+      ];
+      $("servingLabSummary").innerHTML = cards.map((item) => `
         <div class="tuning-card ${escapeHtml(item.kind)}">
           <span>${escapeHtml(item.label)}</span>
           <strong>${escapeHtml(item.value)}</strong>
           <small>${escapeHtml(item.detail)}</small>
         </div>
-      `).join("") : `
-        <div class="tuning-card warn">
-          <span>Server tuning</span>
-          <strong>No recommendations yet</strong>
-          <small>Refresh the generated data bundle to populate this section.</small>
-        </div>
+      `).join("");
+    }
+
+    function renderServingChart(rows, metric) {
+      if (!servingLabChart) return;
+      const chartRows = servingSortRows(rows.filter((row) => isNum(row[metric])), metric).slice(0, 22);
+      servingLabChart.setOption({
+        grid: { top: 18, right: 20, bottom: 96, left: 62 },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(5,10,16,.95)", textStyle },
+        xAxis: { type: "category", data: chartRows.map((row) => (row.flagLabel || row.label || "").slice(0, 24)), axisLabel: { color: "#8ea3bb", rotate: 35 } },
+        yAxis: { type: "value", name: servingMetricLabel(metric), axisLabel: { color: "#8ea3bb" }, splitLine: { lineStyle: { color: alpha("#8ea3bb", 0.13) } } },
+        series: [{
+          name: servingMetricLabel(metric),
+          type: "bar",
+          data: chartRows.map((row) => row[metric]),
+          itemStyle: { color: metric.endsWith("Ms") ? "#ff9f43" : "#39d0ff", borderRadius: [4, 4, 0, 0] }
+        }]
+      });
+    }
+
+    function renderServingTables(rows, metric) {
+      const sorted = servingSortRows(rows, metric);
+      $("servingModelBody").innerHTML = sorted.slice(0, 90).map((row) => `
+        <tr>
+          <td class="profile-cell"><strong>${escapeHtml(row.label || "n/a")}</strong><small>${escapeHtml(row.modelName || "")} • ${escapeHtml(row.quantKey || "quant?")} • ${escapeHtml(row.sourceKind || "")}</small></td>
+          <td>${escapeHtml(row.testType || "n/a")}<small class="muted">${escapeHtml(row.backend || "backend?")}</small></td>
+          <td>${escapeHtml(row.flagFamily || "n/a")}<small class="muted">${escapeHtml(row.flagLabel || "")}</small></td>
+          <td>${intFmt(row.ctx)} ctx<small class="muted">${intFmt(row.gen)} gen</small></td>
+          <td>${speed(row.decodeTps)}</td>
+          <td>${speed(row.promptTps)}</td>
+          <td>${ms(row.ttfpMs)}<small class="muted">total ${ms(row.totalMs)}</small></td>
+          <td>${mem(memoryGiB(row))}<small class="muted">${escapeHtml(row.rawOutput || row.sourcePath || "")}</small></td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">No serving rows match this selection.</td></tr>`;
+
+      const flagRows = servingSortRows(servingFilteredRows(true), metric).slice(0, 90);
+      $("servingFlagBody").innerHTML = flagRows.map((row) => `
+        <tr>
+          <td class="profile-cell"><strong>${escapeHtml(row.flagFamily || "n/a")} • ${escapeHtml(row.flagLabel || "")}</strong><small>${escapeHtml(row.testType || "")} • ${escapeHtml(row.label || "")}</small></td>
+          <td>${escapeHtml(row.modelName || "n/a")}<small class="muted">${escapeHtml(row.quantKey || "")} • ${escapeHtml(row.backend || "")}</small></td>
+          <td>${intFmt(row.ctx)} ctx<small class="muted">${intFmt(row.gen)} gen</small></td>
+          <td>${speed(row.decodeTps)}</td>
+          <td>${speed(row.promptTps)}</td>
+          <td>${pct(row.acceptRate, 1)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="6">Pick a flag to compare models on that setting.</td></tr>`;
+    }
+
+    function populateServingCompare(rows, metric) {
+      const sorted = servingSortRows(rows, metric);
+      const fallback = sorted.length >= 2 ? sorted : servingSortRows((DATA.servingLab?.rows || []), metric).slice(0, 80);
+      const options = fallback.slice(0, 120).map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(servingRowLabel(row)).slice(0, 140)}</option>`).join("");
+      const a = $("servingCompareA");
+      const b = $("servingCompareB");
+      const prevA = a.value;
+      const prevB = b.value;
+      a.innerHTML = options;
+      b.innerHTML = options;
+      if (prevA && [...a.options].some((option) => option.value === prevA)) a.value = prevA;
+      if (prevB && [...b.options].some((option) => option.value === prevB)) b.value = prevB;
+      if (!b.value && b.options.length > 1) b.selectedIndex = 1;
+      if (a.value === b.value && b.options.length > 1) b.selectedIndex = 1;
+      renderServingCompare();
+    }
+
+    function renderServingCompare() {
+      const rows = DATA.servingLab?.rows || [];
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const left = byId.get($("servingCompareA")?.value);
+      const right = byId.get($("servingCompareB")?.value);
+      if (!left || !right) {
+        $("servingCompareOutput").innerHTML = "Select two serving rows to compare settings and measured deltas.";
+        return;
+      }
+      const metrics = [
+        ["Decode", "decodeTps", "t/s"],
+        ["Prompt", "promptTps", "t/s"],
+        ["First token", "ttfpMs", "ms"],
+        ["Total", "totalMs", "ms"],
+        ["Acceptance", "acceptRate", ""]
+      ].map(([label, key, unit]) => {
+        const av = servingMetricValue(left, key);
+        const bv = servingMetricValue(right, key);
+        if (av == null || bv == null) return `${label}: n/a`;
+        const delta = bv - av;
+        const cls = key.endsWith("Ms") ? (delta <= 0 ? "delta-pos" : "delta-neg") : (delta >= 0 ? "delta-pos" : "delta-neg");
+        const value = key === "acceptRate" ? `${(delta * 100).toFixed(1)} pts` : `${delta >= 0 ? "+" : ""}${fmt(delta, 2)} ${unit}`;
+        return `${label}: <span class="${cls}">${value}</span>`;
+      }).join(" • ");
+      const keys = ["nMax", "pMin", "kv", "batch", "ubatch", "minP", "topP", "temperature"];
+      const diffs = keys
+        .filter((key) => String(left.settings?.[key] ?? "") !== String(right.settings?.[key] ?? ""))
+        .map((key) => `${key}: ${escapeHtml(left.settings?.[key] ?? "n/a")} -> ${escapeHtml(right.settings?.[key] ?? "n/a")}`);
+      $("servingCompareOutput").innerHTML = `
+        <strong>${escapeHtml(left.label || "A")}</strong> vs <strong>${escapeHtml(right.label || "B")}</strong><br>
+        ${metrics}<br>
+        <span class="muted">${diffs.length ? diffs.join(" • ") : "No tracked setting differences."}</span>
       `;
+    }
 
-      const conclusions = [
-        ace && {
-          useCase: "Fast 35B ACE/SABER serving",
-          row: ace,
-          setting: "Keep the current ACE/SABER server launch.",
-          meaning: "The data bundle does not store a better alternate launch recipe. This row is evidence that the current launch is already the one to keep for short replies."
-        },
-        qwopusLong && {
-          useCase: "Qwopus 27B sustained generation",
-          row: qwopusLong,
-          setting: "Use d4 for long replies.",
-          meaning: "The longer confirmation runs favored d4; short probes were too noisy to use as the main decision."
-        },
-        longContext && {
-          useCase: "Qwopus 27B long-context prompt",
-          row: longContext,
-          setting: "Use b512/u512 for very large prompts.",
-          meaning: "Use this when the request has a roughly 45k-token prompt and still needs decent decode afterward."
-        },
-        rawPrefill && {
-          useCase: "Prefill-only diagnostic",
-          row: rawPrefill,
-          setting: "Only consider b256/u256 if prefill speed is the only goal.",
-          meaning: "b256/u256 had the fastest raw 45k prefill, but lower decode. Use only when prefill is the whole question."
-        },
-        {
-          useCase: "Settings to skip",
-          row: null,
-          setting: "Do not use the proposed experiment bundle as a default.",
-          result: `${intFmt(avoidCount)} negative/failure rows`,
-          meaning: "Those rows are useful as experiment history, not as instructions for serving."
-        }
-      ].filter(Boolean);
-
-      $("tuningBody").innerHTML = conclusions.map((item) => {
-        const row = item.row;
-        const setting = item.setting || "No recommendation";
-        const result = item.result || measuredText(row);
-        const sub = row ? `${escapeHtml(row.modelName || "")} • ${escapeHtml(row.group || "")} • ${latestDate(row.timestamp)}` : "From slower/failed comparison rows";
-        const detail = row ? `${workloadText(row)} • TTFP ${ms(row.ttfpMs)}` : "Not recommended.";
-        return `
-          <tr>
-            <td class="profile-cell"><strong>${escapeHtml(item.useCase)}</strong><small>${sub}</small></td>
-            <td>${escapeHtml(setting)}</td>
-            <td>${escapeHtml(result)}<small class="muted">${escapeHtml(detail)}</small></td>
-            <td>${escapeHtml(item.meaning)}</td>
-          </tr>
-        `;
-      }).join("") || `<tr><td colspan="4">No server tuning recommendations are available.</td></tr>`;
+    function renderServingLab() {
+      populateServingLabControls();
+      const metric = $("servingMetricSelect")?.value || "decodeTps";
+      const rows = servingFilteredRows();
+      renderServingSummary(rows, metric);
+      renderServingChart(rows, metric);
+      renderServingTables(rows, metric);
+      populateServingCompare(rows, metric);
     }
 
     function completedQualityRows(rows) {
@@ -3507,6 +3630,13 @@
         $(id).addEventListener("input", renderAtlas);
         $(id).addEventListener("change", renderAtlas);
       });
+      ["servingModelSelect", "servingFlagSelect", "servingMetricSelect", "servingSearch"].forEach((id) => {
+        $(id).addEventListener("input", renderServingLab);
+        $(id).addEventListener("change", renderServingLab);
+      });
+      ["servingCompareA", "servingCompareB"].forEach((id) => {
+        $(id).addEventListener("change", renderServingCompare);
+      });
       window.addEventListener("resize", () => chartRefs.forEach((instance) => instance.resize()));
     }
 
@@ -3516,8 +3646,7 @@
     renderQualitySuites();
     renderHermesAgentSweep();
     renderAtlas();
-    renderServerLab();
-    renderServerTuning();
+    renderServingLab();
     renderRacesAndNotes();
   </script>
 </body>
