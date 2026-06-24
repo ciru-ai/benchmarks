@@ -86,13 +86,12 @@
     }
     .hero > * { position: relative; z-index: 1; }
     .brand-lockup { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .logo-plate { width: 30px; height: 30px; border: 1px solid rgba(237, 28, 36, 0.42); border-radius: 6px; display: grid; place-items: center; background: rgba(237, 28, 36, .14); color: #fff; font: 800 13px "IBM Plex Mono", monospace; }
+    .logo-plate { width: 34px; height: 34px; border: 1px solid rgba(237, 28, 36, 0.42); border-radius: 6px; display: grid; place-items: center; background: rgba(0, 0, 0, .34); overflow: hidden; }
+    .logo-plate img { width: 26px; height: 26px; object-fit: contain; display: block; }
     .brand-title { display: block; color: var(--cyan); font: 700 11px "IBM Plex Mono", monospace; letter-spacing: .16em; text-transform: uppercase; }
     .brand-subtitle { display: block; color: var(--muted); font: 11px "IBM Plex Mono", monospace; }
     h1 { margin: 0; max-width: 980px; font-size: clamp(24px, 3vw, 44px); line-height: 1; letter-spacing: 0; text-transform: uppercase; }
     .lead { display: none; }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .button { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 7px 10px; background: rgba(0,0,0,.32); font: 700 11px "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
     .metrics { order: 4; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
     .metric, .config-card { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), var(--panel-2); padding: 12px; }
     .metric span, .label { display: block; color: var(--muted); font: 10px "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
@@ -107,7 +106,8 @@
     .callout.warning { border-color: rgba(255,159,67,.25); border-left-color: var(--orange); background: rgba(255,159,67,.08); }
     #gallery { order: 2; padding: 12px; }
     .gallery { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
-    .artifact-card { min-height: 260px; position: relative; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--line); background: #080808; }
+    .artifact-card { min-height: 260px; position: relative; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--line); background: #080808; display: block; color: var(--text); text-decoration: none; cursor: pointer; transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+    .artifact-card:hover, .artifact-card:focus-visible { color: var(--text); text-decoration: none; border-color: rgba(57,208,255,.56); transform: translateY(-1px); box-shadow: 0 14px 28px rgba(0,0,0,.35); outline: none; }
     .shot { position: absolute; inset: 0; background-image: linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.72)), var(--shot); background-size: cover; background-position: center top; transform: scale(1.01); }
     .card-overlay { position: absolute; inset: auto 0 0; padding: 10px; background: linear-gradient(180deg, transparent, rgba(0,0,0,.82) 18%, rgba(0,0,0,.96)); }
     .card-kicker { color: var(--cyan); font: 700 10px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
@@ -116,8 +116,6 @@
     .card-metrics { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0; }
     .card-metrics span { padding: 2px 5px; border: 1px solid var(--line); border-radius: 5px; background: rgba(0,0,0,.42); color: var(--text); font: 10px "IBM Plex Mono", monospace; }
     .artifact-card p { display: none; }
-    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
-    .card-actions a { flex: 1; text-align: center; border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 6px 5px; background: rgba(57,208,255,.08); font: 700 10px "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
     .prompt-section { order: 5; }
     .prompt-intro { margin: -2px 0 12px; color: var(--muted); line-height: 1.5; max-width: 1120px; }
     .prompt-list { display: grid; gap: 8px; }
@@ -139,16 +137,11 @@
   <main class="app">
     <header class="hero">
       <a class="brand-lockup" href="../../">
-        <span class="logo-plate" aria-hidden="true">C</span>
+        <span class="logo-plate"><img src="../../ccglogo.png" alt="Crown Citadel Group"></span>
         <span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span>
       </a>
       <h1>Gemma4 26B QAT MTP 32-slot artifact run</h1>
       <p class="lead">A single local Strix Halo serving run launched 32 concurrent workers against Gemma4 26B QAT with draft-MTP enabled. Each worker generated a complete single-file HTML page from a different prompt. This page preserves the generated artifacts, screenshots, prompts, and measured run data.</p>
-      <div class="hero-actions">
-        <a class="button" href="#gallery">View 32 artifacts</a>
-        <a class="button" href="artifacts.json">Download metadata</a>
-        <a class="button" href="summary.jsonl">Raw summary JSONL</a>
-      </div>
     </header>
 
     <section class="metrics" aria-label="Run metrics">
@@ -193,7 +186,7 @@
       <h2>Generated pages</h2>
       <div class="gallery">
         
-      <article class="artifact-card" id="worker-01" style="--shot: url('screenshots/worker-01.png')">
+      <a class="artifact-card" id="worker-01" href="artifacts/worker-01.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 01" style="--shot: url('screenshots/worker-01.png')">
         <div class="shot" aria-label="Screenshot for Worker 01"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 01 </div>
@@ -204,13 +197,9 @@
             <span>7.76 tok/s</span>
           </div>
           <p>Create a complete single-file HTML landing page for a futuristic local AI inference lab. Output code only starting with &lt;!doctype html&gt;. Include CSS, responsive sections, cards, and a tiny JavaScript status ticker. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-01.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-01">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-02" style="--shot: url('screenshots/worker-02.png')">
+      </a>
+      <a class="artifact-card" id="worker-02" href="artifacts/worker-02.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 02" style="--shot: url('screenshots/worker-02.png')">
         <div class="shot" aria-label="Screenshot for Worker 02"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 02 </div>
@@ -221,13 +210,9 @@
             <span>8.17 tok/s</span>
           </div>
           <p>Create a complete single-file HTML arcade reaction game called Neon Dash. Output code only starting with &lt;!doctype html&gt;. Include CSS, score, timer, start button, keyboard controls, and a JavaScript game loop. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-02.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-02">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-03" style="--shot: url('screenshots/worker-03.png')">
+      </a>
+      <a class="artifact-card" id="worker-03" href="artifacts/worker-03.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 03" style="--shot: url('screenshots/worker-03.png')">
         <div class="shot" aria-label="Screenshot for Worker 03"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 03 </div>
@@ -238,13 +223,9 @@
             <span>8.03 tok/s</span>
           </div>
           <p>Create a complete single-file HTML page using Three.js from a CDN. Output code only starting with &lt;!doctype html&gt;. Make a rotating neon cube field with camera animation and visible controls text. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-03.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-03">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-04" style="--shot: url('screenshots/worker-04.png')">
+      </a>
+      <a class="artifact-card" id="worker-04" href="artifacts/worker-04.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 04" style="--shot: url('screenshots/worker-04.png')">
         <div class="shot" aria-label="Screenshot for Worker 04"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 04 </div>
@@ -255,13 +236,9 @@
             <span>7.48 tok/s</span>
           </div>
           <p>Create a complete single-file HTML animated video-style page. Output code only starting with &lt;!doctype html&gt;. Use CSS keyframes and JavaScript to animate a countdown, moving shapes, captions, and a looping progress bar. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-04.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-04">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-05" style="--shot: url('screenshots/worker-05.png')">
+      </a>
+      <a class="artifact-card" id="worker-05" href="artifacts/worker-05.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 05" style="--shot: url('screenshots/worker-05.png')">
         <div class="shot" aria-label="Screenshot for Worker 05"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 05 </div>
@@ -272,13 +249,9 @@
             <span>7.62 tok/s</span>
           </div>
           <p>Create a complete single-file HTML portfolio page for a Strix Halo workstation. Output code only starting with &lt;!doctype html&gt;. Include responsive CSS, benchmark cards, feature rows, and simple filtering JavaScript. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-05.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-05">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-06" style="--shot: url('screenshots/worker-06.png')">
+      </a>
+      <a class="artifact-card" id="worker-06" href="artifacts/worker-06.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 06" style="--shot: url('screenshots/worker-06.png')">
         <div class="shot" aria-label="Screenshot for Worker 06"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 06 </div>
@@ -289,13 +262,9 @@
             <span>7.73 tok/s</span>
           </div>
           <p>Create a complete single-file HTML canvas game where the player catches falling stars. Output code only starting with &lt;!doctype html&gt;. Include score, lives, timer, keyboard movement, and restart logic. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-06.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-06">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-07" style="--shot: url('screenshots/worker-07.png')">
+      </a>
+      <a class="artifact-card" id="worker-07" href="artifacts/worker-07.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 07" style="--shot: url('screenshots/worker-07.png')">
         <div class="shot" aria-label="Screenshot for Worker 07"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 07 <span class="flag">dark WebGL capture</span></div>
@@ -306,13 +275,9 @@
             <span>8.09 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js scene from a CDN. Output code only starting with &lt;!doctype html&gt;. Build a rotating torus knot, particle stars, mouse parallax, and a small FPS-style overlay. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-07.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-07">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-08" style="--shot: url('screenshots/worker-08.png')">
+      </a>
+      <a class="artifact-card" id="worker-08" href="artifacts/worker-08.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 08" style="--shot: url('screenshots/worker-08.png')">
         <div class="shot" aria-label="Screenshot for Worker 08"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 08 </div>
@@ -323,13 +288,9 @@
             <span>8.25 tok/s</span>
           </div>
           <p>Create a complete single-file HTML kinetic typography animation. Output code only starting with &lt;!doctype html&gt;. Animate words about local inference, tokens, slots, and throughput using CSS and JavaScript. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-08.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-08">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-09" style="--shot: url('screenshots/worker-09.png')">
+      </a>
+      <a class="artifact-card" id="worker-09" href="artifacts/worker-09.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 09" style="--shot: url('screenshots/worker-09.png')">
         <div class="shot" aria-label="Screenshot for Worker 09"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 09 </div>
@@ -340,13 +301,9 @@
             <span>7.61 tok/s</span>
           </div>
           <p>Create a complete single-file HTML dashboard for monitoring 32 AI workers. Output code only starting with &lt;!doctype html&gt;. Include CSS grid cards, live-looking counters, sparklines drawn on canvas, and update logic. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-09.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-09">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-10" style="--shot: url('screenshots/worker-10.png')">
+      </a>
+      <a class="artifact-card" id="worker-10" href="artifacts/worker-10.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 10" style="--shot: url('screenshots/worker-10.png')">
         <div class="shot" aria-label="Screenshot for Worker 10"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 10 </div>
@@ -357,13 +314,9 @@
             <span>7.53 tok/s</span>
           </div>
           <p>Create a complete single-file HTML mini game called Pulse Runner. Output code only starting with &lt;!doctype html&gt;. Include a player square, obstacles, collision detection, score, speed ramping, and restart button. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-10.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-10">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-11" style="--shot: url('screenshots/worker-11.png')">
+      </a>
+      <a class="artifact-card" id="worker-11" href="artifacts/worker-11.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 11" style="--shot: url('screenshots/worker-11.png')">
         <div class="shot" aria-label="Screenshot for Worker 11"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 11 </div>
@@ -374,13 +327,9 @@
             <span>7.55 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js solar system toy from a CDN. Output code only starting with &lt;!doctype html&gt;. Include orbiting planets, labels, camera controls via mouse movement, and animation loop. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-11.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-11">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-12" style="--shot: url('screenshots/worker-12.png')">
+      </a>
+      <a class="artifact-card" id="worker-12" href="artifacts/worker-12.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 12" style="--shot: url('screenshots/worker-12.png')">
         <div class="shot" aria-label="Screenshot for Worker 12"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 12 </div>
@@ -391,13 +340,9 @@
             <span>7.35 tok/s</span>
           </div>
           <p>Create a complete single-file HTML music-visualizer style animation without audio input. Output code only starting with &lt;!doctype html&gt;. Use canvas bars, waveform motion, CSS controls, and random beat pulses. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-12.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-12">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-13" style="--shot: url('screenshots/worker-13.png')">
+      </a>
+      <a class="artifact-card" id="worker-13" href="artifacts/worker-13.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 13" style="--shot: url('screenshots/worker-13.png')">
         <div class="shot" aria-label="Screenshot for Worker 13"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 13 </div>
@@ -408,13 +353,9 @@
             <span>8.46 tok/s</span>
           </div>
           <p>Create a complete single-file HTML product page for a local LLM appliance. Output code only starting with &lt;!doctype html&gt;. Include hero, specs table, comparison cards, FAQ accordion, and polished CSS. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-13.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-13">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-14" style="--shot: url('screenshots/worker-14.png')">
+      </a>
+      <a class="artifact-card" id="worker-14" href="artifacts/worker-14.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 14" style="--shot: url('screenshots/worker-14.png')">
         <div class="shot" aria-label="Screenshot for Worker 14"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 14 </div>
@@ -425,13 +366,9 @@
             <span>7.86 tok/s</span>
           </div>
           <p>Create a complete single-file HTML game called Target Pop. Output code only starting with &lt;!doctype html&gt;. Circles appear randomly, the player clicks them for score, timer counts down, and JavaScript handles state. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-14.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-14">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-15" style="--shot: url('screenshots/worker-15.png')">
+      </a>
+      <a class="artifact-card" id="worker-15" href="artifacts/worker-15.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 15" style="--shot: url('screenshots/worker-15.png')">
         <div class="shot" aria-label="Screenshot for Worker 15"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 15 </div>
@@ -442,13 +379,9 @@
             <span>8.87 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js tunnel animation from a CDN. Output code only starting with &lt;!doctype html&gt;. Use rings or boxes moving toward the camera, color cycling, and resize handling. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-15.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-15">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-16" style="--shot: url('screenshots/worker-16.png')">
+      </a>
+      <a class="artifact-card" id="worker-16" href="artifacts/worker-16.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 16" style="--shot: url('screenshots/worker-16.png')">
         <div class="shot" aria-label="Screenshot for Worker 16"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 16 </div>
@@ -459,13 +392,9 @@
             <span>7.63 tok/s</span>
           </div>
           <p>Create a complete single-file HTML animated explainer page about prompt processing vs token generation. Output code only starting with &lt;!doctype html&gt;. Use CSS animation, diagrams made with divs, and interactive tabs. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-16.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-16">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-17" style="--shot: url('screenshots/worker-17.png')">
+      </a>
+      <a class="artifact-card" id="worker-17" href="artifacts/worker-17.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 17" style="--shot: url('screenshots/worker-17.png')">
         <div class="shot" aria-label="Screenshot for Worker 17"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 17 </div>
@@ -476,13 +405,9 @@
             <span>7.90 tok/s</span>
           </div>
           <p>Create a complete single-file HTML control panel for a spaceship. Output code only starting with &lt;!doctype html&gt;. Include gauges, buttons, animated warning lights, log messages, and JavaScript state changes. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-17.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-17">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-18" style="--shot: url('screenshots/worker-18.png')">
+      </a>
+      <a class="artifact-card" id="worker-18" href="artifacts/worker-18.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 18" style="--shot: url('screenshots/worker-18.png')">
         <div class="shot" aria-label="Screenshot for Worker 18"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 18 </div>
@@ -493,13 +418,9 @@
             <span>7.62 tok/s</span>
           </div>
           <p>Create a complete single-file HTML game called Memory Grid. Output code only starting with &lt;!doctype html&gt;. Include cards, shuffle logic, score, timer, matched state, and clean CSS animations. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-18.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-18">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-19" style="--shot: url('screenshots/worker-19.png')">
+      </a>
+      <a class="artifact-card" id="worker-19" href="artifacts/worker-19.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 19" style="--shot: url('screenshots/worker-19.png')">
         <div class="shot" aria-label="Screenshot for Worker 19"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 19 </div>
@@ -510,13 +431,9 @@
             <span>7.74 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js low-poly landscape from a CDN. Output code only starting with &lt;!doctype html&gt;. Include terrain, floating objects, animated light, and camera drift. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-19.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-19">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-20" style="--shot: url('screenshots/worker-20.png')">
+      </a>
+      <a class="artifact-card" id="worker-20" href="artifacts/worker-20.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 20" style="--shot: url('screenshots/worker-20.png')">
         <div class="shot" aria-label="Screenshot for Worker 20"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 20 </div>
@@ -527,13 +444,9 @@
             <span>7.78 tok/s</span>
           </div>
           <p>Create a complete single-file HTML looping title-card video for a model demo. Output code only starting with &lt;!doctype html&gt;. Include animated background, headline transitions, metric callouts, and a replay button. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-20.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-20">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-21" style="--shot: url('screenshots/worker-21.png')">
+      </a>
+      <a class="artifact-card" id="worker-21" href="artifacts/worker-21.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 21" style="--shot: url('screenshots/worker-21.png')">
         <div class="shot" aria-label="Screenshot for Worker 21"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 21 </div>
@@ -544,13 +457,9 @@
             <span>8.67 tok/s</span>
           </div>
           <p>Create a complete single-file HTML SaaS analytics homepage. Output code only starting with &lt;!doctype html&gt;. Include nav, hero, metric cards, chart mockups using canvas, pricing cards, and responsive CSS. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-21.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-21">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-22" style="--shot: url('screenshots/worker-22.png')">
+      </a>
+      <a class="artifact-card" id="worker-22" href="artifacts/worker-22.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 22" style="--shot: url('screenshots/worker-22.png')">
         <div class="shot" aria-label="Screenshot for Worker 22"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 22 </div>
@@ -561,13 +470,9 @@
             <span>7.58 tok/s</span>
           </div>
           <p>Create a complete single-file HTML game called Keyboard Pilot. Output code only starting with &lt;!doctype html&gt;. The player dodges meteors using arrow keys, score increases over time, and collisions end the round. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-22.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-22">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-23" style="--shot: url('screenshots/worker-23.png')">
+      </a>
+      <a class="artifact-card" id="worker-23" href="artifacts/worker-23.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 23" style="--shot: url('screenshots/worker-23.png')">
         <div class="shot" aria-label="Screenshot for Worker 23"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 23 </div>
@@ -578,13 +483,9 @@
             <span>8.03 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js crystal sculpture scene from a CDN. Output code only starting with &lt;!doctype html&gt;. Include reflective-looking geometry, orbiting lights, stars, and animation loop. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-23.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-23">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-24" style="--shot: url('screenshots/worker-24.png')">
+      </a>
+      <a class="artifact-card" id="worker-24" href="artifacts/worker-24.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 24" style="--shot: url('screenshots/worker-24.png')">
         <div class="shot" aria-label="Screenshot for Worker 24"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 24 </div>
@@ -595,13 +496,9 @@
             <span>7.81 tok/s</span>
           </div>
           <p>Create a complete single-file HTML interactive timeline page. Output code only starting with &lt;!doctype html&gt;. Include milestones, animated progress, selectable cards, and JavaScript to switch detail panels. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-24.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-24">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-25" style="--shot: url('screenshots/worker-25.png')">
+      </a>
+      <a class="artifact-card" id="worker-25" href="artifacts/worker-25.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 25" style="--shot: url('screenshots/worker-25.png')">
         <div class="shot" aria-label="Screenshot for Worker 25"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 25 </div>
@@ -612,13 +509,9 @@
             <span>8.23 tok/s</span>
           </div>
           <p>Create a complete single-file HTML finance-style market dashboard. Output code only starting with &lt;!doctype html&gt;. Include cards, sortable table, animated canvas chart, and fake local demo data. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-25.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-25">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-26" style="--shot: url('screenshots/worker-26.png')">
+      </a>
+      <a class="artifact-card" id="worker-26" href="artifacts/worker-26.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 26" style="--shot: url('screenshots/worker-26.png')">
         <div class="shot" aria-label="Screenshot for Worker 26"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 26 </div>
@@ -629,13 +522,9 @@
             <span>7.63 tok/s</span>
           </div>
           <p>Create a complete single-file HTML game called Color Reflex. Output code only starting with &lt;!doctype html&gt;. Show colored targets, keyboard shortcuts, reaction-time scoring, timer, and restart logic. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-26.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-26">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-27" style="--shot: url('screenshots/worker-27.png')">
+      </a>
+      <a class="artifact-card" id="worker-27" href="artifacts/worker-27.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 27" style="--shot: url('screenshots/worker-27.png')">
         <div class="shot" aria-label="Screenshot for Worker 27"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 27 </div>
@@ -646,13 +535,9 @@
             <span>7.91 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js particle globe from a CDN. Output code only starting with &lt;!doctype html&gt;. Include particles on a sphere, rotation, hover text, and responsive resize logic. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-27.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-27">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-28" style="--shot: url('screenshots/worker-28.png')">
+      </a>
+      <a class="artifact-card" id="worker-28" href="artifacts/worker-28.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 28" style="--shot: url('screenshots/worker-28.png')">
         <div class="shot" aria-label="Screenshot for Worker 28"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 28 </div>
@@ -663,13 +548,9 @@
             <span>7.45 tok/s</span>
           </div>
           <p>Create a complete single-file HTML animated comic panel sequence. Output code only starting with &lt;!doctype html&gt;. Use CSS keyframes, speech bubbles, scene transitions, and a play/pause button. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-28.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-28">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-29" style="--shot: url('screenshots/worker-29.png')">
+      </a>
+      <a class="artifact-card" id="worker-29" href="artifacts/worker-29.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 29" style="--shot: url('screenshots/worker-29.png')">
         <div class="shot" aria-label="Screenshot for Worker 29"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 29 </div>
@@ -680,13 +561,9 @@
             <span>9.40 tok/s</span>
           </div>
           <p>Create a complete single-file HTML documentation page for a local benchmark run. Output code only starting with &lt;!doctype html&gt;. Include side nav, code blocks, result cards, collapsible sections, and copy buttons. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-29.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-29">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-30" style="--shot: url('screenshots/worker-30.png')">
+      </a>
+      <a class="artifact-card" id="worker-30" href="artifacts/worker-30.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 30" style="--shot: url('screenshots/worker-30.png')">
         <div class="shot" aria-label="Screenshot for Worker 30"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 30 </div>
@@ -697,13 +574,9 @@
             <span>8.05 tok/s</span>
           </div>
           <p>Create a complete single-file HTML game called Circuit Clicker. Output code only starting with &lt;!doctype html&gt;. Include click targets, upgrades, score per second, animated circuit board CSS, and JavaScript state. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-30.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-30">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-31" style="--shot: url('screenshots/worker-31.png')">
+      </a>
+      <a class="artifact-card" id="worker-31" href="artifacts/worker-31.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 31" style="--shot: url('screenshots/worker-31.png')">
         <div class="shot" aria-label="Screenshot for Worker 31"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 31 </div>
@@ -714,13 +587,9 @@
             <span>7.28 tok/s</span>
           </div>
           <p>Create a complete single-file HTML Three.js data-center scene from a CDN. Output code only starting with &lt;!doctype html&gt;. Include glowing server racks, moving light pulses, labels, and camera animation. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-31.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-31">View prompt</a>
-          </div>
         </div>
-      </article>
-      <article class="artifact-card" id="worker-32" style="--shot: url('screenshots/worker-32.png')">
+      </a>
+      <a class="artifact-card" id="worker-32" href="artifacts/worker-32.html" target="_blank" rel="noopener" aria-label="Open generated page for Worker 32" style="--shot: url('screenshots/worker-32.png')">
         <div class="shot" aria-label="Screenshot for Worker 32"></div>
         <div class="card-overlay">
           <div class="card-kicker">Worker 32 </div>
@@ -731,12 +600,8 @@
             <span>7.48 tok/s</span>
           </div>
           <p>Create a complete single-file HTML cinematic loading animation for a 32-slot model demo. Output code only starting with &lt;!doctype html&gt;. Include animated slots, progress bars, status captions, and loop controls. Finish the file with &lt;/html&gt;.</p>
-          <div class="card-actions">
-            <a href="artifacts/worker-32.html" target="_blank" rel="noopener">Open page</a>
-            <a href="#prompt-32">View prompt</a>
-          </div>
         </div>
-      </article>
+      </a>
       </div>
     </section>
 
