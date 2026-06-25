@@ -1107,6 +1107,8 @@ PROFILE_LABELS = {
     "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
     "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
     "qwen35-122b-rocmfp4-mtp-64k-q8kv": "Qwen3.5 122B ROCmFP4 MTP 64k Q8 KV",
+    "deepseek-v4-flash-api": "DeepSeek V4 Flash API",
+    "deepseek-v4-pro-api": "DeepSeek V4 Pro API",
     "lfm25-8b-a1b-q8": "LFM2.5 8B A1B Q8",
     "step3.7-flash-q3kl": "Step-3.7 Flash Q3_K_L",
     "nex-n2-mini-q4-k-xl": "Nex N2 Mini Q4_K_XL",
@@ -1329,6 +1331,10 @@ def completed_quality_score(row):
         # and public local rows in the site data.
         "20260619T092533Z-long-context-test-medium",
         "20260619T130812Z-long-context-test-medium",
+        # Public DeepSeek API smoke miss: Cloudflare blocked the shim's default
+        # Python urllib user agent, so Hermes saw HTTP 403s instead of model
+        # responses. The corrected run is 20260625T052244Z.
+        "20260625T052059Z-hermesagent20-deepseek-v4-flash-api",
     }
     if row["run_id"] in invalid_run_ids:
         return False
