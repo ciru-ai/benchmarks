@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentWorld Research Experiment - Crown Citadel Research Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      width: min(calc(100% - 28px), 1240px);
+      margin: 0 auto;
+      padding: 18px 0 64px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      margin: 0 0 12px;
+    }
+
+    .logo-plate {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .logo-plate img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+    }
+
+    .brand-title,
+    .brand-subtitle {
+      display: block;
+      line-height: 1.1;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+    }
+
+    header {
+      margin: 0 auto 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    header > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .kicker {
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 980px;
+      font-size: clamp(2.3rem, 6vw, 5.2rem);
+      line-height: 0.96;
+    }
+
+    h2 {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .lede {
+      max-width: 920px;
+      font-size: 1.05rem;
+      margin-top: 16px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.28);
+      white-space: nowrap;
+    }
+
+    .chip.red {
+      color: #fff;
+      border-color: rgba(237, 28, 36, 0.45);
+      background: rgba(237, 28, 36, 0.24);
+    }
+
+    .chip.cyan {
+      color: var(--cyan);
+      border-color: rgba(57, 208, 255, 0.3);
+      background: rgba(57, 208, 255, 0.08);
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 18px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(8, 8, 8, 0.64);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 8px;
+      z-index: 3;
+    }
+
+    nav a {
+      display: inline-flex;
+      padding: 7px 9px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      border-radius: 5px;
+    }
+
+    nav a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      text-decoration: none;
+    }
+
+    section,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin: 18px 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .section-head p {
+      max-width: 720px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-top: 22px;
+    }
+
+    .two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stat,
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--cyan);
+      font-size: 1.65rem;
+      line-height: 1.1;
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+
+    .stat span,
+    .mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    .mini b {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .callout {
+      border: 1px solid rgba(57, 208, 255, 0.24);
+      border-left: 5px solid var(--cyan);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      padding: 16px 18px;
+      margin: 14px 0;
+    }
+
+    .callout.warning {
+      border-color: rgba(255, 159, 67, 0.25);
+      border-left-color: var(--orange);
+      background: rgba(255, 159, 67, 0.08);
+    }
+
+    .callout.bad {
+      border-color: rgba(255, 78, 95, 0.26);
+      border-left-color: var(--red);
+      background: rgba(255, 78, 95, 0.08);
+    }
+
+    .callout.good {
+      border-color: rgba(32, 209, 162, 0.25);
+      border-left-color: var(--green);
+      background: rgba(32, 209, 162, 0.08);
+    }
+
+    .callout strong {
+      color: var(--text);
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+      margin: 12px 0 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    td {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .num {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .mono,
+    code,
+    .path {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.9em;
+    }
+
+    code,
+    .path {
+      color: var(--cyan);
+      overflow-wrap: anywhere;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 3px 7px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.76rem;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.25);
+      white-space: nowrap;
+    }
+
+    .tag.pass {
+      color: var(--green);
+      border-color: rgba(32, 209, 162, 0.35);
+    }
+
+    .tag.fail {
+      color: var(--red);
+      border-color: rgba(255, 78, 95, 0.35);
+    }
+
+    .tag.warn {
+      color: var(--orange);
+      border-color: rgba(255, 159, 67, 0.35);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .flow div {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-height: 88px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      position: relative;
+    }
+
+    .flow div::after {
+      content: ">";
+      position: absolute;
+      right: -11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .flow div:last-child::after {
+      display: none;
+    }
+
+    .flow b {
+      display: block;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .flow span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 190px 1fr 70px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-row span {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .bar {
+      height: 14px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--amd), var(--cyan));
+    }
+
+    .evidence-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .evidence-list li {
+      border-left: 3px solid rgba(57, 208, 255, 0.45);
+      padding: 5px 0 5px 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .footnote {
+      color: var(--subtle);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 980px) {
+      .stats,
+      .four,
+      .three,
+      .two,
+      .flow {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .flow div::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(calc(100% - 18px), 1240px);
+        padding-top: 10px;
+      }
+
+      header,
+      section,
+      .panel {
+        padding: 18px;
+      }
+
+      .stats,
+      .four,
+      .three,
+      .two,
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="brand-lockup" href="./">
+      <span class="logo-plate"><img src="ccglogo.png" alt="Crown Citadel Group"></span>
+      <span>
+        <span class="brand-title">Ciru Inference Lab</span>
+        <span class="brand-subtitle">llm.ciru.ai / research</span>
+      </span>
+    </a>
+
+    <header>
+      <div class="kicker">Crown Citadel Research Report</div>
+      <h1>AgentWorld as a Public-Contract World Model</h1>
+      <p class="lede">
+        We tested Qwen-AgentWorld as an environment simulator and public-contract sidecar for agent benchmarks. The traces were useful, but the current experiment did not prove a general model-quality lift. The cleanest BigCodeBench slice stayed at <strong>3/6</strong>, and the HermesAgent-20 HA-17 variants stayed at <strong>70/100</strong>.
+      </p>
+      <div class="chips">
+        <span class="chip red">STATUS: NOT PROVEN</span>
+        <span class="chip cyan">AgentWorld role: sidecar / observation model</span>
+        <span class="chip">Report date: 2026-06-26</span>
+        <span class="chip">Primary evidence: local traces, JSON scores, llama-server logs</span>
+      </div>
+      <div class="grid stats">
+        <div class="stat"><b>3/6</b><span>Clean structural BigCodeBench slice</span></div>
+        <div class="stat"><b>0.50</b><span>Clean slice pass@1</span></div>
+        <div class="stat"><b>70</b><span>HA-17 assisted score</span></div>
+        <div class="stat"><b>85</b><span>HA-16 assisted score, still fail</span></div>
+        <div class="stat"><b>60.95-62.20</b><span>AgentWorld FP4 NOMTP TG tok/s observed</span></div>
+      </div>
+    </header>
+
+    <nav aria-label="Report sections">
+      <a href="#finding">Finding</a>
+      <a href="#hypotheses">Hypotheses</a>
+      <a href="#design">Design</a>
+      <a href="#attempts">Attempts</a>
+      <a href="#ha">HermesAgent</a>
+      <a href="#bcb">BigCodeBench</a>
+      <a href="#examples">Examples</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#lessons">Lessons</a>
+      <a href="#evidence">Evidence</a>
+    </nav>
+
+    <section id="finding">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Executive Finding</div>
+          <h2>Useful Trace, Unproven Lift</h2>
+        </div>
+        <p>
+          The experiment should be preserved as a negative result with useful diagnostics. AgentWorld made public-contract and environment assumptions visible, but once custom gates were removed, the benchmark evidence did not support a broad quality claim.
+        </p>
+      </div>
+
+      <div class="grid three">
+        <div class="mini">
+          <b>What worked</b>
+          <span>AgentWorld produced inspectable observations: public requirements, declared resources, unknown resources, exact strings, and risk notes. Those traces helped explain why models failed and where controller contracts were missing.</span>
+        </div>
+        <div class="mini">
+          <b>What failed</b>
+          <span>The harness drifted toward task-shaped validators. The best-looking BigCodeBench number, <span class="mono">5/6</span>, came from custom gates and is diagnostic only.</span>
+        </div>
+        <div class="mini">
+          <b>Current conclusion</b>
+          <span>We have not proved the model. The valid next step is an apples-to-apples Ace-alone versus Ace+AgentWorld rerun with no behavioral gates and official scoring only.</span>
+        </div>
+      </div>
+
+      <div class="callout bad">
+        <strong>Stop condition:</strong> do not claim "AgentWorld improved Ace" from the gated <span class="mono">5/6</span> slice, the targeted BCB13/17 reprise passes, or HA-16/HA-17 partial scores. Those are evidence for diagnostics and harness design, not a leaderboard-quality result.
+      </div>
+    </section>
+
+    <section id="hypotheses">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Autoresearch Frame</div>
+          <h2>Original Hypotheses</h2>
+        </div>
+        <p>
+          The BusyBeaver HA-17 experiment framed AgentWorld as an advisor beside a separate executor, not as a replacement benchmark runner.
+        </p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Claim</th>
+              <th>Prediction</th>
+              <th>Observed state</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">H1</td>
+              <td>AgentWorld is best used as a simulator/advisor, not as the tool executor.</td>
+              <td>Advice logged at the harness boundary should be easier to score and debug.</td>
+              <td><span class="tag pass">supported for debugging</span> Traces were inspectable and helped isolate failure layers.</td>
+            </tr>
+            <tr>
+              <td class="mono">H2</td>
+              <td>HA-17 failure is orchestration and event shape, not arithmetic difficulty.</td>
+              <td>A single batched delegation event plus exact summary schema should score 100.</td>
+              <td><span class="tag warn">partly supported</span> Batching worked, values were right, schema was wrong.</td>
+            </tr>
+            <tr>
+              <td class="mono">H3</td>
+              <td>AgentWorld FP4 lean is the first two-model profile to try.</td>
+              <td>128k or 262k context should fit beside another model and avoid card-context mismatch.</td>
+              <td><span class="tag pass">fit tested</span> Served successfully; quality proof did not follow.</td>
+            </tr>
+            <tr>
+              <td class="mono">H4</td>
+              <td>The harness must test real controller behavior.</td>
+              <td>Every proposed tool call should pass through AgentWorld preflight, then real artifacts should be scored.</td>
+              <td><span class="tag pass">validated as methodology</span> Real artifacts exposed schema and content failures.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="footnote">Source: <span class="path">/home/crown/benchmarks/BusyBeaver-Hermes-Adapter/experiments/ha17-parallel-delegation/research-state.yaml</span>.</p>
+    </section>
+
+    <section id="design">
+      <div class="section-head">
+        <div>
+          <div class="kicker">System Design</div>
+          <h2>AgentWorld Stayed Outside the Score</h2>
+        </div>
+        <p>
+          The correct design boundary was: public task in, AgentWorld observation out, controller contract compiled, executor writes artifacts, official verifier scores. The reportable score must come from the real benchmark evaluator or verifier, never from AgentWorld's own judgment.
+        </p>
+      </div>
+
+      <div class="flow">
+        <div><b>Public task</b><span>Prompt, starter code, visible files, declared tool schemas.</span></div>
+        <div><b>Controller</b><span>Builds state and proposes an action or contract extraction.</span></div>
+        <div><b>AgentWorld</b><span>Predicts environment observation in official world-model shape.</span></div>
+        <div><b>Compiler</b><span>Turns observation into typed constraints and risk notes.</span></div>
+        <div><b>Executor</b><span>Ace/Hermes performs real tool calls or code generation.</span></div>
+        <div><b>Verifier</b><span>Official BigCodeBench or HA verifier decides pass/fail.</span></div>
+      </div>
+
+      <div class="callout">
+        <strong>Ground truth boundary:</strong> AgentWorld traces can explain public-contract risks, but they cannot decide pass/fail for BigCodeBench or HermesAgent-20. The score source stays the official evaluator.
+      </div>
+    </section>
+
+    <section id="attempts">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Experiment Map</div>
+          <h2>What We Tried and Why</h2>
+        </div>
+        <p>
+          The project moved from raw AgentWorld generation, to official-shaped world-model prompting, to controller/constraint experiments. Each step improved observability, but the final score evidence remained insufficient.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Attempt</th>
+              <th>Reason</th>
+              <th>Settings or change</th>
+              <th>Observed result</th>
+              <th>Lesson</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Direct BigCodeBench AgentWorld</td>
+              <td>Check whether AgentWorld could solve code tasks directly.</td>
+              <td>Old direct codegen, low output cap.</td>
+              <td><span class="tag fail">invalid</span> Cap saturation, submitted <span class="mono">&lt;think&gt;</span>, partial reasoning, missing <span class="mono">task_func</span>.</td>
+              <td>Do not report the old <span class="mono">5/148</span>; add validation before scoring.</td>
+            </tr>
+            <tr>
+              <td>Guarded direct smoke</td>
+              <td>Separate parser/cap failures from real task failures.</td>
+              <td><span class="mono">MAX_NEW_TOKENS=65536</span>, validation for syntax, entry point, no think tags.</td>
+              <td>BCB13 and BCB15 generated valid code but failed official tests.</td>
+              <td>Some failures became legitimate model/task failures rather than harness failures.</td>
+            </tr>
+            <tr>
+              <td>Official-shaped AgentWorld + Ace loop</td>
+              <td>Use AgentWorld as intended: state/action to observation.</td>
+              <td><span class="mono">system_str</span> plus Action plus "Predict the next Environment Observation".</td>
+              <td>Traces captured public contracts and model handoffs.</td>
+              <td>Observability improved, but prose advice was too weak unless compiled.</td>
+            </tr>
+            <tr>
+              <td>Custom gated v5 diagnostic</td>
+              <td>See if task-specific public smokes could repair known failure modes.</td>
+              <td>Controller behavior gates and public validation smokes.</td>
+              <td><span class="tag pass">5/6 diagnostic</span> <span class="mono">pass@1=0.8333</span>.</td>
+              <td>Diagnostic only; gates were too task-shaped for a fair benchmark method.</td>
+            </tr>
+            <tr>
+              <td>Structural-only clean slice</td>
+              <td>Remove custom behavior gates.</td>
+              <td>No custom behavioral gates; structural checks only.</td>
+              <td><span class="tag fail">3/6</span> <span class="mono">pass@1=0.5</span>, no generation failures.</td>
+              <td>No clear evidence that AgentWorld reliably improved Ace.</td>
+            </tr>
+            <tr>
+              <td>HA-16/HA-17 controller-assisted runs</td>
+              <td>Test real agent workflow rather than synthetic BCB only.</td>
+              <td>AgentWorld preflight, controller decisions, real tool execution.</td>
+              <td>HA-16 moved from 30 to 85 but failed; HA-17 stayed 70.</td>
+              <td>Traces solved subproblems; output-contract enforcement was still missing.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="ha">
+      <div class="section-head">
+        <div>
+          <div class="kicker">HermesAgent Evidence</div>
+          <h2>HA-16 and HA-17: Solved Subproblems, Not the Benchmarks</h2>
+        </div>
+        <p>
+          The HermesAgent-20 run is the best local baseline for agent workflow shape. The full official-20 run averaged <span class="mono">78.5</span> raw, imported into the quality store as <span class="mono">0.79</span>. HA-16 and HA-17 remained useful because they isolate target resolution and output schema failures.
+        </p>
+      </div>
+
+      <div class="grid four">
+        <div class="stat"><b>78.5</b><span>Full HermesAgent-20 average score</span></div>
+        <div class="stat"><b>12 / 20</b><span>Pass count in full run</span></div>
+        <div class="stat"><b>363.842s</b><span>Full official-20 elapsed time</span></div>
+        <div class="stat"><b>0.79</b><span>Imported quality-store average</span></div>
+      </div>
+
+      <h3>HA-16: Message Target Resolution</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run</th>
+              <th>Score</th>
+              <th>What failed before</th>
+              <th>What AgentWorld/controller fixed</th>
+              <th>Why it still failed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Full HermesAgent-20 HA-16</td>
+              <td class="num">30</td>
+              <td>Delivery was undefined even after listing targets.</td>
+              <td>-</td>
+              <td>The intended engineering target was not reached.</td>
+            </tr>
+            <tr>
+              <td>AgentWorld-assisted HA-16</td>
+              <td class="num">85</td>
+              <td>Target name/id ambiguity.</td>
+              <td>AgentWorld observation exposed <span class="mono">notify_engineering</span> and told the controller to use the target id, not display name. The run sent one message successfully to <span class="mono">notify_engineering</span>.</td>
+              <td><span class="mono">readSummary=false</span> and <span class="mono">contentScore=0</span>; the harness required reading the file content first.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>HA-17: Parallel Delegation</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th>Duration</th>
+              <th>Status</th>
+              <th>Score</th>
+              <th>What happened</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="path">ha17-assisted...128k...16384</span></td>
+              <td class="num">159.89s</td>
+              <td>final</td>
+              <td class="num">70</td>
+              <td>Single batched delegation, correct values, wrong output keys.</td>
+            </tr>
+            <tr>
+              <td><span class="path">ha17-assisted...262k...cardparams</span></td>
+              <td class="num">230.506s</td>
+              <td>final</td>
+              <td class="num">70</td>
+              <td>Three AgentWorld runs, three controller runs, thirteen tool events; still wrote <span class="mono">sum_a</span>, <span class="mono">sorted_b</span>, <span class="mono">duplicates_c</span>.</td>
+            </tr>
+            <tr>
+              <td><span class="path">ha17-assisted...nothink-contractprompt</span></td>
+              <td class="num">185.512s</td>
+              <td>final</td>
+              <td class="num">70</td>
+              <td>Contract prompting did not fix hidden output-schema ambiguity.</td>
+            </tr>
+            <tr>
+              <td><span class="path">ha17-controller...tolerantparse</span></td>
+              <td class="num">32.546s</td>
+              <td>final</td>
+              <td class="num">70</td>
+              <td>Parser tolerance fixed controller fragility, not verifier schema.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid three">
+        <div class="stat"><b>false</b><span>HA-17 exactMatch</span></div>
+        <div class="stat"><b>1</b><span>delegateCount</span></div>
+        <div class="stat"><b>true</b><span>batchedDelegate</span></div>
+      </div>
+
+      <div class="callout warning">
+        <strong>HA-17 lesson:</strong> AgentWorld/controller work preserved the batched delegation shape and computed the values. It did not know the verifier's normalized schema. The next harness needs an explicit public output-contract layer, not more sampling.
+      </div>
+    </section>
+
+    <section id="bcb">
+      <div class="section-head">
+        <div>
+          <div class="kicker">BigCodeBench Evidence</div>
+          <h2>The Clean Slice Is the Reportable Result</h2>
+        </div>
+        <p>
+          BigCodeBench is not a native AgentWorldBench task. The safest preserved comparison is the structural-only slice where custom behavioral gates were removed and the official evaluator decided pass/fail.
+        </p>
+      </div>
+
+      <div class="grid three">
+        <div class="stat"><b>2/6</b><span>Early no-thinking slice, pass@1 0.3333</span></div>
+        <div class="stat"><b>5/6</b><span>Custom gated v5 diagnostic, pass@1 0.8333</span></div>
+        <div class="stat"><b>3/6</b><span>Clean structural-only slice, pass@1 0.5</span></div>
+      </div>
+
+      <div class="bars" aria-label="BigCodeBench slice scores">
+        <div class="bar-row"><span>Early no-thinking</span><div class="bar"><i style="width:33.333%"></i></div><span class="num">0.333</span></div>
+        <div class="bar-row"><span>Custom gated v5</span><div class="bar"><i style="width:83.333%"></i></div><span class="num">0.833</span></div>
+        <div class="bar-row"><span>Structural-only</span><div class="bar"><i style="width:50%"></i></div><span class="num">0.500</span></div>
+      </div>
+
+      <div class="callout bad">
+        <strong>Interpretation:</strong> the custom-gated result is not fair official benchmark evidence. It showed that hand-built validators could push the executor toward hidden or semi-hidden expectations. The structural-only slice is the honest result.
+      </div>
+
+      <h3>Clean Structural-Only Slice</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Value</th>
+              <th>Evidence file</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Run tag</td>
+              <td><span class="mono">traced-000-006-agentworld-nothink-structural-only-v1</span></td>
+              <td><span class="path">structural-only-v1-metrics-chunk-0-6.json</span></td>
+            </tr>
+            <tr>
+              <td>Samples</td>
+              <td class="num">6</td>
+              <td>metrics JSON</td>
+            </tr>
+            <tr>
+              <td>Passed / failed</td>
+              <td class="num">3 / 3</td>
+              <td>metrics JSON and eval results</td>
+            </tr>
+            <tr>
+              <td>Generation failures</td>
+              <td class="num">0</td>
+              <td><span class="mono">generation_summary.failures=[]</span></td>
+            </tr>
+            <tr>
+              <td>Codegen / eval wall time</td>
+              <td class="num">140s / 24s</td>
+              <td>metrics JSON</td>
+            </tr>
+            <tr>
+              <td>Ground-truth pass rate</td>
+              <td class="num">1.0</td>
+              <td>metrics JSON</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Per-Task Outcome</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Status</th>
+              <th>AgentWorld turns</th>
+              <th>AgentWorld TG</th>
+              <th>Coder TG</th>
+              <th>Main failure or pass note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">BigCodeBench/13</td><td><span class="tag fail">fail</span></td><td class="num">3</td><td class="num">58.98</td><td class="num">119.48</td><td>FTP listing/download behavior did not match official tests; eval asserted <span class="mono">0 != 2</span>.</td></tr>
+            <tr><td class="mono">BigCodeBench/15</td><td><span class="tag fail">fail</span></td><td class="num">2</td><td class="num">59.64</td><td class="num">113.03</td><td>Error text missed exact phrase: <span class="mono">Error executing command</span>.</td></tr>
+            <tr><td class="mono">BigCodeBench/17</td><td><span class="tag fail">fail</span></td><td class="num">2</td><td class="num">59.64</td><td class="num">102.39</td><td>Process lookup and <span class="mono">subprocess.Popen</span> call shape differed from tests.</td></tr>
+            <tr><td class="mono">BigCodeBench/19</td><td><span class="tag pass">pass</span></td><td class="num">2</td><td class="num">59.65</td><td class="num">102.53</td><td>Zip files task passed.</td></tr>
+            <tr><td class="mono">BigCodeBench/34</td><td><span class="tag pass">pass</span></td><td class="num">2</td><td class="num">59.54</td><td class="num">84.79</td><td>WordCloud plotting task passed.</td></tr>
+            <tr><td class="mono">BigCodeBench/37</td><td><span class="tag pass">pass</span></td><td class="num">2</td><td class="num">59.29</td><td class="num">100.28</td><td>RandomForest feature-importance plot task passed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="examples">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Trace Examples</div>
+          <h2>Where AgentWorld Helped</h2>
+        </div>
+        <p>
+          These examples are the strongest positive evidence, but each one has a boundary. They show traces solving or isolating subproblems that previous runs missed; they do not prove a general benchmark lift.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Previously failed</th>
+              <th>Trace/help signal</th>
+              <th>Later result</th>
+              <th>Claim boundary</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">HA-16</td>
+              <td>Full run score <span class="mono">30</span>; delivery undefined.</td>
+              <td>AgentWorld listed <span class="mono">notify_engineering</span> and instructed the controller to use target id, not display name.</td>
+              <td>Assisted score <span class="mono">85</span>, one successful send to <span class="mono">notify_engineering</span>.</td>
+              <td>Target-resolution subproblem solved; benchmark still failed because the file was not read.</td>
+            </tr>
+            <tr>
+              <td class="mono">BigCodeBench/17</td>
+              <td>Structural-only failed process-detection and <span class="mono">Popen([process_name])</span> shape tests.</td>
+              <td>Trace exposed exact public strings and process-management surfaces, making the API-shape failure obvious.</td>
+              <td>Targeted reprise variants <span class="mono">process-isrunning-v1</span>, <span class="mono">process-kill-v1</span>, and <span class="mono">process-shape-v1</span> reached <span class="mono">pass@1=1.0</span>.</td>
+              <td>Diagnostic reprise, not a clean official-suite improvement.</td>
+            </tr>
+            <tr>
+              <td class="mono">BigCodeBench/13</td>
+              <td>Structural-only failed FTP mocked download count with <span class="mono">AssertionError: 0 != 2</span>.</td>
+              <td>Trace captured the public <span class="mono">wget</span> requirement, exact exception strings, and unknown remote file risks.</td>
+              <td>Targeted <span class="mono">ftp-wget-missing-v2</span> reprise reached <span class="mono">pass@1=1.0</span>.</td>
+              <td>Targeted diagnostic, not reportable as a general benchmark score.</td>
+            </tr>
+            <tr>
+              <td class="mono">BigCodeBench/199</td>
+              <td>Older Ace/SABER batch failed three tests with <span class="mono">ValueError: Not naive datetime (tzinfo is already set)</span> from <span class="mono">pytz.tzname</span>.</td>
+              <td>AgentWorld guidance emphasized local-time format <span class="mono">YYYY-MM-DD HH:MM:SS ZZZ</span>; submitted code used <span class="mono">strftime('%Z')</span> instead of <span class="mono">tzname(aware_datetime)</span>.</td>
+              <td>AgentWorld+Ace sanity run and current Ace overlap rerun both reached <span class="mono">pass@1=1.0</span>.</td>
+              <td>Likely public-contract shaping; not isolated proof because the current Ace overlap rerun also passed.</td>
+            </tr>
+            <tr>
+              <td class="mono">BigCodeBench/82</td>
+              <td>Ace hard-depended on undeclared Flask templates like <span class="mono">login.html</span> and <span class="mono">protected.html</span>.</td>
+              <td>AgentWorld identified template filenames as unknown/undeclared, which inspired the controller-contract design.</td>
+              <td>All preserved <span class="mono">traced-006-007</span> BCB82 variants still failed official evaluation.</td>
+              <td>Excellent failure-analysis example; not a solved example.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout good">
+        <strong>Most useful positive result:</strong> the traces made invisible contract failures visible. The result was better diagnosis and targeted repairs, not a validated general sidecar method.
+      </div>
+    </section>
+
+    <section id="metrics">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Speed, Tokens, Memory</div>
+          <h2>Overhead Was Real</h2>
+        </div>
+        <p>
+          The two-model loop adds calls, tokens, and wall time. The preserved logs have good PP/TG and token-usage evidence. They do not contain reliable peak VRAM/RAM deltas, so memory is reported as startup snapshots, model file sizes, and checkpoint sizes only.
+        </p>
+      </div>
+
+      <h3>AgentWorld Serving Profile</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Model</td><td><span class="path">CHADROCK-AGENT-WORLD-35B-A3B-ROCmFP4-STRIX_LEAN-NOMTP.gguf</span></td></tr>
+            <tr><td>Model file size</td><td class="num">18,597,338,016 bytes</td></tr>
+            <tr><td>Runtime</td><td><span class="mono">llama-server</span>, ROCm0, FP4 lean, no MTP, <span class="mono">--metrics</span></td></tr>
+            <tr><td>Context</td><td><span class="mono">n_ctx=131072</span>, model train context <span class="mono">262144</span></td></tr>
+            <tr><td>KV/cache</td><td><span class="mono">ctk q8_0</span>, <span class="mono">ctv q8_0</span>, prompt cache disabled</td></tr>
+            <tr><td>Batch / ubatch</td><td><span class="mono">-b 2048</span>, <span class="mono">-ub 512</span></td></tr>
+            <tr><td>Device snapshot</td><td>ROCm0 Radeon 8060S Graphics: <span class="mono">126976 MiB</span> total, <span class="mono">92929 MiB</span> free at startup</td></tr>
+            <tr><td>CPU memory snapshot</td><td>AMD Ryzen AI Max+ 395: <span class="mono">126431 MiB</span> free at startup</td></tr>
+            <tr><td>Context checkpoint size</td><td><span class="mono">62.813 MiB</span> per checkpoint in log snippets</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Observed PP/TG From Server Log</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Prompt tokens</th>
+              <th>Prompt eval time</th>
+              <th>PP tok/s</th>
+              <th>Generated tokens</th>
+              <th>Eval time</th>
+              <th>TG tok/s</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="num">1186</td><td class="num">1026.55 ms</td><td class="num">1155.33</td><td class="num">768</td><td class="num">12382.72 ms</td><td class="num">62.02</td></tr>
+            <tr><td class="num">526</td><td class="num">498.36 ms</td><td class="num">1055.47</td><td class="num">768</td><td class="num">12352.43 ms</td><td class="num">62.17</td></tr>
+            <tr><td class="num">432</td><td class="num">384.99 ms</td><td class="num">1122.10</td><td class="num">768</td><td class="num">12346.63 ms</td><td class="num">62.20</td></tr>
+            <tr><td class="num">431</td><td class="num">713.21 ms</td><td class="num">604.31</td><td class="num">4741</td><td class="num">77787.73 ms</td><td class="num">60.95</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>AgentWorld Token Usage Examples</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run</th>
+              <th>Turn</th>
+              <th>Finish</th>
+              <th>Prompt tokens</th>
+              <th>Completion tokens</th>
+              <th>Total tokens</th>
+              <th>Cached tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>HA-17 cardparams</td><td class="num">1</td><td>stop</td><td class="num">1189</td><td class="num">4753</td><td class="num">5942</td><td class="num">0</td></tr>
+            <tr><td>HA-17 cardparams</td><td class="num">2</td><td>stop</td><td class="num">1102</td><td class="num">4239</td><td class="num">5341</td><td class="num">673</td></tr>
+            <tr><td>HA-17 cardparams</td><td class="num">3</td><td>stop</td><td class="num">1186</td><td class="num">2821</td><td class="num">4007</td><td class="num">673</td></tr>
+            <tr><td>HA-16 assisted</td><td class="num">1</td><td>stop</td><td class="num">865</td><td class="num">3923</td><td class="num">4788</td><td class="num">0</td></tr>
+            <tr><td>HA-16 assisted</td><td class="num">2</td><td>stop</td><td class="num">907</td><td class="num">2724</td><td class="num">3631</td><td class="num">349</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>BigCodeBench Trace Metrics</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Task / run</th>
+              <th>Pass@1</th>
+              <th>AgentWorld generated tokens</th>
+              <th>AgentWorld TG</th>
+              <th>Coder generated tokens</th>
+              <th>Coder TG</th>
+              <th>Wall note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Clean BCB13</td><td class="num">0.0</td><td class="num">1586</td><td class="num">58.98</td><td class="num">779</td><td class="num">119.48</td><td>Failed official evaluator.</td></tr>
+            <tr><td>Clean BCB17</td><td class="num">0.0</td><td class="num">436</td><td class="num">59.64</td><td class="num">429</td><td class="num">102.39</td><td>Failed official evaluator.</td></tr>
+            <tr><td>Targeted BCB17 process-kill</td><td class="num">1.0</td><td class="num">680</td><td class="num">59.23</td><td class="num">409</td><td class="num">112.67</td><td>Diagnostic reprise only.</td></tr>
+            <tr><td>BCB199 AgentWorld sanity</td><td class="num">1.0</td><td class="num">1444</td><td class="num">57.55</td><td class="num">717</td><td class="num">123.81</td><td>Public-contract success case.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warning">
+        <strong>Memory caveat:</strong> no reliable idle/peak VRAM or system-RAM deltas were preserved in the AgentWorld/HermesAgent run JSONs. The report therefore lists startup device snapshots, model file sizes, and context-checkpoint sizes instead of inventing a peak-memory metric.
+      </div>
+    </section>
+
+    <section id="lessons">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Lessons</div>
+          <h2>What We Learned</h2>
+        </div>
+        <p>
+          The experiment produced a clear harness lesson: AgentWorld's observations become useful only when transformed into typed, enforceable public contracts.
+        </p>
+      </div>
+
+      <div class="grid two">
+        <div class="callout bad">
+          <strong>Simulated observations are not benchmark observations.</strong>
+          AgentWorld can predict plausible environment state, but BigCodeBench and HA verifiers decide score.
+        </div>
+        <div class="callout">
+          <strong>Public contracts must be structured.</strong>
+          Free-form guidance was too easy for the executor to ignore or misapply.
+        </div>
+        <div class="callout warning">
+          <strong>Custom gates can become surrogate scorers.</strong>
+          The v5 gates improved a slice score, but they were not acceptable general benchmark evidence.
+        </div>
+        <div class="callout good">
+          <strong>Trace data is valuable.</strong>
+          It separated parser failures, cap failures, API-shape failures, output-schema failures, and official evaluator failures.
+        </div>
+      </div>
+
+      <h3>Next Clean Experiment</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Requirement</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Ace alone vs Ace+AgentWorld</td><td>Same sampler, context, evaluator, and task set are required to claim lift.</td></tr>
+            <tr><td>No custom behavioral gates</td><td>Use structural guards only: sample count, valid code, no think blocks, entry point present, no cap saturation.</td></tr>
+            <tr><td>Pre-registered success criteria</td><td>Avoid deciding after the fact which diagnostic passes count.</td></tr>
+            <tr><td>Persist controller contracts</td><td>Every task should preserve raw observation, compiled contract, executor prompt, code, validation, and official eval.</td></tr>
+            <tr><td>Report overhead with quality</td><td>The intended method runs two models; extra tokens and wall time are part of the result.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Evidence Index</div>
+          <h2>Local Artifact Map</h2>
+        </div>
+        <p>
+          These are the local files used to compile the report. Paths are intentionally left explicit so the claims can be audited from the workspace.
+        </p>
+      </div>
+
+      <ul class="evidence-list">
+        <li><span class="path">/srv/desktop-data/cirudata/research/agentworld/README.md</span> - preserved conclusion and do-not-reuse guidance.</li>
+        <li><span class="path">/srv/desktop-data/cirudata/research/agentworld/agentworld-bigcodebench-failed-idea-20260626.md</span> - postmortem, clean slice result, caveats.</li>
+        <li><span class="path">/srv/desktop-data/cirudata/research/agentworld/evidence/bigcodebench-agentworld-20260626/structural-only-v1-metrics-chunk-0-6.json</span> - clean slice metrics.</li>
+        <li><span class="path">/srv/desktop-data/cirudata/research/agentworld/selected-traces-20260626/structural-only-BigCodeBench_13.trace.json</span> and <span class="path">BigCodeBench_17.trace.json</span> - representative trace details.</li>
+        <li><span class="path">/home/crown/bench-results/agentworld-harness/full20-main-20260625T100839Z/summary.json</span> - HermesAgent-20 full run baseline.</li>
+        <li><span class="path">/home/crown/bench-results/agentworld-harness/ha16-assisted-agentworld262k-ace256k-froggeric-nothink-20260625</span> - HA-16 assisted trace and score.</li>
+        <li><span class="path">/home/crown/bench-results/agentworld-harness/ha17-assisted-agentworld262k-ace256k-froggeric-cardparams-20260625</span> - HA-17 262k card-parameter run.</li>
+        <li><span class="path">/home/crown/bench-results/agentworld-harness/agentworld-fp4-nomtp-128k-18137-20260625.log</span> - PP/TG and startup memory snapshots.</li>
+        <li><span class="path">/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260625T204015Z-bigcodebench-agentworld-harness-fix-smoke/NOTES.md</span> - guarded runner and traced-loop notes.</li>
+        <li><span class="path">/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260625T101941Z-full-coding-benchmark-large/outputs/bigcodebench/main--chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text256k-froggeric-template-bcb-012-032--bigcodebench-hard-instruct--openai-0-1-sanitized_calibrated_eval_results.json</span> - prior BCB199 failure evidence.</li>
+        <li><span class="path">/home/crown/benchmarks/BusyBeaver-Hermes-Adapter/experiments/ha17-parallel-delegation/research-state.yaml</span>, <span class="path">research-log.md</span>, and <span class="path">findings.md</span> - original autoresearch hypotheses and experiment log.</li>
+      </ul>
+
+      <div class="callout bad">
+        <strong>Final conclusion:</strong> the current evidence supports continuing AgentWorld as an audit and public-contract trace tool. It does not yet prove that AgentWorld improves the model or the benchmark score under clean, controlled conditions.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
