@@ -57,6 +57,7 @@ def compact_path(value):
     if not value:
         return None
     value = str(value)
+    value = value.replace("/run/media/crown/ssd-p3700ba/@data/data/", "/srv/ssd/p3700ba/data/")
     for marker in ("/srv/llm/models/", "/srv/llm/projects/", "/home/crown/bench-results/", "/srv/llm/runs/", "/srv/ssd/"):
         if marker in value:
             return value[value.index(marker):]
@@ -1098,6 +1099,7 @@ PROFILE_LABELS = {
     "gemma4-31b-q4-dflash-q8-full-ctx32768": "Gemma 4 31B DFlash Q8 32k",
     "qwopus3.6-27b-v2-q5-k-m": "Qwopus3.6 27B v2 Q5_K_M",
     "qwopus3.6-35b-a3b-v1-q5-k-m": "Qwopus3.6 35B A3B v1 Q5_K_M",
+    "qwopus36-q4-eval-frogger-256k": "Qwopus3.6 35B A3B Coder MTP Q4_K_M 256k",
     "chadrock-qwen36-27b-mtp-rocmfp4-strix-lean": "Chadrock Qwen3.6 27B MTP ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff": "Chadrock 35B ACE/SABER ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler": "Chadrock 35B ACE/SABER ROCmFP4 Docsampler",
@@ -1121,6 +1123,7 @@ SUITE_LABELS = {
     "mbpp": "MBPP+",
     "bigcodebench_hard": "BigCodeBench-Hard",
     "bigcodebench-hard-instruct": "BigCodeBench-Hard",
+    "bigcodebench-instruct-full": "BigCodeBench Instruct Full",
     "release_latest-codegeneration-2025-01-01": "LiveCodeBench 2025-01",
     "swebench-lite-dev": "SWE-bench Lite Dev",
     "official-20": "HermesAgent-20",
@@ -1518,6 +1521,7 @@ def summarize_quality_suites():
         ("evalplus", "mbpp"): 2,
         ("livecodebench", "release_latest-codegeneration-2025-01-01"): 3,
         ("bigcodebench", "bigcodebench-hard-instruct"): 4,
+        ("bigcodebench", "bigcodebench-instruct-full"): 4,
         ("mini-swe-agent", "swebench-lite-dev"): 5,
     }
     leader_rows = sorted(latest_by_profile_suite.values(), key=lambda row: (
