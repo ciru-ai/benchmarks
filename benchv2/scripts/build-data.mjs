@@ -1099,7 +1099,7 @@ PROFILE_LABELS = {
     "gemma4-31b-q4-dflash-q8-full-ctx32768": "Gemma 4 31B DFlash Q8 32k",
     "qwopus3.6-27b-v2-q5-k-m": "Qwopus3.6 27B v2 Q5_K_M",
     "qwopus3.6-35b-a3b-v1-q5-k-m": "Qwopus3.6 35B A3B v1 Q5_K_M",
-    "qwopus36-q4-eval-frogger-256k": "Qwopus3.6 35B A3B Coder MTP Q4_K_M 256k",
+    "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
     "chadrock-qwen36-27b-mtp-rocmfp4-strix-lean": "Chadrock Qwen3.6 27B MTP ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff": "Chadrock 35B ACE/SABER ROCmFP4",
     "chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler": "Chadrock 35B ACE/SABER ROCmFP4 Docsampler",
