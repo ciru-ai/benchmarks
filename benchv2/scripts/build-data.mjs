@@ -58,6 +58,8 @@ def compact_path(value):
         return None
     value = str(value)
     value = value.replace("/run/media/crown/ssd-p3700ba/@data/data/", "/srv/ssd/p3700ba/data/")
+    for private, public in PUBLIC_PATH_REPLACEMENTS.items():
+        value = value.replace(private, public)
     for marker in ("/srv/llm/models/", "/srv/llm/projects/", "/home/crown/bench-results/", "/srv/llm/runs/", "/srv/ssd/"):
         if marker in value:
             return value[value.index(marker):]
@@ -1140,9 +1142,38 @@ SUITE_LABELS = {
     "bfcl-v4-non_live_simple_python": "BFCL simple Python",
 }
 
+RUN_LABELS = {
+    "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+    "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+}
+
+RUN_IDS = {
+    "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-eval-20260629",
+    "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-hermes20-20260629",
+}
+
+PROFILE_IDS = {
+    "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+}
+
+PUBLIC_PATH_REPLACEMENTS = {
+    "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-eval-20260629",
+    "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-hermes20-20260629",
+    "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+}
+
 def title_from_slug(value):
     words = re.sub(r"^\d{8}T\d{6}Z-", "", str(value or "")).replace("-", " ").split()
     return " ".join(word.upper() if word in ("mtp", "q8", "q6", "q5", "q4") else word.capitalize() for word in words)
+
+def public_run_label(run_id):
+    return RUN_LABELS.get(str(run_id or ""), title_from_slug(run_id))
+
+def public_run_id(run_id):
+    return RUN_IDS.get(str(run_id or ""), str(run_id or ""))
+
+def public_profile_id(profile_id):
+    return PROFILE_IDS.get(str(profile_id or ""), str(profile_id or ""))
 
 def run_created_utc(run_id):
     m = re.match(r"(\d{8})T(\d{6})Z", str(run_id or ""))
@@ -1396,17 +1427,20 @@ def completed_quality_score(row):
 def quality_row_public(row):
     score = float(row["score_value"])
     profile_id = row["profile_id"]
+    public_id = public_profile_id(profile_id)
     suite = row["suite"]
+    original_run_id = row["run_id"]
     return {
         "seq": row["seq"],
-        "runId": row["run_id"],
-        "createdUtc": run_created_utc(row["run_id"]) or row["timestamp_utc"],
+        "runId": public_run_id(original_run_id),
+        "runLabel": public_run_label(original_run_id),
+        "createdUtc": run_created_utc(original_run_id) or row["timestamp_utc"],
         "timestamp": row["timestamp_utc"],
         "benchmarkFamily": row["benchmark_family"],
         "suite": suite,
         "suiteLabel": SUITE_LABELS.get(suite, title_from_slug(suite)),
         "rowKind": row["row_kind"],
-        "profileId": profile_id,
+        "profileId": public_id,
         "profile": public_profile_label(profile_id),
         "family": family_for(profile_id),
         "quant": profile_quant(profile_id),
@@ -1569,7 +1603,7 @@ def summarize_coding_lab_from_quality_db():
             continue
         coding_rows.append({
             "runId": row["runId"],
-            "runLabel": title_from_slug(row["runId"]),
+            "runLabel": row.get("runLabel") or public_run_label(row["runId"]),
             "createdUtc": row["createdUtc"],
             "profileId": row["profileId"],
             "profile": row["profile"],
@@ -1592,7 +1626,7 @@ def summarize_coding_lab_from_quality_db():
     for row in coding_rows:
         run = runs_by_id.setdefault(row["runId"], {
             "runId": row["runId"],
-            "label": title_from_slug(row["runId"]),
+            "label": row.get("runLabel") or public_run_label(row["runId"]),
             "createdUtc": row["createdUtc"],
             "profiles": set(),
             "rows": 0,
@@ -1784,10 +1818,10 @@ def summarize_coding_lab():
             if not isinstance(row.get("base_pass"), (int, float)) or not isinstance(row.get("plus_pass"), (int, float)):
                 continue
             run_rows.append({
-                "runId": run_id,
-                "runLabel": title_from_slug(run_id),
+                "runId": public_run_id(run_id),
+                "runLabel": public_run_label(run_id),
                 "createdUtc": run_created_utc(run_id),
-                "profileId": profile_id,
+                "profileId": public_profile_id(profile_id),
                 "profile": public_profile_label(profile_id),
                 "family": family_for(profile_id),
                 "suite": suite,
@@ -1823,10 +1857,10 @@ def summarize_coding_lab():
             passed = int(round(score.get("pass@1") * tasks))
             suite = "bigcodebench_hard"
             run_rows.append({
-                "runId": run_id,
-                "runLabel": title_from_slug(run_id),
+                "runId": public_run_id(run_id),
+                "runLabel": public_run_label(run_id),
                 "createdUtc": run_created_utc(run_id),
-                "profileId": profile_id,
+                "profileId": public_profile_id(profile_id),
                 "profile": public_profile_label(profile_id),
                 "family": family_for(profile_id),
                 "suite": suite,
@@ -1845,8 +1879,8 @@ def summarize_coding_lab():
 
         profile_ids = sorted({row.get("profileId") for row in run_rows if row.get("profileId")})
         runs.append({
-            "runId": run_id,
-            "label": title_from_slug(run_id),
+            "runId": public_run_id(run_id),
+            "label": public_run_label(run_id),
             "createdUtc": run_created_utc(run_id),
             "profiles": len(profile_ids),
             "rows": len(run_rows),

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="../assets/echarts.min.js"></script>
-  <script src="data/benchv2-data.js?v=20260630-hermes-grid-all"></script>
+  <script src="data/benchv2-data.js?v=20260630-public-run-labels"></script>
   <style>
     :root {
       --bg: #070707;
@@ -3661,7 +3661,7 @@
           <td>${escapeHtml(suiteKindLabel(row))}<small class="muted">${escapeHtml(row.scoreLabel || row.scoreName || "")}</small></td>
           <td>${pct(row.score)}${row.scoreName === "resolved" ? `<small class="muted">resolved</small>` : ""}</td>
           <td>${row.tasks ? `${intFmt(row.tasks)} tasks` : "scored metric"}<small class="muted">${row.plusPass != null ? `${intFmt(row.plusPass)} strict passes` : "completed score row"}</small></td>
-          <td><strong>${escapeHtml(row.runId || "")}</strong><small>${latestDate(row.createdUtc || row.timestamp)}</small></td>
+          <td><strong>${escapeHtml(row.runLabel || row.runId || "")}</strong><br><small>${latestDate(row.createdUtc || row.timestamp)}</small></td>
         </tr>
       `).join("") || `<tr><td colspan="5">No completed quality suite rows are available.</td></tr>`;
 
@@ -3680,7 +3680,7 @@
               escapeHtml(data.suite),
               `Score: ${pct(data.value)}`,
               data.tasks ? `Tasks: ${intFmt(data.tasks)}` : "Completed scored metric",
-              `Run: ${escapeHtml(data.runId)}`
+              `Run: ${escapeHtml(data.runLabel || data.runId)}`
             ].join("<br>")
           },
           xAxis: { type: "category", data: chartRows.map((row) => `${row.profile} • ${row.suiteLabel || row.suite}`), axisLabel: { color: "#8ea3bb", rotate: 38, width: 135, overflow: "truncate" } },
@@ -3699,6 +3699,7 @@
               suite: suiteKindLabel(row),
               tasks: row.tasks,
               runId: row.runId,
+              runLabel: row.runLabel,
               itemStyle: { color: colors[Math.max(0, families.indexOf(row.benchmarkFamily)) % colors.length], borderRadius: [4, 4, 0, 0] }
             }))
           }]
