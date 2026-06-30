@@ -1,0 +1,1805 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chadrock ROCmFP4 vs Unsloth Upstream Q4/Q6 Comparison</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+      line-height: 1.5;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+    a { color: var(--cyan); }
+    .wrap {
+      width: min(calc(100vw - 28px), 1680px);
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      width: min(calc(100% - 28px), 1680px);
+      margin: 6px auto 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+    .brand-lockup {
+      display: inline-flex;
+      gap: 12px;
+      align-items: center;
+      margin: 18px 20px 0;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo-plate {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+    }
+    .logo-plate img { width: 36px; height: 36px; object-fit: contain; }
+    .brand-title {
+      display: block;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .brand-subtitle {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      margin-top: 1px;
+    }
+    .hero { padding: 24px 20px 22px; }
+    .eyebrow {
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+    h1 {
+      margin: 0;
+      max-width: 1080px;
+      font-size: clamp(2rem, 4vw, 4.5rem);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      max-width: 1040px;
+      color: var(--muted);
+      margin: 16px 0 0;
+      font-size: 1.04rem;
+    }
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .metric, .stat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      padding: 16px;
+      min-width: 0;
+    }
+    .metric .label {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .metric .value {
+      display: block;
+      color: var(--cyan);
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.15rem, 2vw, 1.8rem);
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 18px;
+    }
+    nav a {
+      border: 1px solid rgba(57, 208, 255, 0.28);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      color: var(--cyan);
+      text-decoration: none;
+      padding: 7px 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    main { padding: 26px 0 52px; }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .content { padding: 24px; }
+    .content > h1 { display: none; }
+    .content h2 {
+      margin: 36px 0 12px;
+      padding-top: 6px;
+      font-size: 1.35rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .content h2:first-of-type { margin-top: 8px; }
+    p { margin: 0 0 16px; color: var(--text); }
+    ul { margin: 0 0 20px 22px; padding: 0; }
+    li { margin: 8px 0; color: var(--text); }
+    code {
+      background: rgba(57, 208, 255, 0.08);
+      border: 1px solid rgba(57, 208, 255, 0.19);
+      border-radius: 5px;
+      color: #dff8ff;
+      padding: 1px 5px;
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.91em;
+      overflow-wrap: anywhere;
+    }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 14px 0 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+    }
+    table {
+      width: 100%;
+      min-width: 1080px;
+      border-collapse: collapse;
+      background: rgba(0, 0, 0, 0.18);
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.77rem;
+      line-height: 1.35;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      font-weight: 700;
+    }
+    td[style*="text-align:right"], th[style*="text-align:right"] {
+      text-align: right !important;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    td:nth-child(2), td:nth-child(5), td:last-child {
+      white-space: normal;
+      min-width: 220px;
+    }
+    tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.026); }
+    tbody tr:hover { background: rgba(57, 208, 255, 0.07); }
+    .compare-section {
+      margin: 8px 0 34px;
+      padding: 18px;
+      border: 1px solid rgba(57, 208, 255, 0.22);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(120deg, rgba(57, 208, 255, 0.08), transparent 42%),
+        rgba(0, 0, 0, 0.2);
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .chart-panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.28);
+      padding: 14px;
+    }
+    .chart-panel h3 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .chart-note {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+    }
+    .chart {
+      width: 100%;
+      height: 430px;
+    }
+    .chart-empty {
+      display: grid;
+      place-items: center;
+      min-height: 240px;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      text-align: center;
+      padding: 18px;
+    }
+    .side-table table {
+      min-width: 1260px;
+    }
+    .delta-pos {
+      color: var(--green);
+      font-weight: 700;
+    }
+    .delta-neg {
+      color: var(--red);
+      font-weight: 700;
+    }
+    article > .source {
+      border-top: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.22);
+      padding: 18px 24px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+    }
+    @media (max-width: 900px) {
+      .wrap { width: min(calc(100vw - 20px), 1680px); }
+      header { width: min(calc(100% - 20px), 1680px); }
+      .quick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .compare-grid { grid-template-columns: 1fr; }
+      .content { padding: 18px; }
+      table { font-size: 0.72rem; }
+    }
+    @media (max-width: 560px) {
+      .quick { grid-template-columns: 1fr; }
+      h1 { font-size: 2rem; }
+      nav a { width: 100%; }
+      .brand-lockup { margin-left: 14px; margin-right: 14px; }
+      .hero { padding-left: 14px; padding-right: 14px; }
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      body::before, nav, header::before { display: none; }
+      header, article, .metric { box-shadow: none; background: #fff; color: #000; }
+      .table-wrap { overflow: visible; }
+      .compare-section { border: 1px solid #999; background: #fff; }
+      .compare-grid { display: none; }
+      table { min-width: 0; font-size: 8px; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="brand-lockup" href="./" aria-label="Ciru Inference Lab">
+        <span class="logo-plate"><img src="ccglogo.png" alt="Crown Citadel Group"></span>
+        <span>
+          <span class="brand-title">Ciru Inference Lab</span>
+          <span class="brand-subtitle">benchmark comparison report</span>
+        </span>
+      </a>
+      <div class="hero">
+      <p class="eyebrow">Ciru Data Benchmark Artifact</p>
+      <h1>Chadrock ROCmFP4 vs Unsloth Upstream Q4/Q6 Comparison</h1>
+      <p class="subtitle">ROCmFP4 Chadrock builds and upstream llama.cpp Unsloth Q4/Q6 baselines, measured with served MTP and no-MTP rows at roughly 2k and 4k prompt length.</p>
+      <div class="quick" aria-label="Headline metrics">
+        <div class="metric"><span class="label">Fastest 4k MTP</span><span class="value">51.26 TG</span></div>
+        <div class="metric"><span class="label">Winner</span><span class="value">Qwable ROCmFP4</span></div>
+        <div class="metric"><span class="label">New Rows</span><span class="value">20</span></div>
+        <div class="metric"><span class="label">Unsloth Runner</span><span class="value">llama.cpp</span></div>
+      </div>
+      <nav><a href="#side-by-side-echarts">Side-by-Side ECharts</a>
+<a href="#headline-4k-mtp-ranking">Headline 4k MTP Ranking</a>
+<a href="#new-comparison-rows">New Comparison Rows</a>
+<a href="#4k-mtp-vs-no-mtp-uplift-new-rows">4k MTP vs No-MTP Uplift, New Rows</a>
+<a href="#current-recipe-reference-rows">Current Recipe Reference Rows</a>
+<a href="#takeaways">Takeaways</a>
+<a href="#artifacts">Artifacts</a></nav>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      <article>
+        <div class="content">
+<h1>Chadrock ROCmFP4 vs Unsloth Upstream Q4/Q6 Comparison</h1>
+<p>Date: 2026-06-30.</p>
+<p>This adds the requested comparison rows against the ROCmFP4 Chadrock builds and Unsloth Q4/Q6. Unsloth rows used upstream <code>llama.cpp</code>, not the ROCmFPX/CHADROCK fork, version <code>1 (7c082bc)</code>. Chadrock ROCmFP4 rows used profile-capable CHADROCK/ROCmFPX runners because upstream <code>llama.cpp</code> cannot load those ROCmFP4 GGUFs.</p>
+<p>Harness: isolated <code>llama-server</code>, one slot, <code>/completion</code> streaming API, <code>llama_benchmark.py api</code>, prompt cache disabled, EOS ignored, <code>gen=128</code>, non-wiki 10KB and 20KB deterministic prompts from the prior recipe sweep. Reported context tokens are actual tokenized prompt lengths: about 1977 and 3946.</p>
+<p>Memory note: memory columns are normalized to one displayed <code>Peak total RAM GiB</code> value instead of separate VRAM/GTT/system RAM triples.</p>
+<section class="compare-section" aria-labelledby="side-by-side-echarts">
+<h2 id="side-by-side-echarts">Side-by-Side ECharts Comparison</h2>
+<p>The dashboard below is generated from the existing <code>Headline 4k MTP Ranking</code> table in this artifact. Speed is decode <code>TG</code>. Q4-ish rows are compared only against <code>Unsloth Qwen3.6 27B UD-Q4_K_XL</code>; Q6-ish rows are compared only against <code>Unsloth Qwen3.6 27B UD-Q6_K_XL</code>.</p>
+<div class="compare-grid">
+<section class="chart-panel" aria-labelledby="speed-bpw-title">
+<h3 id="speed-bpw-title">Speed vs BPW, 4k MTP</h3>
+<p class="chart-note">X = TG decode speed. Y = tensor BPW. Each point is one headline 4k MTP row.</p>
+<div id="speed-bpw-chart" class="chart" role="img" aria-label="Scatter chart comparing decode speed on the x axis against BPW on the y axis"></div>
+</section>
+<section class="chart-panel" aria-labelledby="baseline-delta-title">
+<h3 id="baseline-delta-title">+/- Speed vs Relevant Unsloth Baseline</h3>
+<p class="chart-note">Q4-ish means BPW below 6.0 and uses the Q4 baseline. Q6-ish means BPW 6.0 or higher and uses the Q6 baseline.</p>
+<div id="baseline-delta-chart" class="chart" role="img" aria-label="Bar chart comparing percent speed deltas against Unsloth Q4 and Unsloth Q6 baselines"></div>
+</section>
+</div>
+<div id="side-by-side-table" class="side-table"></div>
+</section>
+<h2 id="headline-4k-mtp-ranking">Headline 4k MTP Ranking</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Rank</th>
+<th>Model / recipe</th>
+<th>Source</th>
+<th style="text-align:right">BPW</th>
+<th>Quality evidence</th>
+<th>Runner/backend</th>
+<th style="text-align:right">PP</th>
+<th style="text-align:right">TG</th>
+<th style="text-align:right">Draft</th>
+<th style="text-align:right">Peak VRAM/GTT/RAM GiB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td>new comparison</td>
+<td style="text-align:right">4.3355</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">298.48</td>
+<td style="text-align:right">51.26</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">1.96/16.18/28.88</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td>new comparison</td>
+<td style="text-align:right">5.2409</td>
+<td>PPL: none found locally</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">263.88</td>
+<td style="text-align:right">41.60</td>
+<td style="text-align:right">108/112</td>
+<td style="text-align:right">1.99/16.36/29.36</td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td>Crown FP4 Fast</td>
+<td>current recipe sweep</td>
+<td style="text-align:right">4.8194</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">291.76</td>
+<td style="text-align:right">41.23</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/35.01</td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td>Crown FP4 Balanced</td>
+<td>current recipe sweep</td>
+<td style="text-align:right">5.3039</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">254.12</td>
+<td style="text-align:right">39.69</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/36.62</td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td>new comparison</td>
+<td style="text-align:right">4.3355</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164, BCHard 46/148</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">292.54</td>
+<td style="text-align:right">39.24</td>
+<td style="text-align:right">100/104</td>
+<td style="text-align:right">1.76/16.89/29.82</td>
+</tr>
+<tr>
+<td style="text-align:right">6</td>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td>new comparison</td>
+<td style="text-align:right">4.3355</td>
+<td>PPL: none found; HumanEval 157/164, HE+ 151/164, BCHard 40/148</td>
+<td>CHADROCK ROCm0</td>
+<td style="text-align:right">307.23</td>
+<td style="text-align:right">33.26</td>
+<td style="text-align:right">95/95</td>
+<td style="text-align:right">0.59/0.27/30.35</td>
+</tr>
+<tr>
+<td style="text-align:right">7</td>
+<td>Crown FPX-Q6 Quality</td>
+<td>current recipe sweep</td>
+<td style="text-align:right">7.6163</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">229.82</td>
+<td style="text-align:right">29.41</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/40.74</td>
+</tr>
+<tr>
+<td style="text-align:right">8</td>
+<td>Crown FPX-Q6 Balanced</td>
+<td>current recipe sweep</td>
+<td style="text-align:right">7.6146</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">223.04</td>
+<td style="text-align:right">29.29</td>
+<td style="text-align:right">108/109</td>
+<td style="text-align:right">0.59/0.27/40.56</td>
+</tr>
+<tr>
+<td style="text-align:right">9</td>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td>new comparison</td>
+<td style="text-align:right">7.6146</td>
+<td>PPL 6.5296 +/- 0.09339; HumanEval 160/164, HE+ 153/164, MBPP+ 295/378</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">198.38</td>
+<td style="text-align:right">23.76</td>
+<td style="text-align:right">106/123</td>
+<td style="text-align:right">1.93/23.37/36.40</td>
+</tr>
+<tr>
+<td style="text-align:right">10</td>
+<td>Crown FP6 Legacy</td>
+<td>current recipe sweep</td>
+<td style="text-align:right">7.3779</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">187.13</td>
+<td style="text-align:right">20.03</td>
+<td style="text-align:right">105/132</td>
+<td style="text-align:right">1.98/25.58/37.94</td>
+</tr>
+</tbody>
+</table>
+<h2 id="new-comparison-rows">New Comparison Rows</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Quant</th>
+<th style="text-align:right">BPW</th>
+<th>Runner/backend</th>
+<th style="text-align:right">Ctx</th>
+<th>Mode</th>
+<th style="text-align:right">PP</th>
+<th style="text-align:right">TG</th>
+<th style="text-align:right">Draft</th>
+<th style="text-align:right">Peak VRAM/GTT/RAM GiB</th>
+<th>Quality evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK ROCm0</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">299.96</td>
+<td style="text-align:right">34.54</td>
+<td style="text-align:right">94/97</td>
+<td style="text-align:right">0.59/0.27/29.41</td>
+<td>PPL: none found; HumanEval 157/164, HE+ 151/164, BCHard 40/148</td>
+</tr>
+<tr>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK ROCm0</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">357.57</td>
+<td style="text-align:right">13.45</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/27.04</td>
+<td>PPL: none found; HumanEval 157/164, HE+ 151/164, BCHard 40/148</td>
+</tr>
+<tr>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK ROCm0</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">307.23</td>
+<td style="text-align:right">33.26</td>
+<td style="text-align:right">95/95</td>
+<td style="text-align:right">0.59/0.27/30.35</td>
+<td>PPL: none found; HumanEval 157/164, HE+ 151/164, BCHard 40/148</td>
+</tr>
+<tr>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK ROCm0</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">359.84</td>
+<td style="text-align:right">13.27</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/27.21</td>
+<td>PPL: none found; HumanEval 157/164, HE+ 151/164, BCHard 40/148</td>
+</tr>
+<tr>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">263.41</td>
+<td style="text-align:right">50.23</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.94/15.47/29.50</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164</td>
+</tr>
+<tr>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">310.02</td>
+<td style="text-align:right">14.29</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.85/12.73/26.96</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164</td>
+</tr>
+<tr>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">298.48</td>
+<td style="text-align:right">51.26</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">1.96/16.18/28.88</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164</td>
+</tr>
+<tr>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">318.98</td>
+<td style="text-align:right">14.23</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.87/12.85/25.29</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164</td>
+</tr>
+<tr>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">168.33</td>
+<td style="text-align:right">39.72</td>
+<td style="text-align:right">100/105</td>
+<td style="text-align:right">1.99/15.72/29.50</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164, BCHard 46/148</td>
+</tr>
+<tr>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">296.54</td>
+<td style="text-align:right">14.04</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.98/13.19/26.01</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164, BCHard 46/148</td>
+</tr>
+<tr>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">292.54</td>
+<td style="text-align:right">39.24</td>
+<td style="text-align:right">100/104</td>
+<td style="text-align:right">1.76/16.89/29.82</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164, BCHard 46/148</td>
+</tr>
+<tr>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td>Q4_0_ROCMFP4_STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td>CHADROCK Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">326.94</td>
+<td style="text-align:right">14.04</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.87/13.67/26.49</td>
+<td>PPL: none found; HumanEval 159/164, HE+ 155/164, BCHard 46/148</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td>UD-Q4_K_XL</td>
+<td style="text-align:right">5.2409</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">220.92</td>
+<td style="text-align:right">30.14</td>
+<td style="text-align:right">101/151</td>
+<td style="text-align:right">1.97/16.23/29.33</td>
+<td>PPL: none found locally</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td>UD-Q4_K_XL</td>
+<td style="text-align:right">5.2409</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">257.44</td>
+<td style="text-align:right">12.10</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.94/15.15/28.79</td>
+<td>PPL: none found locally</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td>UD-Q4_K_XL</td>
+<td style="text-align:right">5.2409</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">263.88</td>
+<td style="text-align:right">41.60</td>
+<td style="text-align:right">108/112</td>
+<td style="text-align:right">1.99/16.36/29.36</td>
+<td>PPL: none found locally</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td>UD-Q4_K_XL</td>
+<td style="text-align:right">5.2409</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">282.43</td>
+<td style="text-align:right">12.05</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.94/15.29/28.02</td>
+<td>PPL: none found locally</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td>UD-Q6_K_XL</td>
+<td style="text-align:right">7.6146</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">135.18</td>
+<td style="text-align:right">23.41</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.95/23.23/36.12</td>
+<td>PPL 6.5296 +/- 0.09339; HumanEval 160/164, HE+ 153/164, MBPP+ 295/378</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td>UD-Q6_K_XL</td>
+<td style="text-align:right">7.6146</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">162.52</td>
+<td style="text-align:right">8.31</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.88/22.19/35.90</td>
+<td>PPL 6.5296 +/- 0.09339; HumanEval 160/164, HE+ 153/164, MBPP+ 295/378</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td>UD-Q6_K_XL</td>
+<td style="text-align:right">7.6146</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">198.38</td>
+<td style="text-align:right">23.76</td>
+<td style="text-align:right">106/123</td>
+<td style="text-align:right">1.93/23.37/36.40</td>
+<td>PPL 6.5296 +/- 0.09339; HumanEval 160/164, HE+ 153/164, MBPP+ 295/378</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td>UD-Q6_K_XL</td>
+<td style="text-align:right">7.6146</td>
+<td>upstream llama.cpp Vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">194.11</td>
+<td style="text-align:right">8.28</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.99/22.19/35.02</td>
+<td>PPL 6.5296 +/- 0.09339; HumanEval 160/164, HE+ 153/164, MBPP+ 295/378</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4k-mtp-vs-no-mtp-uplift-new-rows">4k MTP vs No-MTP Uplift, New Rows</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align:right">BPW</th>
+<th style="text-align:right">MTP TG</th>
+<th style="text-align:right">No-MTP TG</th>
+<th style="text-align:right">Uplift</th>
+<th style="text-align:right">MTP PP</th>
+<th style="text-align:right">No-MTP PP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qwable Chadrock v2 ROCmFP4</td>
+<td style="text-align:right">4.3355</td>
+<td style="text-align:right">51.26</td>
+<td style="text-align:right">14.23</td>
+<td style="text-align:right">3.60x</td>
+<td style="text-align:right">298.48</td>
+<td style="text-align:right">318.98</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q4_K_XL</td>
+<td style="text-align:right">5.2409</td>
+<td style="text-align:right">41.60</td>
+<td style="text-align:right">12.05</td>
+<td style="text-align:right">3.45x</td>
+<td style="text-align:right">263.88</td>
+<td style="text-align:right">282.43</td>
+</tr>
+<tr>
+<td>Unsloth Qwen3.6 27B UD-Q6_K_XL</td>
+<td style="text-align:right">7.6146</td>
+<td style="text-align:right">23.76</td>
+<td style="text-align:right">8.28</td>
+<td style="text-align:right">2.87x</td>
+<td style="text-align:right">198.38</td>
+<td style="text-align:right">194.11</td>
+</tr>
+<tr>
+<td>Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN</td>
+<td style="text-align:right">4.3355</td>
+<td style="text-align:right">39.24</td>
+<td style="text-align:right">14.04</td>
+<td style="text-align:right">2.79x</td>
+<td style="text-align:right">292.54</td>
+<td style="text-align:right">326.94</td>
+</tr>
+<tr>
+<td>chadrock3.6 27B pi-agent ROCmFP4</td>
+<td style="text-align:right">4.3355</td>
+<td style="text-align:right">33.26</td>
+<td style="text-align:right">13.27</td>
+<td style="text-align:right">2.51x</td>
+<td style="text-align:right">307.23</td>
+<td style="text-align:right">359.84</td>
+</tr>
+</tbody>
+</table>
+<h2 id="current-recipe-reference-rows">Current Recipe Reference Rows</h2>
+<p>These are from the already-completed recipe ROCm/Vulkan 2k/4k sweep, included here so the new Chadrock/Unsloth rows can be read against the current recipe set without hunting through a second file.</p>
+<table>
+<thead>
+<tr>
+<th>Recipe</th>
+<th>Quant/recipe</th>
+<th style="text-align:right">BPW</th>
+<th>Runner/backend</th>
+<th style="text-align:right">Ctx</th>
+<th>Mode</th>
+<th style="text-align:right">PP</th>
+<th style="text-align:right">TG</th>
+<th style="text-align:right">Draft</th>
+<th style="text-align:right">Peak VRAM/GTT/RAM GiB</th>
+<th>Quality evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">260.39</td>
+<td style="text-align:right">36.10</td>
+<td style="text-align:right">106/121</td>
+<td style="text-align:right">0.59/0.27/36.05</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">303.62</td>
+<td style="text-align:right">11.32</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/29.98</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">254.12</td>
+<td style="text-align:right">39.69</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/36.62</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">308.86</td>
+<td style="text-align:right">11.18</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/30.08</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">226.14</td>
+<td style="text-align:right">23.04</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.96/18.51/30.80</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">243.11</td>
+<td style="text-align:right">7.32</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.88/15.76/27.98</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">228.09</td>
+<td style="text-align:right">23.99</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">1.99/19.23/31.57</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Balanced</td>
+<td>Q6_0_ROCMFPX_STRIX_LEAN</td>
+<td style="text-align:right">5.3039</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">247.72</td>
+<td style="text-align:right">7.31</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.89/15.90/28.11</td>
+<td>PPL 6.1192 +/- 0.08276</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">285.65</td>
+<td style="text-align:right">38.58</td>
+<td style="text-align:right">106/121</td>
+<td style="text-align:right">0.59/0.27/34.37</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">337.68</td>
+<td style="text-align:right">12.35</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/28.56</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">291.76</td>
+<td style="text-align:right">41.23</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/35.01</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">330.33</td>
+<td style="text-align:right">12.21</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/28.50</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">253.86</td>
+<td style="text-align:right">28.21</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.91/17.02/29.49</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">278.20</td>
+<td style="text-align:right">9.60</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.98/14.13/26.52</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">257.06</td>
+<td style="text-align:right">29.38</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">1.93/17.75/30.10</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP4 Fast</td>
+<td>Q6_0_ROCMFPX_STRIX_SPEED</td>
+<td style="text-align:right">4.8194</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">282.61</td>
+<td style="text-align:right">9.57</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.97/14.27/26.53</td>
+<td>PPL 6.1562 +/- 0.08400</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">137.29</td>
+<td style="text-align:right">9.62</td>
+<td style="text-align:right">61/380</td>
+<td style="text-align:right">0.59/0.27/42.38</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">262.46</td>
+<td style="text-align:right">8.59</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/36.42</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">208.74</td>
+<td style="text-align:right">11.03</td>
+<td style="text-align:right">70/331</td>
+<td style="text-align:right">0.59/0.27/43.10</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">264.94</td>
+<td style="text-align:right">8.51</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/36.42</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">185.24</td>
+<td style="text-align:right">20.53</td>
+<td style="text-align:right">105/126</td>
+<td style="text-align:right">1.97/24.83/37.21</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">190.37</td>
+<td style="text-align:right">5.47</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.92/22.06/34.34</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">187.13</td>
+<td style="text-align:right">20.03</td>
+<td style="text-align:right">105/132</td>
+<td style="text-align:right">1.98/25.58/37.94</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FP6 Legacy</td>
+<td>Q6_0_ROCMFPX_STRIX_QUALITY</td>
+<td style="text-align:right">7.3779</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">194.09</td>
+<td style="text-align:right">5.47</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.92/22.20/34.48</td>
+<td>PPL 6.5097 +/- 0.09282; KLD-slice PPL 7.3162</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">175.74</td>
+<td style="text-align:right">26.00</td>
+<td style="text-align:right">106/121</td>
+<td style="text-align:right">0.59/0.27/39.78</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">248.32</td>
+<td style="text-align:right">8.32</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/36.84</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">223.04</td>
+<td style="text-align:right">29.29</td>
+<td style="text-align:right">108/109</td>
+<td style="text-align:right">0.59/0.27/40.56</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">257.41</td>
+<td style="text-align:right">8.26</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/36.99</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">184.21</td>
+<td style="text-align:right">24.06</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.92/25.60/37.90</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">193.39</td>
+<td style="text-align:right">7.87</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.99/22.71/35.39</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">186.52</td>
+<td style="text-align:right">22.78</td>
+<td style="text-align:right">106/123</td>
+<td style="text-align:right">1.96/26.32/38.71</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Balanced</td>
+<td>ranked leave-32 splice</td>
+<td style="text-align:right">7.6146</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">193.55</td>
+<td style="text-align:right">7.88</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.99/22.84/35.10</td>
+<td>PPL 6.5212 +/- 0.09323; KLD-slice PPL 7.3049</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">208.05</td>
+<td style="text-align:right">25.46</td>
+<td style="text-align:right">106/121</td>
+<td style="text-align:right">0.59/0.27/39.79</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">254.52</td>
+<td style="text-align:right">8.32</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/36.85</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">229.82</td>
+<td style="text-align:right">29.41</td>
+<td style="text-align:right">108/108</td>
+<td style="text-align:right">0.59/0.27/40.74</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX rocm</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">261.35</td>
+<td style="text-align:right">8.26</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">0.59/0.24/37.05</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>mtp</td>
+<td style="text-align:right">188.99</td>
+<td style="text-align:right">24.42</td>
+<td style="text-align:right">107/116</td>
+<td style="text-align:right">1.92/25.60/37.97</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">2048</td>
+<td>no-mtp</td>
+<td style="text-align:right">198.71</td>
+<td style="text-align:right">8.11</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.99/22.71/35.00</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>mtp</td>
+<td style="text-align:right">189.26</td>
+<td style="text-align:right">23.11</td>
+<td style="text-align:right">106/123</td>
+<td style="text-align:right">1.96/26.32/38.72</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+<tr>
+<td>Crown FPX-Q6 Quality</td>
+<td>ranked leave-16 splice</td>
+<td style="text-align:right">7.6163</td>
+<td>ROCmFPX vulkan</td>
+<td style="text-align:right">4096</td>
+<td>no-mtp</td>
+<td style="text-align:right">197.35</td>
+<td style="text-align:right">8.11</td>
+<td style="text-align:right"></td>
+<td style="text-align:right">1.99/22.85/35.12</td>
+<td>KLD-slice PPL 7.3142; full PPL not found</td>
+</tr>
+</tbody>
+</table>
+<h2 id="takeaways">Takeaways</h2>
+<ul>
+<li>Fastest 4k MTP row in this combined local evidence set is <code>Qwable Chadrock v2 ROCmFP4</code> at <code>298.48 PP / 51.26 TG</code>, despite only <code>4.3355</code> tensor BPW.</li>
+<li>The best upstream <code>llama.cpp</code> Unsloth baseline is <code>UD-Q4_K_XL</code> at <code>263.88 PP / 41.60 TG</code> at 4k MTP. It is larger than Chadrock ROCmFP4 at <code>5.2409</code> BPW and still trails Qwable Chadrock v2 in decode.</li>
+<li><code>UD-Q6_K_XL</code> is the quality/PPL anchor among the new baselines (<code>6.5296 +/- 0.09339</code>) but is not a speed competitor here: <code>198.38 PP / 23.76 TG</code> at 4k MTP, <code>8.28 TG</code> without MTP, and about <code>23.37 GiB</code> peak GTT.</li>
+<li>MTP is mandatory for these MTP models if speed matters. At 4k, new-row decode uplifts ranged from <code>2.51x</code> to <code>3.60x</code> versus no-MTP.</li>
+<li>No local PPL evidence was found for the Chadrock ROCmFP4 or Unsloth Q4 rows; the available quality evidence for those rows is coding benchmark output rather than Wikitext PPL.</li>
+</ul>
+<h2 id="artifacts">Artifacts</h2>
+<ul>
+<li>New comparison evidence bundle: retained in the internal benchmark archive.</li>
+<li>New comparison result store: retained in the internal benchmark archive.</li>
+<li>New comparison structured result log: retained in the internal benchmark archive.</li>
+<li>New comparison replay script: retained in the internal benchmark archive.</li>
+<li>Existing recipe reference report: retained in the internal benchmark archive.</li>
+<li>Existing recipe evidence bundle: retained in the internal benchmark archive.</li>
+</ul>
+<p>Verification: <code>llama_benchmark.py verify-store</code> returned <code>ok: true</code>, <code>rows: 20</code> for the new comparison run, and the script ended with no <code>llama-server</code> processes remaining.</p>
+
+        </div>
+        <div class="source">Source materials and benchmark stores are retained in the internal benchmark archive.</div>
+      </article>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script>
+    function textOf(cell) {
+      return cell ? cell.textContent.trim() : '';
+    }
+
+    function toNumber(value) {
+      const parsed = parseFloat(String(value).replace(/,/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function shortName(model) {
+      return model
+        .replace('Unsloth Qwen3.6 27B ', 'Unsloth ')
+        .replace('Qwen3.6 27B Chadrock ROCmFP4 STRIX_LEAN', 'Chadrock STRIX')
+        .replace('chadrock3.6 27B pi-agent ROCmFP4', 'pi-agent FP4')
+        .replace('Qwable Chadrock v2 ROCmFP4', 'Qwable FP4');
+    }
+
+    function deltaClass(value) {
+      return value >= 0 ? 'delta-pos' : 'delta-neg';
+    }
+
+    function signed(value, suffix = '') {
+      const sign = value > 0 ? '+' : '';
+      return `${sign}${value.toFixed(2)}${suffix}`;
+    }
+
+    function parsePeakTotal(value) {
+      const parts = String(value)
+        .split('/')
+        .map((part) => toNumber(part))
+        .filter((part) => part !== null);
+      if (!parts.length) return null;
+      return parts.reduce((sum, part) => sum + part, 0);
+    }
+
+    function normalizeQualityEvidence(value) {
+      const text = String(value).trim();
+      const pieces = [];
+      const ppl = text.match(/PPL\s+([0-9.]+)\s+\+\/-\s+([0-9.]+)/);
+      const kld = text.match(/KLD-slice PPL\s+([0-9.]+)/);
+      const humanEval = text.match(/HumanEval\s+([0-9]+\/[0-9]+)/);
+      const hePlus = text.match(/HE\+\s+([0-9]+\/[0-9]+)/);
+      const bcHard = text.match(/BCHard\s+([0-9]+\/[0-9]+)/);
+      const mbppPlus = text.match(/MBPP\+\s+([0-9]+\/[0-9]+)/);
+
+      if (ppl) pieces.push(`PPL ${ppl[1]} +/- ${ppl[2]}`);
+      else if (/PPL: none found|PPL n\/a|full PPL not found/i.test(text)) pieces.push('PPL n/a');
+      if (kld) pieces.push(`KLD-slice ${kld[1]}`);
+      if (humanEval) pieces.push(`HumanEval ${humanEval[1]}`);
+      if (hePlus) pieces.push(`HE+ ${hePlus[1]}`);
+      if (bcHard) pieces.push(`BCHard ${bcHard[1]}`);
+      if (mbppPlus) pieces.push(`MBPP+ ${mbppPlus[1]}`);
+      return pieces.length ? pieces.join(' | ') : text;
+    }
+
+    function familyForRow(row) {
+      return row.bpw < 6 ? 'Q4-ish' : 'Q6-ish';
+    }
+
+    function baselineForRow(row, q4, q6) {
+      return familyForRow(row) === 'Q4-ish' ? q4 : q6;
+    }
+
+    function relevantDelta(row, q4, q6) {
+      const baseline = baselineForRow(row, q4, q6);
+      const delta = row.tg - baseline.tg;
+      return {
+        baseline,
+        delta,
+        pct: (delta / baseline.tg) * 100
+      };
+    }
+
+    function normalizeEvidenceTables() {
+      for (const table of document.querySelectorAll('table')) {
+        if (!table.tHead || !table.tBodies.length) continue;
+        const headers = Array.from(table.tHead.rows[0].cells).map(textOf);
+        const peakIndex = headers.indexOf('Peak VRAM/GTT/RAM GiB');
+        const qualityIndex = headers.indexOf('Quality evidence');
+
+        if (peakIndex >= 0) {
+          table.tHead.rows[0].cells[peakIndex].textContent = 'Peak total RAM GiB';
+          for (const row of table.tBodies[0].rows) {
+            const cell = row.cells[peakIndex];
+            const total = parsePeakTotal(textOf(cell));
+            if (total !== null) cell.textContent = total.toFixed(2);
+          }
+        }
+
+        if (qualityIndex >= 0) {
+          for (const row of table.tBodies[0].rows) {
+            const cell = row.cells[qualityIndex];
+            cell.textContent = normalizeQualityEvidence(textOf(cell));
+          }
+        }
+      }
+    }
+
+    function tableAfterHeading(id) {
+      let node = document.getElementById(id)?.nextElementSibling;
+      while (node && node.tagName !== 'TABLE') node = node.nextElementSibling;
+      return node;
+    }
+
+    function parseHeadlineRows() {
+      const table = tableAfterHeading('headline-4k-mtp-ranking');
+      if (!table) return [];
+      const headers = Array.from(table.tHead.rows[0].cells).map(textOf);
+      return Array.from(table.tBodies[0].rows).map((row) => {
+        const cells = Array.from(row.cells).map(textOf);
+        const record = Object.fromEntries(headers.map((header, index) => [header, cells[index] || '']));
+        return {
+          rank: toNumber(record.Rank),
+          model: record['Model / recipe'],
+          short: shortName(record['Model / recipe']),
+          source: record.Source,
+          bpw: toNumber(record.BPW),
+          quality: normalizeQualityEvidence(record['Quality evidence']),
+          runner: record['Runner/backend'],
+          pp: toNumber(record.PP),
+          tg: toNumber(record.TG),
+          draft: record.Draft,
+          peakTotal: toNumber(record['Peak total RAM GiB'] || record['Peak VRAM/GTT/RAM GiB'])
+        };
+      }).filter((row) => row.model && row.tg !== null && row.bpw !== null);
+    }
+
+    function renderComparisonTable(rows, q4, q6) {
+      const target = document.getElementById('side-by-side-table');
+      if (!target || !rows.length || !q4 || !q6) return;
+      const body = rows.map((row) => {
+        const family = familyForRow(row);
+        const delta = relevantDelta(row, q4, q6);
+        const baselineLabel = `${delta.baseline.short} (${delta.baseline.tg.toFixed(2)} TG)`;
+        return `<tr>
+<td style="text-align:right">${escapeHtml(row.rank)}</td>
+<td>${escapeHtml(row.model)}</td>
+<td>${family}</td>
+<td>${escapeHtml(row.source)}</td>
+<td>${escapeHtml(row.runner)}</td>
+<td style="text-align:right">${row.bpw.toFixed(4)}</td>
+<td style="text-align:right">${row.peakTotal !== null ? row.peakTotal.toFixed(2) : ''}</td>
+<td style="text-align:right">${row.pp.toFixed(2)}</td>
+<td style="text-align:right">${row.tg.toFixed(2)}</td>
+<td>${escapeHtml(baselineLabel)}</td>
+<td style="text-align:right"><span class="${deltaClass(delta.delta)}">${signed(delta.delta, ' TG')}</span><br><span class="${deltaClass(delta.pct)}">${signed(delta.pct, '%')}</span></td>
+<td>${escapeHtml(row.quality)}</td>
+</tr>`;
+      }).join('');
+      target.innerHTML = `<table>
+<thead>
+<tr>
+<th style="text-align:right">Rank</th>
+<th>Model / recipe</th>
+<th>Compare set</th>
+<th>Source</th>
+<th>Runner/backend</th>
+<th style="text-align:right">BPW</th>
+<th style="text-align:right">Peak total RAM GiB</th>
+<th style="text-align:right">PP</th>
+<th style="text-align:right">TG</th>
+<th>Relevant baseline</th>
+<th style="text-align:right">Speed delta</th>
+<th>Quality evidence</th>
+</tr>
+</thead>
+<tbody>${body}</tbody>
+</table>`;
+    }
+
+    function chartFallback(id, message) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<div class="chart-empty">${escapeHtml(message)}</div>`;
+    }
+
+    function renderCharts(rows, q4, q6) {
+      if (!window.echarts) {
+        chartFallback('speed-bpw-chart', 'ECharts could not load. The side-by-side table below still contains the comparison data.');
+        chartFallback('baseline-delta-chart', 'ECharts could not load. The side-by-side table below still contains the comparison data.');
+        return;
+      }
+
+      const sourceGroups = [...new Set(rows.map((row) => row.source))];
+      const palette = ['#39d0ff', '#20d1a2', '#ff9f43', '#c994ff'];
+      const scatterSeries = sourceGroups.map((source, index) => ({
+        name: source,
+        type: 'scatter',
+        symbolSize: (value) => Math.max(10, Math.min(24, value[2] / 2.4)),
+        label: {
+          show: true,
+          formatter: (params) => params.data[4],
+          position: 'right',
+          color: '#f7f7f4',
+          fontSize: 10
+        },
+        labelLayout: { hideOverlap: true },
+        itemStyle: { color: palette[index % palette.length], opacity: 0.86 },
+        data: rows
+          .filter((row) => row.source === source)
+          .map((row) => [row.tg, row.bpw, row.pp, row.model, row.short, row.runner, row.quality, familyForRow(row), row.peakTotal])
+      }));
+
+      const speedChart = echarts.init(document.getElementById('speed-bpw-chart'));
+      speedChart.setOption({
+        backgroundColor: 'transparent',
+        color: palette,
+        legend: { top: 0, textStyle: { color: '#d8dce5' } },
+        grid: { left: 54, right: 32, top: 58, bottom: 58 },
+        tooltip: {
+          trigger: 'item',
+          confine: true,
+          extraCssText: 'max-width: 320px; white-space: normal; word-break: break-word;',
+          formatter: (params) => {
+            const [tg, bpw, pp, model, , runner, quality, family, peakTotal] = params.data;
+            const memory = peakTotal !== null ? `<br>Peak total RAM: ${peakTotal.toFixed(2)} GiB` : '';
+            return `<strong>${escapeHtml(model)}</strong><br>${escapeHtml(family)}<br>TG: ${tg.toFixed(2)} | BPW: ${bpw.toFixed(4)} | PP: ${pp.toFixed(2)}${memory}<br>${escapeHtml(runner)}<br>${escapeHtml(quality)}`;
+          }
+        },
+        xAxis: {
+          name: 'Speed, TG',
+          nameLocation: 'middle',
+          nameGap: 34,
+          min: 18,
+          axisLine: { lineStyle: { color: '#767d8a' } },
+          axisLabel: { color: '#d8dce5' },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+        },
+        yAxis: {
+          name: 'BPW',
+          nameLocation: 'middle',
+          nameGap: 42,
+          min: 4,
+          max: 8,
+          axisLine: { lineStyle: { color: '#767d8a' } },
+          axisLabel: { color: '#d8dce5' },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+        },
+        series: scatterSeries.concat([{
+          name: 'Unsloth BPW baselines',
+          type: 'line',
+          data: [],
+          markLine: {
+            silent: true,
+            symbol: 'none',
+            label: { color: '#f6c046', formatter: '{b}' },
+            lineStyle: { color: '#f6c046', type: 'dashed', width: 1 },
+            data: [
+              { name: `Q4 BPW ${q4.bpw.toFixed(4)}`, yAxis: q4.bpw },
+              { name: `Q6 BPW ${q6.bpw.toFixed(4)}`, yAxis: q6.bpw }
+            ]
+          }
+        }]
+        )
+      });
+
+      const comparisonRows = rows.map((row) => {
+        const delta = relevantDelta(row, q4, q6);
+        return {
+          row,
+          family: familyForRow(row),
+          baseline: delta.baseline,
+          delta: delta.delta,
+          pct: +delta.pct.toFixed(2)
+        };
+      });
+      const categories = comparisonRows.map((item) => `${item.family}: ${item.row.short}`);
+      const deltaChart = echarts.init(document.getElementById('baseline-delta-chart'));
+      deltaChart.setOption({
+        backgroundColor: 'transparent',
+        color: ['#39d0ff', '#ff9f43'],
+        legend: { top: 0, textStyle: { color: '#d8dce5' } },
+        grid: { left: 190, right: 34, top: 54, bottom: 42 },
+        tooltip: {
+          trigger: 'item',
+          confine: true,
+          extraCssText: 'max-width: 300px; white-space: normal; word-break: break-word;',
+          formatter: (params) => {
+            const item = comparisonRows[params.dataIndex];
+            return `<strong>${escapeHtml(item.row.model)}</strong><br>${escapeHtml(item.family)} compared with ${escapeHtml(item.baseline.short)}<br>TG: ${item.row.tg.toFixed(2)}<br>${signed(item.delta, ' TG')} / ${signed(item.pct, '%')}`;
+          }
+        },
+        dataZoom: [{ type: 'inside', yAxisIndex: 0 }, { type: 'slider', yAxisIndex: 0, width: 14, right: 6, textStyle: { color: '#d8dce5' } }],
+        xAxis: {
+          type: 'value',
+          name: 'TG delta %',
+          nameLocation: 'middle',
+          nameGap: 28,
+          axisLine: { lineStyle: { color: '#767d8a' } },
+          axisLabel: { color: '#d8dce5', formatter: '{value}%' },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+        },
+        yAxis: {
+          type: 'category',
+          data: categories,
+          axisLine: { lineStyle: { color: '#767d8a' } },
+          axisLabel: { color: '#d8dce5', fontSize: 10, interval: 0 },
+          inverse: true
+        },
+        series: [
+          {
+            name: 'vs family baseline',
+            type: 'bar',
+            data: comparisonRows.map((item) => ({
+              value: item.pct,
+              itemStyle: { color: item.family === 'Q4-ish' ? '#39d0ff' : '#ff9f43' }
+            })),
+            markLine: { silent: true, symbol: 'none', lineStyle: { color: '#d8dce5', width: 1 }, data: [{ xAxis: 0 }] }
+          }
+        ]
+      });
+
+      window.addEventListener('resize', () => {
+        speedChart.resize();
+        deltaChart.resize();
+      });
+    }
+
+    normalizeEvidenceTables();
+    const headlineRows = parseHeadlineRows();
+    const q4Baseline = headlineRows.find((row) => row.model.includes('UD-Q4_K_XL'));
+    const q6Baseline = headlineRows.find((row) => row.model.includes('UD-Q6_K_XL'));
+    renderComparisonTable(headlineRows, q4Baseline, q6Baseline);
+    renderCharts(headlineRows, q4Baseline, q6Baseline);
+
+    for (const table of document.querySelectorAll('table')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-wrap';
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+  </script>
+</body>
+</html>
