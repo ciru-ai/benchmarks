@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwable Ultra Quality 7.61 BPW Research Report | Ciru Inference Lab</title>
+  <meta name="description" content="Ciru Inference Lab comparison of the Qwable ROCmFP6 Quality model and the 7.61 BPW Ultra Quality lane on Strix Halo.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="../assets/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+    .wrap {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 6px auto 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+    .brand-lockup {
+      display: inline-flex;
+      gap: 12px;
+      align-items: center;
+      margin: 18px 20px 0;
+      color: var(--text);
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
+    }
+    .logo-plate {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+    }
+    .logo-plate img { width: 36px; height: 36px; object-fit: contain; }
+    .brand-title { display: block; font-weight: 700; letter-spacing: 0; }
+    .brand-subtitle {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      margin-top: 1px;
+    }
+    .hero {
+      padding: 28px 20px 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .eyebrow {
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+    h1 {
+      margin: 0;
+      max-width: 1080px;
+      font-size: clamp(2rem, 4vw, 4.35rem);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      max-width: 980px;
+      color: #c6c9cf;
+      margin: 16px 0 0;
+      font-size: 1.05rem;
+    }
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .metric, .panel, .callout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .metric {
+      padding: 16px;
+      min-width: 0;
+    }
+    .metric .label {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .metric .value {
+      display: block;
+      color: var(--cyan);
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.15rem, 2vw, 1.75rem);
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .metric .note {
+      display: block;
+      color: var(--subtle);
+      margin-top: 5px;
+      font-size: 0.82rem;
+    }
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 18px;
+    }
+    nav a, .button {
+      border: 1px solid rgba(57, 208, 255, 0.28);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      color: var(--cyan);
+      text-decoration: none;
+      padding: 7px 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    main { padding: 26px 0 52px; }
+    section { margin-top: 18px; }
+    .panel { padding: 22px; }
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 14px; color: var(--text); }
+    .muted { color: var(--muted); }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .callout {
+      padding: 16px;
+      background:
+        linear-gradient(135deg, rgba(246, 192, 70, 0.12), rgba(57, 208, 255, 0.06)),
+        rgba(0, 0, 0, 0.28);
+      box-shadow: none;
+    }
+    .callout strong { color: var(--yellow); }
+    .chart {
+      height: 340px;
+      min-height: 340px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .chart > div,
+    .chart canvas {
+      max-width: 100% !important;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    td.num, th.num {
+      text-align: right;
+      font-family: "IBM Plex Mono", monospace;
+      white-space: nowrap;
+    }
+    code, .mono {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    code {
+      background: rgba(57, 208, 255, 0.08);
+      border: 1px solid rgba(57, 208, 255, 0.19);
+      border-radius: 5px;
+      color: #dff8ff;
+      padding: 1px 5px;
+      font-size: 0.91em;
+    }
+    .tag-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .tag-row span {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 4px 8px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+    }
+    .footer {
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      margin-top: 18px;
+    }
+    @media (max-width: 900px) {
+      .quick, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .chart { height: 300px; min-height: 300px; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand-lockup" href="../">
+      <span class="logo-plate"><img src="../ccglogo.png" alt=""></span>
+      <span>
+        <span class="brand-title">Ciru Inference Lab</span>
+        <span class="brand-subtitle">Strix Halo research report</span>
+      </span>
+    </a>
+    <div class="hero">
+      <p class="eyebrow">ROCmFPX Quality Lane Comparison</p>
+      <h1>Ultra Quality 7.61 BPW: What Changed From the 7.37 BPW Quality Model</h1>
+      <p class="subtitle">A focused comparison of the published Qwable ROCmFP6 Quality report and the newer Qwable 27B Chadrock ROCmFPX UltraQuality lane. UltraQuality spends roughly a quarter extra bit per weight, replaces the older STRIX QUALITY recipe as the default quality build, and recovers MTP draft behavior while reducing KLD drift.</p>
+      <div class="quick">
+        <div class="metric">
+          <span class="label">Ultra BPW</span>
+          <span class="value">7.61</span>
+          <span class="note">7.6146 BPW, 26,004,616,416 bytes</span>
+        </div>
+        <div class="metric">
+          <span class="label">Quality BPW</span>
+          <span class="value">7.37</span>
+          <span class="note">published Strix Quality quant report</span>
+        </div>
+        <div class="metric">
+          <span class="label">BPW Spend</span>
+          <span class="value">+0.24</span>
+          <span class="note">about +3.3% over Quality</span>
+        </div>
+        <div class="metric">
+          <span class="label">Ultra Refresh TG</span>
+          <span class="value">25.92</span>
+          <span class="note">20KB served MTP prompt, 512 generated tokens</span>
+        </div>
+      </div>
+      <nav aria-label="Report sections">
+        <a href="#summary">Summary</a>
+        <a href="#policy">Policy</a>
+        <a href="#quality">Quality Evidence</a>
+        <a href="#speed">Serving Speed</a>
+        <a href="#coverage">Coverage</a>
+        <a href="#sources">Sources</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" id="summary">
+      <h2>Result Summary</h2>
+      <div class="grid-2">
+        <div>
+          <p>The earlier Quality model is the public 7.37 BPW Strix Quality lane from the June ROCmFP6 report. It already matched the Unsloth Q6 baseline on HermesAgent-20 plus-pass count and slightly beat it on aggregate score in that run.</p>
+          <p>The UltraQuality lane is the newer 7.61 BPW default quality build: ranked leave-32 ROCmFPX with a Q6_K splice and a Strix ROCm MTP profile. It is not just a label change. The refresh evidence shows better MTP acceptance, lower KLD, and a higher HermesAgent-20 score than the superseded STRIX QUALITY row.</p>
+        </div>
+        <div class="callout">
+          <p><strong>Interpretation:</strong> Ultra Quality is the quality-first lane. Use it when the goal is reducing tail risk and preserving high-impact attention behavior. Use 7.37 BPW Quality when the goal is the best published balance of quality evidence, size, and served speed.</p>
+          <div class="tag-row">
+            <span>Qwable 27B</span>
+            <span>ROCmFPX</span>
+            <span>ranked attention</span>
+            <span>leave-32</span>
+            <span>Strix mmid5</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2" id="policy">
+      <div class="panel">
+        <h2>Quant Policy Delta</h2>
+        <div id="bpwChart" class="chart" role="img" aria-label="BPW and quantized size comparison chart"></div>
+      </div>
+      <div class="panel">
+        <h2>Policy Table</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Lane</th>
+              <th class="num">BPW</th>
+              <th class="num">Quant size</th>
+              <th>Policy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ROCmFP6 Quality</td>
+              <td class="num">7.37</td>
+              <td class="num">24018.32 MiB</td>
+              <td>Q6_0_ROCMFPX quality mix with 312 Q6 tensors and 194 Q8 tensors.</td>
+            </tr>
+            <tr>
+              <td>ROCmFPX Ultra Quality</td>
+              <td class="num">7.61</td>
+              <td class="num">26,004,616,416 bytes</td>
+              <td>Ranked leave-32 ROCmFPX recipe with Q6_K splice, promoted under the UltraQuality public name.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="quality">
+      <h2>Quality Evidence</h2>
+      <p class="muted">The older Quality lane has the June public report evidence. UltraQuality has a fresh card-refresh evidence set: served MTP speed, PPL/KLD, HermesAgent-20, and EvalPlus.</p>
+      <div class="grid-2">
+        <div id="qualityChart" class="chart" role="img" aria-label="Quality evidence chart"></div>
+        <div>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>7.37 BPW Quality</th>
+                <th>7.61 BPW Ultra Quality</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>HermesAgent-20</td>
+                <td>0.78 score</td>
+                <td>0.82 score</td>
+              </tr>
+              <tr>
+                <td>HumanEval+</td>
+                <td>155/164 plus passes</td>
+                <td>154/164 plus passes, 160/164 base passes</td>
+              </tr>
+              <tr>
+                <td>PPL/KLD lane</td>
+                <td>Refresh PPL 6.5097 +/- 0.0928; mean KLD 0.007113; P99 KLD 0.057581; same-top 96.495%</td>
+                <td>Refresh PPL 6.5212 +/- 0.0932; mean KLD 0.002420; P99 KLD 0.019161; same-top 97.843%</td>
+              </tr>
+              <tr>
+                <td>What changed</td>
+                <td>Broad Q6/Q8 promotion, good enough to prove the direction</td>
+                <td>More surgical ranked restore recipe with much better draft acceptance and lower KLD</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2" id="speed">
+      <div class="panel">
+        <h2>Served Speed</h2>
+        <div id="speedChart" class="chart" role="img" aria-label="Served MTP speed chart"></div>
+      </div>
+      <div class="panel">
+        <h2>Same-Prompt Refresh Rows</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Lane</th>
+              <th class="num">Prompt</th>
+              <th class="num">Generated</th>
+              <th class="num">TG tok/s</th>
+              <th class="num">PP tok/s</th>
+              <th class="num">Draft accepted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>7.37 BPW STRIX QUALITY</td>
+              <td class="num">3946</td>
+              <td class="num">512</td>
+              <td class="num">8.367</td>
+              <td class="num">177.020</td>
+              <td class="num">217/1762</td>
+            </tr>
+            <tr>
+              <td>7.61 BPW UltraQuality</td>
+              <td class="num">3946</td>
+              <td class="num">512</td>
+              <td class="num">25.921</td>
+              <td class="num">209.835</td>
+              <td class="num">437/439</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="footer">Speed rows are served-MTP measurements from the June 29 card refresh, using the same 20KB prompt shape and 512 generated tokens.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="coverage">
+      <h2>Evidence Boundary</h2>
+      <div class="grid-3">
+        <div class="callout">
+          <p><strong>Confirmed for Ultra:</strong> BPW, file size, rankleave32/Q6_K-splice recipe, Strix ROCm MTP profile, served speed, PPL/KLD, HermesAgent-20, and HumanEval+.</p>
+        </div>
+        <div class="callout">
+          <p><strong>Confirmed for Quality:</strong> published BPW/size, tensor mix, HermesAgent-20 aggregate, HumanEval+ result, PPL, and historical speed rows from the earlier report.</p>
+        </div>
+        <div class="callout">
+          <p><strong>Comparison boundary:</strong> the headline speed comparison uses the same-prompt refresh. The June 24 public report remains the source for the older report's original matrix and provenance.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="sources">
+      <h2>Sources</h2>
+      <p>This page uses the published ROCmFP6 Quality report data, the UltraQuality model card evidence, the quantization inventory, the card-refresh speed store, PPL/KLD logs, HermesAgent-20, and EvalPlus rows from the lab. Internal paths and filenames are intentionally omitted from the public report body.</p>
+      <p><a class="button" href="../reports/rocmfp6-quality-research-report-20260624/">Open the original Quality report</a></p>
+      <p class="footer">Generated July 1, 2026. Public labels use the requested 7.61 BPW suffix.</p>
+    </section>
+  </main>
+
+  <script>
+    const DATA = {
+      lanes: [
+        { name: "7.37 STRIX QUALITY", bpw: 7.37, size: 24018.32, tg4k: 8.367, pp4k: 177.020 },
+        { name: "7.61 UltraQuality", bpw: 7.6146, size: 24800.0, tg4k: 25.921, pp4k: 209.835 }
+      ],
+      quality: [
+        { name: "Quality HermesAgent score", value: 0.78 },
+        { name: "Ultra HermesAgent score", value: 0.82 },
+        { name: "Quality HumanEval+ pass rate", value: 155 / 164 },
+        { name: "Ultra HumanEval+ pass rate", value: 154 / 164 }
+      ]
+    };
+
+    const textColor = "#f7f7f4";
+    const muted = "#a8adb7";
+    const grid = "rgba(255,255,255,0.12)";
+    const colors = ["#39d0ff", "#f6c046", "#20d1a2", "#ff4e5f"];
+
+    function chart(id, options) {
+      const el = document.getElementById(id);
+      if (!el || !window.echarts) return;
+      const instance = echarts.init(el, null, { renderer: "canvas" });
+      instance.setOption(options);
+      window.addEventListener("resize", () => instance.resize());
+    }
+
+    chart("bpwChart", {
+      backgroundColor: "transparent",
+      color: colors,
+      tooltip: { trigger: "axis" },
+      legend: { textStyle: { color: muted }, top: 0 },
+      grid: { left: 58, right: 18, top: 58, bottom: 42 },
+      xAxis: { type: "category", data: ["7.37 Quality", "7.61 Ultra"], axisLabel: { color: muted }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: [
+        { type: "value", name: "BPW", min: 7.2, max: 7.8, axisLabel: { color: muted }, nameTextStyle: { color: muted }, splitLine: { lineStyle: { color: grid } } },
+        { type: "value", name: "MiB", min: 23000, max: 25500, axisLabel: { color: muted }, nameTextStyle: { color: muted }, splitLine: { show: false } }
+      ],
+      series: [
+        { name: "BPW", type: "bar", data: [7.37, 7.61], label: { show: true, color: textColor, position: "top" } },
+        { name: "Quant MiB", type: "line", yAxisIndex: 1, data: [24018.32, 24800.0], label: { show: true, color: textColor, formatter: value => Math.round(value.value) + " MiB" } }
+      ]
+    });
+
+    chart("qualityChart", {
+      backgroundColor: "transparent",
+      color: colors,
+      tooltip: { trigger: "axis" },
+      grid: { left: 180, right: 20, top: 18, bottom: 28 },
+      xAxis: { type: "value", axisLabel: { color: muted }, splitLine: { lineStyle: { color: grid } } },
+      yAxis: { type: "category", data: DATA.quality.map(d => d.name), axisLabel: { color: muted }, axisLine: { lineStyle: { color: grid } } },
+      series: [{
+        name: "Value",
+        type: "bar",
+        data: DATA.quality.map((d, i) => ({ value: d.value, itemStyle: { color: colors[i] } })),
+        label: { show: true, position: "right", color: textColor, formatter: params => params.value < 0.01 ? params.value.toFixed(6) : params.value.toFixed(3) }
+      }]
+    });
+
+    chart("speedChart", {
+      backgroundColor: "transparent",
+      color: colors,
+      tooltip: { trigger: "axis" },
+      legend: { textStyle: { color: muted }, top: 0 },
+      grid: { left: 58, right: 18, top: 58, bottom: 68 },
+      xAxis: { type: "category", data: DATA.lanes.map(d => d.name), axisLabel: { color: muted, interval: 0, rotate: 12 }, axisLine: { lineStyle: { color: grid } } },
+      yAxis: { type: "value", name: "tok/s", axisLabel: { color: muted }, nameTextStyle: { color: muted }, splitLine: { lineStyle: { color: grid } } },
+      series: [
+        { name: "Generation", type: "bar", data: DATA.lanes.map(d => d.tg4k), label: { show: true, color: textColor, position: "top", formatter: params => params.value.toFixed(2) } },
+        { name: "Prompt processing", type: "bar", data: DATA.lanes.map(d => d.pp4k), label: { show: true, color: textColor, position: "top", formatter: params => params.value.toFixed(0) } }
+      ]
+    });
+  </script>
+</body>
+</html>
