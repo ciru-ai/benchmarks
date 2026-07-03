@@ -205,10 +205,24 @@
             <table>
               <thead><tr><th>Model</th><th class="num">Hermes score</th><th class="num">Wall time</th><th class="num">Served TG</th></tr></thead>
               <tbody>
-                <tr><td>Best Chadrock</td><td class="num">87/100</td><td class="num">11.8 min</td><td class="num">33.8 tok/s</td></tr>
+                <tr><td>Chadrock 27B MTP</td><td class="num">81/100</td><td class="num">19.5 min</td><td class="num">34.59 tok/s</td></tr>
                 <tr><td>Atlas</td><td class="num">82/100</td><td class="num">39.7 min</td><td class="num">16.63 tok/s</td></tr>
                 <tr><td>NVIDIA NVFP4</td><td class="num">60/100</td><td class="num">4.5 min</td><td class="num">190.43 tok/s</td></tr>
                 <tr><td>BF16</td><td class="num">87/100</td><td class="num">42.4 min</td><td class="num">11.30 tok/s</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="source-note">Fresh Chadrock values come from backend counters sampled during the official HermesAgent-20 scenario window: 184,881 prompt tokens and 14,686 generated tokens.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Chadrock metric</th><th class="num">Value</th></tr></thead>
+              <tbody>
+                <tr><td>HermesAgent-20 score</td><td class="num">81/100</td></tr>
+                <tr><td>Wall time</td><td class="num">19.5 min</td></tr>
+                <tr><td>Hermes-window TG</td><td class="num">34.59 tok/s</td></tr>
+                <tr><td>Hermes-window PP</td><td class="num">301.13 tok/s</td></tr>
+                <tr><td>Peak combined GPU memory</td><td class="num">36.54 GiB</td></tr>
+                <tr><td>MTP setting</td><td class="num">draft-mtp nmax4</td></tr>
               </tbody>
             </table>
           </div>
@@ -303,8 +317,8 @@
 
     <section id="evidence">
       <h2>Evidence Basis</h2>
-      <p class="source-note">This public report is based on captured benchmark outputs from the Atlas exact-token speed sweep, the Atlas runtime log, the BF16 MTP speed sweep, the BF16 MTP nmax sweep, the Chadrock served MTP guard, the NVIDIA NVFP4 context speed gate, and HermesAgent-20 aggregate benchmark results.</p>
-      <p><span class="tag">Atlas exact-token speed sweep</span><span class="tag">BF16 MTP speed sweep</span><span class="tag">BF16 nmax sweep</span><span class="tag">Chadrock served MTP guard</span><span class="tag">NVIDIA NVFP4 context speed</span><span class="tag">HermesAgent-20 aggregate</span><span class="tag">ROCm memory accounting</span></p>
+      <p class="source-note">This public report is based on captured benchmark outputs from the Atlas exact-token speed sweep, the Atlas runtime log, the BF16 MTP speed sweep, the BF16 MTP nmax sweep, the fresh Chadrock Hermes-window MTP metrics, the NVIDIA NVFP4 context speed gate, and HermesAgent-20 aggregate benchmark results.</p>
+      <p><span class="tag">Atlas exact-token speed sweep</span><span class="tag">BF16 MTP speed sweep</span><span class="tag">BF16 nmax sweep</span><span class="tag">Chadrock Hermes-window MTP metrics</span><span class="tag">NVIDIA NVFP4 context speed</span><span class="tag">HermesAgent-20 aggregate</span><span class="tag">ROCm memory accounting</span></p>
     </section>
   </main>
 
@@ -354,9 +368,9 @@
         }
       ],
       series: [
-        { name: 'Hermes score', type: 'bar', barMaxWidth: 34, data: [87, 82, 60, 87], itemStyle: { color: '#ed1c24' } },
-        { name: 'Wall time', type: 'bar', barMaxWidth: 34, data: [11.8, 39.7, 4.5, 42.4], itemStyle: { color: '#ff9f43' } },
-        { name: 'Served TG', type: 'line', yAxisIndex: 1, data: [33.8, 16.63, 190.43, 11.3], symbolSize: 10, lineStyle: { width: 4, color: '#39d0ff' }, itemStyle: { color: '#39d0ff' } }
+        { name: 'Hermes score', type: 'bar', barMaxWidth: 34, data: [81, 82, 60, 87], itemStyle: { color: '#ed1c24' } },
+        { name: 'Wall time', type: 'bar', barMaxWidth: 34, data: [19.5, 39.7, 4.5, 42.4], itemStyle: { color: '#ff9f43' } },
+        { name: 'Served TG', type: 'line', yAxisIndex: 1, data: [34.59, 16.63, 190.43, 11.3], symbolSize: 10, lineStyle: { width: 4, color: '#39d0ff' }, itemStyle: { color: '#39d0ff' } }
       ]
     };
     const charts = [];
