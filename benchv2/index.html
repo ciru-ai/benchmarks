@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="../assets/echarts.min.js"></script>
-  <script src="data/benchv2-data.js?v=20260703-atlas-hermes20"></script>
+  <script src="data/benchv2-data.js?v=20260703-tooleval-qwable"></script>
   <style>
     :root {
       --bg: #070707;
@@ -3622,9 +3622,21 @@
         bigcodebench: "BigCodeBench",
         livecodebench: "LiveCodeBench",
         "mini-swe-agent": "Mini-SWE-Agent",
+        "tool-eval-bench": "Tool-Eval",
         bfcl: "BFCL"
       }[row.benchmarkFamily] || row.benchmarkFamily || "Suite";
       return `${family} • ${row.suiteLabel || row.suite || row.scoreLabel || "score"}`;
+    }
+
+    function qualityEvidence(row) {
+      if (row.benchmarkFamily === "tool-eval-bench") {
+        const points = isNum(row.pointScore) && isNum(row.maxScore) ? `${intFmt(row.pointScore)} / ${intFmt(row.maxScore)} points` : "point score";
+        const outcomes = `${intFmt(row.plusPass || 0)} pass / ${intFmt(row.partialCount || 0)} partial / ${intFmt(row.failCount || 0)} fail`;
+        const median = isNum(row.medianTurnMs) ? `median turn ${fmt(Number(row.medianTurnMs) / 1000, 2)}s` : "median turn n/a";
+        const warnings = isNum(row.safetyWarnings) ? ` • ${intFmt(row.safetyWarnings)} warning${Number(row.safetyWarnings) === 1 ? "" : "s"}` : "";
+        return `${intFmt(row.tasks)} scenarios<small class="muted">${escapeHtml(points)} • ${escapeHtml(outcomes)} • ${escapeHtml(median)}${escapeHtml(warnings)}</small>`;
+      }
+      return `${row.tasks ? `${intFmt(row.tasks)} tasks` : "scored metric"}<small class="muted">${row.plusPass != null ? `${intFmt(row.plusPass)} strict passes` : "completed score row"}</small>`;
     }
 
     function displayQualityLeaders(rows) {
@@ -3672,9 +3684,9 @@
       $("qualitySuiteBody").innerHTML = leaders.map((row) => `
         <tr>
           <td class="profile-cell"><strong>${escapeHtml(row.profile)}</strong><small>${escapeHtml(row.family || "Other")}${row.quant ? ` • ${escapeHtml(row.quant)}` : ""}</small></td>
-          <td>${escapeHtml(suiteKindLabel(row))}<small class="muted">${escapeHtml(row.scoreLabel || row.scoreName || "")}</small></td>
+          <td>${row.reportUrl ? `<a href="${escapeHtml(row.reportUrl)}">${escapeHtml(suiteKindLabel(row))}</a>` : escapeHtml(suiteKindLabel(row))}<small class="muted">${escapeHtml(row.scoreLabel || row.scoreName || "")}</small></td>
           <td>${pct(row.score)}${row.scoreName === "resolved" ? `<small class="muted">resolved</small>` : ""}</td>
-          <td>${row.tasks ? `${intFmt(row.tasks)} tasks` : "scored metric"}<small class="muted">${row.plusPass != null ? `${intFmt(row.plusPass)} strict passes` : "completed score row"}</small></td>
+          <td>${qualityEvidence(row)}</td>
           <td><strong>${escapeHtml(row.runLabel || row.runId || "")}</strong><br><small>${latestDate(row.createdUtc || row.timestamp)}</small></td>
         </tr>
       `).join("") || `<tr><td colspan="5">No completed quality suite rows are available.</td></tr>`;

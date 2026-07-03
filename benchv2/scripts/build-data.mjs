@@ -1108,6 +1108,7 @@ PROFILE_LABELS = {
     "CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN": "Chadrock3.6 35B Uncensored MTP",
     "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
     "qwen3.6-27b-chadrock-agent-rocmfp4": "qwen3.6 27b CHADROCK AGENT ROCMFP4",
+    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "Qwable 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
     "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
     "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
     "qwen35-122b-rocmfp4-mtp-64k-q8kv": "Qwen3.5 122B ROCmFP4 MTP 64k Q8 KV",
@@ -1128,6 +1129,8 @@ SUITE_LABELS = {
     "bigcodebench-instruct-full": "BigCodeBench Instruct Full",
     "release_latest-codegeneration-2025-01-01": "LiveCodeBench 2025-01",
     "swebench-lite-dev": "SWE-bench Lite Dev",
+    "tool-eval-full": "Tool-Eval Bench Full",
+    "tool-eval-core-smoke": "Tool-Eval Bench Core Smoke",
     "official-20": "HermesAgent-20",
     "aggregate": "Aggregate",
     "bfcl-v4-all_scoring": "BFCL v4 all scoring",
@@ -1214,6 +1217,8 @@ def profile_quant(profile_id):
     ]
     if "rocmfp4" in text:
         return "ROCmFP4"
+    if "rocmfpx" in text:
+        return "ROCmFPX"
     for needle, label in patterns:
         if needle in text:
             return label
@@ -1495,8 +1500,76 @@ def quality_rows_from_db():
             deduped[key] = row
     return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
 
+def tool_eval_rows_from_artifacts():
+    rows = []
+    for path in glob.glob(os.path.join(LAB_ROOT, "runs", "*", "outputs", "tool-eval-bench-*.json")):
+        payload = safe_json(open(path, "r", encoding="utf-8").read())
+        if not payload:
+            continue
+        filename = os.path.basename(path)
+        if filename == "tool-eval-bench-full.json":
+            suite = "tool-eval-full"
+            row_kind = "aggregate"
+        elif filename == "tool-eval-bench-short.json":
+            suite = "tool-eval-core-smoke"
+            row_kind = "smoke"
+        else:
+            continue
+        scores = payload.get("scores") or {}
+        scenarios = scores.get("scenario_results") or []
+        run_id = os.path.basename(os.path.dirname(os.path.dirname(path)))
+        manifest = safe_json(open(os.path.join(LAB_ROOT, "runs", run_id, "run.json"), "r", encoding="utf-8").read())
+        profile_id = ((manifest.get("model") or {}).get("alias") or (payload.get("metadata") or {}).get("server_model_id") or "unknown")
+        timestamp = datetime.fromtimestamp(os.path.getmtime(path), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        total = int(payload.get("total_scenarios") or len(scenarios) or 0)
+        pass_count = sum(1 for item in scenarios if item.get("status") == "pass")
+        partial_count = sum(1 for item in scenarios if item.get("status") == "partial")
+        fail_count = sum(1 for item in scenarios if item.get("status") == "fail")
+        try:
+            score = round(float(scores.get("final_score", payload.get("final_score"))) / 100.0, 6)
+        except Exception:
+            continue
+        rows.append({
+            "seq": int(os.path.getmtime(path)),
+            "runId": public_run_id(run_id),
+            "runLabel": public_run_label(run_id),
+            "createdUtc": run_created_utc(run_id) or timestamp,
+            "timestamp": timestamp,
+            "benchmarkFamily": "tool-eval-bench",
+            "suite": suite,
+            "suiteLabel": SUITE_LABELS.get(suite, title_from_slug(suite)),
+            "rowKind": row_kind,
+            "profileId": public_profile_id(profile_id),
+            "profile": public_profile_label(profile_id),
+            "family": family_for(profile_id),
+            "quant": profile_quant(profile_id) or "ROCmFPX",
+            "sizeClass": profile_size_class(profile_id),
+            "tasks": total,
+            "scoreName": "avg_score",
+            "scoreLabel": score_label("avg_score"),
+            "score": score,
+            "basePass": None,
+            "plusPass": pass_count,
+            "baseRate": None,
+            "plusRate": score,
+            "pointScore": scores.get("total_points"),
+            "maxScore": scores.get("max_points"),
+            "partialCount": partial_count,
+            "failCount": fail_count,
+            "medianTurnMs": scores.get("median_turn_ms"),
+            "safetyWarnings": len(scores.get("safety_warnings") or payload.get("safety_warnings") or []),
+            "deployability": scores.get("deployability", payload.get("deployability")),
+            "responsiveness": scores.get("responsiveness", payload.get("responsiveness")),
+            "generationTokS": 21.5 if suite == "tool-eval-full" and "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw" in profile_id else None,
+            "sourcePath": compact_path(path),
+            "reportUrl": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+        })
+    return sorted(rows, key=lambda item: (item.get("timestamp") or "", item.get("suite") or ""))
+
 def summarize_quality_suites():
     rows, excluded = quality_rows_from_db()
+    tool_eval_rows = tool_eval_rows_from_artifacts()
+    rows = rows + tool_eval_rows
     if not rows:
         return {
             "meta": {
@@ -1512,6 +1585,7 @@ def summarize_quality_suites():
             "codingRows": [],
             "bfclRows": [],
             "agentRows": [],
+            "toolEvalRows": [],
             "leaderRows": [],
         }
 
@@ -1521,7 +1595,7 @@ def summarize_quality_suites():
         if row["benchmarkFamily"] == "bigcodebench-manifest" and suite.endswith("-metrics"):
             speed_metric_rows[(row["profileId"], suite[:-8])] = row
 
-    coding_families = {"evalplus", "bigcodebench", "livecodebench", "mini-swe-agent"}
+    coding_families = {"evalplus", "bigcodebench", "livecodebench", "mini-swe-agent", "tool-eval-bench"}
     coding_rows = [
         dict(row) for row in rows
         if row["benchmarkFamily"] in coding_families
@@ -1535,6 +1609,7 @@ def summarize_quality_suites():
             if row.get(key) is None and metrics.get(key) is not None:
                 row[key] = metrics[key]
     bfcl_rows = [row for row in rows if row["benchmarkFamily"] == "bfcl"]
+    tool_eval_rows = [row for row in rows if row["benchmarkFamily"] == "tool-eval-bench"]
     agent_rows = [
         row for row in rows
         if row["benchmarkFamily"] == "hermesagent-20"
@@ -1557,6 +1632,8 @@ def summarize_quality_suites():
         ("bigcodebench", "bigcodebench-hard-instruct"): 4,
         ("bigcodebench", "bigcodebench-instruct-full"): 4,
         ("mini-swe-agent", "swebench-lite-dev"): 5,
+        ("tool-eval-bench", "tool-eval-full"): 6,
+        ("tool-eval-bench", "tool-eval-core-smoke"): 7,
     }
     leader_rows = sorted(latest_by_profile_suite.values(), key=lambda row: (
         headline_priority.get((row["benchmarkFamily"], row["suite"]), 99),
@@ -1579,6 +1656,7 @@ def summarize_quality_suites():
         "codingRows": coding_rows,
         "bfclRows": sorted(bfcl_rows, key=lambda row: (row["profile"], row["suite"])),
         "agentRows": sorted(agent_rows, key=lambda row: (row["profile"], row["suite"])),
+        "toolEvalRows": sorted(tool_eval_rows, key=lambda row: (row["profile"], row["suite"])),
         "agentScenarioRows": agent_scenario_rows,
         "agentCategoryRows": agent_category_rows,
         "leaderRows": leader_rows,
