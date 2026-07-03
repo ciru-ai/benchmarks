@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas vs BF16 Qwen3.6 27B Report | Ciru Inference Lab</title>
+  <meta name="description" content="Ciru Inference Lab report comparing Atlas NVFP4 MTP-K2 and BF16 GGUF MTP inference on Qwen3.6 27B, including PP, TG, memory, wall time, and HermesAgent-20 results.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="../assets/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+    header {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 6px auto 0;
+      padding: 18px 20px 24px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+    header > * { position: relative; z-index: 1; }
+    .wrap { max-width: var(--max); margin: 0 auto; }
+    .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .brand-lockup { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; }
+    .logo-plate {
+      display: flex; align-items: center; justify-content: center;
+      width: 54px; height: 54px;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(237, 28, 36, 0.16), rgba(57, 208, 255, 0.06)), rgba(0, 0, 0, 0.26);
+      overflow: hidden; flex: 0 0 auto;
+    }
+    .logo-plate img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.24); filter: drop-shadow(0 8px 16px rgba(237, 28, 36, 0.3)); }
+    .brand-title { display: block; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; line-height: 1.05; }
+    .brand-subtitle { display: block; color: var(--muted); font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.68rem; margin-top: 4px; }
+    .back-link { border: 1px solid rgba(57, 208, 255, 0.38); border-radius: var(--radius); background: rgba(0,0,0,.3); color: #e9f7ff; padding: 9px 12px; font-size: .78rem; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    .kicker { color: var(--cyan); font-family: "IBM Plex Mono", monospace; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.78rem; margin: 0 0 10px; }
+    h1 { margin: 0; max-width: 1050px; font-size: clamp(2rem, 4vw, 4.3rem); line-height: 1; letter-spacing: 0; text-transform: uppercase; }
+    header p { max-width: 980px; margin: 18px 0 0; color: #c6c9cf; font-size: 1.08rem; }
+    main { max-width: var(--max); min-width: 0; margin: 0 auto; padding: 28px 24px 64px; position: relative; z-index: 1; }
+    nav { background: rgba(15, 16, 19, 0.82); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin: 0 0 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px 18px; }
+    nav a { color: #9ee8ff; font-weight: 750; font-size: 0.92rem; }
+    section, .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px; margin: 0 0 24px; }
+    h2 { margin: 0 0 14px; font-size: 1.65rem; letter-spacing: 0; line-height: 1.18; text-transform: uppercase; }
+    h3 { margin: 22px 0 10px; font-size: 1.1rem; letter-spacing: 0; color: #e8edf5; }
+    p { margin: 0 0 14px; }
+    code { font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--text); background: rgba(255, 255, 255, 0.08); padding: 0.12rem 0.32rem; border-radius: 4px; font-size: 0.92em; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .stat { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), var(--panel-2); padding: 16px; min-height: 132px; }
+    .stat b { display: block; color: var(--cyan); font-size: 1.62rem; line-height: 1.05; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+    .stat span { color: var(--muted); font-size: 0.94rem; }
+    .callout { border: 1px solid rgba(57, 208, 255, 0.24); border-left: 5px solid var(--cyan); border-radius: var(--radius); background: rgba(57, 208, 255, 0.08); padding: 16px 18px; margin: 18px 0 0; }
+    .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .chart-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); padding: 16px; min-width: 0; }
+    .chart-card h3 { margin-top: 0; }
+    .chart { width: 100%; height: 360px; }
+    .chart.tall { height: 430px; }
+    .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; margin: 16px 0 24px; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: .94rem; background: rgba(0,0,0,.18); }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; vertical-align: top; text-align: left; }
+    th { background: rgba(255,255,255,.06); font-weight: 750; color: #f7f7f4; }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-family: "IBM Plex Mono", monospace; }
+    .source-note { color: var(--muted); font-size: .92rem; }
+    .tag { display: inline-block; border: 1px solid rgba(57,208,255,.32); border-radius: 6px; padding: 3px 7px; color: #dff7ff; background: rgba(57,208,255,.08); font-family: "IBM Plex Mono", monospace; font-size: .78rem; margin: 2px 4px 2px 0; }
+    footer { max-width: var(--max); margin: 0 auto; padding: 0 24px 48px; color: var(--muted); font-size: .92rem; position: relative; z-index: 1; }
+    @media (max-width: 980px) { .summary-grid, .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 720px) { header { padding: 18px; } main { padding: 20px 14px 44px; } section, .panel { padding: 20px 16px; } .brand-row { align-items: flex-start; flex-direction: column; } .summary-grid, .chart-grid { grid-template-columns: 1fr; } .chart { height: 330px; } table { font-size: .84rem; } th, td { padding: 8px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand-row">
+        <a class="brand-lockup" href="../">
+          <span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span>
+          <span>
+            <span class="brand-title">Ciru Inference Lab</span>
+            <span class="brand-subtitle">llm.ciru.ai / research</span>
+          </span>
+        </a>
+        <a class="back-link" href="../">Benchmarks</a>
+      </div>
+      <p class="kicker">Crown Citadel Research Report</p>
+      <h1>Atlas vs BF16 Qwen3.6 27B</h1>
+      <p>Inference comparison covering prompt processing, text generation, memory, wall time, MTP sweep behavior, and HermesAgent-20 outcomes on the Strix Halo class.</p>
+    </div>
+  </header>
+
+  <main>
+    <nav aria-label="Report sections">
+      <a href="#summary">Summary</a>
+      <a href="#charts">Charts</a>
+      <a href="#speed">Speed tables</a>
+      <a href="#nmax">MTP sweep</a>
+      <a href="#hermes">HermesAgent-20</a>
+      <a href="#evidence">Evidence basis</a>
+    </nav>
+
+    <section id="summary">
+      <h2>Headline</h2>
+      <p>BF16 has the stronger prompt-processing lane and lower loaded memory. Atlas reports higher decode throughput in the exact-token speed sweep, but BF16 wins the tested end-to-end speed prompts because prompt processing dominates these contexts.</p>
+      <div class="summary-grid">
+        <div class="stat"><b>324.02 vs 163.69</b><span>4k PP tok/s, BF16 compared with Atlas.</span></div>
+        <div class="stat"><b>15.67 vs 11.30</b><span>4k TG tok/s, Atlas compared with BF16.</span></div>
+        <div class="stat"><b>64.96 vs 98.27 GiB</b><span>Loaded memory, BF16 compared with Atlas.</span></div>
+        <div class="stat"><b>87 vs 82</b><span>HermesAgent-20 score, BF16 compared with Atlas.</span></div>
+      </div>
+      <div class="callout">Selected BF16 MTP setting is <code>nmax6</code>. Atlas MTP setting is <code>num_drafts=1</code> with K2 verification.</div>
+    </section>
+
+    <section id="profile">
+      <h2>Runtime Profiles</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Atlas</th><th>BF16</th></tr></thead>
+          <tbody>
+            <tr><td>Runtime</td><td>Atlas Spark</td><td>llama.cpp ROCm</td></tr>
+            <tr><td>Model lane</td><td><code>unsloth/Qwen3.6-27B-NVFP4</code></td><td><code>unsloth/Qwen3.6-27B-MTP-BF16-GGUF</code></td></tr>
+            <tr><td>Main weight format</td><td>NVFP4</td><td>BF16 GGUF</td></tr>
+            <tr><td>MTP</td><td>K2, <code>num_drafts=1</code></td><td><code>draft-mtp</code>, selected <code>nmax6</code></td></tr>
+            <tr><td>KV cache</td><td>bf16</td><td>f16/f16</td></tr>
+            <tr><td>Batch shape</td><td>single-stream, batch size 1</td><td>single-stream</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="charts">
+      <h2>Charts</h2>
+      <div class="chart-grid">
+        <article class="chart-card">
+          <h3>PP and TG throughput</h3>
+          <div id="speedChart" class="chart" role="img" aria-label="Prompt processing and text generation throughput comparison chart"></div>
+        </article>
+        <article class="chart-card">
+          <h3>Wall time by context</h3>
+          <div id="wallChart" class="chart" role="img" aria-label="Wall time comparison chart"></div>
+        </article>
+        <article class="chart-card">
+          <h3>BF16 4k MTP sweep</h3>
+          <div id="nmaxChart" class="chart" role="img" aria-label="BF16 nmax sweep chart"></div>
+        </article>
+        <article class="chart-card">
+          <h3>Loaded memory</h3>
+          <div id="memoryChart" class="chart" role="img" aria-label="Loaded memory comparison chart"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="speed">
+      <h2>Speed Side By Side</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Context</th><th class="num">Atlas PP</th><th class="num">Atlas TG</th><th class="num">Atlas wall</th><th class="num">Atlas gen</th><th class="num">BF16 PP</th><th class="num">BF16 TG</th><th class="num">BF16 wall</th><th class="num">BF16 gen</th></tr></thead>
+          <tbody>
+            <tr><td>4k</td><td class="num">163.69</td><td class="num">15.67</td><td class="num">41.30 s</td><td class="num">256</td><td class="num">324.02</td><td class="num">11.30</td><td class="num">23.98 s</td><td class="num">128</td></tr>
+            <tr><td>8k</td><td class="num">155.44</td><td class="num">16.63</td><td class="num">68.04 s</td><td class="num">256</td><td class="num">327.02</td><td class="num">10.27</td><td class="num">37.52 s</td><td class="num">128</td></tr>
+            <tr><td>Long</td><td class="num">139.43 at 18k</td><td class="num">15.26 at 18k</td><td class="num">148.92 s</td><td class="num">256</td><td class="num">302.17 at 16k</td><td class="num">9.39 at 16k</td><td class="num">67.86 s</td><td class="num">128</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Atlas context sweep</h3>
+      <div class="table-wrap"><table><thead><tr><th class="num">Prompt tokens</th><th class="num">TG tok/s</th><th class="num">PP tok/s</th><th class="num">TTFT ms</th><th class="num">Wall s</th><th class="num">Total tok/s wall</th><th class="num">K2 acceptance sample</th></tr></thead><tbody><tr><td class="num">4096</td><td class="num">15.67</td><td class="num">163.69</td><td class="num">25022.91</td><td class="num">41.30</td><td class="num">105.38</td><td class="num">48.0%</td></tr>
+<tr><td class="num">8192</td><td class="num">16.63</td><td class="num">155.44</td><td class="num">52702.64</td><td class="num">68.04</td><td class="num">124.17</td><td class="num">49.0% / 66.0%</td></tr>
+<tr><td class="num">18432</td><td class="num">15.26</td><td class="num">139.43</td><td class="num">132199.10</td><td class="num">148.92</td><td class="num">125.49</td><td class="num">64.0%</td></tr></tbody></table></div>
+
+      <h3>BF16 context sweep</h3>
+      <div class="table-wrap"><table><thead><tr><th class="num">Prompt tokens</th><th class="num">TG tok/s</th><th class="num">PP tok/s</th><th class="num">Wall s</th><th class="num">Draft accepted</th><th class="num">Draft generated</th><th class="num">Accept rate</th></tr></thead><tbody><tr><td class="num">4096</td><td class="num">11.30</td><td class="num">324.02</td><td class="num">23.98</td><td class="num">96</td><td class="num">103</td><td class="num">93.2%</td></tr>
+<tr><td class="num">8192</td><td class="num">10.27</td><td class="num">327.02</td><td class="num">37.52</td><td class="num">93</td><td class="num">113</td><td class="num">82.3%</td></tr>
+<tr><td class="num">16384</td><td class="num">9.39</td><td class="num">302.17</td><td class="num">67.86</td><td class="num">88</td><td class="num">92</td><td class="num">95.7%</td></tr></tbody></table></div>
+    </section>
+
+    <section id="nmax">
+      <h2>BF16 4k MTP Nmax Sweep</h2>
+      <p>The selected BF16 setting is <code>nmax6</code>, which produced the best 4k wall time and the highest TG in this sweep.</p>
+      <div class="table-wrap"><table><thead><tr><th>Setting</th><th class="num">TG tok/s</th><th class="num">PP tok/s</th><th class="num">Wall s</th><th class="num">Draft accepted</th><th class="num">Draft generated</th><th class="num">Accept rate</th><th class="num">ROCm used MiB</th></tr></thead><tbody><tr><td class="">no MTP</td><td class="num">4.15</td><td class="num">362.20</td><td class="num">42.17</td><td class="num">-</td><td class="num">-</td><td class="num">-</td><td class="num">64127</td></tr>
+<tr><td class="">nmax1</td><td class="num">6.37</td><td class="num">320.05</td><td class="num">32.89</td><td class="num">56</td><td class="num">58</td><td class="num">96.6%</td><td class="num">65249</td></tr>
+<tr><td class="">nmax2</td><td class="num">6.84</td><td class="num">304.33</td><td class="num">32.18</td><td class="num">76</td><td class="num">81</td><td class="num">93.8%</td><td class="num">65368</td></tr>
+<tr><td class="">nmax4</td><td class="num">9.64</td><td class="num">329.52</td><td class="num">25.72</td><td class="num">89</td><td class="num">96</td><td class="num">92.7%</td><td class="num">66110</td></tr>
+<tr><td class="">nmax6</td><td class="num">10.97</td><td class="num">331.96</td><td class="num">24.01</td><td class="num">95</td><td class="num">100</td><td class="num">95.0%</td><td class="num">66523</td></tr>
+<tr><td class="">nmax8</td><td class="num">9.20</td><td class="num">300.91</td><td class="num">27.54</td><td class="num">96</td><td class="num">113</td><td class="num">85.0%</td><td class="num">66711</td></tr></tbody></table></div>
+    </section>
+
+    <section id="hermes">
+      <h2>HermesAgent-20 Side By Side</h2>
+      <div class="summary-grid">
+        <div class="stat"><b>82/100</b><span>Atlas score.</span></div>
+        <div class="stat"><b>87/100</b><span>BF16 score.</span></div>
+        <div class="stat"><b>39.7 min</b><span>Atlas aggregate wall time.</span></div>
+        <div class="stat"><b>42.4 min</b><span>BF16 aggregate wall time.</span></div>
+      </div>
+      <div class="chart-card" style="margin-top:16px;">
+        <h3>Scenario score comparison</h3>
+        <div id="hermesChart" class="chart tall" role="img" aria-label="HermesAgent-20 scenario score comparison chart"></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Scenario</th><th class="num">Atlas score</th><th class="num">Atlas wall s</th><th class="num">BF16 score</th><th class="num">BF16 wall s</th></tr></thead><tbody><tr><td class="">HA-01</td><td class="num">100</td><td class="num">21.843</td><td class="num">100</td><td class="num">23.704</td></tr>
+<tr><td class="">HA-02</td><td class="num">100</td><td class="num">201.986</td><td class="num">100</td><td class="num">315.344</td></tr>
+<tr><td class="">HA-03</td><td class="num">100</td><td class="num">10.915</td><td class="num">100</td><td class="num">31.812</td></tr>
+<tr><td class="">HA-04</td><td class="num">100</td><td class="num">194.827</td><td class="num">100</td><td class="num">393.883</td></tr>
+<tr><td class="">HA-05</td><td class="num">100</td><td class="num">124.944</td><td class="num">100</td><td class="num">135.560</td></tr>
+<tr><td class="">HA-06</td><td class="num">100</td><td class="num">93.741</td><td class="num">100</td><td class="num">180.815</td></tr>
+<tr><td class="">HA-07</td><td class="num">30</td><td class="num">292.600</td><td class="num">100</td><td class="num">164.992</td></tr>
+<tr><td class="">HA-08</td><td class="num">100</td><td class="num">113.484</td><td class="num">100</td><td class="num">115.352</td></tr>
+<tr><td class="">HA-09</td><td class="num">30</td><td class="num">179.254</td><td class="num">100</td><td class="num">222.446</td></tr>
+<tr><td class="">HA-10</td><td class="num">100</td><td class="num">205.268</td><td class="num">100</td><td class="num">82.460</td></tr>
+<tr><td class="">HA-11</td><td class="num">50</td><td class="num">49.523</td><td class="num">100</td><td class="num">75.768</td></tr>
+<tr><td class="">HA-12</td><td class="num">70</td><td class="num">94.443</td><td class="num">100</td><td class="num">46.711</td></tr>
+<tr><td class="">HA-13</td><td class="num">100</td><td class="num">61.880</td><td class="num">100</td><td class="num">235.906</td></tr>
+<tr><td class="">HA-14</td><td class="num">70</td><td class="num">40.538</td><td class="num">70</td><td class="num">31.836</td></tr>
+<tr><td class="">HA-15</td><td class="num">100</td><td class="num">100.206</td><td class="num">100</td><td class="num">63.399</td></tr>
+<tr><td class="">HA-16</td><td class="num">30</td><td class="num">109.123</td><td class="num">30</td><td class="num">118.041</td></tr>
+<tr><td class="">HA-17</td><td class="num">70</td><td class="num">121.259</td><td class="num">20</td><td class="num">84.938</td></tr>
+<tr><td class="">HA-18</td><td class="num">100</td><td class="num">25.051</td><td class="num">100</td><td class="num">40.093</td></tr>
+<tr><td class="">HA-19</td><td class="num">85</td><td class="num">213.333</td><td class="num">20</td><td class="num">88.681</td></tr>
+<tr><td class="">HA-20</td><td class="num">100</td><td class="num">104.339</td><td class="num">100</td><td class="num">94.512</td></tr></tbody></table></div>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidence Basis</h2>
+      <p class="source-note">This public report is based on captured benchmark outputs from the Atlas exact-token speed sweep, the Atlas runtime log, the BF16 MTP speed sweep, the BF16 MTP nmax sweep, and HermesAgent-20 aggregate benchmark results.</p>
+      <p><span class="tag">Atlas exact-token speed sweep</span><span class="tag">BF16 MTP speed sweep</span><span class="tag">BF16 nmax sweep</span><span class="tag">HermesAgent-20 aggregate</span><span class="tag">ROCm memory accounting</span></p>
+    </section>
+  </main>
+
+  <footer>
+    Ciru Inference Lab. Published July 3, 2026.
+  </footer>
+
+  <script>
+    const chartOptions = {"speedChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["4k","8k","long"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":[{"type":"value","name":"PP tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},{"type":"value","name":"TG tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"show":false}}],"series":[{"name":"Atlas PP","type":"bar","data":[163.69,155.44,139.43],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16 PP","type":"bar","data":[324.02,327.02,302.17],"itemStyle":{"color":"#39d0ff"}},{"name":"Atlas TG","type":"line","yAxisIndex":1,"data":[15.67,16.63,15.26],"symbolSize":8,"lineStyle":{"width":3,"color":"#ff9f43"},"itemStyle":{"color":"#ff9f43"}},{"name":"BF16 TG","type":"line","yAxisIndex":1,"data":[11.3,10.27,9.39],"symbolSize":8,"lineStyle":{"width":3,"color":"#20d1a2"},"itemStyle":{"color":"#20d1a2"}}]},"wallChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["4k","8k","long"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Wall seconds","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Atlas","type":"bar","data":[41.3,68.04,148.92],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16","type":"bar","data":[23.98,37.52,67.86],"itemStyle":{"color":"#39d0ff"}}]},"nmaxChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["no MTP","nmax1","nmax2","nmax4","nmax6","nmax8"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":[{"type":"value","name":"TG tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},{"type":"value","name":"Accept %","min":0,"max":100,"nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"show":false}}],"series":[{"name":"TG","type":"bar","data":[4.15,6.37,6.84,9.64,10.97,9.2],"itemStyle":{"color":"#39d0ff"}},{"name":"Accept rate","type":"line","yAxisIndex":1,"data":[null,96.6,93.8,92.7,95.0,85.0],"symbolSize":8,"lineStyle":{"width":3,"color":"#20d1a2"},"itemStyle":{"color":"#20d1a2"}}]},"hermesChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":48,"right":28,"top":56,"bottom":72},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"dataZoom":[{"type":"inside"},{"type":"slider","height":18,"bottom":8,"textStyle":{"color":"#a8adb7"}}],"xAxis":{"type":"category","data":["HA-01","HA-02","HA-03","HA-04","HA-05","HA-06","HA-07","HA-08","HA-09","HA-10","HA-11","HA-12","HA-13","HA-14","HA-15","HA-16","HA-17","HA-18","HA-19","HA-20"],"axisLabel":{"color":"#a8adb7","rotate":35},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Score","max":100,"nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Atlas","type":"bar","data":[100,100,100,100,100,100,30,100,30,100,50,70,100,70,100,30,70,100,85,100],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16","type":"bar","data":[100,100,100,100,100,100,100,100,100,100,100,100,100,70,100,30,20,100,20,100],"itemStyle":{"color":"#39d0ff"}}]},"memoryChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"show":false},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["Atlas","BF16"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Loaded GiB","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Loaded memory","type":"bar","data":[98.27,64.96],"itemStyle":{"color":{"type":"linear","x":0,"y":0,"x2":0,"y2":1,"colorStops":[{"offset":0,"color":"#ed1c24"},{"offset":1,"color":"#39d0ff"}]}}}]}};
+    const charts = [];
+    function initChart(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el, null, { renderer: 'canvas' });
+      chart.setOption(chartOptions[id]);
+      charts.push(chart);
+    }
+    ['speedChart', 'wallChart', 'nmaxChart', 'memoryChart', 'hermesChart'].forEach(initChart);
+    window.addEventListener('resize', () => charts.forEach((chart) => chart.resize()));
+  </script>
+</body>
+</html>
