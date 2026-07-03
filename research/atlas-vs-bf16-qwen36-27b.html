@@ -120,6 +120,8 @@
     .callout { border: 1px solid rgba(57, 208, 255, 0.24); border-left: 5px solid var(--cyan); border-radius: var(--radius); background: rgba(57, 208, 255, 0.08); padding: 16px 18px; margin: 18px 0 0; }
     .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     .chart-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); padding: 16px; min-width: 0; }
+    .chart-card.wide { grid-column: 1 / -1; }
+    .chart-card.wide table { min-width: 560px; }
     .chart-card h3 { margin-top: 0; }
     .chart { width: 100%; height: 360px; }
     .chart.tall { height: 430px; }
@@ -196,6 +198,21 @@
     <section id="charts">
       <h2>Charts</h2>
       <div class="chart-grid">
+        <article class="chart-card wide">
+          <h3>Four-model score, wall time, and best TG</h3>
+          <div id="frontierChart" class="chart tall" role="img" aria-label="Four model comparison chart for score, wall time, and best text generation throughput"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Model</th><th class="num">Hermes score</th><th class="num">Wall time</th><th class="num">Best TG</th></tr></thead>
+              <tbody>
+                <tr><td>Best Chadrock</td><td class="num">87/100</td><td class="num">11.8 min</td><td class="num">12.32 tok/s</td></tr>
+                <tr><td>Atlas</td><td class="num">82/100</td><td class="num">39.7 min</td><td class="num">16.63 tok/s</td></tr>
+                <tr><td>NVIDIA NVFP4</td><td class="num">60/100</td><td class="num">4.5 min</td><td class="num">190.43 tok/s</td></tr>
+                <tr><td>BF16</td><td class="num">87/100</td><td class="num">42.4 min</td><td class="num">11.30 tok/s</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
         <article class="chart-card">
           <h3>PP and TG throughput</h3>
           <div id="speedChart" class="chart" role="img" aria-label="Prompt processing and text generation throughput comparison chart"></div>
@@ -286,8 +303,8 @@
 
     <section id="evidence">
       <h2>Evidence Basis</h2>
-      <p class="source-note">This public report is based on captured benchmark outputs from the Atlas exact-token speed sweep, the Atlas runtime log, the BF16 MTP speed sweep, the BF16 MTP nmax sweep, and HermesAgent-20 aggregate benchmark results.</p>
-      <p><span class="tag">Atlas exact-token speed sweep</span><span class="tag">BF16 MTP speed sweep</span><span class="tag">BF16 nmax sweep</span><span class="tag">HermesAgent-20 aggregate</span><span class="tag">ROCm memory accounting</span></p>
+      <p class="source-note">This public report is based on captured benchmark outputs from the Atlas exact-token speed sweep, the Atlas runtime log, the BF16 MTP speed sweep, the BF16 MTP nmax sweep, the NVIDIA NVFP4 context speed gate, and HermesAgent-20 aggregate benchmark results.</p>
+      <p><span class="tag">Atlas exact-token speed sweep</span><span class="tag">BF16 MTP speed sweep</span><span class="tag">BF16 nmax sweep</span><span class="tag">NVIDIA NVFP4 context speed</span><span class="tag">HermesAgent-20 aggregate</span><span class="tag">ROCm memory accounting</span></p>
     </section>
   </main>
 
@@ -297,6 +314,51 @@
 
   <script>
     const chartOptions = {"speedChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["4k","8k","long"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":[{"type":"value","name":"PP tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},{"type":"value","name":"TG tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"show":false}}],"series":[{"name":"Atlas PP","type":"bar","data":[163.69,155.44,139.43],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16 PP","type":"bar","data":[324.02,327.02,302.17],"itemStyle":{"color":"#39d0ff"}},{"name":"Atlas TG","type":"line","yAxisIndex":1,"data":[15.67,16.63,15.26],"symbolSize":8,"lineStyle":{"width":3,"color":"#ff9f43"},"itemStyle":{"color":"#ff9f43"}},{"name":"BF16 TG","type":"line","yAxisIndex":1,"data":[11.3,10.27,9.39],"symbolSize":8,"lineStyle":{"width":3,"color":"#20d1a2"},"itemStyle":{"color":"#20d1a2"}}]},"wallChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["4k","8k","long"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Wall seconds","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Atlas","type":"bar","data":[41.3,68.04,148.92],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16","type":"bar","data":[23.98,37.52,67.86],"itemStyle":{"color":"#39d0ff"}}]},"nmaxChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["no MTP","nmax1","nmax2","nmax4","nmax6","nmax8"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":[{"type":"value","name":"TG tok/s","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},{"type":"value","name":"Accept %","min":0,"max":100,"nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"show":false}}],"series":[{"name":"TG","type":"bar","data":[4.15,6.37,6.84,9.64,10.97,9.2],"itemStyle":{"color":"#39d0ff"}},{"name":"Accept rate","type":"line","yAxisIndex":1,"data":[null,96.6,93.8,92.7,95.0,85.0],"symbolSize":8,"lineStyle":{"width":3,"color":"#20d1a2"},"itemStyle":{"color":"#20d1a2"}}]},"hermesChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"top":6,"textStyle":{"color":"#c6c9cf"}},"grid":{"left":48,"right":28,"top":56,"bottom":72},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"dataZoom":[{"type":"inside"},{"type":"slider","height":18,"bottom":8,"textStyle":{"color":"#a8adb7"}}],"xAxis":{"type":"category","data":["HA-01","HA-02","HA-03","HA-04","HA-05","HA-06","HA-07","HA-08","HA-09","HA-10","HA-11","HA-12","HA-13","HA-14","HA-15","HA-16","HA-17","HA-18","HA-19","HA-20"],"axisLabel":{"color":"#a8adb7","rotate":35},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Score","max":100,"nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Atlas","type":"bar","data":[100,100,100,100,100,100,30,100,30,100,50,70,100,70,100,30,70,100,85,100],"itemStyle":{"color":"#ed1c24"}},{"name":"BF16","type":"bar","data":[100,100,100,100,100,100,100,100,100,100,100,100,100,70,100,30,20,100,20,100],"itemStyle":{"color":"#39d0ff"}}]},"memoryChart":{"textStyle":{"fontFamily":"IBM Plex Mono, monospace","color":"#f7f7f4"},"legend":{"show":false},"grid":{"left":54,"right":36,"top":56,"bottom":48},"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"backgroundColor":"rgba(8, 8, 8, 0.96)","borderColor":"rgba(255,255,255,0.18)","textStyle":{"color":"#f7f7f4"}},"xAxis":{"type":"category","data":["Atlas","BF16"],"axisLabel":{"color":"#a8adb7"},"axisLine":{"lineStyle":{"color":"rgba(255,255,255,0.22)"}}},"yAxis":{"type":"value","name":"Loaded GiB","nameTextStyle":{"color":"#a8adb7"},"axisLabel":{"color":"#a8adb7"},"splitLine":{"lineStyle":{"color":"rgba(255,255,255,0.08)"}}},"series":[{"name":"Loaded memory","type":"bar","data":[98.27,64.96],"itemStyle":{"color":{"type":"linear","x":0,"y":0,"x2":0,"y2":1,"colorStops":[{"offset":0,"color":"#ed1c24"},{"offset":1,"color":"#39d0ff"}]}}}]}};
+    chartOptions.frontierChart = {
+      textStyle: { fontFamily: 'IBM Plex Mono, monospace', color: '#f7f7f4' },
+      legend: { top: 8, textStyle: { color: '#c6c9cf' } },
+      grid: { left: 58, right: 66, top: 76, bottom: 76 },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(8, 8, 8, 0.96)',
+        borderColor: 'rgba(255,255,255,0.18)',
+        textStyle: { color: '#f7f7f4' },
+        formatter: (params) => {
+          const units = { 'Hermes score': '/100', 'Wall time': ' min', 'Best TG': ' tok/s' };
+          return `${params[0].axisValue}<br>${params.map((p) => `${p.marker}${p.seriesName}: ${p.value}${units[p.seriesName] || ''}`).join('<br>')}`;
+        }
+      },
+      xAxis: {
+        type: 'category',
+        data: ['Chadrock', 'Atlas', 'NVFP4', 'BF16'],
+        axisLabel: { color: '#a8adb7', interval: 0, rotate: 24, fontSize: 10 },
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.22)' } }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Score/min',
+          max: 100,
+          nameTextStyle: { color: '#a8adb7' },
+          axisLabel: { color: '#a8adb7' },
+          splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+        },
+        {
+          type: 'value',
+          name: 'TG',
+          max: 210,
+          nameTextStyle: { color: '#a8adb7' },
+          axisLabel: { color: '#a8adb7' },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        { name: 'Hermes score', type: 'bar', barMaxWidth: 34, data: [87, 82, 60, 87], itemStyle: { color: '#ed1c24' } },
+        { name: 'Wall time', type: 'bar', barMaxWidth: 34, data: [11.8, 39.7, 4.5, 42.4], itemStyle: { color: '#ff9f43' } },
+        { name: 'Best TG', type: 'line', yAxisIndex: 1, data: [12.32, 16.63, 190.43, 11.3], symbolSize: 10, lineStyle: { width: 4, color: '#39d0ff' }, itemStyle: { color: '#39d0ff' } }
+      ]
+    };
     const charts = [];
     function initChart(id) {
       const el = document.getElementById(id);
@@ -305,7 +367,7 @@
       chart.setOption(chartOptions[id]);
       charts.push(chart);
     }
-    ['speedChart', 'wallChart', 'nmaxChart', 'memoryChart', 'hermesChart'].forEach(initChart);
+    ['frontierChart', 'speedChart', 'wallChart', 'nmaxChart', 'memoryChart', 'hermesChart'].forEach(initChart);
     window.addEventListener('resize', () => charts.forEach((chart) => chart.resize()));
   </script>
 </body>
