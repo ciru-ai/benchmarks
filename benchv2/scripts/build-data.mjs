@@ -1501,16 +1501,42 @@ def quality_rows_from_db():
     return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
 
 def tool_eval_rows_from_artifacts():
+    def artifact_has_backend_failure(payload):
+        needle_re = re.compile(r"(server error 400|Failed to initialize samplers|HTTP 400|invalid_request_error)", re.IGNORECASE)
+        for item in ((payload.get("scores") or {}).get("scenario_results") or []):
+            raw_log = item.get("raw_log") or ""
+            if needle_re.search(raw_log):
+                return True
+        return False
+
+    def median_turn_ms(scenarios):
+        values = []
+        for item in scenarios:
+            for value in item.get("turn_latencies_ms") or []:
+                try:
+                    values.append(float(value))
+                except (TypeError, ValueError):
+                    pass
+        if not values:
+            return None
+        values.sort()
+        midpoint = len(values) // 2
+        if len(values) % 2:
+            return round(values[midpoint], 1)
+        return round((values[midpoint - 1] + values[midpoint]) / 2, 1)
+
     rows = []
     for path in glob.glob(os.path.join(LAB_ROOT, "runs", "*", "outputs", "tool-eval-bench-*.json")):
         payload = safe_json(open(path, "r", encoding="utf-8").read())
         if not payload:
             continue
         filename = os.path.basename(path)
-        if filename == "tool-eval-bench-full.json":
+        if artifact_has_backend_failure(payload):
+            continue
+        if filename in {"tool-eval-bench-full.json", "tool-eval-bench-full-fixed.json"}:
             suite = "tool-eval-full"
             row_kind = "aggregate"
-        elif filename == "tool-eval-bench-short.json":
+        elif filename in {"tool-eval-bench-short.json", "tool-eval-bench-short-fixed.json"}:
             suite = "tool-eval-core-smoke"
             row_kind = "smoke"
         else:
@@ -1556,11 +1582,11 @@ def tool_eval_rows_from_artifacts():
             "maxScore": scores.get("max_points"),
             "partialCount": partial_count,
             "failCount": fail_count,
-            "medianTurnMs": scores.get("median_turn_ms"),
+            "medianTurnMs": scores.get("median_turn_ms") or median_turn_ms(scenarios),
             "safetyWarnings": len(scores.get("safety_warnings") or payload.get("safety_warnings") or []),
             "deployability": scores.get("deployability", payload.get("deployability")),
             "responsiveness": scores.get("responsiveness", payload.get("responsiveness")),
-            "generationTokS": 21.5 if suite == "tool-eval-full" and "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw" in profile_id else None,
+            "generationTokS": 21.32 if suite == "tool-eval-full" and "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw" in profile_id else None,
             "sourcePath": compact_path(path),
             "reportUrl": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
         })
