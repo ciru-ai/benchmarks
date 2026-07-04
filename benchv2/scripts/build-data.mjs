@@ -1500,6 +1500,22 @@ def quality_rows_from_db():
             deduped[key] = row
     return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
 
+TOOL_EVAL_REPORTS = {
+    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+    "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
+}
+
+TOOL_EVAL_FULL_TPS = {
+    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 21.32,
+    "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": 85.90,
+}
+
+def tool_eval_lookup(mapping, profile_id):
+    for needle, value in mapping.items():
+        if needle in profile_id:
+            return value
+    return None
+
 def tool_eval_rows_from_artifacts():
     def artifact_has_backend_failure(payload):
         needle_re = re.compile(r"(server error 400|Failed to initialize samplers|HTTP 400|invalid_request_error)", re.IGNORECASE)
@@ -1586,9 +1602,9 @@ def tool_eval_rows_from_artifacts():
             "safetyWarnings": len(scores.get("safety_warnings") or payload.get("safety_warnings") or []),
             "deployability": scores.get("deployability", payload.get("deployability")),
             "responsiveness": scores.get("responsiveness", payload.get("responsiveness")),
-            "generationTokS": 21.32 if suite == "tool-eval-full" and "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw" in profile_id else None,
+            "generationTokS": tool_eval_lookup(TOOL_EVAL_FULL_TPS, profile_id) if suite == "tool-eval-full" else None,
             "sourcePath": compact_path(path),
-            "reportUrl": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+            "reportUrl": tool_eval_lookup(TOOL_EVAL_REPORTS, profile_id),
         })
     return sorted(rows, key=lambda item: (item.get("timestamp") or "", item.get("suite") or ""))
 
