@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StepFun Tool Calling Fix | Ciru Inference Lab</title>
+  <meta name="description" content="A practical guide to StepFun Step 3.7 tool calling, why common eval harnesses loop, and how to fix chat templates and tool choice semantics.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --code-bg: rgba(255, 255, 255, 0.08);
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.58;
+      font-size: 16px;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+
+    header {
+      width: min(calc(100% - 28px), var(--max));
+      margin: 6px auto 0;
+      padding: 18px 20px 24px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    header > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-plate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.16), rgba(57, 208, 255, 0.06)),
+        rgba(0, 0, 0, 0.26);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .logo-plate img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(237, 28, 36, 0.3));
+      transform: scale(1.2);
+    }
+
+    .brand-title {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: 1.05;
+    }
+
+    .brand-subtitle {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      margin-top: 4px;
+    }
+
+    .back-link,
+    nav a {
+      border: 1px solid rgba(57, 208, 255, 0.32);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      color: #e9f7ff;
+      padding: 8px 11px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .back-link:hover,
+    nav a:hover,
+    nav a:focus-visible {
+      border-color: rgba(57, 208, 255, 0.72);
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .kicker {
+      color: #ff7863;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      margin: 0 0 10px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 980px;
+      font-size: clamp(2rem, 4vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      max-width: 920px;
+      margin: 18px 0 0;
+      color: #c6c9cf;
+      font-size: 1.08rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    main {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 24px 64px;
+      position: relative;
+      z-index: 1;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      margin: 0 0 24px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.65rem;
+      letter-spacing: 0;
+      line-height: 1.18;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 1.16rem;
+      letter-spacing: 0;
+      color: #e8edf5;
+    }
+
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 8px 0 16px; padding-left: 1.35rem; }
+    li { margin: 7px 0; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .stat,
+    .mini,
+    .callout {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      min-width: 0;
+    }
+
+    .stat {
+      padding: 16px;
+      min-height: 126px;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 1.6rem;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .mini {
+      padding: 18px;
+    }
+
+    .mini h3 { margin-top: 0; }
+
+    .callout {
+      border-color: rgba(57, 208, 255, 0.24);
+      border-left: 5px solid var(--cyan);
+      background: rgba(57, 208, 255, 0.08);
+      padding: 16px 18px;
+      margin: 18px 0;
+    }
+
+    .callout.warning {
+      border-color: rgba(255, 159, 67, 0.25);
+      border-left-color: var(--orange);
+      background: rgba(255, 159, 67, 0.08);
+    }
+
+    .callout.bad {
+      border-color: rgba(255, 78, 95, 0.26);
+      border-left-color: var(--red);
+      background: rgba(255, 78, 95, 0.08);
+    }
+
+    code,
+    pre,
+    table {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    code {
+      color: var(--text);
+      background: var(--code-bg);
+      padding: 0.12rem 0.32rem;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    pre {
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid var(--line);
+      color: #e7edf5;
+      padding: 16px;
+      overflow-x: auto;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      margin: 14px 0 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 0.92rem;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 750;
+      color: #f7f7f4;
+    }
+
+    .ok { color: var(--green); font-weight: 750; }
+    .risk { color: var(--red); font-weight: 750; }
+    .mixed { color: var(--orange); font-weight: 750; }
+    .muted { color: var(--muted); }
+
+    .flow {
+      display: grid;
+      gap: 12px;
+      counter-reset: step;
+    }
+
+    .flow-item {
+      border: 1px solid var(--line);
+      border-left: 5px solid rgba(57, 208, 255, 0.72);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.2);
+      padding: 14px 16px;
+      counter-increment: step;
+    }
+
+    .flow-item::before {
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      margin-right: 9px;
+      border: 1px solid rgba(57, 208, 255, 0.36);
+      border-radius: 50%;
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+
+    .flow-item strong { color: #fff; }
+
+    .label {
+      display: inline-block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .footer {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 24px 38px;
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.76rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 760px) {
+      header { width: min(calc(100% - 20px), var(--max)); }
+      main { padding: 22px 10px 52px; }
+      section { padding: 18px; }
+      .brand-row { align-items: flex-start; flex-direction: column; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <a class="brand-lockup" href="../">
+        <span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span>
+        <span>
+          <span class="brand-title">Ciru Inference Lab</span>
+          <span class="brand-subtitle">llm.ciru.ai / research</span>
+        </span>
+      </a>
+      <a class="back-link" href="./">Research Index</a>
+    </div>
+    <p class="kicker">Crown Citadel Research Report</p>
+    <h1>StepFun Tool Calling: Why Eval Loops Happen and How To Fix Them</h1>
+    <p class="subtitle">A practical explanation of the tool-call message loop for StepFun Step 3.7 Flash, why common OpenAI-compatible harnesses can misformat the continuation turn, and the exact template and client changes that make multi-step tool evaluations behave normally.</p>
+    <nav aria-label="Report sections">
+      <a href="#model">Mental Model</a>
+      <a href="#expected">Expected Format</a>
+      <a href="#breaks">Why Evals Break</a>
+      <a href="#fix">Fix</a>
+      <a href="#apply">Apply It</a>
+      <a href="#checks">Checks</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="summary">
+      <h2>Summary</h2>
+      <p>Tool calling is not magic inside the model. A serving layer or benchmark harness sends text to the model, parses a tool request from the model output, runs the real tool, inserts the tool result back into the conversation, and asks the model to continue.</p>
+      <p>For StepFun Step 3.7 Flash, the continuation format matters. The model expects the tool result to come back as a user-side observation wrapped in <code>&lt;tool_response&gt;</code>. If the result is rendered as a separate custom role, or if the harness asks the model to make another required tool call after the tool result is already present, the model can loop, repeat tools, or fail multi-turn eval tasks that otherwise should be straightforward.</p>
+      <div class="summary-grid">
+        <div class="stat"><b>3 phases</b><span>User request, assistant tool call, user-side tool response.</span></div>
+        <div class="stat"><b>2 fixes</b><span>Patch the chat template and patch the tool-choice loop.</span></div>
+        <div class="stat"><b>1 rule</b><span>After the tool result is inserted, the next assistant turn should be allowed to answer.</span></div>
+        <div class="stat"><b>Observed guard</b><span>Calculator loop case resolved to 2 turns and 1 tool call.</span></div>
+      </div>
+    </section>
+
+    <section id="model">
+      <h2>The Mental Model</h2>
+      <p>A local LLM does not call your calculator, browser, shell, calendar, or email API directly. It emits a structured string that your wrapper interprets as a tool request. Your wrapper is responsible for the rest.</p>
+      <div class="flow">
+        <div class="flow-item"><strong>User asks a question.</strong> Example: "What is 123 * 456?"</div>
+        <div class="flow-item"><strong>The model requests a tool.</strong> The assistant outputs a <code>&lt;tool_call&gt;</code> block naming the function and parameters.</div>
+        <div class="flow-item"><strong>Your code runs the real tool.</strong> The calculator, browser, database, or API executes outside the model.</div>
+        <div class="flow-item"><strong>Your code appends the result.</strong> The tool output is inserted back into the model's chat history.</div>
+        <div class="flow-item"><strong>The model continues.</strong> It reads the tool result and either calls another tool or gives the final answer.</div>
+      </div>
+      <div class="callout">
+        <strong>Important distinction:</strong> API message roles such as <code>user</code>, <code>assistant</code>, and <code>tool</code> are not what the model literally sees. The model sees the final prompt text produced by the chat template. If the template turns a tool message into the wrong text shape, the model receives the wrong protocol.
+      </div>
+    </section>
+
+    <section id="expected">
+      <h2>What StepFun Expects</h2>
+      <p>The working StepFun pattern is: assistant emits <code>&lt;tool_call&gt;</code>, then the environment returns the result as a user-side <code>&lt;tool_response&gt;</code> observation, then the assistant continues.</p>
+
+      <h3>Minimal Conversation</h3>
+      <pre><code>&lt;|im_start|&gt;user
+What is 123 * 456?
+&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+&lt;tool_call&gt;
+&lt;function=calculator&gt;
+&lt;parameter=expression&gt;
+123 * 456
+&lt;/parameter&gt;
+&lt;/function&gt;
+&lt;/tool_call&gt;
+&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+&lt;tool_response&gt;
+{"result": 56088}
+&lt;/tool_response&gt;
+&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+The answer is 56,088.
+&lt;|im_end|&gt;</code></pre>
+
+      <h3>Equivalent Structured Messages</h3>
+      <p>If your application works with JSON-style messages, the wrapper can represent the tool result as a user message containing the response block:</p>
+      <pre><code>[
+  {
+    "role": "user",
+    "content": "What is 123 * 456?"
+  },
+  {
+    "role": "assistant",
+    "content": "&lt;tool_call&gt;...&lt;/tool_call&gt;"
+  },
+  {
+    "role": "user",
+    "content": "&lt;tool_response&gt;\n{\"result\": 56088}\n&lt;/tool_response&gt;"
+  }
+]</code></pre>
+
+      <p>Frameworks may use <code>{"role": "tool"}</code> internally. That is acceptable only if the active chat template converts that tool role into the StepFun-compatible user-side <code>&lt;tool_response&gt;</code> form before the prompt reaches the model.</p>
+    </section>
+
+    <section id="breaks">
+      <h2>Why This Breaks Evals</h2>
+      <p>Many tool benchmarks use OpenAI-compatible client objects and expect the server template to translate those objects into the model's native format. This often works for models trained to tolerate OpenAI-style tool roles. StepFun is stricter: it expects the tool result to appear in the dialogue grammar it learned.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Harness Behavior</th>
+            <th>What StepFun Receives</th>
+            <th>Eval Symptom</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tool output is rendered as a standalone custom role.</td>
+            <td><code>&lt;|im_start|&gt;tool_response ...</code> instead of user <code>&lt;tool_response&gt;</code>.</td>
+            <td>The model may not treat the data as the observation that resolves the previous call.</td>
+          </tr>
+          <tr>
+            <td>The follow-up generation asks for a required tool call.</td>
+            <td>The model is instructed that the next assistant message must be another call.</td>
+            <td>Repeated tool calls, loops, or missing final answers.</td>
+          </tr>
+          <tr>
+            <td>Thinking is disabled for a model that expects thinking format.</td>
+            <td>The continuation prompt no longer matches the model's normal response grammar.</td>
+            <td>Unstable tool selection, malformed continuations, or worse state tracking.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout warning">
+        <strong>Why this looks like model quality failure:</strong> a benchmark may score the model as bad at planning, state, or instruction following. Sometimes that is real. But if the harness feeds tool results back in the wrong grammar, the model is being tested through a broken protocol.
+      </div>
+    </section>
+
+    <section id="fix">
+      <h2>The Fix</h2>
+      <div class="two-col">
+        <div class="mini">
+          <span class="label">Fix 1</span>
+          <h3>Render tool outputs as user observations</h3>
+          <p>The chat template should transform a tool result into a user message containing <code>&lt;tool_response&gt;</code>.</p>
+          <pre><code>{% elif message.role == "tool" %}
+&lt;|im_start|&gt;user
+&lt;tool_response&gt;
+{{ message.content }}
+&lt;/tool_response&gt;
+&lt;|im_end|&gt;
+{% endif %}</code></pre>
+        </div>
+        <div class="mini">
+          <span class="label">Fix 2</span>
+          <h3>Use automatic choice after the result</h3>
+          <p>When a tool is required for the first step, request a tool call. After appending the tool result, let the model either answer or call another tool.</p>
+          <pre><code>first_model_call:
+  tool_choice = "required"
+
+after_tool_result:
+  tool_choice = "auto"</code></pre>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>The operational rule:</strong> a forced tool call is useful when the task requires the model to begin by selecting a tool. Once the tool result is available in the conversation, the continuation turn should be free to answer.
+      </div>
+    </section>
+
+    <section id="apply">
+      <h2>How To Apply It</h2>
+      <h3>Step 1: Find the active chat template</h3>
+      <p>In llama.cpp-style servers, the template may come from the GGUF metadata, a server flag, or a launch profile. You are looking for the logic that handles <code>message.role == "tool"</code>, <code>tool_calls</code>, or custom tool-response roles.</p>
+      <p>The target behavior is simple: tool calls are produced by the assistant, and tool results are rendered as a user message with a <code>&lt;tool_response&gt;</code> block.</p>
+
+      <h3>Step 2: Patch tool-result rendering</h3>
+      <p>If the template currently emits a custom role, change it to the user-observation form.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Do Not Render Tool Results As</th>
+            <th>Render Them As</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><pre><code>&lt;|im_start|&gt;tool_response
+{"result": 56088}
+&lt;|im_end|&gt;</code></pre></td>
+            <td><pre><code>&lt;|im_start|&gt;user
+&lt;tool_response&gt;
+{"result": 56088}
+&lt;/tool_response&gt;
+&lt;|im_end|&gt;</code></pre></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Step 3: Patch the client or harness loop</h3>
+      <p>The tool loop should append the assistant's tool call, run the tool, append the result, and call the model again with automatic tool choice.</p>
+      <pre><code>messages = [
+    {"role": "user", "content": "What is 123 * 456?"}
+]
+
+response = call_model(
+    messages=messages,
+    tools=tools,
+    tool_choice="required",
+)
+
+tool_call = parse_tool_call(response)
+tool_result = run_tool(tool_call)
+
+messages.append({
+    "role": "assistant",
+    "content": response.text,
+})
+
+messages.append({
+    "role": "user",
+    "content": "&lt;tool_response&gt;\n" + tool_result + "\n&lt;/tool_response&gt;",
+})
+
+final = call_model(
+    messages=messages,
+    tools=tools,
+    tool_choice="auto",
+)</code></pre>
+
+      <h3>Step 4: Keep StepFun thinking mode compatible</h3>
+      <p>For StepFun Step 3.7 Flash, use the normal thinking-compatible format unless the model provider explicitly documents a no-thinking mode for that exact model. Changing the reasoning grammar and the tool grammar at the same time makes debugging much harder.</p>
+    </section>
+
+    <section id="checks">
+      <h2>Verification Checks</h2>
+      <p>After applying the fix, test a small deterministic tool case before running a full benchmark.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Expected Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Single calculator call</td>
+            <td class="ok">The model calls the calculator once, reads the result, and answers.</td>
+          </tr>
+          <tr>
+            <td>Two-step tool chain</td>
+            <td class="ok">The model can call a second tool only when the first result actually requires it.</td>
+          </tr>
+          <tr>
+            <td>Tool-result prompt inspection</td>
+            <td class="ok">The serialized prompt contains <code>&lt;|im_start|&gt;user</code> followed by <code>&lt;tool_response&gt;</code>.</td>
+          </tr>
+          <tr>
+            <td>Loop regression</td>
+            <td class="ok">A task that previously repeated a tool now finishes with a final assistant answer.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout bad">
+        <strong>Avoid false fixes:</strong> shorter token limits, arbitrary stop strings, or timeouts can hide loops without fixing the conversation protocol. The durable fix is to make the template and tool loop match the model's expected grammar.
+      </div>
+      <p class="muted">In the local StepFun Step 3.7 Flash ROCmFP4 MTP evaluation, this protocol fix cleared the repeated calculator-call guard case and the full Tool Eval run completed at 88/100 with no detected overgeneration scenarios.</p>
+    </section>
+  </main>
+
+  <div class="footer">
+    Ciru Inference Lab / research / StepFun tool-calling implementation note / published from preserved benchmark evidence.
+  </div>
+</body>
+</html>
