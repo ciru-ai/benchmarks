@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tool Eval Index | Ciru Inference Lab</title>
+  <meta name="description" content="Ciru Inference Lab Tool-Eval index and side-by-side comparison dashboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: var(--text);
+    }
+
+    header,
+    main,
+    footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      width: min(calc(100% - 28px), 1840px);
+      margin: 8px auto 0;
+      padding: 18px 20px 22px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+
+    .topbar,
+    .titlebar,
+    .toolbar,
+    .layout,
+    .catalog,
+    .footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+    }
+
+    .logo-plate {
+      width: 44px;
+      height: 44px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.32);
+    }
+
+    .logo-plate img {
+      width: 30px;
+      height: auto;
+      display: block;
+    }
+
+    .brand-title,
+    .brand-subtitle,
+    .eyebrow,
+    .label,
+    th,
+    .tag {
+      text-transform: uppercase;
+    }
+
+    .brand-title {
+      display: block;
+      font-weight: 700;
+      font-size: 0.94rem;
+    }
+
+    .brand-subtitle {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.73rem;
+      margin-top: 2px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.86rem;
+    }
+
+    nav a {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    nav a:hover {
+      border-color: rgba(57, 208, 255, 0.45);
+      color: var(--cyan);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4.7rem);
+      line-height: 0.96;
+      max-width: 980px;
+    }
+
+    .lede {
+      color: var(--muted);
+      max-width: 760px;
+      margin: 14px 0 0;
+      font-size: 1.02rem;
+      line-height: 1.55;
+    }
+
+    .run-tag {
+      border: 1px solid rgba(57, 208, 255, 0.38);
+      color: var(--cyan);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.82rem;
+      background: rgba(57, 208, 255, 0.07);
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(calc(100% - 28px), 1840px);
+      margin: 14px auto 34px;
+      display: grid;
+      gap: 14px;
+    }
+
+    section,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr)) auto;
+      gap: 14px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .label {
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.42);
+      font: 600 0.95rem "Space Grotesk", system-ui, sans-serif;
+      padding: 0 40px 0 12px;
+    }
+
+    .summary-stat {
+      min-height: 46px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      border: 1px solid rgba(237, 28, 36, 0.34);
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: rgba(237, 28, 36, 0.08);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      white-space: nowrap;
+    }
+
+    .summary-stat b {
+      color: var(--text);
+      font-size: 1.08rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .report-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .report-card h2,
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+    }
+
+    .report-card h2 {
+      min-height: 2.9em;
+      line-height: 1.2;
+    }
+
+    .score-line {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+      margin: 14px 0;
+    }
+
+    .score-dial {
+      width: 104px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(var(--score-color, var(--cyan)) calc(var(--score) * 1%), rgba(255, 255, 255, 0.08) 0),
+        rgba(0, 0, 0, 0.36);
+      position: relative;
+      border: 1px solid var(--line);
+    }
+
+    .score-dial::before {
+      content: "";
+      width: 70px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #101014;
+      border: 1px solid var(--line);
+      position: absolute;
+    }
+
+    .score-dial b {
+      position: relative;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 2rem;
+      color: var(--text);
+    }
+
+    .score-meta {
+      min-width: 0;
+    }
+
+    .score-meta p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 5px 7px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.69rem;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      min-width: 0;
+    }
+
+    .metric b {
+      display: block;
+      color: var(--cyan);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 1.22rem;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--subtle);
+      font-size: 0.82rem;
+    }
+
+    .open-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      margin-top: 14px;
+      width: 100%;
+      border: 1px solid rgba(57, 208, 255, 0.34);
+      border-radius: 8px;
+      color: var(--cyan);
+      background: rgba(57, 208, 255, 0.07);
+      font-weight: 700;
+    }
+
+    .charts {
+      display: grid;
+      gap: 14px;
+    }
+
+    .chart-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+      padding: 14px;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chart-head h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      flex-wrap: wrap;
+    }
+
+    .legend span::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      display: inline-block;
+      margin-right: 5px;
+      border-radius: 2px;
+      background: var(--swatch);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      min-height: 230px;
+      border-radius: 6px;
+    }
+
+    .section-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .section-row {
+      display: grid;
+      grid-template-columns: minmax(160px, 260px) minmax(160px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .section-name {
+      min-width: 0;
+      font-size: 0.86rem;
+      line-height: 1.25;
+    }
+
+    .section-name span,
+    .diff {
+      display: block;
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.7rem;
+      margin-top: 2px;
+    }
+
+    .bar-pair {
+      display: grid;
+      gap: 5px;
+    }
+
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: var(--pct);
+      background: linear-gradient(90deg, var(--color), rgba(255, 255, 255, 0.18));
+    }
+
+    .score-num {
+      min-width: 56px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .catalog-card {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .catalog-card h3 {
+      margin: 0;
+      line-height: 1.25;
+      font-size: 1rem;
+    }
+
+    .catalog-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+    }
+
+    td {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .num {
+      text-align: right;
+      white-space: nowrap;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .good {
+      color: var(--green);
+    }
+
+    .warn {
+      color: var(--orange);
+    }
+
+    .bad {
+      color: var(--red);
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .footer {
+      width: min(calc(100% - 28px), 1840px);
+      margin: 0 auto 30px;
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 1180px) {
+      .layout,
+      .titlebar {
+        grid-template-columns: 1fr;
+      }
+
+      .catalog {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .run-tag {
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 780px) {
+      header,
+      main,
+      .footer {
+        width: min(calc(100% - 18px), 1840px);
+      }
+
+      section,
+      .panel {
+        padding: 14px;
+      }
+
+      .toolbar,
+      .compare-grid,
+      .metric-grid,
+      .catalog {
+        grid-template-columns: 1fr;
+      }
+
+      .section-row {
+        grid-template-columns: 1fr;
+        gap: 7px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 10px;
+      }
+
+      .score-num {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <a class="brand-lockup" href="../">
+        <span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span>
+        <span>
+          <span class="brand-title">Ciru Inference Lab</span>
+          <span class="brand-subtitle">llm.ciru.ai / tool-eval</span>
+        </span>
+      </a>
+      <nav aria-label="Page sections">
+        <a href="#compare">Compare</a>
+        <a href="#sections">Sections</a>
+        <a href="#catalog">Pages</a>
+        <a href="../benchv2/">Bench Lab</a>
+      </nav>
+    </div>
+    <div class="titlebar">
+      <div>
+        <div class="eyebrow label">Tool-Eval Bench 2.0.7 / Preserved Reports</div>
+        <h1>Tool Eval Index</h1>
+        <p class="lede">Pick any two published Tool-Eval runs to compare the full-suite score, pass profile, speed, weak sections, and per-section deltas side by side.</p>
+      </div>
+      <div class="run-tag">4 webpages / 69 scenarios each / 138 point scale</div>
+    </div>
+  </header>
+
+  <main>
+    <section id="compare" class="toolbar" aria-label="Tool eval comparison controls">
+      <label class="field">
+        <span class="label">Left report</span>
+        <select id="leftSelect" aria-label="Left report"></select>
+      </label>
+      <label class="field">
+        <span class="label">Right report</span>
+        <select id="rightSelect" aria-label="Right report"></select>
+      </label>
+      <div class="summary-stat">
+        <span class="label">Score delta</span>
+        <b id="scoreDelta">0</b>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section aria-label="Selected report summary">
+        <div class="compare-grid" id="compareCards"></div>
+      </section>
+
+      <section class="charts" aria-label="Comparison charts">
+        <div class="chart-box">
+          <div class="chart-head">
+            <h2>Score And Runtime</h2>
+            <div class="legend">
+              <span style="--swatch: var(--cyan)">Left</span>
+              <span style="--swatch: var(--amd)">Right</span>
+            </div>
+          </div>
+          <canvas id="metricChart" aria-label="Score and runtime chart"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-head">
+            <h2>Outcome Mix</h2>
+            <div class="legend">
+              <span style="--swatch: var(--green)">Pass</span>
+              <span style="--swatch: var(--orange)">Partial</span>
+              <span style="--swatch: var(--red)">Fail</span>
+            </div>
+          </div>
+          <canvas id="outcomeChart" aria-label="Pass partial fail outcome chart"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <section id="sections" class="panel">
+      <div class="chart-head">
+        <h2>Section Scores</h2>
+        <div class="legend">
+          <span style="--swatch: var(--cyan)">Left</span>
+          <span style="--swatch: var(--amd)">Right</span>
+        </div>
+      </div>
+      <div class="section-bars" id="sectionBars"></div>
+    </section>
+
+    <section class="panel" aria-label="Comparison detail table">
+      <h2>Head To Head</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th id="leftHead">Left</th>
+            <th id="rightHead">Right</th>
+            <th class="num">Delta</th>
+          </tr>
+        </thead>
+        <tbody id="detailTable"></tbody>
+      </table>
+    </section>
+
+    <section id="catalog" aria-label="All tool eval webpages">
+      <div class="chart-head">
+        <h2>All Tool Eval Webpages</h2>
+        <span class="tag">Select any two above</span>
+      </div>
+      <div class="catalog" id="catalogGrid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Ciru Inference Lab / tool-eval index / generated from preserved report pages in <span class="mono">benchmarks-site/tooleval</span>.
+  </footer>
+
+  <script>
+    const REPORTS = [
+      {
+        id: "stepfun-step37-rocmfp4-mtp-vulkan-64k",
+        title: "StepFun Step 3.7 ROCmFP4 MTP",
+        short: "StepFun 3.7 FP4 MTP",
+        url: "stepfun-step37-rocmfp4-mtp-vulkan-64k/",
+        model: "StepFun Step 3.7 Flash ROCmFP4 STRIX Lean Q4_0",
+        api: "step37-rocmfp4-mtp-vulkan-64k-tool-eval-full-templatefix-toolobs",
+        backend: "llama.cpp / Vulkan target + Vulkan draft-MTP",
+        runtime: "64K context, draft n-max 2, target/draft KV q8_0",
+        score: 88,
+        points: 121,
+        possible: 138,
+        pass: 56,
+        partial: 9,
+        fail: 4,
+        medianTurn: 5.50,
+        decodeSpeed: 33.51,
+        promptSpeed: 147.36,
+        deployability: 70,
+        weakest: "Creative Composition",
+        safety: "88%",
+        structured: "100%",
+        run: "20260704T-step37-rocmfp4-mtp-vulkan-tool-eval-full-thinking-required-once",
+        notes: "Corrected tool-observation template; prior repeated calculator loop did not recur.",
+        sections: {
+          "A Tool Selection": 100,
+          "B Parameter Precision": 100,
+          "C Multi-Step Chains": 75,
+          "D Restraint & Refusal": 100,
+          "E Error Recovery": 100,
+          "F Localization": 100,
+          "G Structured Reasoning": 100,
+          "H Instruction Following": 100,
+          "I Context & State": 70,
+          "J Code Patterns": 83,
+          "K Safety & Boundaries": 88,
+          "L Toolset Scale": 75,
+          "M Autonomous Planning": 83,
+          "N Creative Composition": 67,
+          "O Structured Output": 100
+        }
+      },
+      {
+        id: "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw",
+        title: "Qwable UltraQuality 7.61 BPW",
+        short: "Qwable UltraQuality",
+        url: "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+        model: "Qwable 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
+        api: "qwable-27b-chadrock-ultraquality",
+        backend: "llama.cpp / ROCmFPX",
+        runtime: "temperature 0, seed 42, parallel 1",
+        score: 86,
+        points: 119,
+        possible: 138,
+        pass: 55,
+        partial: 9,
+        fail: 5,
+        medianTurn: 9.05,
+        decodeSpeed: 21.32,
+        promptSpeed: null,
+        deployability: 65,
+        weakest: "Context & State",
+        safety: "77%",
+        structured: "83%",
+        run: "2026-07-03T23-29-22.172104Z_98d299d6",
+        notes: "Fixed llama.cpp path with json_object response formatting.",
+        sections: {
+          "A Tool Selection": 100,
+          "B Parameter Precision": 100,
+          "C Multi-Step Chains": 100,
+          "D Restraint & Refusal": 83,
+          "E Error Recovery": 100,
+          "F Localization": 100,
+          "G Structured Reasoning": 100,
+          "H Instruction Following": 80,
+          "I Context & State": 75,
+          "J Code Patterns": 100,
+          "K Safety & Boundaries": 77,
+          "L Toolset Scale": 88,
+          "M Autonomous Planning": 83,
+          "N Creative Composition": 83,
+          "O Structured Output": 83
+        }
+      },
+      {
+        id: "gemma4-12b-qat-vllm-p16-64k-fast",
+        title: "Gemma4 12B QAT vLLM",
+        short: "Gemma4 12B QAT",
+        url: "gemma4-12b-qat-vllm-p16-64k-fast/",
+        model: "Gemma4 12B QAT vLLM p16 64K fast",
+        api: "gemma4-12b-qat-vllm-p16-64k-fast",
+        backend: "vLLM with Gemma auto tool choice",
+        runtime: "64K configured context, parallel 1, max turns 8",
+        score: 86,
+        points: 118,
+        possible: 138,
+        pass: 54,
+        partial: 10,
+        fail: 5,
+        medianTurn: 0.30,
+        decodeSpeed: null,
+        promptSpeed: null,
+        deployability: 89,
+        weakest: "Instruction Following",
+        safety: "77%",
+        structured: "100%",
+        run: "2026-07-05T07-31-12.962982Z_788eaa77",
+        notes: "vLLM Gemma auto tool choice through the Gemma4 parser.",
+        sections: {
+          "A Tool Selection": 100,
+          "B Parameter Precision": 100,
+          "C Multi-Step Chains": 75,
+          "D Restraint & Refusal": 83,
+          "E Error Recovery": 100,
+          "F Localization": 100,
+          "G Structured Reasoning": 100,
+          "H Instruction Following": 70,
+          "I Context & State": 75,
+          "J Code Patterns": 100,
+          "K Safety & Boundaries": 77,
+          "L Toolset Scale": 88,
+          "M Autonomous Planning": 83,
+          "N Creative Composition": 83,
+          "O Structured Output": 100
+        }
+      },
+      {
+        id: "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template",
+        title: "ChadrockV2 Ace Saber 35B MoEQuality",
+        short: "ChadrockV2 35B",
+        url: "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
+        model: "ChadrockV2 Qwen3.6 35B ACE-SABER ROCmFPX MoEQuality 7.07 BPW",
+        api: "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-vulkan-hermes64k-froggeric-template",
+        backend: "llama.cpp / ROCmFPX",
+        runtime: "Vulkan Hermes64k Froggeric Template",
+        score: 79,
+        points: 109,
+        possible: 138,
+        pass: 49,
+        partial: 11,
+        fail: 9,
+        medianTurn: 3.35,
+        decodeSpeed: 85.90,
+        promptSpeed: null,
+        deployability: 69,
+        weakest: "Autonomous Planning",
+        safety: "73%",
+        structured: "75%",
+        run: "2026-07-04T01-31-08.103144Z_3077a114",
+        notes: "Fast Vulkan Hermes64k path with weaker planning and scale sections.",
+        sections: {
+          "A Tool Selection": 100,
+          "B Parameter Precision": 100,
+          "C Multi-Step Chains": 100,
+          "D Restraint & Refusal": 83,
+          "E Error Recovery": 100,
+          "F Localization": 100,
+          "G Structured Reasoning": 67,
+          "H Instruction Following": 80,
+          "I Context & State": 75,
+          "J Code Patterns": 83,
+          "K Safety & Boundaries": 73,
+          "L Toolset Scale": 62,
+          "M Autonomous Planning": 50,
+          "N Creative Composition": 67,
+          "O Structured Output": 75
+        }
+      }
+    ];
+
+    const SECTIONS = [
+      "A Tool Selection",
+      "B Parameter Precision",
+      "C Multi-Step Chains",
+      "D Restraint & Refusal",
+      "E Error Recovery",
+      "F Localization",
+      "G Structured Reasoning",
+      "H Instruction Following",
+      "I Context & State",
+      "J Code Patterns",
+      "K Safety & Boundaries",
+      "L Toolset Scale",
+      "M Autonomous Planning",
+      "N Creative Composition",
+      "O Structured Output"
+    ];
+
+    const leftSelect = document.getElementById("leftSelect");
+    const rightSelect = document.getElementById("rightSelect");
+    const compareCards = document.getElementById("compareCards");
+    const sectionBars = document.getElementById("sectionBars");
+    const detailTable = document.getElementById("detailTable");
+    const catalogGrid = document.getElementById("catalogGrid");
+    const scoreDelta = document.getElementById("scoreDelta");
+    const leftHead = document.getElementById("leftHead");
+    const rightHead = document.getElementById("rightHead");
+
+    function formatValue(value, suffix = "") {
+      return value === null || value === undefined ? "n/a" : `${value}${suffix}`;
+    }
+
+    function reportById(id) {
+      return REPORTS.find((report) => report.id === id) || REPORTS[0];
+    }
+
+    function populateSelects() {
+      REPORTS.forEach((report) => {
+        const leftOption = new Option(report.title, report.id);
+        const rightOption = new Option(report.title, report.id);
+        leftSelect.add(leftOption);
+        rightSelect.add(rightOption);
+      });
+      leftSelect.value = REPORTS[0].id;
+      rightSelect.value = REPORTS[1].id;
+    }
+
+    function scoreColor(score) {
+      if (score >= 86) return "var(--green)";
+      if (score >= 80) return "var(--cyan)";
+      return "var(--orange)";
+    }
+
+    function renderCards(left, right) {
+      compareCards.innerHTML = [left, right].map((report, index) => `
+        <article class="report-card">
+          <span class="label">${index === 0 ? "Left" : "Right"} report</span>
+          <h2>${report.title}</h2>
+          <div class="score-line">
+            <div class="score-dial" style="--score: ${report.score}; --score-color: ${scoreColor(report.score)}"><b>${report.score}</b></div>
+            <div class="score-meta">
+              <p><b class="mono">${report.points} / ${report.possible}</b> points. ${report.pass} pass, ${report.partial} partial, ${report.fail} fail.</p>
+              <div class="tag-row">
+                <span class="tag">${report.backend}</span>
+                <span class="tag">Weakest: ${report.weakest}</span>
+              </div>
+            </div>
+          </div>
+          <div class="metric-grid">
+            <div class="metric"><b>${formatValue(report.medianTurn, "s")}</b><span>Median turn</span></div>
+            <div class="metric"><b>${formatValue(report.decodeSpeed)}</b><span>Decode tok/s</span></div>
+            <div class="metric"><b>${report.structured}</b><span>Structured output</span></div>
+            <div class="metric"><b>${report.deployability}</b><span>Deployability</span></div>
+          </div>
+          <p class="mono" style="color: var(--subtle); font-size: 0.74rem; margin: 13px 0 0;">${report.api}</p>
+          <p style="color: var(--muted); margin: 9px 0 0;">${report.notes}</p>
+          <a class="open-link" href="${report.url}">Open Full Report</a>
+        </article>
+      `).join("");
+    }
+
+    function renderSectionBars(left, right) {
+      sectionBars.innerHTML = SECTIONS.map((section) => {
+        const leftScore = left.sections[section] || 0;
+        const rightScore = right.sections[section] || 0;
+        const delta = rightScore - leftScore;
+        const deltaClass = delta > 0 ? "good" : delta < 0 ? "bad" : "";
+        return `
+          <div class="section-row">
+            <div class="section-name">${section}<span>${left.short} vs ${right.short}</span></div>
+            <div class="bar-pair">
+              <div class="bar"><span style="--pct: ${leftScore}%; --color: var(--cyan)"></span></div>
+              <div class="bar"><span style="--pct: ${rightScore}%; --color: var(--amd)"></span></div>
+            </div>
+            <div class="score-num">${leftScore}% / ${rightScore}%<span class="diff ${deltaClass}">${delta > 0 ? "+" : ""}${delta} pts</span></div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderDetailTable(left, right) {
+      leftHead.textContent = left.short;
+      rightHead.textContent = right.short;
+      const rows = [
+        ["Full suite score", left.score, right.score, ""],
+        ["Scored points", left.points, right.points, ""],
+        ["Pass count", left.pass, right.pass, ""],
+        ["Partial count", left.partial, right.partial, ""],
+        ["Fail count", left.fail, right.fail, ""],
+        ["Median turn seconds", left.medianTurn, right.medianTurn, "s"],
+        ["Decode tok/s", left.decodeSpeed, right.decodeSpeed, ""],
+        ["Deployability", left.deployability, right.deployability, ""]
+      ];
+      detailTable.innerHTML = rows.map(([label, leftValue, rightValue, suffix]) => {
+        const numeric = typeof leftValue === "number" && typeof rightValue === "number";
+        const delta = numeric ? rightValue - leftValue : null;
+        const deltaText = delta === null ? "n/a" : `${delta > 0 ? "+" : ""}${Math.round(delta * 100) / 100}${suffix}`;
+        const deltaClass = delta > 0 ? "good" : delta < 0 ? "bad" : "";
+        return `
+          <tr>
+            <td>${label}</td>
+            <td class="num">${formatValue(leftValue, suffix)}</td>
+            <td class="num">${formatValue(rightValue, suffix)}</td>
+            <td class="num ${deltaClass}">${deltaText}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderCatalog() {
+      catalogGrid.innerHTML = REPORTS.map((report) => `
+        <article class="catalog-card">
+          <div>
+            <span class="label">${report.score} score / ${report.points} points</span>
+            <h3>${report.title}</h3>
+          </div>
+          <p>${report.model}</p>
+          <div>
+            <div class="tag-row">
+              <span class="tag">${report.pass}/${report.partial}/${report.fail}</span>
+              <span class="tag">${formatValue(report.decodeSpeed)} tok/s</span>
+              <span class="tag">${report.weakest}</span>
+            </div>
+            <a class="open-link" href="${report.url}">Open Report</a>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function setupCanvas(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const box = canvas.getBoundingClientRect();
+      const width = Math.max(320, Math.floor(box.width));
+      const height = 240;
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+      canvas.style.height = `${height}px`;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      return { ctx, width, height };
+    }
+
+    function drawMetricChart(left, right) {
+      const canvas = document.getElementById("metricChart");
+      const { ctx, width, height } = setupCanvas(canvas);
+      const metrics = [
+        { label: "Score", left: left.score, right: right.score, max: 100 },
+        { label: "Deploy", left: left.deployability, right: right.deployability, max: 100 },
+        { label: "Turn", left: left.medianTurn, right: right.medianTurn, max: Math.max(left.medianTurn || 0, right.medianTurn || 0, 1), invert: true },
+        { label: "Tok/s", left: left.decodeSpeed, right: right.decodeSpeed, max: Math.max(left.decodeSpeed || 0, right.decodeSpeed || 0, 1) }
+      ];
+      const leftPad = 58;
+      const rightPad = 18;
+      const topPad = 18;
+      const rowHeight = (height - topPad - 22) / metrics.length;
+      ctx.font = "12px IBM Plex Mono";
+      metrics.forEach((metric, i) => {
+        const y = topPad + i * rowHeight + 15;
+        const barWidth = width - leftPad - rightPad;
+        const lVal = metric.left === null ? 0 : metric.left;
+        const rVal = metric.right === null ? 0 : metric.right;
+        const leftPct = metric.invert ? (1 - lVal / metric.max) : lVal / metric.max;
+        const rightPct = metric.invert ? (1 - rVal / metric.max) : rVal / metric.max;
+        ctx.fillStyle = "rgba(255,255,255,0.32)";
+        ctx.fillText(metric.label, 8, y + 10);
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(leftPad, y - 8, barWidth, 10);
+        ctx.fillRect(leftPad, y + 8, barWidth, 10);
+        ctx.fillStyle = "#39d0ff";
+        ctx.fillRect(leftPad, y - 8, Math.max(0, barWidth * leftPct), 10);
+        ctx.fillStyle = "#ed1c24";
+        ctx.fillRect(leftPad, y + 8, Math.max(0, barWidth * rightPct), 10);
+        ctx.fillStyle = "rgba(247,247,244,0.85)";
+        ctx.textAlign = "right";
+        ctx.fillText(formatValue(metric.left), width - 10, y);
+        ctx.fillText(formatValue(metric.right), width - 10, y + 17);
+        ctx.textAlign = "left";
+      });
+    }
+
+    function drawOutcomeChart(left, right) {
+      const canvas = document.getElementById("outcomeChart");
+      const { ctx, width, height } = setupCanvas(canvas);
+      const rows = [left, right];
+      const leftPad = 92;
+      const barWidth = width - leftPad - 18;
+      const colors = { pass: "#20d1a2", partial: "#ff9f43", fail: "#ff4e5f" };
+      ctx.font = "12px IBM Plex Mono";
+      rows.forEach((report, i) => {
+        const y = 58 + i * 78;
+        const total = report.pass + report.partial + report.fail;
+        let x = leftPad;
+        ctx.fillStyle = "rgba(255,255,255,0.78)";
+        ctx.fillText(report.short, 8, y + 15);
+        ["pass", "partial", "fail"].forEach((key) => {
+          const segment = report[key] / total * barWidth;
+          ctx.fillStyle = colors[key];
+          ctx.fillRect(x, y, segment, 26);
+          x += segment;
+        });
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.strokeRect(leftPad, y, barWidth, 26);
+        ctx.fillStyle = "rgba(247,247,244,0.88)";
+        ctx.textAlign = "right";
+        ctx.fillText(`${report.pass}/${report.partial}/${report.fail}`, width - 20, y + 47);
+        ctx.textAlign = "left";
+      });
+    }
+
+    function updateHash(left, right) {
+      const params = new URLSearchParams();
+      params.set("left", left.id);
+      params.set("right", right.id);
+      history.replaceState(null, "", `#${params.toString()}`);
+    }
+
+    function readHashDefaults() {
+      const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+      const left = params.get("left");
+      const right = params.get("right");
+      if (left && REPORTS.some((report) => report.id === left)) leftSelect.value = left;
+      if (right && REPORTS.some((report) => report.id === right)) rightSelect.value = right;
+    }
+
+    function render() {
+      const left = reportById(leftSelect.value);
+      const right = reportById(rightSelect.value);
+      const delta = right.score - left.score;
+      scoreDelta.textContent = `${delta > 0 ? "+" : ""}${delta}`;
+      scoreDelta.className = delta > 0 ? "good" : delta < 0 ? "bad" : "";
+      renderCards(left, right);
+      renderSectionBars(left, right);
+      renderDetailTable(left, right);
+      drawMetricChart(left, right);
+      drawOutcomeChart(left, right);
+      updateHash(left, right);
+    }
+
+    populateSelects();
+    readHashDefaults();
+    renderCatalog();
+    render();
+    leftSelect.addEventListener("change", render);
+    rightSelect.addEventListener("change", render);
+    window.addEventListener("resize", render);
+  </script>
+</body>
+</html>
