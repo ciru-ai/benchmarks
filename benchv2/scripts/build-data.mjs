@@ -1108,7 +1108,10 @@ PROFILE_LABELS = {
     "CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN": "Chadrock3.6 35B Uncensored MTP",
     "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
     "qwen3.6-27b-chadrock-agent-rocmfp4": "qwen3.6 27b CHADROCK AGENT ROCMFP4",
-    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "Qwable 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
+    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "Qwable 3.6 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
+    "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
+    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
     "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
     "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
     "qwen35-122b-rocmfp4-mtp-64k-q8kv": "Qwen3.5 122B ROCmFP4 MTP 64k Q8 KV",
@@ -1157,12 +1160,16 @@ RUN_IDS = {
 
 PROFILE_IDS = {
     "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
+    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
 }
 
 PUBLIC_PATH_REPLACEMENTS = {
     "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-eval-20260629",
     "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-hermes20-20260629",
     "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
+    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-final": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
 }
 
 def title_from_slug(value):
@@ -1561,7 +1568,14 @@ def tool_eval_rows_from_artifacts():
         scenarios = scores.get("scenario_results") or []
         run_id = os.path.basename(os.path.dirname(os.path.dirname(path)))
         manifest = safe_json(open(os.path.join(LAB_ROOT, "runs", run_id, "run.json"), "r", encoding="utf-8").read())
-        profile_id = ((manifest.get("model") or {}).get("alias") or (payload.get("metadata") or {}).get("server_model_id") or "unknown")
+        profile_id = (
+            (manifest.get("model") or {}).get("alias")
+            or manifest.get("model_alias")
+            or manifest.get("profile")
+            or (payload.get("config") or {}).get("model")
+            or (payload.get("metadata") or {}).get("server_model_id")
+            or "unknown"
+        )
         timestamp = datetime.fromtimestamp(os.path.getmtime(path), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         total = int(payload.get("total_scenarios") or len(scenarios) or 0)
         pass_count = sum(1 for item in scenarios if item.get("status") == "pass")
