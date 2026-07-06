@@ -1108,10 +1108,22 @@ PROFILE_LABELS = {
     "CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN": "Chadrock3.6 35B Uncensored MTP",
     "qwopus3.6-27b-v2-chadrock-strix-lean-mtp": "Qwopus3.6 27B v2 Chadrock Lean MTP",
     "qwen3.6-27b-chadrock-agent-rocmfp4": "qwen3.6 27b CHADROCK AGENT ROCMFP4",
-    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "Qwable 3.6 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
-    "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
-    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
-    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "StepFun Step 3.7 Flash ROCmFPX Q3 QualityPlus MTP 64K",
+    "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "Qwable 3.6 27B UltraQuality",
+    "qwable-27b-chadrock-ultraquality": "Qwable 3.6 27B UltraQuality",
+    "qwen36-27b-qwable-bf16-agent-nextnq8-rocmfpx8-h27-cap3-q8kv-vision64k": "Qwable 3.6 27B Vision Agent",
+    "qwen36-27b-qwable-bf16-agent-nextnq8-rocmfpx8-vision64k-h27-cap3-q8kv": "Qwable 3.6 27B Vision Agent",
+    "unsloth-qwen36-27b-mtp-q8-k-xl-h27-cap6-q8kv-vision64k": "Unsloth Qwen3.6 27B Q8 Vision",
+    "unsloth-qwen36-27b-mtp-q8-k-xl-vision64k-h27-cap6-q8kv": "Unsloth Qwen3.6 27B Q8 Vision",
+    "gemma4-12b-qat-vllm-p16-64k-fast": "Gemma 4 12B QAT vLLM",
+    "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": "ChadrockV2 Ace Saber 35B MoEQuality",
+    "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-vulkan-hermes64k-froggeric-template": "ChadrockV2 Ace Saber 35B MoEQuality",
+    "qwopus36-35b-coder-mtp-rocmfpx-moequality-708bpw-hermes64k-froggeric-template": "Qwopus 3.6 35B Coder MoEQuality",
+    "qwopus36-35b-coder-mtp-rocmfpx-moequality-7.08bpw-vulkan-hermes64k-froggeric-template": "Qwopus 3.6 35B Coder MoEQuality",
+    "step37-rocmfp4-mtp-vulkan-64k-tool-eval-full-templatefix-toolobs": "Step 3.7 Flash ROCmFP4 MTP",
+    "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k": "Step 3.7 Flash Q3 QualityPlus",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-full-templatefix": "Step 3.7 Flash Q3 QualityPlus",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "Step 3.7 Flash Q3 QualityPlus",
+    "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "Step 3.7 Flash Q3 QualityPlus",
     "qwable5-27b-coder-rocmfpx-fp6-strix-speed-cap6-q8kv-rocm-hermes64k": "Qwable-5 27B Coder ROCmFP6 Q8 KV Hermes64k",
     "agent-nemotron-rocmfp6-q6agent-rocm-256k": "Agent-Nemotron 30B ROCmFP6 Q6 Agent ROCm 256k",
     "qwen35-122b-rocmfp4-mtp-64k-q8kv": "Qwen3.5 122B ROCmFP4 MTP 64k Q8 KV",
@@ -1160,6 +1172,7 @@ RUN_IDS = {
 
 PROFILE_IDS = {
     "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-full-templatefix": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
     "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
     "step37-rocmfpx-q3-qualityplus-mtp-32k-code-reasonoff-finalprompt-v2": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
 }
@@ -1508,8 +1521,16 @@ def quality_rows_from_db():
     return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
 
 TOOL_EVAL_REPORTS = {
+    "step37-rocmfp4-mtp-vulkan-64k-tool-eval-full-templatefix-toolobs": "/tooleval/stepfun-step37-rocmfp4-mtp-vulkan-64k/",
+    "step37-rocmfpx-q3-qualityplus-mtp-64k": "/tooleval/step37-q3-qualityplus-mtp-64k/",
     "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+    "qwable-27b-chadrock-ultraquality": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+    "qwen36-27b-qwable-bf16-agent-nextnq8-rocmfpx8": "/tooleval/qwen36-qwable-27b-vision-agent-rocmfpx8/",
+    "gemma4-12b-qat-vllm-p16-64k-fast": "/tooleval/gemma4-12b-qat-vllm-p16-64k-fast/",
+    "unsloth-qwen36-27b-mtp-q8-k-xl": "/tooleval/unsloth-qwen36-27b-q8-vision-baseline/",
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
+    "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
+    "qwopus36-35b-coder-mtp-rocmfpx-moequality": "/tooleval/qwopus36-35b-coder-moequality-708bpw/",
 }
 
 TOOL_EVAL_FULL_TPS = {
