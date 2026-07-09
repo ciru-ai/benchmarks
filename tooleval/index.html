@@ -832,6 +832,8 @@
                     "medianTurn": 0.93,
                     "decodeSpeed": 166.14,
                     "promptSpeed": 1964.29,
+                    "totalTokens": 230375,
+                    "tokenEfficiency": 0.53,
                     "deployability": 87,
                     "weakest": "Autonomous Planning",
                     "safety": "85%",
@@ -857,6 +859,50 @@
                     }
           },
           {
+                    "id": "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw",
+                    "title": "ThinkingCap Qwen3.6 27B Chadrock UltraQuality",
+                    "short": "ThinkingCap Chadrock UltraQuality",
+                    "url": "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+                    "model": "ThinkingCap Qwen3.6 27B Chadrock ROCmFPX UltraQuality 7.61 BPW",
+                    "api": "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw",
+                    "backend": "llama.cpp / Vulkan draft-MTP",
+                    "runtime": "64K context, thinking enabled, draft MTP n3 p0 ps10, b512/u512",
+                    "score": 88,
+                    "points": 122,
+                    "possible": 138,
+                    "pass": 56,
+                    "partial": 10,
+                    "fail": 3,
+                    "medianTurn": 8.56,
+                    "decodeSpeed": 12.34,
+                    "promptSpeed": 142.08,
+                    "totalTokens": 247705,
+                    "tokenEfficiency": 0.49,
+                    "deployability": 67,
+                    "weakest": "Autonomous Planning",
+                    "safety": "85%",
+                    "structured": "92%",
+                    "run": "2026-07-09T04-24-29.925514Z_daf33d54",
+                    "notes": "64K speed-selected Chadrock UltraQuality run. Froggeric/card-sampler rerun is included on the report page and landed one raw point lower.",
+                    "sections": {
+                              "A Tool Selection": 100,
+                              "B Parameter Precision": 100,
+                              "C Multi-Step Chains": 75,
+                              "D Restraint & Refusal": 83,
+                              "E Error Recovery": 100,
+                              "F Localization": 100,
+                              "G Structured Reasoning": 100,
+                              "H Instruction Following": 80,
+                              "I Context & State": 85,
+                              "J Code Patterns": 100,
+                              "K Safety & Boundaries": 85,
+                              "L Toolset Scale": 88,
+                              "M Autonomous Planning": 67,
+                              "N Creative Composition": 100,
+                              "O Structured Output": 92
+                    }
+          },
+          {
                 "id": "stepfun-step37-rocmfp4-mtp-vulkan-64k",
                 "title": "Step 3.7 Flash ROCmFP4 MTP",
                 "short": "Step 3.7 FP4",
@@ -874,6 +920,8 @@
                 "medianTurn": 5.5,
                 "decodeSpeed": 33.51,
                 "promptSpeed": 147.36,
+                "totalTokens": 229859,
+                "tokenEfficiency": 0.53,
                 "deployability": 70,
                 "weakest": "Creative Composition",
                 "safety": "88%",
@@ -916,6 +964,8 @@
                 "medianTurn": 5.65,
                 "decodeSpeed": null,
                 "promptSpeed": null,
+                "totalTokens": 224754,
+                "tokenEfficiency": 0.54,
                 "deployability": 70,
                 "weakest": "Context & State",
                 "safety": "88%",
@@ -958,6 +1008,8 @@
                 "medianTurn": 9.05,
                 "decodeSpeed": 21.32,
                 "promptSpeed": null,
+                "totalTokens": 222632,
+                "tokenEfficiency": 0.52,
                 "deployability": 65,
                 "weakest": "Context & State",
                 "safety": "77%",
@@ -1000,6 +1052,8 @@
                 "medianTurn": 4.78,
                 "decodeSpeed": null,
                 "promptSpeed": null,
+                "totalTokens": 234088,
+                "tokenEfficiency": 0.50,
                 "deployability": 69,
                 "weakest": "Instruction Following",
                 "safety": "77%",
@@ -1042,6 +1096,8 @@
                 "medianTurn": 0.27,
                 "decodeSpeed": null,
                 "promptSpeed": null,
+                "totalTokens": 215622,
+                "tokenEfficiency": 0.55,
                 "deployability": 89,
                 "weakest": "Instruction Following",
                 "safety": "77%",
@@ -1084,6 +1140,8 @@
                 "medianTurn": 6.57,
                 "decodeSpeed": null,
                 "promptSpeed": null,
+                "totalTokens": 217572,
+                "tokenEfficiency": 0.52,
                 "deployability": 65,
                 "weakest": "Instruction Following",
                 "safety": "77%",
@@ -1226,6 +1284,16 @@
       return value === null || value === undefined ? "n/a" : `${value}${suffix}`;
     }
 
+    function formatTokenCount(value) {
+      if (value === null || value === undefined) return "n/a";
+      return Number(value).toLocaleString("en-US");
+    }
+
+    function reportHref(report) {
+      if (!report.url) return "#";
+      return report.url.startsWith("/") ? report.url : `/tooleval/${report.url}`;
+    }
+
     function reportById(id) {
       return REPORTS.find((report) => report.id === id) || REPORTS[0];
     }
@@ -1265,12 +1333,14 @@
           <div class="metric-grid">
             <div class="metric"><b>${formatValue(report.medianTurn, "s")}</b><span>Median turn</span></div>
             <div class="metric"><b>${formatValue(report.decodeSpeed)}</b><span>Decode tok/s</span></div>
+            <div class="metric"><b>${formatTokenCount(report.totalTokens)}</b><span>Total tokens</span></div>
+            <div class="metric"><b>${formatValue(report.tokenEfficiency)}</b><span>Token efficiency</span></div>
             <div class="metric"><b>${report.structured}</b><span>Structured output</span></div>
             <div class="metric"><b>${report.deployability}</b><span>Deployability</span></div>
           </div>
           <p class="mono" style="color: var(--subtle); font-size: 0.74rem; margin: 13px 0 0;">${report.api}</p>
           <p style="color: var(--muted); margin: 9px 0 0;">${report.notes}</p>
-          <a class="open-link" href="${report.url}">Open Full Report</a>
+          <a class="open-link" href="${reportHref(report)}">Open Full Report</a>
         </article>
       `).join("");
     }
@@ -1305,6 +1375,9 @@
         ["Fail count", left.fail, right.fail, ""],
         ["Median turn seconds", left.medianTurn, right.medianTurn, "s"],
         ["Decode tok/s", left.decodeSpeed, right.decodeSpeed, ""],
+        ["Prompt tok/s", left.promptSpeed, right.promptSpeed, ""],
+        ["Total tokens", left.totalTokens, right.totalTokens, ""],
+        ["Token efficiency", left.tokenEfficiency, right.tokenEfficiency, ""],
         ["Deployability", left.deployability, right.deployability, ""]
       ];
       detailTable.innerHTML = rows.map(([label, leftValue, rightValue, suffix]) => {
@@ -1335,9 +1408,11 @@
             <div class="tag-row">
               <span class="tag">${report.pass}/${report.partial}/${report.fail}</span>
               <span class="tag">${formatValue(report.decodeSpeed)} tok/s</span>
+              ${report.totalTokens == null ? "" : `<span class="tag">${formatTokenCount(report.totalTokens)} tokens</span>`}
+              ${report.tokenEfficiency == null ? "" : `<span class="tag">${formatValue(report.tokenEfficiency)} eff</span>`}
               <span class="tag">${report.weakest}</span>
             </div>
-            <a class="open-link" href="${report.url}">Open Report</a>
+            <a class="open-link" href="${reportHref(report)}">Open Report</a>
           </div>
         </article>
       `).join("");

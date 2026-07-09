@@ -1119,6 +1119,8 @@ PROFILE_LABELS = {
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-vulkan-hermes64k-froggeric-template": "ChadrockV2 Ace Saber 35B MoEQuality",
     "qwopus36-35b-coder-mtp-rocmfpx-moequality-708bpw-hermes64k-froggeric-template": "Qwopus 3.6 35B Coder MoEQuality",
     "qwopus36-35b-coder-mtp-rocmfpx-moequality-7.08bpw-vulkan-hermes64k-froggeric-template": "Qwopus 3.6 35B Coder MoEQuality",
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "ThinkingCap Qwen3.6 27B Chadrock UltraQuality",
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw-froggeric-card-sampler": "ThinkingCap Qwen3.6 27B Chadrock UltraQuality (Froggeric)",
     "step37-rocmfp4-mtp-vulkan-64k-tool-eval-full-templatefix-toolobs": "Step 3.7 Flash ROCmFP4 MTP",
     "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k": "Step 3.7 Flash Q3 QualityPlus",
     "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-full-templatefix": "Step 3.7 Flash Q3 QualityPlus",
@@ -1533,12 +1535,16 @@ TOOL_EVAL_REPORTS = {
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
     "qwopus36-35b-coder-mtp-rocmfpx-moequality": "/tooleval/qwopus36-35b-coder-moequality-708bpw/",
     "thinkingcap-qwen36-27b-nvfp4-mtp-256k": "/tooleval/thinkingcap-qwen36-27b-nvfp4-mtp-256k/",
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "/tooleval/thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw-froggeric-card-sampler": "/tooleval/thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
 }
 
 TOOL_EVAL_FULL_TPS = {
     "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 21.32,
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": 85.90,
     "thinkingcap-qwen36-27b-nvfp4-mtp-256k": 166.14,
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 12.34,
+    "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw-froggeric-card-sampler": 12.34,
 }
 
 def tool_eval_lookup(mapping, profile_id):
@@ -1641,6 +1647,8 @@ def tool_eval_rows_from_artifacts():
             "partialCount": partial_count,
             "failCount": fail_count,
             "medianTurnMs": scores.get("median_turn_ms") or median_turn_ms(scenarios),
+            "totalTokens": scores.get("total_tokens"),
+            "tokenEfficiency": scores.get("token_efficiency"),
             "safetyWarnings": len(scores.get("safety_warnings") or payload.get("safety_warnings") or []),
             "deployability": scores.get("deployability", payload.get("deployability")),
             "responsiveness": scores.get("responsiveness", payload.get("responsiveness")),
