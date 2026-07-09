@@ -1134,6 +1134,7 @@ PROFILE_LABELS = {
     "nex-n2-mini-q4-k-xl": "Nex N2 Mini Q4_K_XL",
     "nex-n2-mini-q5-k-xl": "Nex N2 Mini Q5_K_XL",
     "nex-n2-mini-q6-k-xl": "Nex N2 Mini Q6_K_XL",
+    "thinkingcap-qwen36-27b-nvfp4-mtp-256k": "ThinkingCap Qwen3.6 27B NVFP4 MTP",
 }
 
 SUITE_LABELS = {
@@ -1531,11 +1532,13 @@ TOOL_EVAL_REPORTS = {
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw": "/tooleval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/",
     "qwopus36-35b-coder-mtp-rocmfpx-moequality": "/tooleval/qwopus36-35b-coder-moequality-708bpw/",
+    "thinkingcap-qwen36-27b-nvfp4-mtp-256k": "/tooleval/thinkingcap-qwen36-27b-nvfp4-mtp-256k/",
 }
 
 TOOL_EVAL_FULL_TPS = {
     "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 21.32,
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": 85.90,
+    "thinkingcap-qwen36-27b-nvfp4-mtp-256k": 166.14,
 }
 
 def tool_eval_lookup(mapping, profile_id):
@@ -1588,7 +1591,11 @@ def tool_eval_rows_from_artifacts():
         scores = payload.get("scores") or {}
         scenarios = scores.get("scenario_results") or []
         run_id = os.path.basename(os.path.dirname(os.path.dirname(path)))
-        manifest = safe_json(open(os.path.join(LAB_ROOT, "runs", run_id, "run.json"), "r", encoding="utf-8").read())
+        manifest_path = os.path.join(LAB_ROOT, "runs", run_id, "run.json")
+        if os.path.exists(manifest_path):
+            manifest = safe_json(open(manifest_path, "r", encoding="utf-8").read())
+        else:
+            manifest = {}
         profile_id = (
             (manifest.get("model") or {}).get("alias")
             or manifest.get("model_alias")
