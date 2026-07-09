@@ -877,13 +877,19 @@
                     "decodeSpeed": 12.34,
                     "promptSpeed": 142.08,
                     "totalTokens": 247705,
+                    "promptTokens": 232414,
+                    "completionTokens": 15291,
+                    "wallTime": "32:16.95",
+                    "wallSeconds": 1936.95,
+                    "wallCompletionTokS": 7.89,
+                    "wallTotalTokS": 127.88,
                     "tokenEfficiency": 0.49,
                     "deployability": 67,
                     "weakest": "Autonomous Planning",
                     "safety": "85%",
                     "structured": "92%",
                     "run": "2026-07-09T04-24-29.925514Z_daf33d54",
-                    "notes": "64K speed-selected Chadrock UltraQuality run. Froggeric/card-sampler rerun is included on the report page and landed one raw point lower.",
+                    "notes": "64K speed-selected Chadrock UltraQuality run. Decode tok/s is the controlled 64K PP/TG speed gate; Tool-Eval wall output is 7.89 completion tok/s across 1,936.95 s.",
                     "sections": {
                               "A Tool Selection": 100,
                               "B Parameter Precision": 100,
@@ -1335,6 +1341,8 @@
             <div class="metric"><b>${formatValue(report.decodeSpeed)}</b><span>Decode tok/s</span></div>
             <div class="metric"><b>${formatTokenCount(report.totalTokens)}</b><span>Total tokens</span></div>
             <div class="metric"><b>${formatValue(report.tokenEfficiency)}</b><span>Token efficiency</span></div>
+            ${report.wallTime == null ? "" : `<div class="metric"><b>${report.wallTime}</b><span>Tool-Eval wall</span></div>`}
+            ${report.wallCompletionTokS == null ? "" : `<div class="metric"><b>${formatValue(report.wallCompletionTokS)}</b><span>Wall output tok/s</span></div>`}
             <div class="metric"><b>${report.structured}</b><span>Structured output</span></div>
             <div class="metric"><b>${report.deployability}</b><span>Deployability</span></div>
           </div>
@@ -1376,6 +1384,9 @@
         ["Median turn seconds", left.medianTurn, right.medianTurn, "s"],
         ["Decode tok/s", left.decodeSpeed, right.decodeSpeed, ""],
         ["Prompt tok/s", left.promptSpeed, right.promptSpeed, ""],
+        ["Tool-Eval wall seconds", left.wallSeconds, right.wallSeconds, "s"],
+        ["Wall completion tok/s", left.wallCompletionTokS, right.wallCompletionTokS, ""],
+        ["Completion tokens", left.completionTokens, right.completionTokens, ""],
         ["Total tokens", left.totalTokens, right.totalTokens, ""],
         ["Token efficiency", left.tokenEfficiency, right.tokenEfficiency, ""],
         ["Deployability", left.deployability, right.deployability, ""]
@@ -1408,6 +1419,7 @@
             <div class="tag-row">
               <span class="tag">${report.pass}/${report.partial}/${report.fail}</span>
               <span class="tag">${formatValue(report.decodeSpeed)} tok/s</span>
+              ${report.wallCompletionTokS == null ? "" : `<span class="tag">${formatValue(report.wallCompletionTokS)} wall output tok/s</span>`}
               ${report.totalTokens == null ? "" : `<span class="tag">${formatTokenCount(report.totalTokens)} tokens</span>`}
               ${report.tokenEfficiency == null ? "" : `<span class="tag">${formatValue(report.tokenEfficiency)} eff</span>`}
               <span class="tag">${report.weakest}</span>

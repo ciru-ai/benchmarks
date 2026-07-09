@@ -1577,6 +1577,20 @@ def tool_eval_rows_from_artifacts():
             return round(values[midpoint], 1)
         return round((values[midpoint - 1] + values[midpoint]) / 2, 1)
 
+    def sum_scenario_number(scenarios, key):
+        total = 0.0
+        seen = False
+        for item in scenarios:
+            value = item.get(key)
+            if value is None:
+                continue
+            try:
+                total += float(value)
+                seen = True
+            except (TypeError, ValueError):
+                pass
+        return round(total, 3) if seen else None
+
     rows = []
     for path in glob.glob(os.path.join(LAB_ROOT, "runs", "*", "outputs", "tool-eval-bench-*.json")):
         payload = safe_json(open(path, "r", encoding="utf-8").read())
@@ -1614,6 +1628,15 @@ def tool_eval_rows_from_artifacts():
         pass_count = sum(1 for item in scenarios if item.get("status") == "pass")
         partial_count = sum(1 for item in scenarios if item.get("status") == "partial")
         fail_count = sum(1 for item in scenarios if item.get("status") == "fail")
+        total_runtime_s = sum_scenario_number(scenarios, "duration_seconds")
+        prompt_tokens = sum_scenario_number(scenarios, "prompt_tokens")
+        completion_tokens = sum_scenario_number(scenarios, "completion_tokens")
+        wall_completion_tok_s = None
+        wall_total_tok_s = None
+        if total_runtime_s and completion_tokens is not None:
+            wall_completion_tok_s = round(completion_tokens / total_runtime_s, 3)
+        if total_runtime_s and scores.get("total_tokens") is not None:
+            wall_total_tok_s = round(float(scores.get("total_tokens")) / total_runtime_s, 3)
         try:
             score = round(float(scores.get("final_score", payload.get("final_score"))) / 100.0, 6)
         except Exception:
@@ -1647,7 +1670,13 @@ def tool_eval_rows_from_artifacts():
             "failCount": fail_count,
             "medianTurnMs": scores.get("median_turn_ms") or median_turn_ms(scenarios),
             "totalTokens": scores.get("total_tokens"),
+            "promptTokens": int(prompt_tokens) if prompt_tokens is not None else None,
+            "completionTokens": int(completion_tokens) if completion_tokens is not None else None,
             "tokenEfficiency": scores.get("token_efficiency"),
+            "generationSeconds": total_runtime_s,
+            "totalRuntimeS": total_runtime_s,
+            "wallCompletionTokS": wall_completion_tok_s,
+            "wallTotalTokS": wall_total_tok_s,
             "safetyWarnings": len(scores.get("safety_warnings") or payload.get("safety_warnings") or []),
             "deployability": scores.get("deployability", payload.get("deployability")),
             "responsiveness": scores.get("responsiveness", payload.get("responsiveness")),
