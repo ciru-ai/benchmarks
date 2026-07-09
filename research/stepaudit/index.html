@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Step 3.7 Candidate Audit Comparison | Ciru Inference Lab</title>
+  <meta name="description" content="Compare the GROK 4.5, GLM 5.2, and SOL Ultra audits of the Step 3.7 candidate search: shared conclusions, material disagreements, and a combined retest plan.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="/ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1220px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { color: #fff; }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    code,
+    .mono,
+    .eyebrow,
+    .section-number,
+    .metric b,
+    .tag,
+    .nav-link,
+    .report-link,
+    th {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    .audit-switcher {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(7, 7, 8, 0.92);
+      backdrop-filter: blur(18px) saturate(130%);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+    }
+
+    .switcher-inner {
+      width: min(100%, calc(var(--max) + 32px));
+      min-height: 58px;
+      margin: 0 auto;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .switcher-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+      color: var(--text);
+    }
+
+    .switcher-brand img {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(237, 28, 36, 0.34);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      object-fit: contain;
+    }
+
+    .switcher-brand strong,
+    .switcher-brand span { display: block; line-height: 1.05; }
+    .switcher-brand strong { font-size: 0.78rem; text-transform: uppercase; }
+    .switcher-brand span {
+      margin-top: 4px;
+      color: var(--subtle);
+      font: 500 0.66rem/1 "IBM Plex Mono", monospace;
+    }
+
+    .nav-rail {
+      min-width: 0;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: none;
+    }
+
+    .nav-rail::-webkit-scrollbar { display: none; }
+
+    .nav-link {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.035);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover,
+    .nav-link[aria-current="page"] {
+      color: #fff;
+      border-color: rgba(57, 208, 255, 0.42);
+      background: rgba(57, 208, 255, 0.1);
+    }
+
+    .nav-link.report { border-color: rgba(237, 28, 36, 0.26); }
+    .nav-link.report:hover { border-color: rgba(237, 28, 36, 0.62); }
+
+    header,
+    main,
+    footer {
+      width: min(calc(100% - 28px), var(--max));
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.24), transparent 38%),
+        linear-gradient(290deg, rgba(57, 208, 255, 0.09), transparent 35%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.97), rgba(9, 9, 10, 0.94));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.14), transparent 52%),
+        repeating-linear-gradient(90deg, transparent 0 31px, rgba(255, 255, 255, 0.038) 31px 32px);
+    }
+
+    header > * { position: relative; z-index: 1; }
+
+    .brand-row {
+      padding: 18px 22px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+    }
+
+    .logo-plate {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.28);
+    }
+
+    .logo-plate img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.14); }
+    .brand-title, .brand-subtitle { display: block; line-height: 1.05; }
+    .brand-title { font-weight: 700; text-transform: uppercase; }
+    .brand-subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font: 500 0.72rem/1 "IBM Plex Mono", monospace;
+    }
+
+    .research-link {
+      padding: 8px 11px;
+      border: 1px solid rgba(57, 208, 255, 0.3);
+      border-radius: 6px;
+      background: rgba(57, 208, 255, 0.08);
+      color: #eaf9ff;
+      font: 700 0.72rem/1 "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+    }
+
+    .hero { padding: 34px 22px 28px; }
+
+    .eyebrow {
+      margin: 0 0 11px;
+      color: #ff7863;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 1000px;
+      margin-bottom: 18px;
+      font-size: clamp(2.25rem, 6vw, 5.2rem);
+      line-height: 0.94;
+      letter-spacing: -0.045em;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .hero-deck {
+      max-width: 900px;
+      margin-bottom: 0;
+      color: #cbd0d8;
+      font-size: clamp(1rem, 2vw, 1.16rem);
+    }
+
+    .metric-grid {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .metric b {
+      display: block;
+      color: var(--cyan);
+      font-size: 1.55rem;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric span { display: block; margin-top: 7px; color: var(--muted); font-size: 0.84rem; }
+
+    .hero-verdict {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(32, 209, 162, 0.28);
+      border-left: 5px solid var(--green);
+      border-radius: var(--radius);
+      background: rgba(32, 209, 162, 0.075);
+      color: #d9f7ed;
+    }
+
+    .hero-verdict strong { color: var(--green); }
+
+    main { padding: 26px 0 28px; }
+    section { scroll-margin-top: 76px; }
+
+    .panel {
+      margin-bottom: 20px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 13px;
+    }
+
+    .section-number {
+      display: inline-grid;
+      place-items: center;
+      width: 35px;
+      height: 35px;
+      border: 1px solid rgba(237, 28, 36, 0.34);
+      border-radius: 6px;
+      color: #ff7b80;
+      background: rgba(237, 28, 36, 0.08);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin-bottom: 6px;
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      line-height: 1.08;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .section-head p { margin: 0; color: var(--muted); max-width: 850px; }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .report-card {
+      min-width: 0;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.016)),
+        var(--panel-2);
+    }
+
+    .report-card.grok { border-top: 3px solid var(--red); }
+    .report-card.glm { border-top: 3px solid var(--cyan); }
+    .report-card.sol { border-top: 3px solid var(--green); }
+
+    .report-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 13px;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .tag.red { color: #ff9297; border-color: rgba(255, 78, 95, 0.3); background: rgba(255, 78, 95, 0.07); }
+    .tag.cyan { color: var(--cyan); border-color: rgba(57, 208, 255, 0.28); background: rgba(57, 208, 255, 0.07); }
+    .tag.green { color: var(--green); border-color: rgba(32, 209, 162, 0.28); background: rgba(32, 209, 162, 0.07); }
+
+    .report-card h3 { margin-bottom: 9px; font-size: 1.3rem; line-height: 1.08; }
+    .report-card p { color: #c2c7d0; font-size: 0.92rem; }
+
+    .report-card dl {
+      margin: auto 0 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .report-card dl div {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 9px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .report-card dt {
+      color: var(--subtle);
+      font: 700 0.65rem/1.4 "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+    }
+
+    .report-card dd { margin: 0; color: #e4e6e9; font-size: 0.84rem; }
+
+    .report-link {
+      min-height: 40px;
+      padding: 10px 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(57, 208, 255, 0.34);
+      border-radius: 6px;
+      background: rgba(57, 208, 255, 0.08);
+      color: #e8f9ff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .report-link:hover { border-color: var(--cyan); background: rgba(57, 208, 255, 0.14); }
+
+    .report-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 7px;
+    }
+
+    .report-link.secondary {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--muted);
+    }
+
+    .report-link.secondary:hover {
+      border-color: rgba(255, 255, 255, 0.32);
+      color: #fff;
+    }
+
+    .preservation-note {
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      border-left: 4px solid var(--cyan);
+      background: rgba(57, 208, 255, 0.065);
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .consensus-grid,
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .consensus-item,
+    .insight {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.024);
+    }
+
+    .consensus-item b,
+    .insight b { display: block; margin-bottom: 6px; color: var(--text); }
+    .consensus-item p,
+    .insight p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+    .candidate-strip {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .candidate {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #0b0c0e;
+    }
+
+    .candidate .status {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--green);
+      font: 700 0.62rem/1 "IBM Plex Mono", monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .candidate.control .status { color: var(--orange); }
+    .candidate h3 { margin-bottom: 6px; font-size: 1rem; }
+    .candidate p { margin: 0; color: var(--muted); font-size: 0.8rem; }
+
+    .matrix-wrap {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      padding: 12px 13px;
+      text-align: left;
+      vertical-align: top;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.69rem;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+    }
+
+    td { color: #c8cbd1; font-size: 0.82rem; }
+    td.topic { width: 16%; color: #fff; font-weight: 700; }
+    tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.018); }
+
+    .dispute-callout {
+      margin: 14px 0 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 159, 67, 0.27);
+      border-left: 5px solid var(--orange);
+      border-radius: var(--radius);
+      background: rgba(255, 159, 67, 0.075);
+      color: #f4dfc8;
+    }
+
+    .protocol {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+      counter-reset: protocol;
+    }
+
+    .protocol-step {
+      position: relative;
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.025);
+      counter-increment: protocol;
+    }
+
+    .protocol-step::before {
+      content: "0" counter(protocol);
+      display: block;
+      margin-bottom: 18px;
+      color: var(--cyan);
+      font: 700 0.72rem/1 "IBM Plex Mono", monospace;
+    }
+
+    .protocol-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      right: -10px;
+      z-index: 2;
+      width: 18px;
+      height: 1px;
+      background: var(--cyan);
+    }
+
+    .protocol-step h3 { margin-bottom: 7px; font-size: 0.98rem; }
+    .protocol-step p { margin: 0; color: var(--muted); font-size: 0.81rem; }
+
+    .synthesis-note {
+      margin: 13px 0 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .insight strong { color: var(--cyan); font-variant-numeric: tabular-nums; }
+
+    .caveat-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 9px;
+      color: var(--muted);
+    }
+
+    .caveat-list strong { color: #e9e9e5; }
+
+    footer {
+      padding: 2px 0 38px;
+      color: var(--subtle);
+      font: 500 0.72rem/1.5 "IBM Plex Mono", monospace;
+    }
+
+    @media (max-width: 980px) {
+      .report-grid { grid-template-columns: 1fr; }
+      .candidate-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .protocol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .protocol-step:nth-child(2)::after { display: none; }
+    }
+
+    @media (max-width: 760px) {
+      .switcher-inner { padding-inline: 10px; gap: 9px; }
+      .switcher-brand img { width: 32px; height: 32px; }
+      .switcher-brand .brand-copy { display: none; }
+      .nav-rail { margin-left: 0; justify-content: flex-start; }
+      .nav-link { padding: 8px 9px; }
+
+      header,
+      main,
+      footer { width: min(calc(100% - 18px), var(--max)); }
+
+      header { margin-top: 9px; }
+      .brand-row { padding: 15px 15px 0; align-items: flex-start; }
+      .brand-subtitle { font-size: 0.65rem; }
+      .research-link { font-size: 0.65rem; }
+      .hero { padding: 28px 15px 20px; }
+      h1 { font-size: clamp(2rem, 12vw, 3.4rem); }
+      .metric-grid { grid-template-columns: 1fr; }
+      .metric { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+      .metric span { margin-top: 0; }
+
+      .panel { padding: 16px; }
+      .section-head { grid-template-columns: 1fr; gap: 9px; }
+      .section-number { width: 31px; height: 31px; }
+      .consensus-grid,
+      .insight-grid,
+      .candidate-strip,
+      .protocol { grid-template-columns: 1fr; }
+      .protocol-step::after { display: none; }
+
+      .matrix-wrap { border: 0; background: transparent; overflow: visible; }
+      .matrix-wrap table,
+      .matrix-wrap tbody,
+      .matrix-wrap tr,
+      .matrix-wrap td { display: block; width: 100%; }
+      .matrix-wrap thead { display: none; }
+      .matrix-wrap tr {
+        margin-bottom: 10px;
+        padding: 13px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.22);
+      }
+      .matrix-wrap td,
+      .matrix-wrap td.topic {
+        padding: 9px 0;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+      }
+      .matrix-wrap td:last-child { border-bottom: 0; }
+      .matrix-wrap td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--subtle);
+        font: 700 0.62rem/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .matrix-wrap td.topic {
+        color: #fff;
+        font-size: 1rem;
+      }
+      .matrix-wrap td.topic::before { color: var(--red); }
+    }
+
+    @media (max-width: 430px) {
+      .brand-row { display: block; }
+      .research-link { display: none; }
+      .logo-plate { width: 38px; height: 38px; }
+      .hero-deck { font-size: 0.96rem; }
+      .report-card { padding: 15px; }
+      .report-actions { grid-template-columns: 1fr; }
+      .report-link { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="audit-switcher" aria-label="Step 3.7 audit reports">
+    <div class="switcher-inner">
+      <a class="switcher-brand" href="/research/stepaudit/" aria-label="Step 3.7 audit comparison home">
+        <img src="/ccglogo.png" alt="">
+        <span class="brand-copy">
+          <strong>Step 3.7 Audit</strong>
+          <span>Three-agent comparison</span>
+        </span>
+      </a>
+      <div class="nav-rail">
+        <a class="nav-link" href="#top" aria-current="page">Overview</a>
+        <a class="nav-link report" href="/research/stepaudit/grok45/">GROK 4.5</a>
+        <a class="nav-link report" href="/research/stepaudit/glm52/">GLM 5.2</a>
+        <a class="nav-link report" href="/research/stepaudit/solultra/">SOL Ultra</a>
+        <a class="nav-link" href="#disagreements">Compare</a>
+      </div>
+    </div>
+  </nav>
+
+  <header id="top">
+    <div class="brand-row">
+      <a class="brand-lockup" href="/research/">
+        <span class="logo-plate"><img src="/ccglogo.png" alt="Crown Citadel Group"></span>
+        <span>
+          <span class="brand-title">Ciru Inference Lab</span>
+          <span class="brand-subtitle">llm.ciru.ai / research / stepaudit</span>
+        </span>
+      </a>
+      <a class="research-link" href="/research/">Research Index</a>
+    </div>
+    <div class="hero">
+      <p class="eyebrow">Crown Citadel Research Report · Reassessed 2026-07-09</p>
+      <h1>Three audits. One unresolved decision.</h1>
+      <p class="hero-deck">GROK 4.5, GLM 5.2, and SOL Ultra independently reviewed the same Step 3.7 candidate search. Their strongest agreement is not a model pick: the original process never produced a fair, unified final bracket.</p>
+
+      <div class="metric-grid" aria-label="Audit summary">
+        <div class="metric"><b>3</b><span>independent retrospective audits</span></div>
+        <div class="metric"><b>33–34</b><span>tested identities, depending on ledger ontology</span></div>
+        <div class="metric"><b>0</b><span>fair unified promotion brackets completed</span></div>
+      </div>
+
+      <div class="hero-verdict"><strong>Shared verdict:</strong> rejection was too aggressive, QualityPlus is a control rather than a proven winner, and blk44 q4_K, AGENTKV, and all-K/V q5 deserve matched retesting.</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="reports">
+      <div class="section-head">
+        <span class="section-number">01</span>
+        <div>
+          <h2>Read each audit</h2>
+          <p>Each report retains its original composition. The viewer adds only a persistent site-level switcher outside the report so the three independent treatments remain easy to compare.</p>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <article class="report-card grok">
+          <div class="report-meta"><span class="tag red">GROK 4.5</span><span class="tag">Process-first</span></div>
+          <h3>The strongest challenge to the elimination process</h3>
+          <p>Ranks blk44 q4_K first, keeps AGENTKV and all-K/V q5 unresolved, and argues that mixed routes, temperatures, runtimes, and one-pass pruning prevented a fair final bracket.</p>
+          <dl>
+            <div><dt>Lead</dt><dd>blk44 routed-down q4_K</dd></div>
+            <div><dt>Distinctive</dt><dd>Most willing to reopen noisy leads</dd></div>
+            <div><dt>Retest</dt><dd>Direct temperature-1 full-suite bracket</dd></div>
+          </dl>
+          <div class="report-actions">
+            <a class="report-link" href="/research/stepaudit/grok45/">View with switcher</a>
+            <a class="report-link secondary" href="/research/stepaudit/reports/step37-candidate-audit-report.html">Original HTML</a>
+          </div>
+        </article>
+
+        <article class="report-card glm">
+          <div class="report-meta"><span class="tag cyan">GLM 5.2</span><span class="tag">Procedural</span></div>
+          <h3>The clearest fairness and confound audit</h3>
+          <p>Refuses to manufacture a winner from heterogeneous evidence. It calls AGENTKV the most unfair dismissal while recognizing blk44 as the strongest repeated direct-route lead.</p>
+          <dl>
+            <div><dt>Lead</dt><dd>No defensible final winner</dd></div>
+            <div><dt>Distinctive</dt><dd>Most explicit controlled bracket</dd></div>
+            <div><dt>Retest</dt><dd>Direct temperature-1 matched protocol</dd></div>
+          </dl>
+          <div class="report-actions">
+            <a class="report-link" href="/research/stepaudit/glm52/">View with switcher</a>
+            <a class="report-link secondary" href="/research/stepaudit/reports/glm5.2auditreport.html">Original HTML</a>
+          </div>
+        </article>
+
+        <article class="report-card sol">
+          <div class="report-meta"><span class="tag green">SOL Ultra</span><span class="tag">Method-first</span></div>
+          <h3>The strictest separation of quality and serving</h3>
+          <p>Also puts blk44 first, elevates blk42 into the core reopen set, and insists temperature 0 settle canonical weight quality before temperature-1 live-serving compatibility is considered.</p>
+          <dl>
+            <div><dt>Lead</dt><dd>blk44 routed-down q4_K</dd></div>
+            <div><dt>Distinctive</dt><dd>Two-lane evidence discipline</dd></div>
+            <div><dt>Retest</dt><dd>Temperature 0 first; temperature 1 second</dd></div>
+          </dl>
+          <div class="report-actions">
+            <a class="report-link" href="/research/stepaudit/solultra/">View with switcher</a>
+            <a class="report-link secondary" href="/research/stepaudit/reports/solultraauditreport.html">Original HTML</a>
+          </div>
+        </article>
+      </div>
+
+      <p class="preservation-note"><strong>Preservation note:</strong> the three report files are published byte-for-byte from their source artifacts. Their different layouts, terminology, and emphasis are intentionally preserved as part of the comparison.</p>
+    </section>
+
+    <section class="panel" id="agreement">
+      <div class="section-head">
+        <span class="section-number">02</span>
+        <div>
+          <h2>Where all three agree</h2>
+          <p>The consensus is unusually strong on process, even where candidate priority and retest temperature diverge.</p>
+        </div>
+      </div>
+
+      <div class="consensus-grid">
+        <article class="consensus-item"><b>The search closed too early</b><p>Mixed-condition, single-pass evidence was repeatedly used to prune artifacts before a matched final bracket existed.</p></article>
+        <article class="consensus-item"><b>QualityPlus is not a proven winner</b><p>It remains the incumbent control, but it received a different burden of proof and has known hard-slice and variance weaknesses.</p></article>
+        <article class="consensus-item"><b>The evidence lanes were confounded</b><p>Route, temperature, suite size, order, MTP settings, and repeat counts changed together too often to isolate weight quality.</p></article>
+        <article class="consensus-item"><b>Three candidates clearly merit retesting</b><p>blk44 q4_K, AGENTKV, and all-K/V q5 survive every audit's independent reassessment.</p></article>
+      </div>
+
+      <div class="candidate-strip" aria-label="Shared candidate core">
+        <article class="candidate"><span class="status">Unanimous reopen</span><h3>blk44 q4_K</h3><p>Direct hard-20: 85/85/85 where QP recorded 72/72. Best repeated direct-route clue.</p></article>
+        <article class="candidate"><span class="status">Unanimous reopen</span><h3>AGENTKV</h3><p>Historical full Tool Eval: 91 and 90. Direct hot-slice results did not reproduce that lead.</p></article>
+        <article class="candidate"><span class="status">Unanimous reopen</span><h3>all-K/V q5</h3><p>First direct hard-20: 78 vs QP 72; rebuild repeat fell to 70. Artifact was pruned too soon.</p></article>
+        <article class="candidate control"><span class="status">Required control</span><h3>QualityPlus</h3><p>Conservative incumbent and bracket baseline—not a scientifically established overall winner.</p></article>
+      </div>
+    </section>
+
+    <section class="panel" id="disagreements">
+      <div class="section-head">
+        <span class="section-number">03</span>
+        <div>
+          <h2>Where the audits disagree</h2>
+          <p>The real differences are about evidentiary standards and retest priority, not whether the original ranking was conclusive.</p>
+        </div>
+      </div>
+
+      <div class="matrix-wrap">
+        <table aria-label="Comparison of material audit disagreements">
+          <thead>
+            <tr><th>Question</th><th>GROK 4.5</th><th>GLM 5.2</th><th>SOL Ultra</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="topic" data-label="Question">Decisive retest temperature</td>
+              <td data-label="GROK 4.5">Direct temperature 1, top-p .95 full-suite reruns.</td>
+              <td data-label="GLM 5.2">A matched temperature-1 bracket using one locked direct route.</td>
+              <td data-label="SOL Ultra">Temperature 0 must settle canonical weight quality; temperature 1 is a separate serving lane.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">First candidate to back</td>
+              <td data-label="GROK 4.5">blk44 q4_K is the replacement lead.</td>
+              <td data-label="GLM 5.2">No winner; AGENTKV was the most unfair dismissal, while blk44 has the strongest direct repeatability.</td>
+              <td data-label="SOL Ultra">blk44 q4_K is the top-priority weight clue.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">blk42 q4_K</td>
+              <td data-label="GROK 4.5">Watchlist / relative reject behind blk44.</td>
+              <td data-label="GLM 5.2">Tier-2 fallback if blk44 stability cannot be resolved.</td>
+              <td data-label="SOL Ultra">Tier-A #4; under-tested and part of the canonical bracket.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">lateKV35</td>
+              <td data-label="GROK 4.5">P1 low-cost localization diagnostic.</td>
+              <td data-label="GLM 5.2">Tier-2 diagnostic, despite appearing in the proposed survivor bracket.</td>
+              <td data-label="SOL Ultra">Conditional only, under a route-closed K/V diagnostic.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">APEX K-protected</td>
+              <td data-label="GROK 4.5">P1 conditional curiosity if the size budget allows.</td>
+              <td data-label="GLM 5.2">Leave rejected.</td>
+              <td data-label="SOL Ultra">Supports rejection: fatal TC-03 spiral, large size, and instability outweigh its speed.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">all-K/V speed claim</td>
+              <td data-label="GROK 4.5">Treats the 3153 ms vs 5722 ms median as a compelling clue, not a settled speed win.</td>
+              <td data-label="GLM 5.2">Highlights the observed median as roughly twice as fast as QP.</td>
+              <td data-label="SOL Ultra">Preserves the latency clue but notes native TG did not confirm a speed advantage.</td>
+            </tr>
+            <tr>
+              <td class="topic" data-label="Question">What was counted</td>
+              <td data-label="GROK 4.5">32+ anchors, probes, and overlays.</td>
+              <td data-label="GLM 5.2">34 builds in its complete inventory.</td>
+              <td data-label="SOL Ultra">33 tested identities, with seven incomplete recipes kept separate from rejects.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="dispute-callout"><strong>Most important disagreement:</strong> SOL Ultra treats temperature 0 as the only valid first-stage test of the weights. GROK 4.5 and GLM 5.2 prioritize matched temperature-1 reruns because that is where the disputed direct-route rejections occurred. A two-lane bracket can resolve this without pooling the results.</p>
+    </section>
+
+    <section class="panel" id="synthesis">
+      <div class="section-head">
+        <span class="section-number">04</span>
+        <div>
+          <h2>Best combined reading</h2>
+          <p>This is a synthesis of the three audits—not a result they independently measured. It preserves SOL Ultra's evidence separation while retaining the live-route questions emphasized by GROK 4.5 and GLM 5.2.</p>
+        </div>
+      </div>
+
+      <div class="protocol">
+        <article class="protocol-step"><h3>Lock two lanes</h3><p>Canonical quality at temperature 0; live-serving compatibility at temperature 1 / top-p .95. Never merge their scores.</p></article>
+        <article class="protocol-step"><h3>Lock the runtime</h3><p>Use the same direct route, seed, prompt rendering, MTP setting, model order, harness, and scorer within each lane.</p></article>
+        <article class="protocol-step"><h3>Run the core bracket</h3><p>QualityPlus, blk44, AGENTKV, and all-K/V q5. Add blk42 before lower-priority APEX or hybrid rescues.</p></article>
+        <article class="protocol-step"><h3>Require repeats</h3><p>Run paired hard-20 blocks, full Tool Eval, HermesAgent-20, and matched stress-order testing before promotion or deletion.</p></article>
+      </div>
+
+      <p class="synthesis-note">lateKV35 remains useful as a cheap diagnostic if K/V localization is still an active question. The three reports provide little support for rebuilding combined overlays without a new case-level hypothesis.</p>
+    </section>
+
+    <section class="panel" id="insights">
+      <div class="section-head">
+        <span class="section-number">05</span>
+        <div>
+          <h2>Other insights worth carrying forward</h2>
+          <p>Several lessons survive regardless of which candidate eventually wins.</p>
+        </div>
+      </div>
+
+      <div class="insight-grid">
+        <article class="insight"><b>Order behaved like a causal variable</b><p>blk44 recorded 34/40 alone, fell to 26–28/40 inside the full order, then returned to 34/40 when moved first. Process state cannot be treated as noise by default.</p></article>
+        <article class="insight"><b>Combining winners usually destroyed them</b><p>AGENTKV+blk44, blk44+lateKV, and blk43+44 all regressed. The useful signals are mostly single-variable interventions.</p></article>
+        <article class="insight"><b>Selective q4_K escape beat FP4 substitution</b><p>At blk44, moving routed-down weights to q4_K was promising; using faster ROCm FP4 on the same tensor lost <strong>15 hard-slice points</strong> to save only 45 MiB.</p></article>
+        <article class="insight"><b>MTP is a stability axis</b><p>Different MTP settings materially changed behavior. That evidence should select a runtime after weight quality—not be folded into the quant recipe verdict.</p></article>
+        <article class="insight"><b>Speed precision is overstated</b><p>Native speed rows often used one repetition. API median, served MTP, predicted TG, and native TG answer different questions and should stay separate.</p></article>
+        <article class="insight"><b>Inventory counts reflect ontology</b><p>The 32+/34/33 disagreement is largely about anchors, duplicate rebuilds, and incomplete dry runs—not proof that one audit missed the core candidate set.</p></article>
+      </div>
+    </section>
+
+    <section class="panel" id="limits">
+      <div class="section-head">
+        <span class="section-number">06</span>
+        <div>
+          <h2>Reading limits</h2>
+          <p>The comparison is intentionally candid about what these audits can and cannot establish.</p>
+        </div>
+      </div>
+      <ul class="caveat-list">
+        <li><strong>These are retrospective audits, not three new benchmark runs.</strong> They reconcile a heterogeneous historical record and propose what should be rerun.</li>
+        <li><strong>Scores from different suites are not interchangeable.</strong> A percentage from hard-20, full-69, HermesAgent-20, and ordered-61 does not represent the same evidence.</li>
+        <li><strong>GGUF size is not live memory.</strong> The reports have limited comparable peak VRAM/GTT evidence, so MiB and BPW claims describe weight artifacts.</li>
+        <li><strong>No final winner is claimed here.</strong> The shared conclusion is that the decisive controlled experiment remains to be run.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    Ciru Inference Lab / Step 3.7 candidate audit comparison / three source reports preserved unchanged
+  </footer>
+</body>
+</html>

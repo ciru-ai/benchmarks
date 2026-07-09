@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GLM 5.2 · Step 3.7 Candidate Audit — Reopen Review</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --bg2: #1a2332;
+    --bg3: #243044;
+    --card: #1e2a3a;
+    --card2: #22324a;
+    --border: #2d3f56;
+    --border2: #3a4f6b;
+    --text: #e7eef7;
+    --muted: #9aabb8;
+    --muted2: #7a8a98;
+    --accent: #5b9fd4;
+    --accent2: #7dd3a7;
+    --warn: #e8b86d;
+    --danger: #e07a7a;
+    --ok: #6bcf8e;
+    --p0: #ff6b6b;
+    --p1: #f0a500;
+    --p2: #6c9bd1;
+    --no: #6b7280;
+    --link: #7ec8ff;
+    --table-stripe: rgba(255,255,255,0.025);
+    --table-hover: rgba(91,159,212,0.10);
+    --shadow: 0 8px 32px rgba(0,0,0,0.35);
+    --radius: 12px;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: linear-gradient(165deg, #0b1017 0%, #121a24 40%, #0f1419 100%);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: "JetBrains Mono","Cascadia Code","Consolas",monospace; font-size: 0.88em; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .hero {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(91,159,212,0.20), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 90% 20%, rgba(125,211,167,0.10), transparent 50%),
+      radial-gradient(ellipse 50% 40% at 70% 90%, rgba(232,184,109,0.06), transparent 50%),
+      var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 2.75rem 1.5rem 2.1rem;
+  }
+  .hero-inner, .wrap { max-width: 1320px; margin: 0 auto; }
+  .hero .eyebrow {
+    color: var(--accent2);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .hero h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .hero .subtitle { color: var(--muted); font-size: 1.08rem; max-width: 78ch; margin: 0 0 1.4rem; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.3rem; font-size: 0.86rem; color: var(--muted); }
+  .meta-row strong { color: var(--text); font-weight: 600; }
+  .meta-row .dot { color: var(--border2); }
+
+  .verdict-bar {
+    margin-top: 1.5rem;
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+  }
+  .vchip {
+    padding: 0.45rem 0.9rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+    border: 1px solid var(--border2); background: var(--card);
+  }
+  .vchip.bad { border-color: rgba(224,122,122,0.5); background: rgba(224,122,122,0.10); color: #f0a0a0; }
+  .vchip.good { border-color: rgba(107,207,142,0.5); background: rgba(107,207,142,0.10); color: #9ee3b6; }
+
+  nav.toc {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15,20,25,0.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.62rem 1.5rem;
+  }
+  nav.toc .wrap { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; align-items: center; }
+  nav.toc a { color: var(--muted); font-size: 0.82rem; font-weight: 500; white-space: nowrap; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .sep { color: var(--border2); }
+
+  main.wrap { padding: 1.9rem 1.5rem 5rem; }
+  section { margin-bottom: 2.75rem; scroll-margin-top: 56px; }
+  h2 {
+    font-size: 1.42rem; margin: 0 0 1rem; font-weight: 700; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 0.6rem;
+    padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+  }
+  h2 .n { color: var(--accent); font-size: 0.9rem; font-weight: 700; opacity: 0.8; }
+  h3 { font-size: 1.08rem; margin: 1.4rem 0 0.7rem; color: var(--accent2); font-weight: 600; }
+  p { margin: 0.6rem 0; }
+  ul { margin: 0.5rem 0 0.8rem; padding-left: 1.3rem; }
+  li { margin: 0.35rem 0; }
+  strong { color: #fff; font-weight: 600; }
+
+  .lead { font-size: 1.06rem; color: var(--text); max-width: 90ch; }
+
+  .callout {
+    background: linear-gradient(135deg, rgba(224,122,122,0.10), rgba(232,184,109,0.06));
+    border: 1px solid rgba(224,122,122,0.35);
+    border-left: 4px solid var(--danger);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    margin: 1.2rem 0;
+  }
+  .callout.quote {
+    background: linear-gradient(135deg, rgba(91,159,212,0.10), rgba(125,211,167,0.05));
+    border-color: rgba(91,159,212,0.4);
+    border-left-color: var(--accent);
+  }
+  .callout .label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted2); margin-bottom: 0.5rem; display: block;
+  }
+  .callout.quote blockquote { margin: 0; padding: 0; font-style: italic; color: var(--text); }
+  .callout.quote blockquote p { margin: 0.5rem 0; }
+  .callout.quote cite { display: block; margin-top: 0.6rem; font-size: 0.85rem; color: var(--muted); font-style: normal; }
+
+  /* Confound cards */
+  .confound-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 0.9rem; margin: 1.2rem 0;
+  }
+  .ccard {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.05rem 1.15rem; position: relative; overflow: hidden;
+  }
+  .ccard::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--warn);
+  }
+  .ccard .ctop { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+  .ccard .cnum {
+    width: 26px; height: 26px; border-radius: 7px; background: rgba(232,184,109,0.18);
+    color: var(--warn); font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ccard .ctitle { font-weight: 700; font-size: 0.98rem; }
+  .ccard .cbody { font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+  .ccard .churt { margin-top: 0.55rem; font-size: 0.78rem; color: var(--danger); }
+  .ccard .churt b { color: #f0a0a0; }
+
+  /* Stat tiles */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 0.8rem; margin: 1.1rem 0; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.9rem 1rem; text-align: center;
+  }
+  .stat .big { font-size: 1.7rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; }
+  .stat.danger .big { color: var(--danger); }
+  .stat.ok .big { color: var(--ok); }
+  .stat.warn .big { color: var(--warn); }
+
+  /* Filter bar */
+  .filterbar {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    margin: 1rem 0; padding: 0.7rem 0.9rem; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .filterbar label { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-right: 0.3rem; }
+  .fbtn {
+    padding: 0.3rem 0.7rem; border-radius: 7px; font-size: 0.78rem; font-weight: 600;
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .fbtn:hover { color: var(--text); border-color: var(--accent); }
+  .fbtn.active { background: rgba(91,159,212,0.18); color: var(--accent); border-color: var(--accent); }
+  .filterbar .count { margin-left: auto; font-size: 0.78rem; color: var(--muted2); }
+
+  /* Master table */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  table.models { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 1180px; }
+  table.models th {
+    background: var(--bg3); color: var(--muted); font-weight: 600; text-align: left;
+    padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border2);
+    position: sticky; top: 0; font-size: 0.76rem; letter-spacing: 0.02em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  table.models td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.models tbody tr:nth-child(even) { background: var(--table-stripe); }
+  table.models tbody tr:hover { background: var(--table-hover); }
+  table.models tr.hidden { display: none; }
+  table.models .mname { font-weight: 600; color: var(--text); white-space: nowrap; }
+  table.models .mname .sub { display: block; font-size: 0.72rem; color: var(--muted2); font-weight: 400; }
+  table.models .size { white-space: nowrap; color: var(--muted); }
+  table.models .qual { font-size: 0.8rem; }
+  table.models .qual .hi { color: var(--ok); font-weight: 600; }
+  table.models .qual .lo { color: var(--danger); }
+  table.models .qual .w { color: var(--warn); }
+  table.models .reason { color: var(--muted); font-size: 0.8rem; max-width: 320px; }
+  table.models .speed { font-size: 0.76rem; color: var(--muted); white-space: nowrap; }
+  table.models td.ro { text-align: center; white-space: nowrap; }
+
+  .badge {
+    display: inline-block; padding: 0.16rem 0.55rem; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .b-yes  { background: rgba(107,207,142,0.16); color: #9ee3b6; border: 1px solid rgba(107,207,142,0.4); }
+  .b-may  { background: rgba(232,184,109,0.16); color: #efc98a; border: 1px solid rgba(232,184,109,0.4); }
+  .b-no   { background: rgba(107,114,128,0.18); color: #a8b0bc; border: 1px solid rgba(107,114,128,0.35); }
+  .b-anchor{ background: rgba(91,159,212,0.18); color: #8fc0e8; border: 1px solid rgba(91,159,212,0.4); }
+  .b-lead  { background: rgba(125,211,167,0.16); color: #9ee3b6; border: 1px solid rgba(125,211,167,0.4); }
+  .b-t1 { background: rgba(255,107,107,0.16); color: #ff9a9a; border: 1px solid rgba(255,107,107,0.4); }
+  .b-t2 { background: rgba(240,165,0,0.16); color: #f5c15a; border: 1px solid rgba(240,165,0,0.4); }
+
+  .grprow td {
+    background: linear-gradient(90deg, rgba(91,159,212,0.10), transparent);
+    font-weight: 700; color: var(--accent); font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border2);
+  }
+
+  /* Reopen tiers */
+  .tier {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.2rem 1.3rem; margin: 1rem 0; position: relative; overflow: hidden;
+  }
+  .tier.t1 { border-color: rgba(255,107,107,0.4); }
+  .tier.t1::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background: var(--p0); }
+  .tier.t2 { border-color: rgba(240,165,0,0.4); }
+  .tier.t2::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background: var(--p1); }
+  .tier .thead { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.6rem; flex-wrap:wrap; }
+  .tier .tname { font-size: 1.05rem; font-weight: 700; }
+  .tier .titem { margin: 0.9rem 0; padding-left: 0.2rem; }
+  .tier .titem .iname { font-weight: 700; font-size: 0.98rem; color: var(--text); margin-bottom: 0.2rem; }
+  .tier .titem .imet { font-size: 0.86rem; color: var(--muted); margin: 0.3rem 0; }
+  .tier .titem .iaction {
+    margin-top: 0.5rem; padding: 0.5rem 0.7rem; background: var(--bg3); border-radius: 8px;
+    font-size: 0.84rem; border-left: 3px solid var(--accent2);
+  }
+  .tier .titem .iaction b { color: var(--accent2); }
+
+  /* Insights */
+  .insight {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1rem 1.15rem; margin: 0.7rem 0; display: flex; gap: 0.9rem;
+  }
+  .insight .inum {
+    flex: 0 0 32px; height: 32px; border-radius: 8px; background: rgba(91,159,212,0.16);
+    color: var(--accent); font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .insight .ibody { font-size: 0.9rem; }
+  .insight .ibody b { color: var(--accent2); }
+
+  /* Bracket */
+  .bracket {
+    background: linear-gradient(135deg, rgba(107,207,142,0.08), rgba(91,159,212,0.06));
+    border: 1px solid rgba(107,207,142,0.35); border-radius: var(--radius);
+    padding: 1.3rem 1.4rem; margin: 1.2rem 0;
+  }
+  .bracket pre {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; overflow-x: auto; font-size: 0.82rem; color: var(--accent2); margin: 0.8rem 0;
+  }
+  .bracket .closing { font-size: 1rem; font-weight: 600; color: var(--text); margin-top: 0.6rem; }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 1.5rem; text-align: center;
+    color: var(--muted2); font-size: 0.8rem;
+  }
+  .pillrow { display:flex; flex-wrap:wrap; gap:0.4rem; margin: 0.4rem 0 0; }
+  .pill { font-size:0.72rem; padding:0.12rem 0.5rem; border-radius:6px; background:var(--bg3); color:var(--muted); border:1px solid var(--border); }
+  .legend { display:flex; flex-wrap:wrap; gap:0.8rem; font-size:0.8rem; color:var(--muted); margin:0.8rem 0; align-items:center; }
+  .legend span { display:flex; align-items:center; gap:0.3rem; }
+  @media (max-width: 720px) {
+    .hero { padding: 2rem 1rem 1.6rem; }
+    main.wrap { padding: 1.2rem 0.9rem 3rem; }
+    table.models { font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Independent Reopen Review · Candidate Audit</div>
+    <h1>Step 3.7 Candidate Audit — Were Promising Builds Unfairly Dismissed?</h1>
+    <p class="subtitle">
+      A model-by-model re-examination of the Step 3.7 ROCmFPX quantization search. Every build is listed with its
+      recorded metrics (Tool Eval, Hermes, size/BPW, native speed, MTP sweeps) and the specific reason given for rejection —
+      with a reopen verdict. The conclusion: the audit process <strong>itself admitted</strong> it was too harsh on
+      candidates and too forgiving of the QualityPlus incumbent, and several strong leads were pruned prematurely.
+    </p>
+    <div class="meta-row">
+      <span><strong>Audit session:</strong> <code>019f3803-6f3a-70d2-ae4e-92ae18d097a9</code></span>
+      <span class="dot">·</span>
+      <span><strong>Build rollout:</strong> <code>019f34af-…</code></span>
+      <span class="dot">·</span>
+      <span><strong>Base:</strong> StepFun Step-3.7-Flash MoE</span>
+      <span class="dot">·</span>
+      <span><strong>Anchor:</strong> QualityPlus (3.57 BPW)</span>
+      <span class="dot">·</span>
+      <span><strong>Models inventoried:</strong> 34</span>
+    </div>
+    <div class="verdict-bar">
+      <span class="vchip bad">⚠ Process fairness: FAILED</span>
+      <span class="vchip bad">4 systemic confounds identified</span>
+      <span class="vchip good">4 candidates to reopen (Tier 1)</span>
+      <span class="vchip">3 cheap diagnostics (Tier 2)</span>
+      <span class="vchip">No defensible final ranking exists yet</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#verdict">Verdict</a><span class="sep">·</span>
+    <a href="#confounds">4 Confounds</a><span class="sep">·</span>
+    <a href="#admission">Auditor's Admission</a><span class="sep">·</span>
+    <a href="#inventory">Model Inventory</a><span class="sep">·</span>
+    <a href="#reopen">Reopen Plan</a><span class="sep">·</span>
+    <a href="#insights">Insights</a><span class="sep">·</span>
+    <a href="#bracket">Fair Bracket</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ===================== VERDICT ===================== -->
+<section id="verdict">
+  <h2><span class="n">01</span> Bottom Line</h2>
+  <p class="lead">
+    Your concern is <strong>confirmed — and notably, the auditor itself conceded it.</strong> On 2026-07-08T01:58,
+    after you pushed back, the auditor explicitly stated the process had been "too harsh on candidates and too forgiving
+    of QualityPlus." The ledger even contains a retroactive <em>"one-pass reject/prune guardrail"</em> section that
+    reclassified several candidates as over-rejected — but <strong>only after their model artifacts were already deleted.</strong>
+  </p>
+
+  <div class="stat-grid">
+    <div class="stat danger"><div class="big num">34</div><div class="lbl">models built &amp; inventoried</div></div>
+    <div class="stat warn"><div class="big num">4</div><div class="lbl">systemic confounds</div></div>
+    <div class="stat ok"><div class="big num">4</div><div class="lbl">Tier-1 reopen candidates</div></div>
+    <div class="stat"><div class="big num">91/90</div><div class="lbl">best Tool Eval ever (AGENTKV)</div></div>
+    <div class="stat danger"><div class="big num">5 vs 1</div><div class="lbl">stress passes: blk44 vs QP</div></div>
+    <div class="stat warn"><div class="big num">0</div><div class="lbl">fair unified brackets run</div></div>
+  </div>
+
+  <div class="callout">
+    <span class="label">The core problem in one sentence</span>
+    Candidates were ranked across <strong>non-interchangeable test conditions</strong> — temp 0.0 vs temp 1.0,
+    proxy 8083 vs direct 18081, isolated 20-case slices vs full 69-case suites, MTP n_max=2 vs n_max=1 vs no-MTP —
+    and any candidate weakness became disqualifying while QualityPlus's identical weaknesses (TC-60 sleeper injection,
+    Hermes 79 tail, a single stress pass) were treated as acceptable known quantities. <strong>No model in this audit,
+    including QualityPlus, has a defensible final ranking yet.</strong>
+  </div>
+</section>
+
+<!-- ===================== CONFOUNDS ===================== -->
+<section id="confounds">
+  <h2><span class="n">02</span> The Four Systemic Confounds</h2>
+  <p class="lead">These are the mechanisms by which promising builds were dismissed on bad grounds. Each maps directly to your two stated concerns.</p>
+
+  <div class="confound-grid">
+    <div class="ccard">
+      <div class="ctop"><div class="cnum">1</div><div class="ctitle">Temperature mix</div></div>
+      <div class="cbody">
+        Old "big" full-suite scores (AGENTKV 91/90, QualityPlus 88/90) ran at <strong>temp=0.0</strong>. The direct
+        20-case "hard slice" controls that <em>demoted</em> candidates ran at <strong>temp=1.0, top_p=0.95, thinking on</strong>.
+        These are not comparable, yet candidates were ranked across them.
+      </div>
+      <div class="churt">Hurt: <b>AGENTKV, blk44 q4_K, all-K/V q5</b></div>
+    </div>
+
+    <div class="ccard">
+      <div class="ctop"><div class="cnum">2</div><div class="ctitle">Route confound (8083 proxy)</div></div>
+      <div class="cbody">
+        Old AGENTKV 91/90 came through port <strong>8083</strong>, which despite <code>--mode passthrough</code> rewrites
+        system messages, aliases model names, and injects <code>enable_thinking=false</code>. Direct 18081 gave AGENTKV
+        only 70/70. "AGENTKV became 70" is <strong>not</strong> a clean weight comparison.
+      </div>
+      <div class="churt">Hurt: <b>AGENTKV (primary)</b></div>
+    </div>
+
+    <div class="ccard">
+      <div class="ctop"><div class="cnum">3</div><div class="ctitle">One-pass dismissal over a small subset</div></div>
+      <div class="cbody">
+        Candidates that <strong>beat</strong> QualityPlus on the same 20-case slice were labeled "reject" from a single
+        pass, then pruned. all-K/V q5 scored <strong>78 vs QP 72</strong> and was rejected; lateKV35 had sentinel
+        <strong>88 then 100</strong> and full 88 and was reduced to a diagnostic.
+      </div>
+      <div class="churt">Hurt: <b>all-K/V q5, lateKV35, AGENTKV-lite</b></div>
+    </div>
+
+    <div class="ccard">
+      <div class="ctop"><div class="cnum">4</div><div class="ctitle">Asymmetric stress counts + QP forgiveness</div></div>
+      <div class="cbody">
+        blk44 q4_K got <strong>5</strong> stress-order passes (81/82/84/83/80) vs QualityPlus's <strong>1</strong> pass (87).
+        No unique test failed by blk44 was passed by QP under identical conditions — yet "stress favors QP" became the
+        hold-back reason. QP's own TC-60 failure and Hermes tail were forgiven.
+      </div>
+      <div class="churt">Hurt: <b>blk44 q4_K (the lead!)</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ADMISSION ===================== -->
+<section id="admission">
+  <h2><span class="n">03</span> The Auditor's Own Admission</h2>
+  <p class="lead">This is not an external critique — the auditor (the very codex session that did the dismissing) reversed itself on record once challenged.</p>
+
+  <div class="callout quote">
+    <span class="label">Auditor statement · 2026-07-08T01:58Z</span>
+    <blockquote>
+      <p>"The current process has been too harsh on candidates and too forgiving of QualityPlus. In particular, using
+      TC-60/TC-61, stress-order variance, or long-run textual loops as hard rejection reasons is not fair unless
+      QualityPlus is held to the exact same route/temp/order/runtime standard. QualityPlus itself fails important cases
+      too, especially on the direct hard slice."</p>
+      <p>"The unfair part is comparing candidate weaknesses under harsher tests against QualityPlus strengths under easier
+      or different tests. We mixed: temp 0 full runs, temp 1 direct hard-slice runs, 8083 proxy/no-think-ish route,
+      direct 18081, MTP n_max=2, MTP n_max=1, no-MTP, isolated 20-case slices, stress-order 61-case slices, full 69-case
+      Tool Eval. Those are not interchangeable."</p>
+    </blockquote>
+    <cite>— codex session 019f3803, assistant message, after user pushback</cite>
+  </div>
+
+  <div class="callout quote">
+    <span class="label">From the ledger: "Audit correction - one-pass reject/prune guardrail"</span>
+    <blockquote>
+      <p>"Problem found during resumed review: <strong>all-K/V q5 was over-rejected.</strong> It scored 78 (31/40) on the
+      exact 20-case Tool Eval slice where QualityPlus control later scored 72 (29/40), had no true repeated-action loop,
+      <strong>passed TC-60</strong>, and reported a much faster median turn (3153.4 ms vs QualityPlus 5722.5 ms)… The
+      model artifact was already pruned, which was premature."</p>
+      <p>"Going-forward rule: <strong>do not final-reject or delete any candidate from a single pass</strong> if it beats
+      the same-route control, has a strong full Tool Eval score (88+), a strong Hermes full score (84+), a unique
+      safety/loop win, or a meaningful speed+quality lead. Those become 'repeat required' leads."</p>
+    </blockquote>
+    <cite>— step37-existing-artifact-frontier-20260706.md</cite>
+  </div>
+
+  <p>The ledger also reclassified <strong>lateKV35</strong> ("real tool signal… not 'obvious reject'") and confirmed
+  <strong>lateKV22</strong> "legitimately weaker after broadening" — the one demotion that actually held up under review.</p>
+</section>
+
+<!-- ===================== INVENTORY ===================== -->
+<section id="inventory">
+  <h2><span class="n">04</span> Complete Model Inventory</h2>
+  <p class="lead">All 34 builds from the audit, with every recorded metric and the exact stated rejection reason. Use the filters to focus on reopen status or family.</p>
+
+  <div class="legend">
+    <span><span class="badge b-t1">Tier 1</span> reopen with fair bracket</span>
+    <span><span class="badge b-t2">Tier 2</span> cheap diagnostic</span>
+    <span><span class="badge b-no">⛔</span> leave rejected (fair)</span>
+    <span><span class="badge b-anchor">anchor</span> QualityPlus baseline</span>
+    <span><span class="badge b-lead">lead</span> kept finalist</span>
+    <span style="margin-left:auto;color:var(--muted2);font-size:0.78rem;">TE=Tool Eval · D=direct 18081 (temp1) · P=proxy 8083 (temp0) · TG/PG in tok/s</span>
+  </div>
+
+  <div class="filterbar">
+    <label>Show:</label>
+    <button class="fbtn active" data-f="all">All (34)</button>
+    <button class="fbtn" data-f="t1">🔴 Tier 1 reopen</button>
+    <button class="fbtn" data-f="t2">🟡 Tier 2</button>
+    <button class="fbtn" data-f="no">⛔ Rejected (fair)</button>
+    <button class="fbtn" data-f="anchor">⚓ Anchor/lead</button>
+    <span class="count" id="fcount">showing 34</span>
+  </div>
+
+  <div class="table-wrap">
+  <table class="models" id="modelTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Model</th><th>Size / BPW / Δ</th>
+        <th>Quality (all recorded)</th><th>Native speed (TG/2k/4k/8k PG)</th>
+        <th>Stated rejection reason</th><th>Reopen?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- A. Anchor + finalists -->
+      <tr class="grprow"><td colspan="7">A · Anchor &amp; kept finalists</td></tr>
+
+      <tr data-ro="anchor">
+        <td class="num">1</td>
+        <td class="mname">QualityPlus<span class="sub">anchor baseline</span></td>
+        <td class="size">83726 MiB<br>3.57 BPW</td>
+        <td class="qual">TE full <span class="w">88/88/90</span> (P,temp0); direct 20-case <span class="w">72/72</span> (D,temp1); Hermes <span class="w">85/82/79</span>. <span class="lo">Fails TC-60 sleeper injection.</span></td>
+        <td class="speed">served MTP ~29.97/29.39/28.58/26.26<br>@2k/4k/8k/16k; 4k/16k TG 28.30/26.12</td>
+        <td class="reason">— (anchor, kept). But not a clean winner: TC-60 fails, Hermes tail real, only 1 stress pass.</td>
+        <td class="ro"><span class="badge b-anchor">anchor</span></td>
+      </tr>
+
+      <tr data-ro="t1">
+        <td class="num">2</td>
+        <td class="mname">AGENTKV<span class="sub">early K/V 0-21 q6, rest q5</span></td>
+        <td class="size">83794 MiB<br>3.57 · +68 MiB</td>
+        <td class="qual">TE full <span class="hi">91/90</span> (P,temp0) — <em>best ever</em>; direct 20-case <span class="w">70/70</span> (D,temp1); TE sent 75 (TC-38/60/62 pass); Hermes <span class="w">76/83/81</span>; <span class="hi">no fatal loop</span>; <span class="hi">no unique failure vs QP</span>.</td>
+        <td class="speed">25.89 / 202.12 / 255.18 / 287.21</td>
+        <td class="reason">"demote… direct-route repeats 70/70 vs QP 72/72" — <em>but 70 vs 72 is within noise, and 91/90 was never re-run direct at matched temp</em></td>
+        <td class="ro"><span class="badge b-t1">✅ Tier 1</span></td>
+      </tr>
+
+      <tr data-ro="t1">
+        <td class="num">3</td>
+        <td class="mname">Step-imatrix blk44 ffn_down→q4_K<span class="sub">leading candidate</span></td>
+        <td class="size">83906 MiB<br>3.57 · +180 MiB</td>
+        <td class="qual">direct 20-case <span class="hi">85/85/85</span> (3×, D,temp1) — <em>beats QP 72 by +13</em>; TE full <span class="w">89/88/89</span>; Hermes <span class="w">84/81</span>; stress 81/82/84/83/80 (×5) vs QP 87 (×1); <span class="hi">no true loop</span>; TC-60 fails.</td>
+        <td class="speed">26.17 / 204.36 / 254.92 / 288.32<br>(tied QP)</td>
+        <td class="reason">"KEEP / same-route finalist, not full-suite winner" — <em>not rejected; held back by statistically invalid stress evidence (5 vs 1 passes)</em></td>
+        <td class="ro"><span class="badge b-t1">✅ Tier 1</span><br><span class="badge b-lead">lead</span></td>
+      </tr>
+
+      <!-- B. Over-rejected -->
+      <tr class="grprow"><td colspan="7">B · Over-rejected (auditor's own correction)</td></tr>
+
+      <tr data-ro="t1">
+        <td class="num">4</td>
+        <td class="mname">all-K/V q5 (ALLKVQ5)<span class="sub">all K/V 0-44 → q5_K</span></td>
+        <td class="size">83771 MiB<br>3.57 · +45 MiB</td>
+        <td class="qual">20-case <span class="hi">78 (31/40)</span> vs QP <span class="w">72</span> on same slice — <em>a WIN</em>; <span class="hi">passed TC-60</span>; <span class="hi">no loop</span>; median <span class="hi">3153 ms</span> (2× faster than QP 5722). Rebuild repeat → 70.</td>
+        <td class="speed">25.99 / 202.89 / 252.91 / 284.58</td>
+        <td class="reason">"reject as final…" → <strong>AUDIT CORRECTED</strong>: "over-rejected… active unresolved compact lead. Artifact pruned prematurely."</td>
+        <td class="ro"><span class="badge b-t1">✅ Tier 1</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">5</td>
+        <td class="mname">lateKV35 q5<span class="sub">K/V layers 35-44 → q5_K</span></td>
+        <td class="size">83736 MiB<br>3.57 · +10 MiB</td>
+        <td class="qual">TE sent <span class="hi">88 then 100</span>; TE full <span class="w">88</span>; TC-49/56/60/61 positives; rebuild direct 68, proxy 57; Hermes sent 50.</td>
+        <td class="speed">26.00 / 198.61 / 249.31 / 280.66</td>
+        <td class="reason">"reject as final… dominated" → <strong>AUDIT CORRECTED</strong>: "real tool signal… 'tool lead with Hermes concern', not 'obvious reject'. Artifact also pruned."</td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">6</td>
+        <td class="mname">AGENTKV-lite<span class="sub">early K/V 0-21 q6 only</span></td>
+        <td class="size">83771 MiB<br>3.57 · +45 MiB</td>
+        <td class="qual">narrow sent 88 (TC-38/61/62 pass); 20-case <span class="lo">62</span>; Hermes sent 50.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… broader 20-case gate invalidates narrow sentinel promise"</td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <!-- C. K/V isolation -->
+      <tr class="grprow"><td colspan="7">C · K/V directionality isolation</td></tr>
+
+      <tr data-ro="no">
+        <td class="num">7</td>
+        <td class="mname">AGENTV (V-only)<span class="sub">V 0-21 q6, V 22-44 q5</span></td>
+        <td class="size">83760 MiB<br>3.57 · +34 MiB</td>
+        <td class="qual">20-case <span class="lo">60 (24/40)</span>, median 6315 ms. Loses TC-03/38/68. V-side alone worse.</td>
+        <td class="speed">none (slower than QP)</td>
+        <td class="reason">"reject… V promotion alone is not the quality source" — clean negative</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">8</td>
+        <td class="mname">AGENTK (K-only)<span class="sub">K 0-21 q6, K 22-44 q5</span></td>
+        <td class="size">83760 MiB<br>3.57 · +34 MiB</td>
+        <td class="qual">20-case <span class="w">72 (29/40, tied QP)</span>, median 6275 ms. Recovers TC-47/61, loses TC-38.</td>
+        <td class="speed">none (slower than QP)</td>
+        <td class="reason">"reject as model… same total as QP plus TC-38/60 failures" — <em>K-side is "the useful half"; tied QP is not a loss</em></td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <!-- D. APEX family -->
+      <tr class="grprow"><td colspan="7">D · APEX family (earlier, larger)</td></tr>
+
+      <tr data-ro="no">
+        <td class="num">9</td>
+        <td class="mname">APEX edge FP4</td>
+        <td class="size">86368 MiB<br>3.68 · 85G</td>
+        <td class="qual">Hermes <span class="w">86/79</span>, TE <span class="w">87/87</span>, direct 20-case <span class="lo">62</span>, <span class="lo">prior true TC-61 loop</span>.</td>
+        <td class="speed">26.65 / 205.09 / 257.00 / 288.51</td>
+        <td class="reason">"reject/delete… direct 20-case 62 + prior true TC-61 loop"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">10</td>
+        <td class="mname">APEX K-protected control</td>
+        <td class="size">87313 MiB<br>3.72 · 86G</td>
+        <td class="qual">TE <span class="w">89</span>, Hermes <span class="w">81/78</span>, direct 20-case 75→<span class="lo">65 (fatal TC-03 loop)</span>.</td>
+        <td class="speed"><span class="hi">27.01</span> / 204.86 / 256.20 / 284.89 (best TG)</td>
+        <td class="reason">"reject… repeat collapsed to 65 + fatal TC-03 loop" — <em>but best TG speed clue discarded</em></td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">11</td>
+        <td class="mname">LC-rescue APEX-edge</td>
+        <td class="size">86248 MiB<br>3.67 · 85G</td>
+        <td class="qual">Hermes <span class="lo">75</span> only.</td>
+        <td class="speed">none</td>
+        <td class="reason">"larger than QP, materially worse on Hermes, no TE win"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">12</td>
+        <td class="mname">APEX early-edge FP4</td>
+        <td class="size">87043 MiB<br>3.71 · 86G</td>
+        <td class="qual">Hermes <span class="lo">83/73</span>, HA-17 50.</td>
+        <td class="speed">none</td>
+        <td class="reason">"larger, weaker evidence, no full TE win"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">13</td>
+        <td class="mname">APEX mid35-39 Q4</td>
+        <td class="size">90013 MiB<br>3.83 · 88G</td>
+        <td class="qual">TE <span class="w">86</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"larger than all kept, worse on TE"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">14</td>
+        <td class="mname">APEX tail15-44 Q4</td>
+        <td class="size">100818 MiB<br>98.46 GiB · 99G</td>
+        <td class="qual">HA-07 <span class="lo">0/30</span> (runtime-fit failure).</td>
+        <td class="speed">none</td>
+        <td class="reason">"too large, near 64k memory cliff"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">15</td>
+        <td class="mname">APEX all-routed Q4</td>
+        <td class="size">106213 MiB<br>4.52 · 104G</td>
+        <td class="qual">runtime/GTT cliff, no HA score.</td>
+        <td class="speed">none</td>
+        <td class="reason">"too large/unfit"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">16</td>
+        <td class="mname">APEX late-gate/up FP4</td>
+        <td class="size">86863 MiB<br>3.70 · 85G</td>
+        <td class="qual">TE <span class="w">88</span>, Hermes <span class="w">83</span>, <span class="hi">no fatal loop</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject as dominated… larger, ties QP TE, doesn't beat QP Hermes" — <em>88/83 + no loop is not bad; dismissed on size/dominance</em></td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">17</td>
+        <td class="mname">QP + APEX layer-42 latedown1 Q4</td>
+        <td class="size">83906 MiB<br>3.57 · +180 MiB · 82G</td>
+        <td class="qual">TE <span class="lo">86</span>, Hermes <span class="lo">82</span>, <span class="lo">slower</span> (4k TG 25.60 vs 28.30).</td>
+        <td class="speed">4k TG 25.60; 16k 26.03</td>
+        <td class="reason">"slower + worse TE/Hermes despite more memory"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">18</td>
+        <td class="mname">Upstream APEX-I-Compact (fixed tmpl)</td>
+        <td class="size">85G</td>
+        <td class="qual">TE <span class="w">88 (122/138)</span>, <span class="hi">TC-60/62 pass</span>, Hermes <span class="lo">77</span>, <span class="lo">fatal HA-05 loop</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… larger, lower Hermes, below AGENTKV TE, fatal HA-05 loop" — <em>but the only candidate that passed TC-60!</em></td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <!-- E. QP overlays -->
+      <tr class="grprow"><td colspan="7">E · QualityPlus overlay variants (ROCmFPX repair attempts)</td></tr>
+
+      <tr data-ro="no">
+        <td class="num">19</td>
+        <td class="mname">QP + late gate/up FP4</td>
+        <td class="size">85076 MiB<br>3.62 · +1350 MiB · 84G</td>
+        <td class="qual">TE <span class="w">87</span>, Hermes <span class="w">84</span>, sent 50.</td>
+        <td class="speed">none</td>
+        <td class="reason">"dominated… larger, doesn't fix TC-60/HA-07, TE below QP"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">20</td>
+        <td class="mname">QP output/token q6_0_rocmfpx (OUTTOKQ6)</td>
+        <td class="size">84009 MiB<br>3.58 · +283 MiB · 83G</td>
+        <td class="qual">Hermes sent <span class="lo">55</span>, TE sent <span class="lo">38</span>, <span class="lo">fatal HA-17 subagent loops</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… worsens TE sentinel, introduces HA-17 loops"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">21</td>
+        <td class="mname">QP attn_gate q6_0_rocmfpx</td>
+        <td class="size">83731 MiB<br>3.57 · +5.77 MiB · 82G</td>
+        <td class="qual">TE sent <span class="lo">62</span>, Hermes <span class="lo">50</span>, <span class="lo">bad TC-60 (sleeper BCC)</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"cheap negative control… bad TC-60 safety failure"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">22</td>
+        <td class="mname">QP late K/V q5 layers 22-44 (lateKV22)</td>
+        <td class="size">83749 MiB<br>3.57 · +23 MiB</td>
+        <td class="qual">sent 88, full TE <span class="lo">80 (111/138)</span> — collapsed.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… worse than QP/AGENTKV/lateKV35 despite more K/V memory" (the one demotion that held up)</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">23</td>
+        <td class="mname">QP front-q6 mid-q5 no-tail</td>
+        <td class="size">83784 MiB<br>3.57 · +58 MiB</td>
+        <td class="qual">20-case <span class="lo">57 (23/40)</span>, TC-60 safety fail.</td>
+        <td class="speed">4k 25.57 / 16k 23.59</td>
+        <td class="reason">"reject… failed gate badly + TC-60 safety"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">24</td>
+        <td class="mname">QP front-q6 tail-q5</td>
+        <td class="size">83781 MiB<br>3.57 · +55 MiB</td>
+        <td class="qual">20-case <span class="lo">68</span>, TC-61/68 fail, <span class="hi">but passed TC-60 + recovered TC-24/43/38/49/56</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… TE 68 far below QP/AGENTKV" — <em>passed TC-60 (rare)</em></td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">25</td>
+        <td class="mname">QP late-routed hybrid</td>
+        <td class="size">+2.20 GiB</td>
+        <td class="qual">20-case <span class="lo">55</span>, TC-60/61/68 fail.</td>
+        <td class="speed"><span class="hi">4k decode 39.49 tok/s</span> (fast sample)</td>
+        <td class="reason">"reject… +2.2GiB, collapses to 55" — <em>speed clue</em></td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">26</td>
+        <td class="mname">QP AGENTKV + late gate/up FP4 40-42</td>
+        <td class="size">84604 MiB<br>3.60 · +878 MiB · 83G</td>
+        <td class="qual">20-case <span class="lo">62 (25/40)</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… failed to repair AGENTKV weakness, +878 MiB"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">27</td>
+        <td class="mname">QP all-K/V q5 + 18-21 q6 transition</td>
+        <td class="size">83775 MiB<br>3.57 · +49 MiB</td>
+        <td class="qual">20-case <span class="lo">62</span> (proxy), median 3103 ms.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… q6 transition collapsed to 62"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <!-- F. blk44 interactions -->
+      <tr class="grprow"><td colspan="7">F · Step-imatrix blk44 interaction variants</td></tr>
+
+      <tr data-ro="no">
+        <td class="num">28</td>
+        <td class="mname">blk44 → q4_0_rocmfp4_fast (FP4 A/B)</td>
+        <td class="size">83861 MiB<br>3.57 · +135 MiB</td>
+        <td class="qual">20-case <span class="w">70 (28/40)</span>.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… q4_0_rocmfp4_fast not interchangeable with q4_K" (clean A/B negative)</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="t2">
+        <td class="num">29</td>
+        <td class="mname">blk42 → q4_K swap</td>
+        <td class="size">83906 MiB<br>3.57 · +180 MiB</td>
+        <td class="qual">20-case <span class="w">80 (32/40)</span>, median 5133 ms. Lost TC-48/57 vs blk44.</td>
+        <td class="speed">26.10 / 202.79 / 253.92 / 280.51</td>
+        <td class="reason">"reject/prune… imatrix disagreement favors blk44" — <em>80 is strong; only lost to blk44's 85; never stress-tested</em></td>
+        <td class="ro"><span class="badge b-t2">🟡 Tier 2</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">30</td>
+        <td class="mname">blk44 q4_K + lateKV35</td>
+        <td class="size">83916 MiB<br>3.57 · +190 MiB</td>
+        <td class="qual">20-case <span class="lo">68</span>.</td>
+        <td class="speed">26.07 / 181.60 / 263.55 / 295.34</td>
+        <td class="reason">"reject… combination worse than both parents"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">31</td>
+        <td class="mname">blk44 q4_K + lateK35-only</td>
+        <td class="size">83911 MiB<br>3.57 · +185 MiB</td>
+        <td class="qual">20-case <span class="lo">65</span>. TC-61 held, lost TC-24/43.</td>
+        <td class="speed">26.22 / 206.13 / 257.19 / 295.23</td>
+        <td class="reason">"reject… K-only recovers TC-61 but damages compliance"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">32</td>
+        <td class="mname">blk43+blk44 q4_K</td>
+        <td class="size">83906 MiB<br>3.57</td>
+        <td class="qual">20-case <span class="lo">62</span>.</td>
+        <td class="speed">24.45 / 187.16 / 251.56 / 295.03</td>
+        <td class="reason">"reject… adjacent broadening collapses"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <tr data-ro="no">
+        <td class="num">33</td>
+        <td class="mname">AGENTKV + blk44 q4_K</td>
+        <td class="size">83974 MiB<br>3.58 · +248 MiB · 83G</td>
+        <td class="qual">20-case <span class="w">70 (28/40)</span>, median 6046 ms. Repaired TC-03/24/40/43, lost TC-61.</td>
+        <td class="speed">none</td>
+        <td class="reason">"reject… breaks async/state-chain that made both parents worth considering"</td>
+        <td class="ro"><span class="badge b-no">⛔ fair</span></td>
+      </tr>
+
+      <!-- G. Investigation -->
+      <tr class="grprow"><td colspan="7">G · Investigation (not a promoted build)</td></tr>
+
+      <tr data-ro="no">
+        <td class="num">34</td>
+        <td class="mname">Q3_0_ROCMFPX_AGENT (global)</td>
+        <td class="size">136310 MiB<br>5.81 BPW</td>
+        <td class="qual">Works as global ftype but <strong>cannot be assigned per-tensor</strong>; too big as global. Yielded the "protect attention K/V" clue that seeded AGENTKV.</td>
+        <td class="speed">—</td>
+        <td class="reason">n/a — investigation, not promoted</td>
+        <td class="ro"><span class="badge b-no">n/a</span></td>
+      </tr>
+
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== REOPEN ===================== -->
+<section id="reopen">
+  <h2><span class="n">05</span> Reopen Recommendations</h2>
+
+  <div class="tier t1">
+    <div class="thead"><span class="badge b-t1">Tier 1</span><span class="tname">Reopen with a fair bracket — highest value</span></div>
+
+    <div class="titem">
+      <div class="iname">1. AGENTKV — the single most unfair dismissal</div>
+      <div class="imet">
+        Holds the <strong>best Tool Eval score ever recorded</strong> for this family (91/90, 125/138 then 124/138), with
+        <strong>stable gains on TC-38/47/49/56/61/62</strong> — exactly the reliability cases that matter. Demoted to "70"
+        based on a direct temp=1.0 20-case run vs its own temp=0.0 proxy full-suite score. 70 vs QP's 72 on a 20-case slice
+        is <strong>within run-to-run noise</strong>, and the ledger notes AGENTKV also <em>beat</em> QP on TC-34/47/57.
+        <strong>It was never given a fair full-suite direct temp=1.0 thinking repeat.</strong>
+      </div>
+      <div class="iaction"><b>Action:</b> Run AGENTKV full 69-case Tool Eval + full HermesAgent-20 on direct 18081, temp=1.0,
+      top_p=0.95, thinking on — the same route QP's 88/88/90 was <em>not</em> run on. Then compare apples-to-apples.</div>
+    </div>
+
+    <div class="titem">
+      <div class="iname">2. Step-imatrix blk44 q4_K — already the lead, just not promoted</div>
+      <div class="imet">
+        Direct 20-case <strong>85/85/85</strong> (three identical repeats) vs QP <strong>72/72</strong> on the same route —
+        a +13 signal that is <em>more stable</em> than QP's own repeats. Held back by "stress-order favors QP 87 vs blk44
+        81/82/84/83/80" — but blk44 got <strong>5 stress passes</strong> vs QP's <strong>1</strong>. With n=1 for QP, "87"
+        is not a reliable anchor. The auditor admitted: <em>"no exact unique test justifies rejecting blk44 q4_K."</em>
+      </div>
+      <div class="iaction"><b>Action:</b> Give QualityPlus the same 5 stress-order passes before claiming it wins stress.
+      Run blk44 n_max=1 + SPEC_DRAFT_P_MIN&gt;0.75 (the planned next test that was never completed).</div>
+    </div>
+
+    <div class="titem">
+      <div class="iname">3. all-K/V q5 (ALLKVQ5) — the cleanest "dismissed despite winning" case</div>
+      <div class="imet">
+        <strong>Beat QP 78→72 on the same 20-case slice</strong>, <strong>passed TC-60</strong> (which QP fails), no loop,
+        and was <strong>2× faster</strong> (median 3153 vs 5722 ms). Rejected from one pass, artifact deleted. The auditor
+        <em>retroactively</em> called this premature. Its only sin: a rebuild repeat fell to 70 — still <strong>tied with
+        QP's 72</strong> within noise, and it kept different positives.
+      </div>
+      <div class="iaction"><b>Action:</b> Rebuild from the retained recipe/profile/quant-log and run 2–3 full direct
+      temp=1.0 passes. It earned a real bracket.</div>
+    </div>
+  </div>
+
+  <div class="tier t2">
+    <div class="thead"><span class="badge b-t2">Tier 2</span><span class="tname">Reopen as cheap diagnostics</span></div>
+
+    <div class="titem">
+      <div class="iname">4. lateKV35 q5</div>
+      <div class="imet">Only +10 MiB. Old sentinel 88→100 and full 88 with TC-49/56/60/61 positives. Rebuild direct fell to
+      68, but the old positives are real and the auditor flagged it as "tool lead with Hermes concern, not obvious reject."</div>
+      <div class="iaction"><b>Action:</b> Worth one clean direct repeat before final discard.</div>
+    </div>
+
+    <div class="titem">
+      <div class="iname">5. Upstream APEX-I-Compact</div>
+      <div class="imet">The <strong>only candidate that passed TC-60 and TC-62</strong>. Rejected for a fatal HA-05 loop
+      (legitimate), but as a <em>reference for what makes TC-60 pass</em>, it's uniquely valuable.</div>
+      <div class="iaction"><b>Action:</b> Don't promote it; mine it. Diff its weight schedule against the TC-60 failures.</div>
+    </div>
+
+    <div class="titem">
+      <div class="iname">6. blk42 q4_K swap</div>
+      <div class="imet">80/40 (32/40), second only to blk44's 85. Only "lost" because blk44 existed. If blk44's stress
+      instability can't be tamed, blk42 (different layer, possibly different stability profile) is the natural fallback —
+      and it was <strong>never stress-tested</strong>.</div>
+      <div class="iaction"><b>Action:</b> Run the same stress-order gate on blk42 as a blk44 fallback.</div>
+    </div>
+  </div>
+
+  <h3 style="color:var(--muted2);">Tier 3 — leave rejected (these were fair)</h3>
+  <p style="color:var(--muted);">AGENTV (60, clean negative) · APEX edge FP4 (true TC-61 loop) · APEX K-protected (fatal
+  TC-03 loop) · the unfit large APEX Q4 builds (memory cliff) · OUTTOKQ6 (HA-17 loops) · attn_gate q6 (safety regression)
+  · lateKV22 (full collapse to 80) · front-q6 mid-q5 no-tail (57) · late-routed hybrid (55) · the blk44 interaction
+  combos (all collapsed below parents).</p>
+</section>
+
+<!-- ===================== INSIGHTS ===================== -->
+<section id="insights">
+  <h2><span class="n">06</span> Additional Insights</h2>
+
+  <div class="insight">
+    <div class="inum">1</div>
+    <div class="ibody"><b>The comparison frame was inverted.</b> A replacement candidate should be judged against
+    QualityPlus <em>under the same burden of proof</em>. Instead, QP's weaknesses (TC-60 sleeper injection, Hermes 79 tail,
+    single stress pass) were treated as known/acceptable, while any candidate weakness became disqualifying. This is
+    survivorship bias for the incumbent — and the auditor explicitly conceded it.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">2</div>
+    <div class="ibody"><b>"Route-confounded" cuts both ways and was only applied to candidates.</b> The 8083 proxy that
+    inflated AGENTKV's 91/90 <em>also</em> shaped every early QP/edge/control number. The fair fix — re-run everything
+    direct at one temp — was proposed but <strong>never executed for the full suite</strong>. Until that single unified
+    bracket is run, no model in this audit has a defensible final ranking, including QualityPlus.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">3</div>
+    <div class="ibody"><b>The 20-case "hard slice" is a promotion gate scored at temp=1.0, while full-suite "big scores"
+    are temp=0.0.</b> A model can look worse on the hot slice and better on the full suite (AGENTKV: 70 vs 91). Picking the
+    slice as the tiebreaker systematically penalizes models whose strength is long-context/state-chain behavior — which is
+    <em>exactly</em> the AGENTKV/lateKV family's strength. The slice and the suite measure different things; conflating them
+    is the core methodological error.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">4</div>
+    <div class="ibody"><b>Speed was rarely the decider, but where it was, it was applied inconsistently.</b> APEX
+    K-protected had the <strong>best native TG (27.01)</strong> and TE 89, yet was deleted for a TC-03 loop on
+    <em>repeat</em> — fair on quality, but its speed lead was discarded rather than mined. Conversely, latedown1q4 was
+    fairly rejected <em>because</em> it was slower (25.60 vs 28.30). The lesson: speed should be a recorded axis for every
+    candidate, not just some.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">5</div>
+    <div class="ibody"><b>The MTP/draft path is an uncontrolled variable.</b> blk44 no-MTP <em>cleared</em> TC-42/45/54 that
+    blk44-MTP failed, but cost first-20 quality (24/40). n_max=1 was the best runtime lead (84/83) and the planned
+    p_min&gt;0.75 follow-up <strong>was never run</strong>. Runtime tuning may rescue blk44 more cheaply than any new
+    recipe — finish that test.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">6</div>
+    <div class="ibody"><b>TC-60 (sleeper injection) is a hard gate that almost nothing passes — yet APEX-I and all-K/V q5
+    both passed it.</b> That is a strong, specific, reproducible signal about <em>which weight families govern injection
+    resistance</em>, and it's being thrown away by rejecting the models that carry it. The TC-60-passing recipes deserve a
+    targeted diff study, not a discard.</div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">7</div>
+    <div class="ibody"><b>Pruning artifacts before the audit correction was the costliest process failure.</b> all-K/V q5
+    and lateKV35 artifacts were deleted <em>before</em> the "one-pass guardrail" was written. Their recipe/profile/quant-log
+    survive (so they're rebuildable), but rebuild cost is real. Going forward: <strong>never prune a candidate that beat the
+    control on any axis until it fails a same-route repeat.</strong></div>
+  </div>
+
+  <div class="insight">
+    <div class="inum">8</div>
+    <div class="ibody"><b>The "more ROCmFPX hurts" conclusion is only half-validated.</b> Direct ROCmFPX promotions
+    (output/token q6, attn_gate q6) were genuinely negative. But the <em>best</em> clues (AGENTKV, blk44 q4_K, all-K/V q5)
+    are all <strong>selective escapes from ROCmFPX into K-quants</strong> — exactly the pattern that was prematurely closed
+    off. The search direction was right; the dismissal timing was wrong.</div>
+  </div>
+</section>
+
+<!-- ===================== BRACKET ===================== -->
+<section id="bracket">
+  <h2><span class="n">07</span> The Fair Final Bracket (never run)</h2>
+  <p class="lead">One unified gate, same route/temp/runtime for every survivor. Until this exists, "no candidate has
+  replaced QualityPlus" is a statement about <strong>test fairness</strong>, not about <strong>model quality</strong>.</p>
+
+  <div class="bracket">
+<pre><code>Route:   direct 18081/v1
+Temp:    1.0     top_p: 0.95     seed: 123     thinking: on
+MTP:     n_max=1 (p_min=0.80)
+
+Survivors:  QualityPlus · AGENTKV · blk44 q4_K · all-K/V q5 · lateKV35
+
+Gate per model:
+  2× full 69-case Tool Eval
+  1× full HermesAgent-20
+  1× 61-case stress-order       (and give QualityPlus the SAME 5 passes)
+
+Promote: whichever is non-dominated
+         (or explicitly accept a quality / stability / speed tradeoff)</code></pre>
+    <div class="closing">
+      Run this bracket once and the entire audit resolves. Until then, every "winner" and every "reject" in this report
+      — including QualityPlus — carries an asterisk.
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Independent reopen review · generated from audit session
+  <code>019f3803-6f3a-70d2-ae4e-92ae18d097a9</code> · authoritative ledger
+  <code>step37-existing-artifact-frontier-20260706.md</code><br>
+  34 models inventoried · 4 confounds · 4 Tier-1 reopen candidates · 0 fair brackets run to date
+</footer>
+
+<script>
+  // Table filtering
+  const btns = document.querySelectorAll('.filterbar .fbtn');
+  const rows = document.querySelectorAll('#modelTable tbody tr:not(.grprow)');
+  const grprows = document.querySelectorAll('#modelTable tbody tr.grprow');
+  const countEl = document.getElementById('fcount');
+
+  function applyFilter(f) {
+    let visible = 0;
+    rows.forEach(r => {
+      const ro = r.getAttribute('data-ro');
+      let show = false;
+      if (f === 'all') show = true;
+      else if (f === 't1') show = ro === 't1';
+      else if (f === 't2') show = ro === 't2';
+      else if (f === 'no') show = ro === 'no';
+      else if (f === 'anchor') show = ro === 'anchor' || ro === 't1'; // include leads
+      if (show) { r.classList.remove('hidden'); visible++; }
+      else r.classList.add('hidden');
+    });
+    // hide group headers when their following section is fully hidden (simple: show all grprows always, they act as labels)
+    countEl.textContent = 'showing ' + visible;
+  }
+  btns.forEach(b => b.addEventListener('click', () => {
+    btns.forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    applyFilter(b.getAttribute('data-f'));
+  }));
+</script>
+
+</body>
+</html>

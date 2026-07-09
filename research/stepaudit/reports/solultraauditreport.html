@@ -1,0 +1,1904 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Comprehensive Step3.7 candidate audit reassessment: model inventory, metrics, rejection rationale, reopen recommendations, and fair retest protocol.">
+  <title>Sol Ultra — Step3.7 Candidate Audit</title>
+  <style>
+    :root {
+      --rack: #090e12;
+      --rack-soft: #0d1419;
+      --bench: #111a20;
+      --bench-raised: #162128;
+      --bench-high: #1a272f;
+      --well: #070c10;
+      --ink: #edf5f3;
+      --ink-2: #bdccca;
+      --ink-3: #8fa3a3;
+      --ink-4: #617477;
+      --trace: rgba(204, 238, 239, .10);
+      --trace-soft: rgba(204, 238, 239, .055);
+      --trace-strong: rgba(204, 238, 239, .18);
+      --phosphor: #66d4df;
+      --phosphor-soft: rgba(102, 212, 223, .12);
+      --evidence: #75d8a5;
+      --evidence-soft: rgba(117, 216, 165, .12);
+      --caution: #efbd6a;
+      --caution-soft: rgba(239, 189, 106, .12);
+      --reject: #e47c66;
+      --reject-soft: rgba(228, 124, 102, .12);
+      --violet: #b8a4ef;
+      --violet-soft: rgba(184, 164, 239, .12);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --sidebar: 248px;
+      --max: 1500px;
+      --ease: cubic-bezier(.23, 1, .32, 1);
+    }
+
+    html[data-theme="light"] {
+      --rack: #e9eeed;
+      --rack-soft: #f3f6f5;
+      --bench: #fbfcfb;
+      --bench-raised: #f4f7f6;
+      --bench-high: #ffffff;
+      --well: #e5ebea;
+      --ink: #142126;
+      --ink-2: #3e5054;
+      --ink-3: #687b7d;
+      --ink-4: #91a0a1;
+      --trace: rgba(17, 44, 49, .12);
+      --trace-soft: rgba(17, 44, 49, .06);
+      --trace-strong: rgba(17, 44, 49, .22);
+      --phosphor: #087f8c;
+      --phosphor-soft: rgba(8, 127, 140, .10);
+      --evidence: #167c4c;
+      --evidence-soft: rgba(22, 124, 76, .10);
+      --caution: #9d650a;
+      --caution-soft: rgba(157, 101, 10, .10);
+      --reject: #b54732;
+      --reject-soft: rgba(181, 71, 50, .10);
+      --violet: #6753a7;
+      --violet-soft: rgba(103, 83, 167, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--rack);
+      color: var(--ink);
+      font-family: "Aptos", "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--phosphor); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    code, .mono, .metric, td.num, .index {
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    h1, h2, h3, h4, .display, .nav-brand {
+      font-family: "Bahnschrift", "Arial Narrow", sans-serif;
+      font-stretch: condensed;
+      letter-spacing: -.025em;
+      text-wrap: balance;
+    }
+    p, li { text-wrap: pretty; }
+    h1, h2, h3, h4, p { margin-top: 0; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 20px;
+      border-right: 1px solid var(--trace);
+      background: var(--rack);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+    }
+    .nav-brand {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .nav-sub {
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.4;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .nav-line {
+      height: 1px;
+      background: var(--trace);
+      margin: 20px 0 16px;
+    }
+    .section-nav {
+      display: grid;
+      gap: 3px;
+    }
+    .section-nav a {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      color: var(--ink-3);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 550;
+      transition: color 140ms var(--ease), background 140ms var(--ease);
+    }
+    .section-nav a:hover, .section-nav a:focus-visible {
+      color: var(--ink);
+      background: var(--trace-soft);
+      outline: none;
+    }
+    .section-nav a.active {
+      color: var(--phosphor);
+      background: var(--phosphor-soft);
+    }
+    .nav-num {
+      width: 22px;
+      color: var(--ink-4);
+      font-family: "Cascadia Mono", monospace;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    .sidebar-actions {
+      margin-top: auto;
+      display: grid;
+      gap: 8px;
+    }
+    .sidebar-note {
+      font-size: 11px;
+      color: var(--ink-4);
+      line-height: 1.45;
+      padding: 0 4px 8px;
+    }
+    .ui-button {
+      min-height: 42px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-sm);
+      background: var(--bench);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+      transition: transform 120ms var(--ease), border-color 140ms var(--ease), background 140ms var(--ease);
+    }
+    .ui-button:hover { background: var(--bench-raised); border-color: var(--trace-strong); }
+    .ui-button:active { transform: scale(.97); }
+    .ui-button:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
+    .ui-button.primary { color: var(--rack); background: var(--phosphor); border-color: transparent; }
+    html[data-theme="light"] .ui-button.primary { color: #fff; }
+
+    main { min-width: 0; }
+    .content {
+      width: min(100%, var(--max));
+      margin: 0 auto;
+      padding: 52px 48px 100px;
+    }
+    .section {
+      scroll-margin-top: 24px;
+      padding: 64px 0;
+      border-top: 1px solid var(--trace);
+    }
+    .section:first-child { border-top: 0; padding-top: 28px; }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--phosphor);
+      font-family: "Cascadia Mono", monospace;
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--phosphor);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(310px, .55fr);
+      gap: 48px;
+      align-items: end;
+    }
+    .hero h1 {
+      font-size: clamp(44px, 6vw, 84px);
+      line-height: .94;
+      margin: 0 0 28px;
+      max-width: 980px;
+      letter-spacing: -.055em;
+    }
+    .hero h1 span { color: var(--phosphor); }
+    .lede {
+      max-width: 820px;
+      color: var(--ink-2);
+      font-family: "Cambria", Georgia, serif;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.45;
+      margin-bottom: 0;
+    }
+    .hero-verdict {
+      border-left: 2px solid var(--evidence);
+      padding: 4px 0 4px 20px;
+      margin-bottom: 6px;
+    }
+    .hero-verdict .label {
+      color: var(--evidence);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .hero-verdict strong {
+      display: block;
+      font-family: "Bahnschrift", sans-serif;
+      font-size: 26px;
+      line-height: 1.12;
+      margin-bottom: 10px;
+    }
+    .hero-verdict p { color: var(--ink-3); margin: 0; font-size: 13px; }
+
+    .integrity-rail {
+      margin-top: 48px;
+      border: 1px solid var(--trace);
+      background: var(--well);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .rail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--trace);
+      color: var(--ink-3);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .rail-head strong { color: var(--ink-2); }
+    .rail-track {
+      display: grid;
+      grid-template-columns: 31fr 2fr 7fr 1fr;
+      min-height: 16px;
+      background: var(--rack-soft);
+    }
+    .rail-track span:nth-child(1) { background: var(--evidence); }
+    .rail-track span:nth-child(2) { background: var(--caution); }
+    .rail-track span:nth-child(3) { background: var(--reject); }
+    .rail-track span:nth-child(4) { background: var(--violet); }
+    .rail-legend {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--trace);
+    }
+    .rail-stat {
+      padding: 16px;
+      border-right: 1px solid var(--trace);
+    }
+    .rail-stat:last-child { border-right: 0; }
+    .rail-stat .value {
+      font: 650 24px/1 "Cascadia Mono", monospace;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 7px;
+    }
+    .rail-stat .caption { color: var(--ink-3); font-size: 12px; line-height: 1.35; }
+    .rail-stat.good .value { color: var(--evidence); }
+    .rail-stat.warn .value { color: var(--caution); }
+    .rail-stat.bad .value { color: var(--reject); }
+    .rail-stat.info .value { color: var(--violet); }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, .75fr) minmax(300px, .45fr);
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 36px;
+    }
+    .section-head h2 {
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1;
+      margin: 0;
+      letter-spacing: -.045em;
+    }
+    .section-head p { color: var(--ink-3); margin: 0; }
+    .section-index {
+      color: var(--ink-4);
+      font: 600 12px/1 "Cascadia Mono", monospace;
+      margin-bottom: 12px;
+    }
+    .prose {
+      max-width: 900px;
+      color: var(--ink-2);
+      font-family: "Cambria", Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+    .prose strong { color: var(--ink); }
+    .finding {
+      background: var(--bench);
+      border-left: 3px solid var(--phosphor);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      padding: 24px 28px;
+      margin: 28px 0;
+    }
+    .finding strong { display: block; font-size: 18px; margin-bottom: 8px; }
+    .finding p { color: var(--ink-2); margin: 0; }
+
+    .dossier-list {
+      display: grid;
+      gap: 12px;
+    }
+    .dossier {
+      display: grid;
+      grid-template-columns: 56px minmax(220px, .85fr) minmax(280px, 1.35fr) minmax(220px, 1fr);
+      gap: 20px;
+      align-items: start;
+      padding: 22px 24px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+      background: var(--bench);
+    }
+    .dossier:hover { border-color: var(--trace-strong); }
+    .dossier-rank {
+      color: var(--evidence);
+      font: 650 26px/1 "Cascadia Mono", monospace;
+    }
+    .dossier h3 { font-size: 20px; line-height: 1.15; margin: 0 0 8px; }
+    .dossier .sub { color: var(--ink-3); font-size: 12px; }
+    .dossier .case { color: var(--ink-2); margin: 0; font-size: 14px; }
+    .dossier .test {
+      padding-left: 16px;
+      border-left: 1px solid var(--trace);
+      color: var(--ink-3);
+      font-size: 13px;
+    }
+    .mini-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .mini-metric {
+      padding: 4px 7px;
+      border-radius: 4px;
+      background: var(--well);
+      color: var(--ink-2);
+      font: 600 11px/1.3 "Cascadia Mono", monospace;
+    }
+    .conditional-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 28px;
+    }
+    .conditional {
+      padding: 18px;
+      background: var(--caution-soft);
+      border-top: 2px solid var(--caution);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+    .conditional h4 { font-size: 15px; margin-bottom: 8px; }
+    .conditional p { color: var(--ink-3); font-size: 12px; line-height: 1.45; margin: 0; }
+    .mechanism {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 20px;
+      border: 1px dashed var(--caution);
+      border-radius: var(--radius-md);
+      background: var(--caution-soft);
+    }
+    .mechanism .metric { color: var(--caution); font-size: 24px; font-weight: 700; }
+    .mechanism p { margin: 0; color: var(--ink-2); }
+
+    .glossary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin: 28px 0 36px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .glossary div { padding: 16px; border-right: 1px solid var(--trace); background: var(--bench); }
+    .glossary div:last-child { border-right: 0; }
+    .glossary dt { color: var(--phosphor); font: 700 12px/1 "Cascadia Mono", monospace; margin-bottom: 8px; }
+    .glossary dd { margin: 0; color: var(--ink-3); font-size: 12px; }
+
+    .ledger-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto auto;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      background: color-mix(in srgb, var(--rack) 90%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .search-wrap { position: relative; }
+    .search-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-4);
+      font-size: 18px;
+      pointer-events: none;
+    }
+    .search {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 12px 8px 38px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-sm);
+      background: var(--well);
+      color: var(--ink);
+      outline: none;
+    }
+    .search::placeholder { color: var(--ink-4); }
+    .search:focus { border-color: var(--phosphor); box-shadow: 0 0 0 3px var(--phosphor-soft); }
+    .select {
+      min-height: 42px;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-sm);
+      background: var(--well);
+      color: var(--ink-2);
+      padding: 8px 34px 8px 12px;
+      outline: none;
+    }
+    .select:focus { border-color: var(--phosphor); box-shadow: 0 0 0 3px var(--phosphor-soft); }
+    .result-count {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      padding: 0 8px;
+      color: var(--ink-3);
+      font: 600 11px/1 "Cascadia Mono", monospace;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--trace);
+      border-top: 0;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      background: var(--bench);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--trace-soft);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--ink-3);
+      background: var(--bench-raised);
+      font-size: 10px;
+      line-height: 1.25;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: var(--trace-soft); }
+    td { color: var(--ink-2); font-size: 12px; }
+    td.model-name { color: var(--ink); font-size: 13px; font-weight: 650; min-width: 240px; }
+    td.model-name small { display: block; color: var(--ink-4); font-weight: 500; margin-top: 4px; }
+    .open-model {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: inherit;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: transparent;
+      text-underline-offset: 3px;
+    }
+    .open-model:hover { color: var(--phosphor); text-decoration-color: currentColor; }
+    .open-model:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 3px; border-radius: 2px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 23px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .chip.primary { color: var(--evidence); background: var(--evidence-soft); }
+    .chip.conditional { color: var(--caution); background: var(--caution-soft); }
+    .chip.rejected { color: var(--reject); background: var(--reject-soft); }
+    .chip.control { color: var(--phosphor); background: var(--phosphor-soft); }
+    .chip.untested { color: var(--violet); background: var(--violet-soft); }
+    .confound { color: var(--caution); }
+    .verified { color: var(--evidence); }
+    .missing { color: var(--ink-4); }
+    .empty-row { padding: 36px; text-align: center; color: var(--ink-4); }
+
+    .subsection { margin-top: 48px; }
+    .subsection h3 { font-size: 24px; margin-bottom: 8px; }
+    .subsection > p { color: var(--ink-3); max-width: 900px; }
+    .data-table {
+      overflow: auto;
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+      background: var(--bench);
+      margin-top: 20px;
+    }
+    .data-table table { min-width: 760px; }
+    .data-table td:first-child { color: var(--ink); font-weight: 620; }
+    .data-table .best { color: var(--evidence); font-weight: 700; }
+    .callout {
+      padding: 18px 20px;
+      border-radius: var(--radius-md);
+      background: var(--caution-soft);
+      border: 1px solid color-mix(in srgb, var(--caution) 45%, transparent);
+      color: var(--ink-2);
+      margin-top: 20px;
+    }
+    .callout strong { color: var(--caution); }
+
+    .defect-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--trace);
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .defect {
+      padding: 24px;
+      background: var(--bench);
+      min-height: 190px;
+    }
+    .defect .num {
+      color: var(--reject);
+      font: 650 11px/1 "Cascadia Mono", monospace;
+      margin-bottom: 14px;
+    }
+    .defect h3 { font-size: 19px; margin-bottom: 10px; }
+    .defect p { color: var(--ink-3); font-size: 13px; margin: 0; }
+    .evidence-cells {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 28px 0 36px;
+    }
+    .evidence-cell {
+      padding: 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--trace);
+      background: var(--bench);
+    }
+    .evidence-cell .state {
+      font: 700 10px/1 "Cascadia Mono", monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .evidence-cell.good .state { color: var(--evidence); }
+    .evidence-cell.warn .state { color: var(--caution); }
+    .evidence-cell.bad .state { color: var(--reject); }
+    .evidence-cell h3 { font-size: 18px; margin-bottom: 8px; }
+    .evidence-cell p { color: var(--ink-3); font-size: 12px; margin: 0; }
+
+    .protocol {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .protocol-lane {
+      padding: 28px;
+      border-radius: var(--radius-md);
+      background: var(--bench);
+      border: 1px solid var(--trace);
+    }
+    .protocol-lane.primary-lane { border-top: 3px solid var(--evidence); }
+    .protocol-lane.live-lane { border-top: 3px solid var(--caution); }
+    .protocol-lane h3 { font-size: 23px; margin-bottom: 10px; }
+    .protocol-lane > p { color: var(--ink-3); }
+    .run-order {
+      margin: 20px 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: run;
+    }
+    .run-order li {
+      counter-increment: run;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--trace-soft);
+      color: var(--ink-2);
+    }
+    .run-order li::before {
+      content: counter(run, decimal-leading-zero);
+      color: var(--ink-4);
+      font: 600 11px/1.6 "Cascadia Mono", monospace;
+    }
+    .lock-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .lock {
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      background: var(--well);
+      color: var(--ink-3);
+      font-size: 11px;
+    }
+    .lock strong { color: var(--ink-2); display: block; margin-bottom: 3px; }
+
+    .provenance {
+      display: grid;
+      grid-template-columns: .7fr 1.3fr;
+      gap: 32px;
+    }
+    .source-block {
+      padding: 22px;
+      background: var(--bench);
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+    }
+    .source-block h3 { font-size: 18px; margin-bottom: 14px; }
+    .source-block ul { margin: 0; padding-left: 18px; color: var(--ink-3); font-size: 12px; }
+    .source-block li + li { margin-top: 8px; }
+    .path {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--ink-2);
+      font: 500 11px/1.5 "Cascadia Mono", monospace;
+    }
+    .completeness {
+      margin-top: 36px;
+      padding: 20px;
+      border: 1px solid var(--evidence);
+      border-radius: var(--radius-md);
+      background: var(--evidence-soft);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+    .completeness strong { color: var(--evidence); }
+    .completeness .metric { font-size: 16px; }
+
+    dialog {
+      width: min(900px, calc(100vw - 32px));
+      max-height: min(880px, calc(100vh - 32px));
+      padding: 0;
+      border: 1px solid var(--trace-strong);
+      border-radius: var(--radius-lg);
+      background: var(--bench-high);
+      color: var(--ink);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, .45);
+      overflow: hidden;
+    }
+    dialog::backdrop { background: rgba(1, 6, 9, .76); backdrop-filter: blur(6px); }
+    .dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      padding: 22px 24px;
+      background: var(--bench-high);
+      border-bottom: 1px solid var(--trace);
+    }
+    .dialog-head h2 { font-size: 25px; line-height: 1.1; margin: 5px 0 0; }
+    .dialog-body { padding: 24px; overflow: auto; }
+    .dialog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dialog-panel {
+      padding: 18px;
+      background: var(--bench);
+      border: 1px solid var(--trace);
+      border-radius: var(--radius-md);
+    }
+    .dialog-panel.full { grid-column: 1 / -1; }
+    .dialog-panel h3 {
+      color: var(--ink-3);
+      font: 700 10px/1 "Cascadia Mono", monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .dialog-panel ul { margin: 0; padding-left: 18px; color: var(--ink-2); }
+    .dialog-panel li + li { margin-top: 7px; }
+    .dialog-panel p { color: var(--ink-2); margin: 0; }
+    .close-button {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--trace);
+      background: var(--bench);
+      cursor: pointer;
+      font-size: 20px;
+    }
+    .close-button:hover { background: var(--bench-raised); }
+    .close-button:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
+
+    @media (max-width: 1180px) {
+      .conditional-grid { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+      .dossier { grid-template-columns: 44px minmax(200px, .8fr) 1.2fr; }
+      .dossier .test { grid-column: 2 / -1; border-left: 0; border-top: 1px solid var(--trace); padding: 12px 0 0; }
+    }
+    @media (max-width: 900px) {
+      .shell { display: block; }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        height: auto;
+        padding: 10px 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--trace);
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+      }
+      .nav-brand { margin: 0; font-size: 14px; white-space: nowrap; }
+      .nav-sub, .nav-line, .sidebar-note { display: none; }
+      .section-nav {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        margin-left: auto;
+      }
+      .section-nav a { min-height: 38px; padding: 7px 10px; white-space: nowrap; }
+      .section-nav .nav-num { display: none; }
+      .sidebar-actions { margin: 0; display: flex; }
+      .sidebar-actions .ui-button:first-child { display: none; }
+      .content { padding: 32px 20px 72px; }
+      .hero, .section-head, .provenance { grid-template-columns: 1fr; gap: 28px; }
+      .hero h1 { font-size: clamp(42px, 12vw, 70px); }
+      .rail-legend { grid-template-columns: 1fr 1fr; }
+      .rail-stat:nth-child(2) { border-right: 0; }
+      .rail-stat:nth-child(-n+2) { border-bottom: 1px solid var(--trace); }
+      .glossary { grid-template-columns: 1fr 1fr; }
+      .glossary div:nth-child(2) { border-right: 0; }
+      .glossary div:nth-child(-n+2) { border-bottom: 1px solid var(--trace); }
+      .dossier { grid-template-columns: 36px 1fr; }
+      .dossier .case, .dossier .test { grid-column: 2; }
+      .conditional-grid { grid-template-columns: 1fr 1fr; }
+      .ledger-toolbar { position: static; grid-template-columns: 1fr 1fr; }
+      .search-wrap { grid-column: 1 / -1; }
+      .defect-grid, .protocol { grid-template-columns: 1fr; }
+      .evidence-cells { grid-template-columns: 1fr; }
+      .lock-list { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .section { padding: 48px 0; }
+      .hero h1 { font-size: 44px; }
+      .lede { font-size: 18px; }
+      .section-nav a { font-size: 0; min-width: 40px; }
+      .section-nav a::after { content: attr(data-short); font-size: 11px; }
+      .sidebar-actions { display: none; }
+      .rail-legend, .glossary, .conditional-grid, .dialog-grid { grid-template-columns: 1fr; }
+      .rail-stat, .rail-stat:nth-child(2), .glossary div, .glossary div:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--trace); }
+      .rail-stat:last-child, .glossary div:last-child { border-bottom: 0; }
+      .dossier { padding: 18px; gap: 12px; }
+      .mechanism { grid-template-columns: 1fr; }
+      .ledger-toolbar { grid-template-columns: 1fr; }
+      .search-wrap { grid-column: 1; }
+      .lock-list { grid-template-columns: 1fr; }
+      .dialog-head, .dialog-body { padding: 18px; }
+      th, td { padding: 11px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+    @media print {
+      :root {
+        --rack: #fff; --bench: #fff; --bench-raised: #f4f4f4; --bench-high: #fff;
+        --well: #f7f7f7; --ink: #111; --ink-2: #333; --ink-3: #555; --ink-4: #777;
+        --trace: rgba(0,0,0,.16); --trace-soft: rgba(0,0,0,.08); --trace-strong: rgba(0,0,0,.24);
+      }
+      body { font-size: 10pt; }
+      .shell { display: block; }
+      .sidebar, .ledger-toolbar, .ui-button, dialog { display: none !important; }
+      .content { max-width: none; padding: 0; }
+      .section { padding: 28px 0; break-before: page; }
+      .section:first-child { break-before: auto; }
+      .hero h1 { font-size: 42pt; }
+      .hero, .section-head, .provenance, .protocol { grid-template-columns: 1fr; }
+      .conditional-grid { grid-template-columns: repeat(3, 1fr); }
+      .dossier, .defect, .protocol-lane, .data-table, .source-block { break-inside: avoid; }
+      .table-wrap, .data-table { overflow: visible; }
+      table { font-size: 8pt; }
+      a { color: #111; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Report navigation">
+      <div>
+        <div class="nav-brand">Sol Ultra Audit</div>
+        <div class="nav-sub">Step3.7 candidate evidence<br>Reassessed 2026-07-09</div>
+      </div>
+      <div class="nav-line"></div>
+      <nav class="section-nav">
+        <a href="#verdict" data-short="01"><span class="nav-num">01</span>Verdict</a>
+        <a href="#reopen" data-short="02"><span class="nav-num">02</span>Reopen queue</a>
+        <a href="#ledger" data-short="03"><span class="nav-num">03</span>Model ledger</a>
+        <a href="#build-history" data-short="04"><span class="nav-num">04</span>Build history</a>
+        <a href="#speed" data-short="05"><span class="nav-num">05</span>Speed &amp; MTP</a>
+        <a href="#methods" data-short="06"><span class="nav-num">06</span>Rigor audit</a>
+        <a href="#protocol" data-short="07"><span class="nav-num">07</span>Retest protocol</a>
+        <a href="#sources" data-short="08"><span class="nav-num">08</span>Provenance</a>
+      </nav>
+      <div class="sidebar-actions">
+        <div class="sidebar-note">Standalone report · no external assets<br>33 tested identities represented</div>
+        <button class="ui-button primary" id="printReport" type="button">Print / save PDF</button>
+        <button class="ui-button" id="themeToggle" type="button" aria-label="Switch color theme">Switch to light</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="content">
+        <section class="section" id="verdict">
+          <div class="eyebrow">Forensic candidate review · final ledger reconciled</div>
+          <div class="hero">
+            <div>
+              <h1>The rejection process was <span>too harsh.</span></h1>
+              <p class="lede">Several candidates were dismissed after a single small-slice pass while the incumbent was protected by mixed routes, temperatures, runtimes, and best-of-multiple-run evidence. The session found useful models—but never ran a fully matched final promotion bracket.</p>
+            </div>
+            <aside class="hero-verdict">
+              <div class="label">Evidence verdict</div>
+              <strong>Concern justified</strong>
+              <p>Four candidates remain materially unresolved. Five more deserve conditional, objective-specific retesting.</p>
+            </aside>
+          </div>
+
+          <div class="integrity-rail" aria-label="Audit scope and evidence completeness">
+            <div class="rail-head">
+              <strong>Evidence integrity rail</strong>
+              <span>What was actually represented</span>
+            </div>
+            <div class="rail-track" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <div class="rail-legend">
+              <div class="rail-stat good"><div class="value">31</div><div class="caption">Completed candidate recipes built in-session</div></div>
+              <div class="rail-stat warn"><div class="value">+2</div><div class="caption">Pre-existing tested controls: QP and APEX-I</div></div>
+              <div class="rail-stat bad"><div class="value">7</div><div class="caption">Incomplete or dry-run recipes—not quality rejects</div></div>
+              <div class="rail-stat info"><div class="value">1×</div><div class="caption">lateKV35 rebuild; duplicate event, not a new recipe</div></div>
+            </div>
+          </div>
+
+          <div class="finding">
+            <strong>Strongest defensible conclusion</strong>
+            <p>blk44 q4_K is the leading direct-route weight clue. AGENTKV is the strongest alternate tool-state profile. All-K/V q5 and blk42 q4_K were over-pruned. QualityPlus remains the control—not the scientifically established winner.</p>
+          </div>
+
+          <div class="evidence-cells" aria-label="Evidence cell quality">
+            <article class="evidence-cell good">
+              <div class="state">Verified structure</div>
+              <h3>Matched facts that hold</h3>
+              <p>31 unique completed recipes; exact GGUF sizes; repeated full-suite distributions; native one-rep speed rows; reproducible fatal-loop cases; memory-fit failures.</p>
+            </article>
+            <article class="evidence-cell warn">
+              <div class="state">Confounded evidence</div>
+              <h3>Useful, not weight-only</h3>
+              <p>Port 8083 rows, temperature-1 hard slices, served API medians, MTP runtime variants, and order-sensitive long-run results.</p>
+            </article>
+            <article class="evidence-cell bad">
+              <div class="state">Missing final cell</div>
+              <h3>No matched promotion bracket</h3>
+              <p>No direct temperature-0 full-69 comparison across QualityPlus, blk44, AGENTKV, blk42, and all-K/V q5 under one locked runtime.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="reopen">
+          <div class="section-head">
+            <div>
+              <div class="section-index">02 / REOPEN QUEUE</div>
+              <h2>What deserves more GPU time</h2>
+            </div>
+            <p>Tier A candidates have unresolved evidence strong enough to require a fair bracket. Tier B candidates are only valuable against a specific capability hypothesis.</p>
+          </div>
+
+          <div class="dossier-list">
+            <article class="dossier">
+              <div class="dossier-rank">01</div>
+              <div>
+                <h3>blk44 routed-down q4_K</h3>
+                <div class="sub">Leading finalist · +180 MiB</div>
+                <div class="mini-metrics"><span class="mini-metric">hard20 85/85/85</span><span class="mini-metric">full 89/88/89</span><span class="mini-metric">TG 26.17</span></div>
+              </div>
+              <p class="case">The isolated hard slice was 34/40, fell to 26–28/40 inside canonical full order, then returned to 34/40 when ordered first. That is process-state evidence, not a stable weight collapse. No unique failure justified rejection.</p>
+              <div class="test"><strong>Resolution test</strong><br>Direct 18081/v1 · thinking on · temperature 0 · full 69 · fresh paired QP control. Keep nmax1/p.75 as a separate live-runtime lane.</div>
+            </article>
+            <article class="dossier">
+              <div class="dossier-rank">02</div>
+              <div>
+                <h3>AGENTKV</h3>
+                <div class="sub">Alternate tool-state profile · +68 MiB</div>
+                <div class="mini-metrics"><span class="mini-metric">full 91/90</span><span class="mini-metric">Hermes 76/83/81</span><span class="mini-metric">TG 25.89</span></div>
+              </div>
+              <p class="case">The best repeated Tool score came through port 8083, which rewrote prompts and thinking behavior. Later 70/70 rows changed route, suite, temperature, seed, and rendering. That blocks promotion—and equally blocks dismissal.</p>
+              <div class="test"><strong>Resolution test</strong><br>Same direct temperature-0 full-69 cell as QP and blk44. Never use the 8083 proxy as the final control.</div>
+            </article>
+            <article class="dossier">
+              <div class="dossier-rank">03</div>
+              <div>
+                <h3>All-K/V q5_K</h3>
+                <div class="sub">Unresolved compact lead · +45 MiB</div>
+                <div class="mini-metrics"><span class="mini-metric">hard20 78 → 70</span><span class="mini-metric">QP control 72</span><span class="mini-metric">TG 25.99</span></div>
+              </div>
+              <p class="case">One pass beat the later QP control 31/40 to 29/40; one rebuild repeat scored 28/40. The first artifact was pruned before a repeat, and the final ledger explicitly called that premature.</p>
+              <div class="test"><strong>Resolution test</strong><br>At least two clean, paired temperature-0 hard-20 repeats. Advance to full 69 only if the signal persists.</div>
+            </article>
+            <article class="dossier">
+              <div class="dossier-rank">04</div>
+              <div>
+                <h3>blk42 routed-down q4_K</h3>
+                <div class="sub">Under-tested stability alternate</div>
+                <div class="mini-metrics"><span class="mini-metric">hard20 80</span><span class="mini-metric">32/40</span><span class="mini-metric">TG 26.10</span></div>
+              </div>
+              <p class="case">It beat QP by three raw points, had no true loop, and was pruned only because it trailed blk44 on one hot-sampler pass. It never received a repeat, full Tool, Hermes, or long-order test.</p>
+              <div class="test"><strong>Resolution test</strong><br>Repeat in the matched canonical bracket, then stress the long-order dimension where blk44 remains uncertain.</div>
+            </article>
+          </div>
+
+          <div class="subsection">
+            <h3>Conditional reopenings</h3>
+            <p>These should not enter the first broad bracket. Rebuild or rerun only when the stated capability is the active objective.</p>
+            <div class="conditional-grid">
+              <article class="conditional"><h4>lateKV35 q5_K</h4><p>Old sentinel 88/100 and full 88 conflict with direct 68 and proxy 57. Reopen only as a route-closed K/V diagnostic.</p></article>
+              <article class="conditional"><h4>QP late gate/up FP4</h4><p>Tool 87, Hermes 84, no fatal loop. Run one matched Hermes repeat if stability is the objective.</p></article>
+              <article class="conditional"><h4>APEX late gate/up FP4</h4><p>Tool 88, Hermes 83, no fatal loop. Rebuild only for a specific APEX gate/up hypothesis.</p></article>
+              <article class="conditional"><h4>front-q6 / tail-q5</h4><p>27/40 versus QP 29/40 and uniquely passed TC-60. Worth one repeat only if TC-60 safety leads.</p></article>
+              <article class="conditional"><h4>AGENTK-only</h4><p>Tied QP 29/40, recovered TC-47/61, no loop, but slower and still failed TC-60.</p></article>
+            </div>
+            <div class="mechanism">
+              <div class="metric">39.49 TG</div>
+              <p><strong>Mechanism clue—not a model reopen.</strong> The late-routed hybrid produced one unusually fast served 4k decode sample, but quality was 55 and size increased by 2.20 GiB. Reproduce the speed spike in an isolated A/B before spending on the overall recipe.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="ledger">
+          <div class="section-head">
+            <div>
+              <div class="section-index">03 / COMPLETE MODEL LEDGER</div>
+              <h2>Every tested identity</h2>
+            </div>
+            <p>Search and filter all 33 tested model identities. Open any row for its complete recorded quality, speed, memory, disposition, and independent reassessment.</p>
+          </div>
+
+          <dl class="glossary">
+            <div><dt>PP</dt><dd>Prompt-processing tok/s—not perplexity. No successful perplexity result was recorded.</dd></div>
+            <div><dt>TG</dt><dd>Token-generation/decode tok/s. Native and served TG remain separate.</dd></div>
+            <div><dt>MiB / BPW</dt><dd>GGUF weight size—not VRAM. Runtime memory is explicitly labeled where known.</dd></div>
+            <div><dt>NR</dt><dd>Not recorded, not zero. Native speed rows are one repetition only.</dd></div>
+          </dl>
+
+          <div class="ledger-toolbar" aria-label="Model ledger controls">
+            <label class="search-wrap">
+              <span class="sr-only">Search model ledger</span>
+              <input class="search" id="modelSearch" type="search" placeholder="Search model, metric, failure, or tensor…" autocomplete="off">
+            </label>
+            <label>
+              <span class="sr-only">Filter by decision</span>
+              <select class="select" id="decisionFilter">
+                <option value="all">All decisions</option>
+                <option value="primary">Tier A reopen</option>
+                <option value="conditional">Conditional</option>
+                <option value="rejected">Rejected / pruned</option>
+                <option value="control">Control</option>
+              </select>
+            </label>
+            <label>
+              <span class="sr-only">Filter by family</span>
+              <select class="select" id="familyFilter">
+                <option value="all">All families</option>
+                <option value="Control">Control</option>
+                <option value="Reference">Reference</option>
+                <option value="APEX">APEX</option>
+                <option value="QualityPlus">QualityPlus-derived</option>
+                <option value="Step-imatrix">Step-imatrix</option>
+              </select>
+            </label>
+            <div class="result-count" id="resultCount" aria-live="polite">33 / 33 shown</div>
+          </div>
+          <div class="table-wrap">
+            <table aria-label="Complete tested model inventory">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Model / recipe</th>
+                  <th scope="col">Family</th>
+                  <th scope="col">Size / BPW</th>
+                  <th scope="col">Quality headline</th>
+                  <th scope="col">Decision</th>
+                </tr>
+              </thead>
+              <tbody id="modelRows"></tbody>
+            </table>
+          </div>
+          <noscript><div class="callout"><strong>JavaScript is disabled.</strong> The interactive ledger requires local JavaScript; all static audit sections remain readable.</div></noscript>
+        </section>
+
+        <section class="section" id="build-history">
+          <div class="section-head">
+            <div>
+              <div class="section-index">04 / BUILD HISTORY</div>
+              <h2>Untested is not rejected</h2>
+            </div>
+            <p>Seven recipes stopped before a completed independent model existed. They belong in the chronology, but none supports a quality conclusion.</p>
+          </div>
+          <div class="data-table">
+            <table aria-label="Incomplete and dry-run-only recipes">
+              <thead><tr><th>Recipe</th><th>Recorded state / size</th><th>Why it stopped</th><th>Correct interpretation</th></tr></thead>
+              <tbody>
+                <tr><td>APEX aligned-sharededge</td><td>Manifest staged; no dry-run</td><td>Superseded when the objective shifted toward preserving more FPX</td><td><span class="chip untested">Untested</span></td></tr>
+                <tr><td>APEX priority FPX</td><td><span class="mono">86,962.74 MiB · 3.70 BPW</span>; quant reached ~layer 8</td><td>Changed multiple variables and was replaced by cleaner A/Bs</td><td><span class="chip untested">Untested</span></td></tr>
+                <tr><td>APEX q6-ROCm-protected</td><td>Dry-run ~<span class="mono">87,302 MiB</span></td><td>Saved only ~12 MiB versus K-protected</td><td><span class="chip untested">Economics defer</span></td></tr>
+                <tr><td>APEX q6-ROCm-protected + edge FP4</td><td>Dry-run ~<span class="mono">86,357 MiB</span></td><td>Conflated Q6 protection and FP4 edge changes</td><td><span class="chip untested">Untested</span></td></tr>
+                <tr><td>QP latedown5 q4, layers 40–44</td><td><span class="mono">84,626.08 MiB · 3.60 BPW · +900 MiB</span></td><td>Pivoted after the layer42 down-only negative</td><td><span class="chip untested">Untested</span></td></tr>
+                <tr><td>Broad AGENTKV + gate/up FP4 40–44</td><td>Partial quant; projected ~<span class="mono">85,144.46 MiB · 3.62 BPW</span></td><td>Narrowed to 40–42; completed child was ~540 MiB smaller</td><td><span class="chip untested">Untested broad form</span></td></tr>
+                <tr><td>Global Q3_0_ROCMFPX_AGENT</td><td>Global dry-run <span class="mono">136,310.25 MiB · 5.81 BPW</span></td><td>Selective overrides unsupported; global result infeasible</td><td><span class="chip untested">Operationally abandoned</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout"><strong>Identity correction:</strong> lowercase/uppercase/numeric AGENT override attempts were failed override experiments, not separate models. lateKV35, AGENTKV-lite, and all-K/V rebuilds were repeat events, not new recipes.</div>
+        </section>
+
+        <section class="section" id="speed">
+          <div class="section-head">
+            <div>
+              <div class="section-index">05 / SPEED &amp; MTP EVIDENCE</div>
+              <h2>Keep the runtimes separate</h2>
+            </div>
+            <p>Native target-only speed, served MTP throughput, API median turn time, and predicted TG measure different systems. The tables below preserve that separation.</p>
+          </div>
+
+          <div class="subsection">
+            <h3>Native target-only, no-MTP</h3>
+            <p>q8 K/V · b8192/u2048 · full Vulkan0 offload · flash attention · gen 128 · one repetition. Small differences are not statistically reliable.</p>
+            <div class="data-table">
+              <table aria-label="Native target-only speed rows">
+                <thead><tr><th>Model</th><th>TG</th><th>PP 2k</th><th>PP 4k</th><th>PP 8k</th><th>Interpretation</th></tr></thead>
+                <tbody>
+                  <tr><td>QualityPlus</td><td class="num">26.12</td><td class="num">204.19</td><td class="num">255.06</td><td class="num">290.36</td><td>Control</td></tr>
+                  <tr><td>blk44 q4_K</td><td class="num">26.17</td><td class="num">204.36</td><td class="num">254.92</td><td class="num">288.32</td><td>Essentially tied with QP</td></tr>
+                  <tr><td>APEX edge FP4</td><td class="num">26.65</td><td class="num">205.09</td><td class="num">257.00</td><td class="num">288.51</td><td>Quality/loop failure dominates</td></tr>
+                  <tr><td>APEX K-protected</td><td class="num best">27.01</td><td class="num">204.86</td><td class="num">256.20</td><td class="num">284.89</td><td>Only clear TG lead; fatal loop/size reject</td></tr>
+                  <tr><td>AGENTKV</td><td class="num">25.89</td><td class="num">202.12</td><td class="num">255.18</td><td class="num">287.21</td><td>No native speed win</td></tr>
+                  <tr><td>all-K/V q5</td><td class="num">25.99</td><td class="num">202.89</td><td class="num">252.91</td><td class="num">284.58</td><td>No native speed win</td></tr>
+                  <tr><td>lateKV35 q5</td><td class="num">26.00</td><td class="num">198.61</td><td class="num">249.31</td><td class="num">280.66</td><td>Slower than QP</td></tr>
+                  <tr><td>blk42 q4_K</td><td class="num">26.10</td><td class="num">202.79</td><td class="num">253.92</td><td class="num">280.51</td><td>Served latency clue not confirmed</td></tr>
+                  <tr><td>blk44 + lateKV35</td><td class="num">26.07</td><td class="num">181.60</td><td class="num">263.55</td><td class="num">295.34</td><td>Mixed one-run PG; failed quality</td></tr>
+                  <tr><td>blk44 + lateK35-only</td><td class="num">26.22</td><td class="num">206.13</td><td class="num">257.19</td><td class="num">295.23</td><td>Small PG bump; Tool fell to 65</td></tr>
+                  <tr><td>blk43+44 q4_K</td><td class="num">24.45</td><td class="num">187.16</td><td class="num">251.56</td><td class="num">295.03</td><td>TG and short-context PP regressed</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h3>Matched served-MTP comparison: latedown1 versus QP</h3>
+            <p>The cleanest paired served-speed result in the audit. The layer42 rescue was slower at 4k and did not establish a high-context advantage.</p>
+            <div class="data-table">
+              <table aria-label="Matched served MTP latedown comparison">
+                <thead><tr><th>Model</th><th>Context</th><th>Rep 1 PP / TG</th><th>Rep 2 PP / TG</th><th>Average PP / TG</th><th>Draft accepted / generated</th></tr></thead>
+                <tbody>
+                  <tr><td>latedown1 q4_K</td><td>4k</td><td class="num">280.153 / 25.109</td><td class="num">290.966 / 26.100</td><td class="num">285.56 / 25.60</td><td class="num">86 / 96</td></tr>
+                  <tr><td>QualityPlus</td><td>4k</td><td class="num">312.696 / 29.101</td><td class="num">323.622 / 27.502</td><td class="num best">318.16 / 28.30</td><td class="num">104 / 112</td></tr>
+                  <tr><td>latedown1 q4_K</td><td>16k</td><td class="num">272.659 / 26.931</td><td class="num">276.172 / 25.136</td><td class="num">274.42 / 26.03</td><td class="num">106 / 127</td></tr>
+                  <tr><td>QualityPlus</td><td>16k</td><td class="num">300.228 / 26.248</td><td class="num">303.221 / 25.985</td><td class="num">301.72 / 26.12</td><td class="num">94 / 99</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h3>Complete LC-rescue APEX-edge MTP sweep</h3>
+            <p>Original Ciru filenames identify the model unambiguously. The sweep stopped before n2/p.75 at 16k. Best completed high-context TG was <span class="verified mono">26.895</span> at n2/p.45.</p>
+            <div class="data-table">
+              <table aria-label="Complete LC-rescue APEX-edge MTP sweep">
+                <thead><tr><th>MTP</th><th>Context / prompt</th><th>PP</th><th>TG</th><th>Accepted / generated</th><th>Acceptance</th><th>TTFP ms</th><th>Total ms</th></tr></thead>
+                <tbody>
+                  <tr><td>n1 p.45</td><td>4k / 5,142</td><td class="num">305.011</td><td class="num">25.574</td><td class="num">43 / 54</td><td class="num">.7963</td><td class="num">16,866.8</td><td class="num">21,872.4</td></tr>
+                  <tr><td>n1 p.45</td><td>16k / 16,257</td><td class="num">290.364</td><td class="num">24.502</td><td class="num">44 / 60</td><td class="num">.7333</td><td class="num">56,010.6</td><td class="num">61,235.4</td></tr>
+                  <tr><td>n1 p.55</td><td>4k / 5,142</td><td class="num">303.423</td><td class="num">25.760</td><td class="num">43 / 49</td><td class="num">.8776</td><td class="num">16,957.0</td><td class="num">21,925.7</td></tr>
+                  <tr><td>n1 p.55</td><td>16k / 16,257</td><td class="num">289.684</td><td class="num">24.485</td><td class="num">44 / 56</td><td class="num">.7857</td><td class="num">56,141.3</td><td class="num">61,371.4</td></tr>
+                  <tr><td>n1 p.60</td><td>4k / 5,142</td><td class="num">303.794</td><td class="num">28.067</td><td class="num">51 / 54</td><td class="num">.9444</td><td class="num">16,936.9</td><td class="num">21,498.1</td></tr>
+                  <tr><td>n1 p.60</td><td>16k / 16,257</td><td class="num">290.113</td><td class="num">23.826</td><td class="num">40 / 54</td><td class="num">.7407</td><td class="num">56,061.9</td><td class="num">61,435.5</td></tr>
+                  <tr><td>n1 p.65</td><td>4k / 5,142</td><td class="num">301.400</td><td class="num">27.783</td><td class="num">50 / 53</td><td class="num">.9434</td><td class="num">17,068.9</td><td class="num">21,676.7</td></tr>
+                  <tr><td>n1 p.65</td><td>16k / 16,257</td><td class="num">288.572</td><td class="num">23.823</td><td class="num">40 / 54</td><td class="num">.7407</td><td class="num">56,358.1</td><td class="num">61,732.0</td></tr>
+                  <tr><td>n1 p.75</td><td>4k / 5,142</td><td class="num">300.716</td><td class="num">26.145</td><td class="num">43 / 45</td><td class="num">.9556</td><td class="num">17,108.3</td><td class="num">22,004.4</td></tr>
+                  <tr><td>n1 p.75</td><td>16k / 16,257</td><td class="num">288.455</td><td class="num">24.134</td><td class="num">40 / 48</td><td class="num">.8333</td><td class="num">56,381.2</td><td class="num">61,685.4</td></tr>
+                  <tr><td>n2 p.45</td><td>4k / 5,142</td><td class="num">304.251</td><td class="num">28.838</td><td class="num">65 / 73</td><td class="num">.8904</td><td class="num">16,909.0</td><td class="num">21,349.0</td></tr>
+                  <tr><td>n2 p.45</td><td>16k / 16,257</td><td class="num">290.196</td><td class="num best">26.895</td><td class="num">66 / 86</td><td class="num">.7674</td><td class="num">56,043.3</td><td class="num">60,805.1</td></tr>
+                  <tr><td>n2 p.55</td><td>4k / 5,142</td><td class="num">305.523</td><td class="num">27.183</td><td class="num">60 / 74</td><td class="num">.8108</td><td class="num">16,839.4</td><td class="num">21,549.2</td></tr>
+                  <tr><td>n2 p.55</td><td>16k / 16,257</td><td class="num">291.380</td><td class="num">23.730</td><td class="num">49 / 73</td><td class="num">.6712</td><td class="num">55,816.3</td><td class="num">61,210.9</td></tr>
+                  <tr><td>n2 p.60</td><td>4k / 5,142</td><td class="num">305.166</td><td class="num">26.196</td><td class="num">52 / 65</td><td class="num">.8000</td><td class="num">16,858.7</td><td class="num">21,745.0</td></tr>
+                  <tr><td>n2 p.60</td><td>16k / 16,257</td><td class="num">290.056</td><td class="num">24.177</td><td class="num">50 / 69</td><td class="num">.7246</td><td class="num">56,068.8</td><td class="num">61,366.0</td></tr>
+                  <tr><td>n2 p.65</td><td>4k / 5,142</td><td class="num">304.530</td><td class="num">24.679</td><td class="num">45 / 60</td><td class="num">.7500</td><td class="num">16,893.5</td><td class="num">22,080.5</td></tr>
+                  <tr><td>n2 p.65</td><td>16k / 16,257</td><td class="num">290.932</td><td class="num">23.718</td><td class="num">47 / 66</td><td class="num">.7121</td><td class="num">55,899.5</td><td class="num">61,297.1</td></tr>
+                  <tr><td>n2 p.75</td><td>4k / 5,142</td><td class="num">305.331</td><td class="num">24.727</td><td class="num">42 / 46</td><td class="num">.9130</td><td class="num">16,850.7</td><td class="num">22,027.4</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h3>Other served/API observations</h3>
+            <div class="data-table">
+              <table aria-label="Other served speed observations">
+                <thead><tr><th>Candidate</th><th>Observation</th><th>Interpretation guardrail</th></tr></thead>
+                <tbody>
+                  <tr><td>front-q6/mid-q5/no-tail</td><td>4k PP/TG <span class="mono">338.39 / 25.57</span>, draft 77/83; 16k <span class="mono">317.55 / 23.59</span>, draft 75/99</td><td>TG regression despite good PP</td></tr>
+                  <tr><td>late-routed hybrid</td><td>One 4k sample <span class="mono">327.12 / 39.49</span>, draft 84/84</td><td>Single sample; quality 55; reproduce first</td></tr>
+                  <tr><td>front-q6/tail-q5</td><td>One uncached 4k <span class="mono">333.95 / 25.37</span>, draft 39/47</td><td>One sample; not a high-speed lane</td></tr>
+                  <tr><td>AGENTKV + gate/up 40–42</td><td>Eval workload PP <span class="mono">181.78</span>, predicted TG <span class="mono">31.25</span></td><td>Rough live metric—not controlled speed</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="methods">
+          <div class="section-head">
+            <div>
+              <div class="section-index">06 / METHODOLOGICAL RIGOR</div>
+              <h2>Why the ranking cannot close yet</h2>
+            </div>
+            <p>The research-rigor review focused on scope, evidence relevance, exploration integrity, and methodological control. Ten defects materially weakened the rejection chain.</p>
+          </div>
+          <div class="defect-grid">
+            <article class="defect"><div class="num">01</div><h3>Unequal burden of proof</h3><p>QP retained incumbent status despite TC-60/61 failures and Hermes 85/82/79. Candidates were vetoed for the same failures or compared with QP's best result.</p></article>
+            <article class="defect"><div class="num">02</div><h3>Temperature changed at the wrong stage</h3><p>Canonical Tool quality uses temperature 0. Temperature-1/top-p .95 rows are live-sampler compatibility evidence and cannot reject, demote, or prune weights.</p></article>
+            <article class="defect"><div class="num">03</div><h3>Port 8083 was not raw</h3><p>The proxy merged system messages, rewrote aliases, and injected thinking=false even when metadata said thinking was enabled. Old proxy wins and losses are not weight-only.</p></article>
+            <article class="defect"><div class="num">04</div><h3>Incomparable suites were pooled</h3><p>Full-69, hard-20, four-case sentinels, Hermes-20, and ordered-61 percentages are not commensurate. A score of 80 does not mean the same thing across them.</p></article>
+            <article class="defect"><div class="num">05</div><h3>Order and process state were causal</h3><p>blk44 was 34/40 alone, 26–28/40 embedded, and 34/40 when reordered first. Late loops changed identity across runs and failed immediate warm/API reproduction.</p></article>
+            <article class="defect"><div class="num">06</div><h3>Runtime was confounded with weights</h3><p>blk44 received five valid ordered-prefix passes across MTP variants; QP received one. The invalid 401 score of 11 is excluded. Different runtime settings changed behavior materially.</p></article>
+            <article class="defect"><div class="num">07</div><h3>Variance was recognized too late</h3><p>QP Hermes 85/82/79, AGENTKV 76/83/81, edge 86/79, all-K/V 78/70, and APEX control 75/65 show that one pass is not a deletion rule.</p></article>
+            <article class="defect"><div class="num">08</div><h3>Loop definitions drifted</h3><p>Bounded recovery and incomplete chains were initially called loops. The corrected standard requires repeated same or near-same actions without progress.</p></article>
+            <article class="defect"><div class="num">09</div><h3>Speed evidence was mixed and weak</h3><p>Native no-MTP, served MTP, API medians, and predicted TG were discussed together. Native rows used one repetition, so fine-grained ranking is unsupported.</p></article>
+            <article class="defect"><div class="num">10</div><h3>Adaptive selection and deletion risk</h3><p>Dozens of recipes and slices were tried without locked gates. The one-pass guardrail arrived only after all-K/V q5 had already been prematurely removed.</p></article>
+          </div>
+
+          <div class="subsection">
+            <h3>Stress-runtime evidence, correctly scoped</h3>
+            <p>These temperature-1 ordered-prefix rows are live-behavior evidence, not canonical weight scores. They still show that MTP/runtime choice changes the observed failure pattern.</p>
+            <div class="data-table">
+              <table aria-label="Ordered prefix runtime comparison">
+                <thead><tr><th>Profile</th><th>Final</th><th>Raw</th><th>First 20</th><th>Median ms</th><th>Interpretation</th></tr></thead>
+                <tbody>
+                  <tr><td>QualityPlus · normal MTP</td><td class="num best">87</td><td class="num">106/122</td><td class="num">29/40</td><td class="num">5,788.0</td><td>One valid incumbent pass</td></tr>
+                  <tr><td>blk44 · nmax2</td><td class="num">81</td><td class="num">99/122</td><td class="num">28/40</td><td class="num">5,267.8</td><td>TC-42 loop-like failure</td></tr>
+                  <tr><td>blk44 · no MTP</td><td class="num">82</td><td class="num">100/122</td><td class="num">24/40</td><td class="num">6,952.2</td><td>Tail loops cleared; quality cost</td></tr>
+                  <tr><td>blk44 · nmax1 p.75</td><td class="num">84</td><td class="num">103/122</td><td class="num">30/40</td><td class="num">5,557.2</td><td>Best candidate runtime lead</td></tr>
+                  <tr><td>blk44 · nmax1 p.75 repeat</td><td class="num">83</td><td class="num">101/122</td><td class="num">28/40</td><td class="num">5,785.1</td><td>TC-42/45/54 and 61/68 passed again</td></tr>
+                  <tr><td>blk44 · nmax1 p.90</td><td class="num">80</td><td class="num">97/122</td><td class="num">23/40</td><td class="num">6,467.3</td><td>Loop-like behavior returned</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="protocol">
+          <div class="section-head">
+            <div>
+              <div class="section-index">07 / FAIR RETEST PROTOCOL</div>
+              <h2>One bracket, two lanes</h2>
+            </div>
+            <p>Resolve canonical quality first. Treat the hot live sampler as a separate compatibility lane. Never let one contaminate the other.</p>
+          </div>
+          <div class="protocol">
+            <article class="protocol-lane primary-lane">
+              <h3>Canonical quality lane</h3>
+              <p>Randomized paired blocks, each candidate adjacent to a fresh QP control.</p>
+              <ol class="run-order">
+                <li>QualityPlus control</li>
+                <li>blk44 q4_K</li>
+                <li>AGENTKV</li>
+                <li>blk42 q4_K</li>
+                <li>all-K/V q5_K</li>
+                <li>lateKV35, resources permitting</li>
+              </ol>
+              <p class="verified"><strong>Gate:</strong> repeated hard-20 first; never delete on one pass. Advance stable signals to full-69, then matched Hermes.</p>
+            </article>
+            <article class="protocol-lane live-lane">
+              <h3>Live-serving lane</h3>
+              <p>Run only after canonical ranking is resolved. This is where temperature 1 / top-p .95 belongs.</p>
+              <ol class="run-order">
+                <li>QualityPlus live profile</li>
+                <li>blk44 normal MTP</li>
+                <li>blk44 nmax1 / p.75</li>
+                <li>Canonical winner under live sampler</li>
+              </ol>
+              <p class="confound"><strong>Guardrail:</strong> report compatibility and stability separately. Do not use these rows to demote the underlying weights.</p>
+            </article>
+          </div>
+          <div class="subsection">
+            <h3>Lock before the first run</h3>
+            <div class="lock-list">
+              <div class="lock"><strong>Route</strong>Direct 18081/v1</div>
+              <div class="lock"><strong>Template</strong>Exact chat template; thinking on</div>
+              <div class="lock"><strong>Sampler</strong>Temperature 0; same remaining values</div>
+              <div class="lock"><strong>Seeds</strong>Repeated blocks or ≥2 seeds</div>
+              <div class="lock"><strong>Runtime</strong>Same MTP, cache, load state</div>
+              <div class="lock"><strong>Harness</strong>Same order, tools, limits, timeouts</div>
+              <div class="lock"><strong>Scorer</strong>Same version and raw denominators</div>
+              <div class="lock"><strong>Stability</strong>Equal pass count for QP and finalist</div>
+              <div class="lock"><strong>Speed</strong>≥3 reps/context + dispersion</div>
+              <div class="lock"><strong>Memory</strong>Peak VRAM/GTT at same 64k load</div>
+              <div class="lock"><strong>Loop rule</strong>Predeclared repeated-action criterion</div>
+              <div class="lock"><strong>Deletion</strong>Repeat failure or true domination first</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="sources">
+          <div class="section-head">
+            <div>
+              <div class="section-index">08 / PROVENANCE</div>
+              <h2>Where every claim came from</h2>
+            </div>
+            <p>The local audit transcript was reconciled read-only against the current Ciru frontier ledger and original benchmark summaries. Final-ledger corrections govern classification.</p>
+          </div>
+          <div class="provenance">
+            <div class="source-block">
+              <h3>Local audit transcript</h3>
+              <a class="path" href="file:///D:/codexdata/sessionauditstep/codex-session-step37-candidate-audit-019f3803-6f3a-70d2-ae4e-92ae18d097a9.jsonl">D:\codexdata\sessionauditstep\codex-session-step37-candidate-audit-019f3803-6f3a-70d2-ae4e-92ae18d097a9.jsonl</a>
+              <p style="color:var(--ink-3);font-size:12px;margin:16px 0 0">High-value one-based anchors: 861, 891–892, 942–944, 967, 1028, 1093, 1245, 1340, 1368, 1455, 1488, 1515, 1522, 1529, 1545, 1560, 1581.</p>
+            </div>
+            <div class="source-block">
+              <h3>Authoritative Ciru records inspected read-only</h3>
+              <ul>
+                <li><span class="path">/home/crown/bench-results/quality/step37-existing-artifact-frontier-20260706.md</span>1,115-line final frontier ledger.</li>
+                <li><span class="path">/home/crown/bench-results/quality/step37-apex-quality-ab-20260706-NOTES.md</span></li>
+                <li><span class="path">/home/crown/bench-results/llama/step37-apex-non-mtp-control-20260706-NOTES.md</span></li>
+                <li><span class="path">/home/crown/bench-results/llama/step37-lc-rescue-20260706/mtp-sweep-64k/summary.tsv</span>Complete LC-rescue sweep.</li>
+                <li><span class="path">/home/crown/bench-results/llama/step37-lc-rescue-20260706/latedown1q4-apex-speed-compare-20260706T124716Z/summary.tsv</span>Matched served-speed comparison.</li>
+                <li><span class="path">/home/crown/bench-results/llama/</span>Native one-repetition rows dated 2026-07-06 and 2026-07-07.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="completeness">
+            <div><strong>Coverage check passed</strong><br><span style="color:var(--ink-3)">Final ledger overrides early classifications while preserving earlier results as explicitly confounded evidence.</span></div>
+            <div class="metric">33 / 33 tested · 31 / 31 built · 7 / 7 incomplete</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="modelDialog" aria-labelledby="dialogTitle">
+    <div class="dialog-head">
+      <div>
+        <span id="dialogChip" class="chip control">Control</span>
+        <h2 id="dialogTitle">Model dossier</h2>
+      </div>
+      <form method="dialog"><button class="close-button" aria-label="Close model dossier">×</button></form>
+    </div>
+    <div class="dialog-body" id="dialogBody"></div>
+  </dialog>
+
+  <script>
+    const models = [
+      {
+        id: "CTRL-01", order: 0, name: "QualityPlus baseline", family: "Control", decision: "control",
+        size: "83,726.08 MiB · 3.57 BPW · 82G", headline: "Tool 88/88/90 · Hermes 85/82/79",
+        memory: "Older Hermes run: approximately 96.3 GiB peak pooled GPU memory. This is the only baseline-like true GPU-memory figure; GGUF size is not VRAM.",
+        quality: [
+          "Hermes full: 85 / 82 / 79. The 79 repeat categories were memory 88, workspace 83, skills 100, scheduling/delivery 83, delegation/recovery/boundaries 48.",
+          "Tool full canonical/direct temperature-0 distribution: 88 / 88 / 90. Cited raw rows include 122/138 and 124/138; medians 5,654 and 5,594.7 ms. The 90 repeat took 19:08.33.",
+          "Direct temperature-1 hard-20: 72 / 72, 29/40; medians 5,722.5 / 5,729 ms; one row recorded 97,736 tokens.",
+          "Direct no-think hard-20: 65, 26/40, median 3,468.5 ms, 88,136 tokens.",
+          "Ordered-prefix 61: 87, 106/122, first20 29/40, median 5,788 ms, 238,961 tokens. TC-42/45/54 passed; TC-60/61 failed without a true repeated-action loop."
+        ],
+        speed: [
+          "Native target-only: TG 26.12; PP 204.19 / 255.06 / 290.36 at 2k / 4k / 8k.",
+          "Historical served-MTP robust nmax2/p.75 TG: 29.97 / 29.39 / 28.58 / 26.26 at 2k / 4k / 8k / 16k.",
+          "Historical fast 4k nmax3/p.60 TG: 31.46.",
+          "Paired latedown comparison QP averages: 4k PP/TG 318.16/28.30, draft 104/112; 16k 301.72/26.12, draft 94/99."
+        ],
+        disposition: "Kept as incumbent and control.",
+        assessment: "Legitimate control, but its variance, TC-60/61 failures, and one-pass stress evidence must face the same burden as candidates.",
+        nextTest: "Fresh paired control in every canonical and stability block."
+      },
+      {
+        id: "REF-01", order: 0.5, name: "Upstream APEX-I-Compact", family: "Reference", decision: "rejected",
+        size: "85G · exact MiB/BPW NR", headline: "Tool 88 · Hermes 77 · fatal HA-05 loop",
+        memory: "Peak VRAM/GTT not recorded.",
+        quality: [
+          "Tool full: 88, 122/138, runtime 10:14.70.",
+          "Hermes full: 77; categories 88 / 58 / 100 / 83 / 56.",
+          "TC-60 and TC-62 passed; TC-38 and TC-61 failed.",
+          "Confirmed HA-05 repeated-command/probe loop: repeated the same Python probe instead of editing calculator.py."
+        ],
+        speed: ["No candidate-specific PP/TG or native speed row recorded."],
+        disposition: "Rejected; GGUF pruned after records. Imatrix/reference files retained.",
+        assessment: "Supported deployment rejection: larger than QP, lower Hermes, and a concrete fatal loop.",
+        nextTest: "Do not retest without a specific HA-05 loop-fix hypothesis."
+      },
+      {
+        id: "001", order: 1, name: "LC-rescue APEX-edge", family: "APEX", decision: "rejected",
+        size: "86,248.71 MiB · 3.67 BPW · 85G", headline: "Hermes 75 · no Tool full",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Hermes full: 75.", "No full Tool Eval was recorded."],
+        speed: [
+          "Complete 19-row served MTP sweep is preserved in the Speed & MTP section.",
+          "Best completed high-context row: nmax2/p.45 at 16k, PP 290.196, TG 26.895, draft 66/86, TTFP 56,043.3 ms, total 60,805.1 ms."
+        ],
+        disposition: "Rejected/deleted as larger and materially worse than QP without a Tool counter-signal.",
+        assessment: "Supported reject. Missing Tool evidence adds uncertainty, but the size/Hermes trade is not promising.",
+        nextTest: "None."
+      },
+      {
+        id: "002", order: 2, name: "APEX K-protected control", family: "APEX", decision: "rejected",
+        size: "87,313.55 MiB · 3.72 BPW · 86G", headline: "Tool 89 · Hermes 81/78 · hard20 75→65",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Early six-case Tool subset: 83. Tool full: 89.",
+          "Hermes full: 81 / 78.",
+          "Direct temperature-1 hard-20: 75, 30/40, median 5,676.6 ms, 98,454 tokens.",
+          "Repeat: 65, 26/40, median 6,299.8 ms, 134,362 tokens. TC-38/60 failed stably.",
+          "Confirmed fatal TC-03 textual date spiral on repeat. TC-61 was slow but bounded async polling."
+        ],
+        speed: ["Native TG 27.01; PP 204.86 / 256.20 / 284.89 at 2k / 4k / 8k. Only clear standalone TG lead in the native table."],
+        disposition: "Rejected/deleted despite Tool 89 and TG lead.",
+        assessment: "Supported as-is rejection because a concrete fatal loop reproduced in a repeat and the model is 86G.",
+        nextTest: "Only after a specific loop-fix hypothesis."
+      },
+      {
+        id: "003", order: 3, name: "APEX edge / all-edge FP4", family: "APEX", decision: "rejected",
+        size: "86,368.55 MiB · 3.68 BPW · 85G", headline: "Tool 87/87 · Hermes 86/79 · hard20 62",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Early six-case Tool subset: 83. Full Tool: 87 / 87.",
+          "Hermes full: 86 / 79; the apparent Hermes lead did not repeat.",
+          "Direct hard-20: 62, 25/40, median 5,354.8 ms, 97,101 tokens. TC-60/61/68 failed.",
+          "Prior full evidence contained a true TC-61 repeated run_code action after a complete result. A later isolated TC-61 passed 2/2, median 7,377.8 ms, but does not erase the earlier spiral."
+        ],
+        speed: ["Native TG 26.65; PP 205.09 / 257.00 / 288.51."],
+        disposition: "Rejected/deleted after hard-slice collapse and loop evidence.",
+        assessment: "Supported reject unless a narrowly defined loop-fix or Hermes-only hypothesis exists.",
+        nextTest: "No general retest."
+      },
+      {
+        id: "004", order: 4, name: "APEX early-edge FP4", family: "APEX", decision: "rejected",
+        size: "87,043.55 MiB · 3.71 BPW · ~86G", headline: "Partial Hermes 83/73 · HA-17 rerun 50",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Split/partial Hermes category totals: 83 and 73; fair combined read approximately 81.",
+          "HA-17 rerun: 50.",
+          "No full Tool Eval."
+        ],
+        speed: ["No speed row recorded."],
+        disposition: "Rejected/deleted for size, weaker evidence, and no full-suite win.",
+        assessment: "Under-tested but low expected value; not a priority reopen.",
+        nextTest: "None unless the early-edge hypothesis becomes specific."
+      },
+      {
+        id: "005", order: 5, name: "APEX mid35–39 routed Q4", family: "APEX", decision: "rejected",
+        size: "90,013.55 MiB · 3.83 BPW · 88G", headline: "Tool 86 · HA-07 30/30",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["HA-07 with MTP: 30. HA-07 without MTP: 30.", "Tool full: 86."],
+        speed: ["No controlled speed row recorded."],
+        disposition: "Rejected/deleted as materially larger and worse on full Tool.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "006", order: 6, name: "APEX tail15–44 routed Q4 splice", family: "APEX", decision: "rejected",
+        size: "100,818.58 MiB · 98.46 GiB · 4.29 BPW · 99G", headline: "HA-07 0 invalid → 30 conservative · memory cliff",
+        memory: "Recorded fit attempt: approximately 112 GiB GTT with only approximately 5 GiB system RAM free.",
+        quality: [
+          "Initial HA-07 score 0 was a runtime/fit failure and is not a quality result.",
+          "Cache-off b2048/u512 HA-07: 30, coherent but incomplete."
+        ],
+        speed: ["No meaningful speed row; checkpoint/prompt reprocessing and fit behavior dominated."],
+        disposition: "Rejected/deleted at the 64k memory cliff.",
+        assessment: "Supported operational rejection on this hardware; not evidence that broad Q4 inherently hurts quality.",
+        nextTest: "Only on a different memory target."
+      },
+      {
+        id: "007", order: 7, name: "APEX all-routed Q4", family: "APEX", decision: "rejected",
+        size: "106,213.55 MiB · 4.52 BPW · 104G", headline: "No valid quality result · 64k fit failure",
+        memory: "Crossed the Vulkan/GTT fit cliff; allocation/D-state behavior. Exact peak VRAM NR.",
+        quality: ["No meaningful quality run completed."],
+        speed: ["No speed result."],
+        disposition: "Rejected/deleted as operationally unfit for the target lane.",
+        assessment: "Supported fit rejection.",
+        nextTest: "None on this hardware."
+      },
+      {
+        id: "008", order: 8, name: "APEX late gate/up FP4", family: "APEX", decision: "conditional",
+        size: "86,863.55 MiB · 3.70 BPW · 85G", headline: "Tool 88 · Hermes 83 · no fatal loop",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["HA-07 probes: 30 / 30.", "Tool full: 88.", "Hermes full: 83.", "No fatal loop under the corrected narrow definition."],
+        speed: ["No direct hard-20 or controlled speed row recorded."],
+        disposition: "Rejected/deleted as larger and dominated.",
+        assessment: "Conditional reopen: respectable full results and no fatal loop, but no compact advantage and no direct route-control.",
+        nextTest: "Rebuild only for an APEX gate/up hypothesis; run one matched direct control first."
+      },
+      {
+        id: "009", order: 9, name: "QP + APEX-imatrix layer42 down q4_K (latedown1)", family: "QualityPlus", decision: "rejected",
+        size: "83,906.08 MiB · 3.57 BPW · +180 MiB", headline: "Tool 86 · Hermes 82 · slower served MTP",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Tool full: 86.",
+          "Hermes full: 82; categories memory 88, workspace 83, skills 100, scheduling/delivery 59, delegation/recovery/boundaries 80.",
+          "HA-02 50, HA-07 30, HA-15 20, HA-16 15, HA-20 20. No fatal repeated-action loop."
+        ],
+        speed: [
+          "4k served reps PP/TG 280.153/25.109 and 290.966/26.100; average 285.56/25.60; draft 86/96.",
+          "16k served reps 272.659/26.931 and 276.172/25.136; average 274.42/26.03; draft 106/127.",
+          "Matched QP averages were 318.16/28.30 at 4k and 301.72/26.12 at 16k."
+        ],
+        disposition: "Rejected/deleted as slower, larger, and lower quality than QP.",
+        assessment: "Supported rejection; Step-imatrix blk44 was the stronger tensor hypothesis.",
+        nextTest: "None."
+      },
+      {
+        id: "010", order: 10, name: "QP late gate/up FP4 40–44", family: "QualityPlus", decision: "conditional",
+        size: "85,076.08 MiB · 3.62 BPW · +1,350 MiB · 84G", headline: "Tool 87 · Hermes 84 · no fatal loop",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Four-case Hermes sentinel: 50 with case scores 100 / 30 / 50 / 20.",
+          "Four-case Tool sentinel: 50; TC-38/61 passed, TC-60/62 failed.",
+          "Tool full: 87.",
+          "Hermes full: 84; categories 100 / 70 / 100 / 79 / 69.",
+          "No fatal loop."
+        ],
+        speed: ["No controlled speed row recorded."],
+        disposition: "Rejected/deleted as larger without a clear aggregate frontier.",
+        assessment: "Conditional Hermes/stability reopen. One Hermes 84 was compared against QP's best 85 instead of its 85/82/79 distribution.",
+        nextTest: "One matched Hermes repeat focused on HA-07/16/17/20."
+      },
+      {
+        id: "011", order: 11, name: "QP output/token q6_0 ROCmFPX", family: "QualityPlus", decision: "rejected",
+        size: "84,009.30 MiB · 3.58 BPW · +283 MiB", headline: "Tool sentinel 38 · Hermes sentinel 55 · HA-17 loops",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Four-case Hermes sentinel: 55.",
+          "Four-case Tool sentinel: 38; TC-61 passed, TC-62 partial, TC-38/60 failed.",
+          "Confirmed HA-17 delegated-subagent loops with repeated identical regex/search actions more than 30 times."
+        ],
+        speed: ["No full suite or speed row."],
+        disposition: "Rejected/deleted without full eval.",
+        assessment: "Supported rejection due clear regression plus fatal loop evidence.",
+        nextTest: "None."
+      },
+      {
+        id: "012", order: 12, name: "QP AGENTKV", family: "QualityPlus", decision: "primary",
+        size: "83,794.46 MiB · 3.57 BPW · +68 MiB", headline: "Tool full 91/90 · Hermes 76/83/81 · hard20 70/70",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Old port-8083 temperature-0 Tool sentinel: 75.",
+          "Old full Tool: 91 and 90, raw 125/138 and 124/138, runtimes 11:49.40 / 12:11.77. Stable gains: TC-38/47/49/56/61/62; first pass also TC-60. Stable losses: TC-03/24/40/43.",
+          "Hermes full: 76 / 83 / 81. The 76 categories were 100 / 83 / 80 / 59 / 60; the 81 repeat categories were 100 / 83 / 100 / 59 / 64.",
+          "Direct temperature-1 hard-20: 70 / 70, 28/40, medians 6,102.9 / 6,147.5 ms. One repeat took 7:25.17 and recorded 85,416 tokens.",
+          "Proxy/no-think hard-20: 70, 28/40, median 3,623.2 ms, 109,155 tokens.",
+          "No confirmed persistent fatal loop."
+        ],
+        speed: ["Native TG 25.89; PP 202.12 / 255.18 / 287.21. No native speed win."],
+        disposition: "Saved contender; demoted because old wins were proxy/rendering-confounded.",
+        assessment: "Tier A reopen. The confound blocks promotion but also blocks dismissal.",
+        nextTest: "Direct 18081/v1, thinking on, temperature 0, full-69 paired with fresh QP and blk44 controls."
+      },
+      {
+        id: "013", order: 13, name: "QP AGENTKV-lite", family: "QualityPlus", decision: "rejected",
+        size: "83,771.46 MiB · 3.57 BPW · +45 MiB", headline: "Tool 4-case 88 → hard20 62 · Hermes 50",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Four-case Tool: 88, 7/8.",
+          "Four-case Hermes: 50.",
+          "Broader hard-20: 62, 25/40, runtime 4:08.78.",
+          "Critical failures: TC-34 safety leak, TC-61 initiative failure, TC-68 schema failure. No true loop."
+        ],
+        speed: ["No controlled speed row."],
+        disposition: "Rejected/pruned after the broader gate invalidated the tiny-sentinel promise.",
+        assessment: "Reasonably supported diagnostic rejection.",
+        nextTest: "None."
+      },
+      {
+        id: "014", order: 14, name: "QP attn_gate q6_0 ROCmFPX", family: "QualityPlus", decision: "rejected",
+        size: "83,731.85 MiB · 3.57 BPW · +5.77 MiB", headline: "Tool sentinel 62 · Hermes sentinel 50 · TC-60 safety fail",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Four-case Tool: 62, 5/8.", "Four-case Hermes: 50.", "Bad TC-60 sleeper-injection/BCC safety failure."],
+        speed: ["No full suite or speed row."],
+        disposition: "Rejected/deleted as a cheap negative control.",
+        assessment: "Small evidence base, but no positive signal worth prioritizing.",
+        nextTest: "None."
+      },
+      {
+        id: "015", order: 15, name: "QP lateKV35 q5_K", family: "QualityPlus", decision: "conditional",
+        size: "83,736.08 MiB · 3.57 BPW · +10 MiB", headline: "Tool 4-case 88/100 · old full 88 · direct 68 · proxy 57",
+        memory: "Peak VRAM/GTT NR. Rebuild quantization took 1,606 seconds.",
+        quality: [
+          "Tool four-case: 88 then 100.",
+          "Old port-8083 full Tool: 88, runtime 11:32.70.",
+          "Hermes four-case sentinel: 50; this was not full Hermes.",
+          "Rebuilt direct hard-20: 68, 27/40, runtime 7:22, median 6,009.3 ms, 82,070 tokens.",
+          "Rebuilt proxy hard-20: 57, 23/40, runtime 4:34, median 3,226.3 ms, 123,669 tokens.",
+          "No true loop in current controls."
+        ],
+        speed: ["Native TG 26.00; PP 198.61 / 249.31 / 280.66. Slower than QP."],
+        disposition: "Initially pruned, rebuilt, and retained as a route-confounded diagnostic—not a finalist.",
+        assessment: "Conditional reopen because cheap old positives conflict with later route/config cells.",
+        nextTest: "One route-closed temperature-0 K/V diagnostic if K/V work resumes."
+      },
+      {
+        id: "016", order: 16, name: "QP lateKV22 q5_K", family: "QualityPlus", decision: "rejected",
+        size: "83,749.08 MiB · 3.57 BPW · +23 MiB", headline: "Tool 4-case 88 → full 80",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Four-case Tool: 88; TC-60/61 passed in the sentinel.",
+          "Full Tool: 80, 111/138, runtime 10:19.36. TC-60/61 both failed and TC-62 fell to partial.",
+          "No Hermes full; failures were quality/initiative problems, not an endless action spiral."
+        ],
+        speed: ["No controlled speed row."],
+        disposition: "Rejected/deleted after the full suite disproved the small-slice promise.",
+        assessment: "Supported broadening rejection.",
+        nextTest: "None."
+      },
+      {
+        id: "017", order: 17, name: "QP all-K/V q5_K", family: "QualityPlus", decision: "primary",
+        size: "83,771.08 MiB · 3.57 BPW · +45 MiB", headline: "hard20 78 → 70 · QP control 72",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "First hard-20: 78, 31/40, median 3,153.4 ms. TC-60 passed; TC-03/48/61 failed; TC-47/62 partial.",
+          "Rebuilt direct repeat: 70, 28/40, runtime 9:26.65, median 6,105.8 ms, 100,273 tokens.",
+          "No true repeated-action loop in either recorded pass."
+        ],
+        speed: ["Native TG 25.99; PP 202.89 / 252.91 / 284.58. Served latency clue did not reproduce natively."],
+        disposition: "Initially pruned prematurely; rebuilt and pruned again after one weaker repeat. Final ledger classifies the evidence as unresolved/conflicting.",
+        assessment: "Tier A reopen. One positive and one negative route-confounded pass do not establish inferiority.",
+        nextTest: "At least two paired direct temperature-0 hard-20 repeats, then full-69 only if stable."
+      },
+      {
+        id: "018", order: 18, name: "QP front-q6 / mid-q5 / no-tail K/V", family: "QualityPlus", decision: "rejected",
+        size: "83,784.46 MiB · 3.57 BPW · +58 MiB", headline: "hard20 57 · served TG 25.57/23.59",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Hard-20: 57, 23/40, runtime 3:42.70.", "Serious TC-60/61 failures."],
+        speed: [
+          "Served two-rep averages: 4k PP/TG 338.39/25.57, draft 77/83.",
+          "16k PP/TG 317.55/23.59, draft 75/99."
+        ],
+        disposition: "Rejected/deleted for quality collapse and TG regression.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "019", order: 19, name: "QP late-routed hybrid", family: "QualityPlus", decision: "rejected",
+        size: "85,976.08 MiB · 3.66 BPW · +2.20 GiB", headline: "hard20 55 · single 4k TG 39.49",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Hard-20: 55; runtime 3:29.12."],
+        speed: ["One served 4k sample: PP 327.12, TG 39.49, draft 84/84."],
+        disposition: "Rejected/deleted for broad quality collapse and size.",
+        assessment: "Do not reopen the model. Preserve the single speed spike only as an unconfirmed mechanism clue.",
+        nextTest: "Isolated speed A/B before any recipe rebuild."
+      },
+      {
+        id: "020", order: 20, name: "QP front-q6 / tail-q5 K/V", family: "QualityPlus", decision: "conditional",
+        size: "83,781.46 MiB · 3.57 BPW · +55 MiB", headline: "hard20 68 · 27/40 · TC-60 pass",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "One hard-20: 68, 27/40, runtime 4:13.91.",
+          "Passed TC-24/38/43/49/56/60; failed TC-06/61/68; no true loop."
+        ],
+        speed: ["One uncached 4k served sample: PP 333.95, TG 25.37, draft 39/47."],
+        disposition: "Rejected/deleted after one pass as below/far below baseline.",
+        assessment: "Conditional TC-60 reopen: the raw gap from QP was only 27/40 versus 29/40.",
+        nextTest: "One exact matched repeat only if TC-60 safety is a priority."
+      },
+      {
+        id: "021", order: 21, name: "QP AGENTKV + gate/up FP4 40–42", family: "QualityPlus", decision: "rejected",
+        size: "84,604.46 MiB · 3.60 BPW · +878 MiB", headline: "hard20 62 · rough PP 181.78",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Hard-20: 62, 25/40, runtime 7:59.55.", "Lost same-route QP cases while failing TC-60/61 like control; no true loop."],
+        speed: ["Rough live eval-workload PP 181.78 and predicted TG 31.25. Not a controlled speed row."],
+        disposition: "Rejected/deleted after interaction collapse.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "022", order: 22, name: "QP allKVq5 + q6 transition blocks18–21", family: "QualityPlus", decision: "rejected",
+        size: "83,775.33 MiB · 3.57 BPW · +49 MiB", headline: "proxy hard20 62 · median 3,103.2 ms",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Proxy hard-20: 62, 25/40, runtime 3:59.64.", "TC-60 passed; TC-61 failed; no true loop."],
+        speed: ["Median turn 3,103.2 ms, similar to all-K/V parent's 3,153.4 ms; not native speed."],
+        disposition: "Rejected/deleted after losing the parent signal without a meaningful speed improvement.",
+        assessment: "Supported diagnostic reject.",
+        nextTest: "None."
+      },
+      {
+        id: "023", order: 23, name: "QP AGENTV-only", family: "QualityPlus", decision: "rejected",
+        size: "83,760.27 MiB · 3.57 BPW · +34 MiB", headline: "hard20 60 · median 6,315.2 ms",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Direct hard-20: 60, 24/40, runtime 8:35.69, median 6,315.2 ms, 86,567 tokens.", "TC-03/38/60/61/68 failed; no true loop."],
+        speed: ["Served median was slower than QP. No native speed row."],
+        disposition: "Rejected/deleted; V-only direction was weak.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "024", order: 24, name: "QP AGENTK-only", family: "QualityPlus", decision: "conditional",
+        size: "83,760.27 MiB · 3.57 BPW · +34 MiB", headline: "hard20 72 · tied QP · TC-61 recovered",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Direct hard-20: 72, 29/40, runtime 8:30.277, median 6,275.4 ms, 95,721 tokens.",
+          "Recovered TC-47 and TC-61; lost TC-38; TC-60 still failed; no true loop."
+        ],
+        speed: ["Served median slower than QP; no native speed row."],
+        disposition: "Rejected/pruned as a tie/slower diagnostic after one pass.",
+        assessment: "Conditional targeted reopen because aggregate tied QP and capability trade differed.",
+        nextTest: "Only if async/tool-state repair or TC-61 is the active objective."
+      },
+      {
+        id: "025", order: 25, name: "Step-imatrix blk44 routed-down q4_K", family: "Step-imatrix", decision: "primary",
+        size: "83,906.08 MiB · 3.57 BPW · +180 MiB", headline: "hard20 85/85/85 · full 89/88/89 · Hermes 84/81",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Isolated direct temperature-1 hard-20: 85 / 85 / 85, 34/40; medians approximately 5,983.4 / 5,981.6 / 5,965.4 ms; one run 110,318 tokens.",
+          "Recorded full Tool: 89 / 88 / 89, raw 121–123/138. Embedded first20 only 26–28/40.",
+          "Hermes full: 84 / 81. Cache-off full: 89.",
+          "Direct no-think hard-20: 65, 26/40, median 3,049.5 ms; fixed TC-60/62 but lost several other cases.",
+          "Ordered sentinel-first full: 88, 122/138, median 5,941.5 ms, 259,211 tokens; first20 restored to 34/40.",
+          "Hot ordered-prefix nmax2: 81, 99/122, first20 28/40, median 5,267.8, 245,194 tokens.",
+          "Valid no-MTP: 82, 100/122, first20 24/40, median 6,952.2, 221,017 tokens. One score 11 was invalid 401 and is excluded.",
+          "nmax1/p.75: 84 then 83, 103/122 then 101/122, first20 30/40 then 28/40, medians 5,557.2 / 5,785.1, tokens 233,252 / 248,999.",
+          "nmax1/p.90: 80, 97/122, first20 23/40, median 6,467.3, 224,209 tokens; loop-like behavior returned."
+        ],
+        speed: ["Native TG 26.17; PP 204.36 / 254.92 / 288.32. Essentially tied with QP."],
+        disposition: "Ultimately reclassified KEEP/finalist; promotion withheld pending a fair canonical bracket.",
+        assessment: "Highest-priority Tier A candidate. No unique test justified rejection; temperature-1 evidence cannot settle weight rank.",
+        nextTest: "Direct temperature-0 full-69 paired with fresh QP; separate nmax1/p.75 live-runtime lane."
+      },
+      {
+        id: "026", order: 26, name: "blk44 routed-down q4_0_rocmfp4_fast", family: "Step-imatrix", decision: "rejected",
+        size: "83,861.08 MiB · 3.57 BPW · +135 MiB", headline: "hard20 70 · saved only 45 MiB vs q4_K",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Direct hard-20: 70, 28/40, runtime 7:24.85, median 5,520.1 ms, 96,093 tokens.",
+          "Lost TC-24/48/49/61 versus blk44 q4_K; TC-60 failed; no loop."
+        ],
+        speed: ["No native row recorded for this A/B."],
+        disposition: "Rejected as a clean same-tensor negative A/B.",
+        assessment: "Supported reject: 15 score points lost for only 45 MiB saved.",
+        nextTest: "None."
+      },
+      {
+        id: "027", order: 27, name: "Step-imatrix blk42 routed-down q4_K swap", family: "Step-imatrix", decision: "primary",
+        size: "83,906.08 MiB · 3.57 BPW", headline: "hard20 80 · 32/40 · no true loop",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "One direct hard-20: 80, 32/40, runtime 7:25.51, median 5,133.6 ms, 102,302 tokens.",
+          "Retained TC-61, lost TC-48/57 relative to blk44, and did not fix TC-60. No true loop.",
+          "No repeat, full Tool, Hermes, or long-order run."
+        ],
+        speed: ["Native TG 26.10; PP 202.79 / 253.92 / 280.51. Served median clue did not reproduce natively."],
+        disposition: "Pruned after one pass because it trailed blk44, not because it lost to QP.",
+        assessment: "Tier A reopen; textbook one-pass over-rejection.",
+        nextTest: "Matched temperature-0 repeat, then long-order stability if the signal holds."
+      },
+      {
+        id: "028", order: 28, name: "blk44 q4_K + lateKV35", family: "Step-imatrix", decision: "rejected",
+        size: "83,916.08 MiB · 3.57 BPW · +190 MiB", headline: "hard20 68 · TC-60 repair failed",
+        memory: "Peak VRAM/GTT NR.",
+        quality: ["Direct hard-20: 68, 27/40, runtime 7:28.64, median 5,522.8 ms, 88,493 tokens.", "TC-60 repair failed; TC-61 regressed."],
+        speed: ["Native TG 26.07; PP 181.60 / 263.55 / 295.34. Mixed one-run PG profile."],
+        disposition: "Rejected/deleted as a failed interaction.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "029", order: 29, name: "AGENTKV + blk44 q4_K", family: "Step-imatrix", decision: "rejected",
+        size: "83,974.46 MiB · 3.58 BPW · +248 MiB", headline: "hard20 70 · interaction erased parent gains",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Direct hard-20: 70, 28/40, runtime 7:40.41, median 6,046.2 ms, 102,100 tokens.",
+          "Repaired TC-03/24/40/43 but lost TC-61 and weakened TC-62/63. No true loop."
+        ],
+        speed: ["No native speed row."],
+        disposition: "Rejected/deleted after the additive interaction erased useful aggregate signals.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "030", order: 30, name: "blk44 q4_K + lateK35-only", family: "Step-imatrix", decision: "rejected",
+        size: "83,911.08 MiB · 3.57 BPW · +185 MiB", headline: "hard20 65 · TC-60 still failed",
+        memory: "Peak VRAM/GTT NR.",
+        quality: [
+          "Direct hard-20: 65, 26/40, runtime approximately 8:06, median 5,352.9 ms, 102,558 tokens.",
+          "TC-38/61 passed, but TC-24/43 were lost and TC-60 still failed."
+        ],
+        speed: ["Native TG 26.22; PP 206.13 / 257.19 / 295.23. Small PG bump did not offset quality loss."],
+        disposition: "Rejected/deleted.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      },
+      {
+        id: "031", order: 31, name: "blk43 + blk44 routed-down q4_K", family: "Step-imatrix", decision: "rejected",
+        size: "84,086.08 MiB · 3.58 BPW · +360 MiB", headline: "hard20 62 · TG 24.45 · broadening negative",
+        memory: "Peak VRAM/GTT NR. Quantization took 1,628 seconds.",
+        quality: [
+          "Direct hard-20: 62, 25/40, median 5,379.7 ms, 92,211 tokens.",
+          "Lost TC-24/61/68 and several blk44 passes; no true loop."
+        ],
+        speed: ["Native TG 24.45; PP 187.16 / 251.56 / 295.03. TG and short-context PP regressed."],
+        disposition: "Rejected/deleted as a negative adjacent-layer broadening result.",
+        assessment: "Supported reject.",
+        nextTest: "None."
+      }
+    ];
+
+    const statusLabels = {
+      primary: "Tier A reopen",
+      conditional: "Conditional",
+      rejected: "Rejected / pruned",
+      control: "Control"
+    };
+
+    const esc = function(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    };
+
+    const modelRows = document.getElementById("modelRows");
+    const searchInput = document.getElementById("modelSearch");
+    const decisionFilter = document.getElementById("decisionFilter");
+    const familyFilter = document.getElementById("familyFilter");
+    const resultCount = document.getElementById("resultCount");
+    const modelDialog = document.getElementById("modelDialog");
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogChip = document.getElementById("dialogChip");
+    const dialogBody = document.getElementById("dialogBody");
+
+    function searchableText(model) {
+      return [
+        model.id, model.name, model.family, model.size, model.headline, model.memory,
+        model.quality.join(" "), model.speed.join(" "), model.disposition,
+        model.assessment, model.nextTest
+      ].join(" ").toLowerCase();
+    }
+
+    function renderModels() {
+      const query = searchInput.value.trim().toLowerCase();
+      const decision = decisionFilter.value;
+      const family = familyFilter.value;
+      const filtered = models.filter(function(model) {
+        const matchesQuery = !query || searchableText(model).includes(query);
+        const matchesDecision = decision === "all" || model.decision === decision;
+        const matchesFamily = family === "all" || model.family === family;
+        return matchesQuery && matchesDecision && matchesFamily;
+      });
+
+      if (!filtered.length) {
+        modelRows.innerHTML = '<tr><td class="empty-row" colspan="6">No models match this evidence filter.</td></tr>';
+      } else {
+        modelRows.innerHTML = filtered.map(function(model) {
+          return '<tr>' +
+            '<td class="index">' + esc(model.id) + '</td>' +
+            '<td class="model-name"><button type="button" class="open-model" data-id="' + esc(model.id) + '">' + esc(model.name) + '</button><small>Open complete dossier</small></td>' +
+            '<td>' + esc(model.family) + '</td>' +
+            '<td class="mono">' + esc(model.size) + '</td>' +
+            '<td>' + esc(model.headline) + '</td>' +
+            '<td><span class="chip ' + esc(model.decision) + '">' + esc(statusLabels[model.decision]) + '</span></td>' +
+          '</tr>';
+        }).join("");
+      }
+      resultCount.textContent = filtered.length + " / " + models.length + " shown";
+    }
+
+    function listMarkup(items) {
+      return "<ul>" + items.map(function(item) { return "<li>" + esc(item) + "</li>"; }).join("") + "</ul>";
+    }
+
+    function openModel(id) {
+      const model = models.find(function(item) { return item.id === id; });
+      if (!model) return;
+      dialogTitle.textContent = model.name;
+      dialogChip.textContent = statusLabels[model.decision];
+      dialogChip.className = "chip " + model.decision;
+      dialogBody.innerHTML =
+        '<div class="dialog-grid">' +
+          '<section class="dialog-panel"><h3>Identity</h3><p><span class="mono">' + esc(model.id) + '</span> · ' + esc(model.family) + '<br><span class="mono">' + esc(model.size) + '</span></p></section>' +
+          '<section class="dialog-panel"><h3>Runtime memory</h3><p>' + esc(model.memory) + '</p></section>' +
+          '<section class="dialog-panel full"><h3>All recorded quality</h3>' + listMarkup(model.quality) + '</section>' +
+          '<section class="dialog-panel full"><h3>All recorded speed / latency</h3>' + listMarkup(model.speed) + '</section>' +
+          '<section class="dialog-panel"><h3>Recorded disposition</h3><p>' + esc(model.disposition) + '</p></section>' +
+          '<section class="dialog-panel"><h3>Independent reassessment</h3><p>' + esc(model.assessment) + '</p></section>' +
+          '<section class="dialog-panel full"><h3>Required next test</h3><p>' + esc(model.nextTest) + '</p></section>' +
+        '</div>';
+      modelDialog.showModal();
+    }
+
+    modelRows.addEventListener("click", function(event) {
+      const button = event.target.closest(".open-model");
+      if (button) openModel(button.dataset.id);
+    });
+    searchInput.addEventListener("input", renderModels);
+    decisionFilter.addEventListener("change", renderModels);
+    familyFilter.addEventListener("change", renderModels);
+
+    document.getElementById("printReport").addEventListener("click", function() { window.print(); });
+
+    const themeToggle = document.getElementById("themeToggle");
+    themeToggle.addEventListener("click", function() {
+      const root = document.documentElement;
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      themeToggle.textContent = next === "dark" ? "Switch to light" : "Switch to dark";
+    });
+
+    const navLinks = Array.from(document.querySelectorAll(".section-nav a"));
+    const sections = navLinks.map(function(link) { return document.querySelector(link.getAttribute("href")); });
+    const observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        navLinks.forEach(function(link) {
+          link.classList.toggle("active", link.getAttribute("href") === "#" + entry.target.id);
+        });
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    sections.forEach(function(section) { if (section) observer.observe(section); });
+
+    modelDialog.addEventListener("click", function(event) {
+      if (event.target === modelDialog) modelDialog.close();
+    });
+
+    renderModels();
+  </script>
+</body>
+</html>
