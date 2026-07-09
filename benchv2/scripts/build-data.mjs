@@ -1542,7 +1542,7 @@ TOOL_EVAL_REPORTS = {
 TOOL_EVAL_FULL_TPS = {
     "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 21.32,
     "chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template": 85.90,
-    "thinkingcap-qwen36-27b-nvfp4-mtp-256k": 166.14,
+    "thinkingcap-qwen36-27b-nvfp4-mtp-256k": 70.35,
     "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw": 12.34,
     "thinkingcap-qwen36-27b-chadrock-rocmfpx-ultraquality-7p61bpw-froggeric-card-sampler": 12.34,
 }
