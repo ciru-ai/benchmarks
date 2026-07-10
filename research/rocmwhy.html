@@ -1,0 +1,2023 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Why ROCmFP4 Beats Traditional Q4 | Ciru Inference Lab</title>
+  <meta name="description" content="An interactive, implementation-grounded guide to ROCmFP4: Codebook10, dual-scale blocks, MSE-optimal UE4M3 scale search, and the tensor-aware STRIX recipe.">
+  <meta name="theme-color" content="#080808">
+  <meta property="og:title" content="Why ROCmFP4 Beats Traditional Q4">
+  <meta property="og:description" content="Four bits, spent smarter: explore the codebook, scale budget, MSE search, and STRIX mixed-precision recipe.">
+  <meta property="og:image" content="rocmfp4why.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23080808'/%3E%3Cpath d='M10 16h44v8H36v24h-8V24H10z' fill='%23ed1c24'/%3E%3Cpath d='M18 30h10v8H18zm18 0h10v8H36z' fill='%2339d0ff'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --panel-3: rgba(8, 9, 11, 0.82);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --green: #20d1a2;
+      --green-soft: #86f2ce;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --violet: #c994ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 92px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.20), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+      z-index: -1;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% -20%, transparent 0 44%, rgba(0, 0, 0, 0.44) 100%);
+      z-index: -1;
+    }
+
+    ::selection { background: rgba(237, 28, 36, 0.68); color: #fff; }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    img, svg { display: block; max-width: 100%; }
+
+    .mono,
+    code,
+    .metric-value,
+    .eyebrow,
+    .chip,
+    .nav-link,
+    .source-meta,
+    .axis-note {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      z-index: 100;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      color: #080808;
+      background: var(--cyan);
+      transform: translateY(-150%);
+      transition: transform 160ms ease;
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .scroll-progress {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 90;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .scroll-progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--amd), var(--orange), var(--cyan));
+      box-shadow: 0 0 16px rgba(57, 208, 255, 0.42);
+    }
+
+    .shell {
+      width: min(calc(100% - 28px), var(--max));
+      margin-inline: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .site-header {
+      margin-top: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      isolation: isolate;
+      position: relative;
+    }
+
+    .site-header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+      z-index: -1;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 0;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-lockup:hover { text-decoration: none; }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(237, 28, 36, 0.42);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(237, 28, 36, 0.18), rgba(57, 208, 255, 0.08)),
+        rgba(0, 0, 0, 0.34);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 26px rgba(0, 0, 0, 0.28);
+    }
+
+    .brand-mark svg { width: 30px; height: 30px; }
+
+    .brand-title {
+      display: block;
+      font-weight: 700;
+      text-transform: uppercase;
+      line-height: 1.04;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-subtitle {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.7rem;
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .button,
+    .header-link,
+    .segmented button,
+    .tensor-node {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, color 160ms ease;
+    }
+
+    .button,
+    .header-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 12px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .button:hover,
+    .button:focus-visible,
+    .header-link:hover,
+    .header-link:focus-visible {
+      border-color: rgba(57, 208, 255, 0.68);
+      background: rgba(57, 208, 255, 0.10);
+      color: #fff;
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    .button.primary {
+      border-color: rgba(237, 28, 36, 0.56);
+      background: rgba(237, 28, 36, 0.15);
+    }
+
+    .button.primary:hover { border-color: var(--amd); background: rgba(237, 28, 36, 0.24); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
+      gap: 30px;
+      align-items: center;
+      padding: 42px 28px 30px;
+    }
+
+    .kicker,
+    .eyebrow {
+      margin: 0;
+      color: #ff7863;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { text-wrap: pretty; }
+
+    h1 {
+      margin: 12px 0 0;
+      max-width: 760px;
+      font-size: clamp(2.7rem, 6.5vw, 5.9rem);
+      line-height: 0.88;
+      letter-spacing: -0.055em;
+      text-transform: uppercase;
+    }
+
+    h1 span {
+      display: block;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(247, 247, 244, 0.68);
+      text-shadow: 0 0 32px rgba(57, 208, 255, 0.12);
+    }
+
+    .hero-copy {
+      max-width: 720px;
+      margin: 22px 0 0;
+      color: #c9ccd2;
+      font-size: clamp(1rem, 1.6vw, 1.18rem);
+    }
+
+    .hero-copy strong { color: #fff; }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+    }
+
+    .chip::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(32, 209, 162, 0.68);
+    }
+
+    .block-visual {
+      position: relative;
+      min-height: 380px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        radial-gradient(circle at 82% 8%, rgba(57, 208, 255, 0.13), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)),
+        rgba(6, 7, 9, 0.78);
+      overflow: hidden;
+    }
+
+    .block-visual::before {
+      content: "BLOCK / 32 WEIGHTS";
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      color: rgba(255, 255, 255, 0.24);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+    }
+
+    .format-lane { position: relative; z-index: 1; }
+    .format-lane + .format-lane { margin-top: 25px; }
+
+    .format-lane-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .format-lane-title { font-size: 0.94rem; font-weight: 700; }
+    .format-lane-meta { color: var(--muted); font-size: 0.68rem; }
+
+    .byte-track {
+      display: grid;
+      grid-template-columns: repeat(18, minmax(0, 1fr));
+      gap: 3px;
+      min-height: 70px;
+      padding: 7px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.28);
+    }
+
+    .byte {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      border: 1px solid rgba(120, 168, 255, 0.28);
+      border-radius: 3px;
+      background: linear-gradient(180deg, rgba(120, 168, 255, 0.26), rgba(120, 168, 255, 0.08));
+      color: rgba(255, 255, 255, 0.54);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.54rem;
+    }
+
+    .byte.scale-q4 {
+      grid-column: span 2;
+      border-color: rgba(255, 159, 67, 0.56);
+      background: rgba(255, 159, 67, 0.16);
+      color: #ffd0a2;
+    }
+
+    .byte.scale-a,
+    .byte.scale-b {
+      border-color: rgba(32, 209, 162, 0.64);
+      background: rgba(32, 209, 162, 0.17);
+      color: #b8ffe9;
+    }
+
+    .scale-braces {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 7px;
+      color: var(--green-soft);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      text-align: center;
+    }
+
+    .scale-braces span {
+      padding-top: 6px;
+      border-top: 1px solid rgba(32, 209, 162, 0.46);
+    }
+
+    .hero-note {
+      margin: 18px 0 0;
+      padding: 12px 13px;
+      border-left: 3px solid var(--cyan);
+      background: rgba(57, 208, 255, 0.07);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .hero-note strong { color: var(--cyan); }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.20);
+    }
+
+    .hero-stat { padding: 18px 20px; min-width: 0; }
+    .hero-stat + .hero-stat { border-left: 1px solid var(--line); }
+
+    .metric-value {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(1.35rem, 2.4vw, 2rem);
+      font-weight: 700;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-label { display: block; margin-top: 7px; color: var(--muted); font-size: 0.74rem; }
+
+    .sticky-nav {
+      position: sticky;
+      top: 10px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 12px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(8, 8, 9, 0.86);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(18px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .sticky-nav::-webkit-scrollbar { display: none; }
+
+    .nav-link {
+      flex: 0 0 auto;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible,
+    .nav-link.active {
+      border-color: rgba(57, 208, 255, 0.32);
+      background: rgba(57, 208, 255, 0.08);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    main { padding: 18px 0 44px; }
+
+    .report-section {
+      margin-top: 18px;
+      padding: clamp(20px, 4vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-section::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.018), transparent 28%);
+    }
+
+    .report-section > * { position: relative; z-index: 1; }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.78fr) minmax(300px, 0.52fr);
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 26px;
+    }
+
+    .section-number {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(237, 28, 36, 0.44);
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(237, 28, 36, 0.15);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 7px 0 0;
+      font-size: clamp(1.85rem, 4vw, 3.25rem);
+      line-height: 0.98;
+      letter-spacing: -0.035em;
+      text-transform: uppercase;
+    }
+
+    h2 em { color: var(--green); font-style: normal; }
+
+    h3 {
+      margin: 0;
+      font-size: 1.06rem;
+      line-height: 1.2;
+    }
+
+    .section-intro { margin: 0; color: #c4c8cf; font-size: 1rem; }
+    .section-intro strong { color: #fff; }
+
+    .thesis-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .thesis-card,
+    .fact-card,
+    .metric-card,
+    .explain-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+        var(--panel-2);
+    }
+
+    .thesis-card { min-height: 180px; padding: 18px; }
+
+    .thesis-card .eyebrow { color: var(--cyan); }
+    .thesis-card h3 { margin-top: 19px; }
+    .thesis-card p { margin: 10px 0 0; color: var(--muted); font-size: 0.85rem; }
+
+    .callout {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border: 1px solid rgba(57, 208, 255, 0.24);
+      border-left: 5px solid var(--cyan);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      color: #dbe8ed;
+    }
+
+    .callout.warning {
+      border-color: rgba(255, 159, 67, 0.25);
+      border-left-color: var(--orange);
+      background: rgba(255, 159, 67, 0.08);
+    }
+
+    .callout strong { color: #fff; }
+
+    .table-wrap {
+      margin-top: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: collapse;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+
+    th {
+      background: rgba(255, 255, 255, 0.055);
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    td { color: #c5c9d0; font-size: 0.82rem; }
+    td:first-child { color: #fff; font-weight: 700; }
+    .good { color: var(--green-soft); }
+    .neutral { color: #b9d8ff; }
+
+    .lab-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.38fr) minmax(280px, 0.62fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .lab-panel {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 80% 0, rgba(57, 208, 255, 0.07), transparent 30%),
+        var(--panel-3);
+    }
+
+    .lab-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 15px;
+    }
+
+    .lab-title { font-size: 0.88rem; font-weight: 700; }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green-soft);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+    }
+
+    .live-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(32, 209, 162, 0.72);
+      animation: pulse 2.1s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 50% { opacity: 0.42; transform: scale(0.78); } }
+
+    .segmented {
+      display: inline-flex;
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.28);
+    }
+
+    .segmented button {
+      min-height: 32px;
+      padding: 6px 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.64rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      border-color: rgba(57, 208, 255, 0.52);
+      background: rgba(57, 208, 255, 0.13);
+      color: #fff;
+    }
+
+    .chart-frame {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        rgba(0, 0, 0, 0.22);
+      background-size: 28px 28px;
+      overflow: auto;
+      scrollbar-color: rgba(57, 208, 255, 0.42) rgba(255, 255, 255, 0.05);
+    }
+
+    .chart-frame svg { width: 100%; height: auto; }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.25fr) minmax(180px, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .control-label { color: var(--muted); font-size: 0.78rem; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--cyan);
+      cursor: ew-resize;
+    }
+
+    .range-value {
+      min-width: 68px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.24);
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.74rem;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .result-strip {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .mini-result {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.026);
+    }
+
+    .mini-result span { display: block; color: var(--muted); font-size: 0.66rem; }
+    .mini-result strong { display: block; margin-top: 4px; font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; }
+    .mini-result.q4 strong { color: #9cc6ff; }
+    .mini-result.roc strong { color: var(--green-soft); }
+
+    .explain-stack { display: grid; gap: 10px; }
+    .explain-card { padding: 16px; }
+    .explain-card .eyebrow { color: var(--cyan); }
+    .explain-card h3 { margin-top: 12px; }
+    .explain-card p { margin: 8px 0 0; color: var(--muted); font-size: 0.82rem; }
+    .codebook-line { margin-top: 10px; color: var(--green-soft); font-family: "IBM Plex Mono", monospace; font-size: 0.74rem; line-height: 1.8; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric-card { padding: 13px 14px; }
+    .metric-card .metric-value { font-size: 1.24rem; }
+    .metric-card .metric-label { margin-top: 6px; font-size: 0.68rem; }
+
+    .lab-caption {
+      margin: 12px 0 0;
+      color: var(--subtle);
+      font-size: 0.72rem;
+    }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.26fr) minmax(280px, 0.74fr);
+      gap: 14px;
+    }
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .switch-copy strong { display: block; font-size: 0.8rem; }
+    .switch-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 0.7rem; }
+
+    .switch {
+      position: relative;
+      display: inline-flex;
+      width: 48px;
+      height: 26px;
+      flex: 0 0 auto;
+    }
+
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .switch-track::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 160ms ease;
+    }
+
+    .switch input:checked + .switch-track { border-color: rgba(32, 209, 162, 0.72); background: rgba(32, 209, 162, 0.32); }
+    .switch input:checked + .switch-track::after { transform: translateX(22px); }
+    .switch input:focus-visible + .switch-track { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+    .search-readout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+
+    .recipe-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .recipe-summary { margin: 0; max-width: 690px; color: #c7cbd1; }
+
+    .tensor-pipeline {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.86fr) 34px minmax(150px, 1fr) 34px minmax(150px, 1fr) 34px minmax(130px, 0.86fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .pipeline-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--subtle);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.2rem;
+    }
+
+    .tensor-node {
+      min-height: 170px;
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tensor-node::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--node-color, var(--cyan));
+    }
+
+    .tensor-node:hover,
+    .tensor-node:focus-visible,
+    .tensor-node[aria-pressed="true"] {
+      border-color: color-mix(in srgb, var(--node-color, var(--cyan)) 62%, transparent);
+      background: color-mix(in srgb, var(--node-color, var(--cyan)) 10%, rgba(255, 255, 255, 0.03));
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .tensor-node .node-role {
+      display: block;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+    }
+
+    .tensor-node strong { display: block; margin-top: 18px; font-size: 1.02rem; }
+
+    .tensor-node .node-format {
+      display: block;
+      margin-top: 10px;
+      color: var(--node-color, var(--cyan));
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .tensor-node .node-note { display: block; margin-top: 9px; color: var(--subtle); font-size: 0.7rem; }
+
+    .recipe-detail {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.28fr) 1fr;
+      gap: 18px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 16px 18px;
+      border: 1px solid rgba(57, 208, 255, 0.24);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.06);
+    }
+
+    .recipe-detail strong { color: var(--cyan); font-family: "IBM Plex Mono", monospace; font-size: 0.74rem; text-transform: uppercase; }
+    .recipe-detail p { margin: 0; color: #d3d8de; font-size: 0.84rem; }
+
+    .fact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .fact-card { padding: 20px; }
+    .fact-card .fact-icon { color: var(--orange); font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; }
+    .fact-card h3 { margin-top: 20px; }
+    .fact-card p { margin: 10px 0 0; color: var(--muted); font-size: 0.84rem; }
+
+    .takeaway {
+      background:
+        linear-gradient(105deg, rgba(237, 28, 36, 0.17), transparent 38%),
+        linear-gradient(285deg, rgba(32, 209, 162, 0.11), transparent 34%),
+        var(--panel);
+    }
+
+    .takeaway-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.38fr);
+      gap: 28px;
+      align-items: center;
+    }
+
+    .takeaway h2 { max-width: 760px; }
+    .takeaway p { margin: 18px 0 0; max-width: 760px; color: #d0d4da; font-size: 1.02rem; }
+
+    .result-seal {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      width: min(100%, 250px);
+      margin-inline: auto;
+      border: 1px solid rgba(32, 209, 162, 0.42);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(32, 209, 162, 0.15), rgba(0, 0, 0, 0.2) 64%),
+        repeating-radial-gradient(circle, transparent 0 13px, rgba(32, 209, 162, 0.08) 13px 14px);
+      box-shadow: 0 0 55px rgba(32, 209, 162, 0.10), inset 0 0 32px rgba(0, 0, 0, 0.34);
+      text-align: center;
+    }
+
+    .result-seal span { display: block; color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 0.64rem; text-transform: uppercase; }
+    .result-seal strong { display: block; margin-top: 7px; color: var(--green-soft); font-size: 2.5rem; line-height: 1; }
+
+    .sources-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 18px; }
+
+    .source-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.025);
+      color: #e9edf1;
+      font-size: 0.8rem;
+    }
+
+    .source-link:hover { border-color: rgba(57, 208, 255, 0.5); background: rgba(57, 208, 255, 0.07); text-decoration: none; }
+    .source-link code { color: var(--cyan); font-size: 0.7rem; }
+    .source-link span:last-child { color: var(--subtle); }
+
+    .source-meta { margin: 16px 0 0; color: var(--subtle); font-size: 0.68rem; }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 20px 2px 34px;
+      color: var(--subtle);
+      font-size: 0.74rem;
+    }
+
+    .footer strong { color: var(--muted); }
+
+    dialog {
+      width: min(calc(100% - 28px), 980px);
+      max-height: calc(100vh - 28px);
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      color: var(--text);
+      background: #0b0c0e;
+      box-shadow: 0 30px 100px rgba(0, 0, 0, 0.72);
+      overflow: hidden;
+    }
+
+    dialog::backdrop { background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(8px); }
+
+    .dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(9, 10, 12, 0.94);
+      backdrop-filter: blur(16px);
+    }
+
+    .dialog-head strong { font-size: 0.86rem; }
+    .dialog-body { max-height: calc(100vh - 92px); padding: 12px; overflow: auto; }
+    .dialog-body img { width: 100%; height: auto; border-radius: 5px; }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 100;
+      max-width: min(360px, calc(100% - 32px));
+      padding: 11px 14px;
+      border: 1px solid rgba(32, 209, 162, 0.42);
+      border-radius: var(--radius);
+      background: rgba(8, 12, 12, 0.94);
+      color: var(--green-soft);
+      box-shadow: var(--shadow);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      opacity: 0;
+      transform: translateY(14px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .reveal { opacity: 1; transform: none; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .block-visual { min-height: 0; }
+      .section-head { grid-template-columns: 1fr; gap: 15px; }
+      .thesis-grid { grid-template-columns: repeat(2, 1fr); }
+      .tensor-pipeline { grid-template-columns: 1fr 24px 1fr; }
+      .tensor-pipeline > :nth-child(4) { display: none; }
+      .tensor-pipeline > :nth-child(5) { grid-column: 1; }
+      .tensor-pipeline > :nth-child(6) { grid-column: 2; }
+      .tensor-pipeline > :nth-child(7) { grid-column: 3; }
+    }
+
+    @media (max-width: 780px) {
+      .brand-row { align-items: flex-start; }
+      .header-actions .header-link { display: none; }
+      .hero { padding: 34px 20px 24px; }
+      .hero-stats { grid-template-columns: repeat(2, 1fr); }
+      .hero-stat:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+      .hero-stat:nth-child(4) { border-top: 1px solid var(--line); }
+      .lab-grid, .search-grid, .takeaway-grid { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .fact-grid { grid-template-columns: 1fr; }
+      .sources-list { grid-template-columns: 1fr; }
+      .result-seal { width: 190px; }
+    }
+
+    @media (max-width: 580px) {
+      html { scroll-padding-top: 78px; }
+      .shell { width: min(calc(100% - 16px), var(--max)); }
+      .brand-row { padding: 15px 14px 0; }
+      .brand-mark { width: 40px; height: 40px; }
+      .brand-subtitle { font-size: 0.62rem; }
+      .header-actions .button { padding-inline: 9px; font-size: 0.62rem; }
+      .hero { padding: 30px 14px 20px; }
+      h1 { font-size: clamp(2.5rem, 15vw, 4.2rem); }
+      .hero-stats { grid-template-columns: 1fr 1fr; }
+      .hero-stat { padding: 14px; }
+      .sticky-nav { top: 6px; margin-top: 8px; border-radius: 8px; }
+      main { padding-top: 8px; }
+      .report-section { margin-top: 10px; padding: 20px 14px; }
+      .thesis-grid { grid-template-columns: 1fr; }
+      .thesis-card { min-height: 0; }
+      .lab-panel { padding: 12px; }
+      .lab-head { align-items: flex-start; flex-direction: column; }
+      #codebookChart { min-width: 680px; }
+      #blockChart { min-width: 760px; }
+      #mseChart { min-width: 620px; }
+      .control-row { grid-template-columns: 1fr auto; }
+      .control-row input { grid-column: 1 / -1; grid-row: 2; }
+      .result-strip, .search-readout { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .recipe-top { align-items: flex-start; flex-direction: column; }
+      .tensor-pipeline { grid-template-columns: 1fr; }
+      .tensor-node { min-height: 0; }
+      .pipeline-arrow { min-height: 22px; transform: rotate(90deg); }
+      .tensor-pipeline > :nth-child(4) { display: grid; }
+      .tensor-pipeline > :nth-child(5), .tensor-pipeline > :nth-child(6), .tensor-pipeline > :nth-child(7) { grid-column: auto; }
+      .recipe-detail { grid-template-columns: 1fr; gap: 8px; }
+      .footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      body::before, body::after, .sticky-nav, .header-actions, .scroll-progress, .toast { display: none; }
+      .site-header, .report-section { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the research guide</a>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
+
+  <header class="site-header shell" id="top">
+    <div class="brand-row">
+      <a class="brand-lockup" href="#top" aria-label="Ciru Inference Lab — top of page">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M4 7h24v5H18.5v15h-5V12H4z" fill="#ed1c24"/>
+            <path d="M7 15h6.5v5H7zm11.5 0H25v5h-6.5z" fill="#39d0ff"/>
+            <path d="M10 4h12l-2 3h-8z" fill="#f7f7f4" opacity=".82"/>
+          </svg>
+        </span>
+        <span>
+          <span class="brand-title">Ciru Inference Lab</span>
+          <span class="brand-subtitle">Crown Citadel Research / quantization field guide</span>
+        </span>
+      </a>
+      <div class="header-actions">
+        <button class="button" id="openSourceVisual" type="button">Original visual</button>
+        <a class="header-link" href="https://github.com/ciru-ai/ROCmFPX" target="_blank" rel="noreferrer">Implementation ↗</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div>
+        <p class="kicker">Crown Citadel Research Report</p>
+        <h1>Four bits.<span>Spent smarter.</span></h1>
+        <p class="hero-copy">
+          ROCmFP4 is not stock Q4 with a new label. It changes <strong>where the representable values sit</strong>,
+          <strong>how scale metadata is allocated</strong>, <strong>how the scale is selected</strong>, and
+          <strong>which tensors receive extra protection</strong>—all around an AMD-friendly integer-dot layout.
+        </p>
+        <div class="chip-row" aria-label="Key properties">
+          <span class="chip">Codebook10</span>
+          <span class="chip">Dual UE4M3 scales</span>
+          <span class="chip">MSE search</span>
+          <span class="chip">STRIX tensor routing</span>
+        </div>
+      </div>
+
+      <div class="block-visual" aria-label="Block metadata comparison">
+        <div class="format-lane">
+          <div class="format-lane-head">
+            <span class="format-lane-title">Stock Q4_0</span>
+            <span class="format-lane-meta mono">18 bytes / 32 weights</span>
+          </div>
+          <div class="byte-track" aria-hidden="true">
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte scale-q4">FP16 scale × 1</span>
+          </div>
+        </div>
+        <div class="format-lane">
+          <div class="format-lane-head">
+            <span class="format-lane-title">Dual-scale ROCmFP4</span>
+            <span class="format-lane-meta mono">18 bytes / 32 weights</span>
+          </div>
+          <div class="byte-track" aria-hidden="true">
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte">q</span><span class="byte">q</span><span class="byte">q</span><span class="byte">q</span>
+            <span class="byte scale-a">A</span><span class="byte scale-b">B</span>
+          </div>
+          <div class="scale-braces" aria-hidden="true"><span>16 weights / scale A</span><span>16 weights / scale B</span></div>
+        </div>
+        <p class="hero-note"><strong>Same metadata budget.</strong> Twice the local scale granularity on the quality path.</p>
+      </div>
+    </div>
+
+    <div class="hero-stats" aria-label="Format facts">
+      <div class="hero-stat"><span class="metric-value">4.50</span><span class="metric-label">BPW dual-scale path</span></div>
+      <div class="hero-stat"><span class="metric-value">4.25</span><span class="metric-label">BPW FAST path</span></div>
+      <div class="hero-stat"><span class="metric-value">2 × 16</span><span class="metric-label">weight scale groups</span></div>
+      <div class="hero-stat"><span class="metric-value">126</span><span class="metric-label">nonzero UE4M3 scale candidates</span></div>
+    </div>
+  </header>
+
+  <nav class="sticky-nav shell" aria-label="Report sections">
+    <a class="nav-link active" href="#overview">Overview</a>
+    <a class="nav-link" href="#codebook">01 / Value grid</a>
+    <a class="nav-link" href="#scales">02 / Scale budget</a>
+    <a class="nav-link" href="#search">03 / Best fit</a>
+    <a class="nav-link" href="#recipe">04 / STRIX recipe</a>
+    <a class="nav-link" href="#sources">Sources</a>
+  </nav>
+
+  <main class="shell" id="main">
+    <section class="report-section reveal" id="overview" data-nav="overview">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">The thesis</p>
+          <h2>“Four-bit” describes the storage width—<em>not the intelligence of the format.</em></h2>
+        </div>
+        <p class="section-intro">
+          Two 4-bit formats can spend identical weight bits yet reconstruct a model very differently. ROCmFP4 improves the
+          <strong>quality per byte</strong> by reshaping the value grid, localizing scale error, optimizing reconstruction, and protecting sensitive tensors.
+        </p>
+      </div>
+
+      <div class="thesis-grid">
+        <article class="thesis-card">
+          <p class="eyebrow">01 / values</p>
+          <h3>Nonuniform Codebook10</h3>
+          <p>More distinct levels sit near zero, where sharply peaked neural weights are concentrated.</p>
+        </article>
+        <article class="thesis-card">
+          <p class="eyebrow">02 / metadata</p>
+          <h3>Two local scales</h3>
+          <p>The same two metadata bytes become one UE4M3 scale for each 16-weight half.</p>
+        </article>
+        <article class="thesis-card">
+          <p class="eyebrow">03 / fitting</p>
+          <h3>MSE-optimal search</h3>
+          <p>Finite scale candidates are scored by reconstruction error, with optional importance weighting.</p>
+        </article>
+        <article class="thesis-card">
+          <p class="eyebrow">04 / recipe</p>
+          <h3>Tensor-aware STRIX</h3>
+          <p>Large tolerant tensors stay compact while embeddings and attention K/V receive targeted protection.</p>
+        </article>
+      </div>
+
+      <div class="table-wrap" role="region" aria-label="Format comparison table" tabindex="0">
+        <table>
+          <thead>
+            <tr><th>Property</th><th>Stock Q4_0</th><th>Dual ROCmFP4</th><th>ROCmFP4 FAST</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Weights per block</td><td>32</td><td>32</td><td>32</td></tr>
+            <tr><td>Representable grid</td><td class="neutral">Uniform integer steps</td><td class="good">E2M1-derived Codebook10</td><td class="good">E2M1-derived Codebook10</td></tr>
+            <tr><td>Scale metadata</td><td>1 × FP16 (2 bytes)</td><td class="good">2 × unsigned E4M3 (2 bytes)</td><td>1 × unsigned E4M3 (1 byte)</td></tr>
+            <tr><td>Scale grouping</td><td>1 × 32 weights</td><td class="good">2 × 16 weights</td><td>1 × 32 weights</td></tr>
+            <tr><td>Block size / density</td><td>18 bytes / 4.50 BPW</td><td>18 bytes / 4.50 BPW</td><td class="good">17 bytes / 4.25 BPW</td></tr>
+            <tr><td>Reference scale choice</td><td>Signed abs-max derived</td><td class="good">Finite-scale MSE search</td><td class="good">Finite-scale MSE search</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warning">
+        <strong>Precision note:</strong> this comparison uses stock Q4_0’s reference/no-imatrix path. llama.cpp can also use importance-weighted fitting for Q4_0 when an imatrix is supplied. ROCmFP4’s defining differences remain its codebook, scale encoding/layout, exhaustive native scale search, and STRIX tensor policy.
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="codebook" data-nav="codebook">
+      <div class="section-head">
+        <div>
+          <span class="section-number">01</span>
+          <p class="eyebrow">Smarter value grid</p>
+          <h2>Put the detail <em>where the weights live.</em></h2>
+        </div>
+        <p class="section-intro">
+          Stock Q4_0 lays down evenly spaced integers. ROCmFP4 uses <strong>0, ±1, ±2, ±3, ±4, ±6, ±8, ±10</strong>—fine steps near zero, wider steps in the tails. Move the probe to see where each normalized grid snaps.
+        </p>
+      </div>
+
+      <div class="lab-grid">
+        <div class="lab-panel">
+          <div class="lab-head">
+            <div><span class="lab-title">Normalized codebook explorer</span> <span class="live-badge">Interactive</span></div>
+            <div class="segmented" aria-label="Visible codebooks">
+              <button type="button" data-codebook-mode="q4" aria-pressed="false">Q4_0</button>
+              <button type="button" data-codebook-mode="both" aria-pressed="true">Both</button>
+              <button type="button" data-codebook-mode="rocm" aria-pressed="false">ROCmFP4</button>
+            </div>
+          </div>
+          <div class="chart-frame"><svg id="codebookChart" viewBox="0 0 900 310" role="img" aria-label="Q4_0 and ROCmFP4 value grids"></svg></div>
+          <div class="control-row">
+            <label class="control-label" for="probeWeight">Probe weight</label>
+            <input id="probeWeight" type="range" min="-10" max="10" step="0.1" value="2.7">
+            <output class="range-value" id="probeWeightValue" for="probeWeight">+2.7</output>
+          </div>
+          <div class="result-strip" aria-live="polite">
+            <div class="mini-result q4"><span>Stock Q4_0 snap / absolute error</span><strong id="q4Snap">3.0 / 0.30</strong></div>
+            <div class="mini-result roc"><span>ROCmFP4 snap / absolute error</span><strong id="rocmSnap">3.0 / 0.30</strong></div>
+          </div>
+          <p class="lab-caption">Normalized grid only; block-scale selection is intentionally isolated in the next two labs.</p>
+        </div>
+
+        <div class="explain-stack">
+          <article class="explain-card">
+            <p class="eyebrow">Codebook10</p>
+            <h3>Dense center, economical tails</h3>
+            <p>A sharply peaked distribution benefits from more nearby reconstruction choices around zero, while rare large values can tolerate coarser spacing.</p>
+            <div class="codebook-line">0 · ±1 · ±2 · ±3 · ±4 · ±6 · ±8 · ±10</div>
+          </article>
+          <article class="explain-card">
+            <p class="eyebrow">Retuned maximum</p>
+            <h3>12 became 10—on purpose</h3>
+            <p>The E2M1-derived outer magnitude was reduced after experiments on Qwen dense tensors, lowering the pull of rare outliers.</p>
+          </article>
+          <article class="explain-card">
+            <p class="eyebrow">Exact identity</p>
+            <h3>FP4-like, not native E2M1 math</h3>
+            <p>The packed nibbles expand into signed integer levels for cheap integer dot products. This is not standard E2M1 data dispatched to an FP4 instruction.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="scales" data-nav="scales">
+      <div class="section-head">
+        <div>
+          <span class="section-number">02</span>
+          <p class="eyebrow">Two scales, same cost</p>
+          <h2>Keep one outlier from <em>taxing all 32 weights.</em></h2>
+        </div>
+        <p class="section-intro">
+          A single Q4_0 scale couples the whole block. ROCmFP4’s two one-byte scales let each 16-weight half fit its own range. Increase the outlier and watch the calm half retain its detail.
+        </p>
+      </div>
+
+      <div class="lab-panel">
+        <div class="lab-head">
+          <div><span class="lab-title">32-weight reconstruction lab</span> <span class="live-badge">Interactive</span></div>
+          <span class="axis-note">outline = source · fill = reconstructed</span>
+        </div>
+        <div class="chart-frame"><svg id="blockChart" viewBox="0 0 980 390" role="img" aria-label="Reconstruction of a 32-weight block with one and two scales"></svg></div>
+        <div class="control-row">
+          <label class="control-label" for="outlierWeight">Left-half outlier</label>
+          <input id="outlierWeight" type="range" min="2" max="12" step="0.1" value="8.2">
+          <output class="range-value" id="outlierWeightValue" for="outlierWeight">8.2×</output>
+        </div>
+        <div class="metric-grid" aria-live="polite">
+          <div class="metric-card"><span class="metric-value" id="stockScale">1.025</span><span class="metric-label">Q4_0 shared scale</span></div>
+          <div class="metric-card"><span class="metric-value" id="dualScales">0.813 / 0.094</span><span class="metric-label">ROCmFP4 half scales</span></div>
+          <div class="metric-card"><span class="metric-value" id="stockMse">0.000</span><span class="metric-label">Q4_0 block MSE</span></div>
+          <div class="metric-card"><span class="metric-value" id="dualMse">0.000</span><span class="metric-label">ROCmFP4 block MSE</span></div>
+        </div>
+        <div class="callout" id="mseImprovement"><strong>Local scales preserve the calm half.</strong> Calculating this block’s error…</div>
+        <p class="lab-caption">Illustrative browser simulator. ROCmFP4 uses the implementation’s Codebook10 and full finite UE4M3 candidate set; the Q4_0 lane models its signed abs-max reference scale.</p>
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="search" data-nav="search">
+      <div class="section-head">
+        <div>
+          <span class="section-number">03</span>
+          <p class="eyebrow">Best-fit scale search</p>
+          <h2>Minimize total error—<em>not outlier anxiety.</em></h2>
+        </div>
+        <p class="section-intro">
+          ROCmFP4 starts near <span class="mono">max_abs / 10</span>, expands across finite UE4M3 candidates, and scores reconstruction MSE. Safe pruning stops work that cannot beat the current best without changing the selected result.
+        </p>
+      </div>
+
+      <div class="search-grid">
+        <div class="lab-panel">
+          <div class="lab-head">
+            <div><span class="lab-title">Scale candidate error surface</span> <span class="live-badge">Linked to outlier</span></div>
+            <span class="axis-note">log scale → / log MSE ↑</span>
+          </div>
+          <div class="chart-frame"><svg id="mseChart" viewBox="0 0 760 390" role="img" aria-label="MSE across finite UE4M3 scale candidates"></svg></div>
+          <div class="switch-row">
+            <div class="switch-copy">
+              <strong>Importance-weighted example</strong>
+              <span>Treat the synthetic outlier as low-importance so the search may prefer the rest of the half-block.</span>
+            </div>
+            <label class="switch">
+              <input id="importanceToggle" type="checkbox" aria-label="Enable low-importance outlier weighting">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="explain-stack">
+          <article class="explain-card">
+            <p class="eyebrow">Selected candidate</p>
+            <h3 id="bestScaleCode">UE4M3 0x00</h3>
+            <p id="bestScaleCopy">Scale details will appear here.</p>
+          </article>
+          <div class="search-readout">
+            <div class="metric-card"><span class="metric-value" id="bestScaleMse">0.000</span><span class="metric-label">best candidate MSE</span></div>
+            <div class="metric-card"><span class="metric-value" id="maxFitMse">0.000</span><span class="metric-label">max-preserving candidate MSE</span></div>
+          </div>
+          <article class="explain-card">
+            <p class="eyebrow">Why clipping can win</p>
+            <h3>One imperfect value can buy 15 better ones</h3>
+            <p>If a slightly smaller scale clips an unimportant outlier but sharply reduces error across the rest of the group, its total weighted MSE can be lower.</p>
+          </article>
+          <article class="explain-card">
+            <p class="eyebrow">Quality guardrail</p>
+            <h3>Restricted search was rejected</h3>
+            <p>A faster candidate-window search worsened short WikiText-2 perplexity on the FAST path, so the exact exhaustive candidate set stayed.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="recipe" data-nav="recipe">
+      <div class="section-head">
+        <div>
+          <span class="section-number">04</span>
+          <p class="eyebrow">Mixed precision where it matters</p>
+          <h2>STRIX is a <em>tensor policy,</em> not a paint bucket.</h2>
+        </div>
+        <p class="section-intro">
+          The strongest ROCmFP4 artifacts do not force every tensor through one layout. They keep the largest tolerant tensors compact and spend more bits or scale granularity at sensitive boundaries.
+        </p>
+      </div>
+
+      <div class="recipe-top">
+        <p class="recipe-summary" id="recipeSummary"><strong>STRIX_LEAN</strong> uses Q5_K at the token boundary, dual-scale ROCmFP4 for attention K/V, and 4.25-BPW FAST ROCmFP4 for most large dense tensors.</p>
+        <div class="segmented" aria-label="STRIX recipe">
+          <button type="button" data-recipe="strix" aria-pressed="false">STRIX</button>
+          <button type="button" data-recipe="lean" aria-pressed="true">STRIX_LEAN</button>
+        </div>
+      </div>
+
+      <div class="tensor-pipeline" aria-label="Interactive tensor routing diagram">
+        <button class="tensor-node" type="button" data-node="embeddings" aria-pressed="true" style="--node-color: var(--violet)">
+          <span class="node-role">Boundary</span><strong>Token embeddings</strong><span class="node-format" data-format="embeddings">Q5_K</span><span class="node-note">Small, coherence-sensitive</span>
+        </button>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <button class="tensor-node" type="button" data-node="dense" aria-pressed="false" style="--node-color: var(--green)">
+          <span class="node-role">Bulk compute</span><strong>Large dense tensors</strong><span class="node-format" data-format="dense">ROCmFP4 FAST</span><span class="node-note">Most weights · 4.25 BPW blocks</span>
+        </button>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <button class="tensor-node" type="button" data-node="attention" aria-pressed="false" style="--node-color: var(--orange)">
+          <span class="node-role">Protected state</span><strong>Attention K / V</strong><span class="node-format" data-format="attention">Dual ROCmFP4</span><span class="node-note">Two local scales · every layer</span>
+        </button>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <button class="tensor-node" type="button" data-node="output" aria-pressed="false" style="--node-color: var(--cyan)">
+          <span class="node-role">Boundary</span><strong>Output handling</strong><span class="node-format" data-format="output">FAST / tied-policy</span><span class="node-note">Depends on tying and flags</span>
+        </button>
+      </div>
+
+      <div class="recipe-detail" aria-live="polite">
+        <strong id="recipeDetailTitle">Token embeddings / protected</strong>
+        <p id="recipeDetailCopy">Embeddings are relatively small but coherence-sensitive. STRIX_LEAN promotes them to Q5_K; STRIX spends a little more with Q6_K.</p>
+      </div>
+
+      <div class="callout">
+        <strong>Why fewer average bits can still mean better quality:</strong> uniform Q4 can over-spend on huge tolerant tensors while under-protecting a few smaller sensitive ones. STRIX moves the precision budget to the tensors where validation showed it mattered.
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="truth" data-nav="recipe">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Technical boundaries</p>
+          <h2>What ROCmFP4 <em>is—and is not.</em></h2>
+        </div>
+        <p class="section-intro">Clear boundaries keep a real engineering format from turning into a vague “FP4 is magic” claim.</p>
+      </div>
+      <div class="fact-grid">
+        <article class="fact-card"><span class="fact-icon">NOT / NATIVE FP4 ISA</span><h3>E2M1-derived codebook</h3><p>The stored values are expanded into signed integer lanes for dot products. They are not simply sent to a standard hardware FP4 instruction.</p></article>
+        <article class="fact-card"><span class="fact-icon">NOT / ONE FORMAT EVERYWHERE</span><h3>A family plus a recipe</h3><p>Dual and FAST layouts solve different local problems, while STRIX selects tensor types according to sensitivity.</p></article>
+        <article class="fact-card"><span class="fact-icon">NOT / UNIVERSAL GUARANTEE</span><h3>Better is workload-specific</h3><p>The design targets quality per byte and AMD execution. Exact gains still depend on model family, tensor distribution, recipe, backend, and validation set.</p></article>
+      </div>
+    </section>
+
+    <section class="report-section takeaway reveal" id="takeaway">
+      <div class="takeaway-grid">
+        <div>
+          <p class="eyebrow">The result</p>
+          <h2>ROCmFP4 wins by making <em>better decisions around the four bits.</em></h2>
+          <p>
+            The core idea is not “more precision.” It is better placement: a neural-shaped value grid, more local scales at equal metadata cost, an error-minimizing scale search, and mixed precision routed to the tensors that actually need it.
+          </p>
+        </div>
+        <div class="result-seal" aria-label="Quality per byte result"><div><span>Design target</span><strong>Q / B</strong><span>Quality per byte</span></div></div>
+      </div>
+    </section>
+
+    <section class="report-section reveal" id="sources" data-nav="sources">
+      <div class="section-head">
+        <div><p class="eyebrow">Primary implementation sources</p><h2>Read the format <em>in the code.</em></h2></div>
+        <p class="section-intro">The mechanics and caveats on this page were checked against the Ciru ROCmFPX implementation—not inferred from generic FP4 literature.</p>
+      </div>
+      <div class="sources-list">
+        <a class="source-link" href="https://github.com/ciru-ai/ROCmFPX/blob/40751bd95089733df30dba206e26b4d034db3ee1/ggml/rocmfp4/rocmfp4.c" target="_blank" rel="noreferrer"><span>Codebook + UE4M3 MSE search<br><code>ggml/rocmfp4/rocmfp4.c</code></span><span>↗</span></a>
+        <a class="source-link" href="https://github.com/ciru-ai/ROCmFPX/blob/40751bd95089733df30dba206e26b4d034db3ee1/ggml/rocmfp4/rocmfp4.h" target="_blank" rel="noreferrer"><span>17/18-byte block layouts<br><code>ggml/rocmfp4/rocmfp4.h</code></span><span>↗</span></a>
+        <a class="source-link" href="https://github.com/ciru-ai/ROCmFPX/blob/40751bd95089733df30dba206e26b4d034db3ee1/src/llama-quant.cpp" target="_blank" rel="noreferrer"><span>STRIX tensor routing<br><code>src/llama-quant.cpp</code></span><span>↗</span></a>
+        <a class="source-link" href="https://github.com/ciru-ai/ROCmFPX/blob/40751bd95089733df30dba206e26b4d034db3ee1/ggml/rocmfp4/README.md" target="_blank" rel="noreferrer"><span>Validation and rejected experiments<br><code>ggml/rocmfp4/README.md</code></span><span>↗</span></a>
+      </div>
+      <p class="source-meta">Implementation inspected 2026-07-10 · local revision 40751bd95089733df30dba206e26b4d034db3ee1 · interactive calculations are educational reproductions, not a GGUF encoder.</p>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span><strong>Ciru Inference Lab</strong> · Crown Citadel Group</span>
+    <span class="mono">ROCmFP4 / implementation field guide / 2026-07-10</span>
+  </footer>
+
+  <dialog id="sourceDialog" aria-labelledby="sourceDialogTitle">
+    <div class="dialog-head"><strong id="sourceDialogTitle">Original ROCmFP4 infographic</strong><button class="button" id="closeSourceVisual" type="button">Close</button></div>
+    <div class="dialog-body"><img src="rocmfp4why.png" alt="Original infographic comparing traditional Q4_0 with ROCmFP4 across value grid, scale count, MSE search, and mixed-precision routing."></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Interactive implementation is kept inline so this remains a portable CiruData artifact. -->
+  <script>
+    (() => {
+      "use strict";
+
+      const q4Levels = Array.from({ length: 16 }, (_, index) => index - 8);
+      const rocmCodewords = [0, 1, 2, 3, 4, 6, 8, 10, 0, -1, -2, -3, -4, -6, -8, -10];
+      const rocmLevels = [...new Set(rocmCodewords)].sort((a, b) => a - b);
+      const scaleCandidates = Array.from({ length: 126 }, (_, index) => {
+        const e = index + 1;
+        const exponent = e >> 3;
+        const mantissa = e & 7;
+        const scale = exponent === 0
+          ? mantissa * Math.pow(2, -10)
+          : (8 + mantissa) * Math.pow(2, exponent - 11);
+        return { e, scale };
+      });
+
+      const state = {
+        codebookMode: "both",
+        probe: 2.7,
+        outlier: 8.2,
+        importance: false,
+        recipe: "lean",
+        selectedNode: "embeddings"
+      };
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      const sum = values => values.reduce((total, value) => total + value, 0);
+      const mse = (source, reconstructed) => sum(source.map((value, index) => (value - reconstructed[index]) ** 2)) / source.length;
+      const signed = (value, digits = 1) => `${value >= 0 ? "+" : ""}${value.toFixed(digits)}`;
+      const fmtScale = value => value >= 10 ? value.toFixed(1) : value >= 1 ? value.toFixed(3) : value >= 0.01 ? value.toFixed(4) : value.toExponential(2);
+      const fmtError = value => value >= 1 ? value.toFixed(3) : value >= 0.001 ? value.toFixed(5) : value.toExponential(2);
+      const hex = value => `0x${value.toString(16).toUpperCase().padStart(2, "0")}`;
+
+      function nearestLevel(levels, value) {
+        let best = levels[0];
+        let bestError = Math.abs(value - best);
+        for (let index = 1; index < levels.length; index += 1) {
+          const candidate = levels[index];
+          const error = Math.abs(value - candidate);
+          if (error < bestError || (error === bestError && Math.abs(candidate) < Math.abs(best))) {
+            best = candidate;
+            bestError = error;
+          }
+        }
+        return { value: best, error: bestError };
+      }
+
+      function nearestCodeword(value, scale) {
+        if (!(scale > 0)) return { code: 0, value: 0, error: Math.abs(value) };
+        let bestCode = rocmCodewords[0];
+        let bestValue = bestCode * scale;
+        let bestError = Math.abs(value - bestValue);
+        for (let index = 1; index < rocmCodewords.length; index += 1) {
+          const code = rocmCodewords[index];
+          const reconstructed = code * scale;
+          const error = Math.abs(value - reconstructed);
+          if (error < bestError - Number.EPSILON) {
+            bestCode = code;
+            bestValue = reconstructed;
+            bestError = error;
+          }
+        }
+        return { code: bestCode, value: bestValue, error: bestError };
+      }
+
+      function candidateError(values, scale, importance = null) {
+        const reconstructed = values.map(value => nearestCodeword(value, scale).value);
+        const weights = importance || values.map(() => 1);
+        const denominator = sum(weights) || 1;
+        const error = sum(values.map((value, index) => weights[index] * (value - reconstructed[index]) ** 2)) / denominator;
+        return { error, reconstructed };
+      }
+
+      function chooseRocmScale(values, importance = null) {
+        if (!values.some(value => Math.abs(value) > 0)) {
+          return { e: 0, scale: 0, error: 0, reconstructed: values.map(() => 0), candidates: [] };
+        }
+        const candidates = scaleCandidates.map(candidate => {
+          const result = candidateError(values, candidate.scale, importance);
+          return { ...candidate, ...result };
+        });
+        let best = candidates[0];
+        for (let index = 1; index < candidates.length; index += 1) {
+          const candidate = candidates[index];
+          if (candidate.error < best.error || (candidate.error === best.error && candidate.e < best.e)) best = candidate;
+        }
+        return { ...best, candidates };
+      }
+
+      function nearestScaleCandidate(target) {
+        let best = scaleCandidates[0];
+        let bestDistance = Math.abs(best.scale - target);
+        for (let index = 1; index < scaleCandidates.length; index += 1) {
+          const candidate = scaleCandidates[index];
+          const distance = Math.abs(candidate.scale - target);
+          if (distance < bestDistance || (distance === bestDistance && candidate.e < best.e)) {
+            best = candidate;
+            bestDistance = distance;
+          }
+        }
+        return best;
+      }
+
+      function blockWeights() {
+        const left = [
+          -0.31, 0.42, -0.18, 0.27, state.outlier, -0.36, 0.51, -0.22,
+          0.33, -0.47, 0.16, -0.28, 0.39, -0.20, 0.29, -0.35
+        ];
+        const right = [
+          0.33, -0.27, 0.19, -0.41, 0.52, -0.16, 0.24, -0.36,
+          0.13, -0.21, 0.44, -0.30, 0.17, -0.48, 0.28, -0.11
+        ];
+        return [...left, ...right];
+      }
+
+      function q4ReferenceQuantize(values) {
+        let anchor = values[0];
+        for (const value of values) {
+          if (Math.abs(value) > Math.abs(anchor)) anchor = value;
+        }
+        if (anchor === 0) return { scale: 0, reconstructed: values.map(() => 0), levels: q4Levels };
+        const scale = Math.abs(anchor) / 8;
+        const effectiveLevels = anchor >= 0
+          ? Array.from({ length: 16 }, (_, index) => index - 7)
+          : q4Levels;
+        const reconstructed = values.map(value => nearestLevel(effectiveLevels, value / scale).value * scale);
+        return { scale, reconstructed, levels: effectiveLevels };
+      }
+
+      function renderCodebook() {
+        const svg = $("#codebookChart");
+        const width = 900;
+        const left = 62;
+        const right = 34;
+        const x = value => left + ((value + 10) / 20) * (width - left - right);
+        const rows = state.codebookMode === "both"
+          ? [
+              { key: "q4", label: "STOCK Q4_0 / UNIFORM", levels: q4Levels, y: 126, color: "#78a8ff" },
+              { key: "rocm", label: "ROCmFP4 / CODEBOOK10", levels: rocmLevels, y: 242, color: "#20d1a2" }
+            ]
+          : state.codebookMode === "q4"
+            ? [{ key: "q4", label: "STOCK Q4_0 / UNIFORM", levels: q4Levels, y: 192, color: "#78a8ff" }]
+            : [{ key: "rocm", label: "ROCmFP4 / CODEBOOK10", levels: rocmLevels, y: 192, color: "#20d1a2" }];
+        const q4Nearest = nearestLevel(q4Levels, state.probe);
+        const rocmNearest = nearestLevel(rocmLevels, state.probe);
+        const nearestByKey = { q4: q4Nearest.value, rocm: rocmNearest.value };
+
+        const densityBars = Array.from({ length: 41 }, (_, index) => {
+          const value = -10 + index * 0.5;
+          const density = Math.exp(-(value * value) / 9.5);
+          const barHeight = 42 * density;
+          return `<rect x="${(x(value) - 6).toFixed(2)}" y="${(64 - barHeight).toFixed(2)}" width="12" height="${barHeight.toFixed(2)}" rx="2" fill="rgba(247,247,244,${(0.035 + density * 0.13).toFixed(3)})"/>`;
+        }).join("");
+
+        const rowMarkup = rows.map(row => {
+          const dots = row.levels.map(level => {
+            const selected = level === nearestByKey[row.key];
+            return `
+              <g>
+                ${selected ? `<circle cx="${x(level)}" cy="${row.y}" r="12" fill="none" stroke="${row.color}" stroke-width="2" opacity=".88"/>` : ""}
+                <circle cx="${x(level)}" cy="${row.y}" r="${selected ? 6 : 4}" fill="${row.color}" opacity="${selected ? 1 : 0.76}"/>
+                <text x="${x(level)}" y="${row.y + 24}" text-anchor="middle" fill="${selected ? "#fff" : "#8f96a3"}" font-family="IBM Plex Mono, monospace" font-size="11">${level}</text>
+              </g>`;
+          }).join("");
+          return `
+            <text x="${left}" y="${row.y - 23}" fill="${row.color}" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700">${row.label}</text>
+            <line x1="${left}" y1="${row.y}" x2="${width - right}" y2="${row.y}" stroke="rgba(255,255,255,.19)"/>
+            ${dots}`;
+        }).join("");
+
+        const probeX = x(state.probe);
+        svg.innerHTML = `
+          <defs>
+            <linearGradient id="probeGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#39d0ff"/></linearGradient>
+          </defs>
+          ${densityBars}
+          <text x="${width - right}" y="26" text-anchor="end" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="10">ILLUSTRATIVE WEIGHT DENSITY</text>
+          <line x1="${probeX}" y1="18" x2="${probeX}" y2="286" stroke="url(#probeGlow)" stroke-width="1.5" stroke-dasharray="4 5" opacity=".82"/>
+          <rect x="${clamp(probeX - 31, 5, width - 67)}" y="12" width="62" height="26" rx="5" fill="#0d1115" stroke="rgba(57,208,255,.55)"/>
+          <text x="${clamp(probeX, 36, width - 36)}" y="30" text-anchor="middle" fill="#fff" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="700">${signed(state.probe)}</text>
+          ${rowMarkup}
+        `;
+
+        $("#probeWeightValue").textContent = signed(state.probe);
+        $("#q4Snap").textContent = `${signed(q4Nearest.value)} / ${q4Nearest.error.toFixed(2)}`;
+        $("#rocmSnap").textContent = `${signed(rocmNearest.value)} / ${rocmNearest.error.toFixed(2)}`;
+      }
+
+      function renderBlockChart() {
+        const source = blockWeights();
+        const q4 = q4ReferenceQuantize(source);
+        const leftResult = chooseRocmScale(source.slice(0, 16));
+        const rightResult = chooseRocmScale(source.slice(16));
+        const rocmReconstructed = [...leftResult.reconstructed, ...rightResult.reconstructed];
+        const q4Mse = mse(source, q4.reconstructed);
+        const rocmMse = mse(source, rocmReconstructed);
+        const improvement = q4Mse > 0 ? (1 - rocmMse / q4Mse) * 100 : 0;
+
+        const svg = $("#blockChart");
+        const width = 980;
+        const left = 90;
+        const right = 24;
+        const plotWidth = width - left - right;
+        const slot = plotWidth / 32;
+        const barWidth = Math.max(8, slot - 5);
+        const sourceMax = Math.max(...source.map(Math.abs), ...q4.reconstructed.map(Math.abs), ...rocmReconstructed.map(Math.abs));
+        const amplitude = 112 / sourceMax;
+        const rows = [
+          { label: "STOCK Q4_0", sublabel: "one scale / 32 weights", baseline: 166, source, reconstructed: q4.reconstructed, color: "#78a8ff", scaleText: `|d| ${fmtScale(q4.scale)}` },
+          { label: "DUAL ROCmFP4", sublabel: "one scale / each 16-weight half", baseline: 352, source, reconstructed: rocmReconstructed, color: "#20d1a2", scaleText: `A ${fmtScale(leftResult.scale)} · B ${fmtScale(rightResult.scale)}` }
+        ];
+
+        const markup = rows.map((row, rowIndex) => {
+          const bars = row.source.map((value, index) => {
+            const reconstructed = row.reconstructed[index];
+            const cx = left + index * slot + slot / 2;
+            const sourceHeight = Math.max(1.5, Math.abs(value) * amplitude);
+            const reconstructedHeight = Math.max(1, Math.abs(reconstructed) * amplitude);
+            const sourceY = value >= 0 ? row.baseline - sourceHeight : row.baseline;
+            const reconstructedY = reconstructed >= 0 ? row.baseline - reconstructedHeight : row.baseline;
+            const isOutlier = index === 4;
+            return `
+              <rect x="${cx - barWidth / 2}" y="${sourceY}" width="${barWidth}" height="${sourceHeight}" rx="2" fill="none" stroke="${isOutlier ? "#ff9f43" : "rgba(247,247,244,.34)"}" stroke-width="${isOutlier ? 2 : 1}"/>
+              <rect x="${cx - barWidth * 0.28}" y="${reconstructedY}" width="${barWidth * 0.56}" height="${reconstructedHeight}" rx="1.5" fill="${row.color}" opacity="${isOutlier ? 1 : 0.76}"/>
+            `;
+          }).join("");
+          const labelY = rowIndex === 0 ? 25 : 211;
+          return `
+            <text x="18" y="${labelY}" fill="${row.color}" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="700">${row.label}</text>
+            <text x="18" y="${labelY + 17}" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="10">${row.sublabel}</text>
+            <text x="${width - right}" y="${labelY}" text-anchor="end" fill="#c7cbd1" font-family="IBM Plex Mono, monospace" font-size="10">${row.scaleText}</text>
+            <line x1="${left}" y1="${row.baseline}" x2="${width - right}" y2="${row.baseline}" stroke="rgba(255,255,255,.18)"/>
+            <line x1="${left + slot * 16}" y1="${row.baseline - 128}" x2="${left + slot * 16}" y2="${row.baseline + 18}" stroke="${rowIndex === 1 ? "rgba(32,209,162,.52)" : "rgba(255,255,255,.11)"}" stroke-dasharray="4 5"/>
+            <text x="${left + slot * 8}" y="${row.baseline + 19}" text-anchor="middle" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="9">weights 0–15</text>
+            <text x="${left + slot * 24}" y="${row.baseline + 19}" text-anchor="middle" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="9">weights 16–31</text>
+            ${bars}`;
+        }).join("");
+
+        svg.innerHTML = `
+          <rect x="${left + slot * 4 - slot * 0.1}" y="45" width="${slot * 0.2}" height="320" rx="3" fill="rgba(255,159,67,.09)"/>
+          ${markup}
+        `;
+
+        $("#outlierWeightValue").textContent = `${state.outlier.toFixed(1)}×`;
+        $("#stockScale").textContent = fmtScale(q4.scale);
+        $("#dualScales").textContent = `${fmtScale(leftResult.scale)} / ${fmtScale(rightResult.scale)}`;
+        $("#stockMse").textContent = fmtError(q4Mse);
+        $("#dualMse").textContent = fmtError(rocmMse);
+
+        const improvementNode = $("#mseImprovement");
+        if (improvement > 0) {
+          improvementNode.innerHTML = `<strong>${improvement.toFixed(1)}% lower block MSE in this example.</strong> The outlier still controls its own half, but the calm half gets a much smaller scale and finer reconstruction.`;
+        } else {
+          improvementNode.innerHTML = `<strong>This synthetic setting is near a crossover.</strong> Move the outlier to see when local scale isolation becomes valuable.`;
+        }
+      }
+
+      function renderSearchChart() {
+        const values = blockWeights().slice(0, 16);
+        const importance = values.map(() => 1);
+        if (state.importance) importance[4] = 0.005;
+        const best = chooseRocmScale(values, importance);
+        const maxAbs = Math.max(...values.map(Math.abs));
+        const maxFitCandidate = nearestScaleCandidate(maxAbs / 10);
+        const maxFitResult = candidateError(values, maxFitCandidate.scale, importance);
+        const candidates = best.candidates;
+        const svg = $("#mseChart");
+        const width = 760;
+        const height = 390;
+        const left = 72;
+        const right = 28;
+        const top = 30;
+        const bottom = 54;
+        const plotWidth = width - left - right;
+        const plotHeight = height - top - bottom;
+        const minScale = candidates[0].scale;
+        const maxScale = candidates[candidates.length - 1].scale;
+        const logMinScale = Math.log10(minScale);
+        const logMaxScale = Math.log10(maxScale);
+        const logErrors = candidates.map(candidate => Math.log10(candidate.error + 1e-12));
+        const minLogError = Math.min(...logErrors);
+        const maxLogError = Math.max(...logErrors);
+        const errorRange = Math.max(0.0001, maxLogError - minLogError);
+        const x = scale => left + ((Math.log10(scale) - logMinScale) / (logMaxScale - logMinScale)) * plotWidth;
+        const y = error => top + (1 - (Math.log10(error + 1e-12) - minLogError) / errorRange) * plotHeight;
+        const points = candidates.map(candidate => `${x(candidate.scale).toFixed(2)},${y(candidate.error).toFixed(2)}`).join(" ");
+        const bestX = x(best.scale);
+        const bestY = y(best.error);
+        const maxX = x(maxFitCandidate.scale);
+        const maxY = y(maxFitResult.error);
+        const xTicks = [0.001, 0.01, 0.1, 1, 10, 100].filter(value => value >= minScale && value <= maxScale);
+        const grid = xTicks.map(value => `
+          <line x1="${x(value)}" y1="${top}" x2="${x(value)}" y2="${height - bottom}" stroke="rgba(255,255,255,.075)"/>
+          <text x="${x(value)}" y="${height - 24}" text-anchor="middle" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="10">${value}</text>
+        `).join("");
+        const selectedLabelX = width - right - 178;
+        const maxLabelX = width - right - 178;
+
+        svg.innerHTML = `
+          ${grid}
+          <line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" stroke="rgba(255,255,255,.2)"/>
+          <line x1="${bestX}" y1="${top}" x2="${bestX}" y2="${height - bottom}" stroke="#20d1a2" stroke-dasharray="4 5" opacity=".58"/>
+          <line x1="${maxX}" y1="${top}" x2="${maxX}" y2="${height - bottom}" stroke="#ff9f43" stroke-dasharray="4 5" opacity=".48"/>
+          <polyline points="${points}" fill="none" stroke="#39d0ff" stroke-width="2" stroke-linejoin="round" opacity=".82"/>
+          <circle cx="${maxX}" cy="${maxY}" r="6" fill="#ff9f43" stroke="#080808" stroke-width="2"/>
+          <circle cx="${bestX}" cy="${bestY}" r="8" fill="#20d1a2" stroke="#ecfff9" stroke-width="2"/>
+          <rect x="${selectedLabelX}" y="${top + 10}" width="168" height="31" rx="5" fill="#0a1512" stroke="rgba(32,209,162,.55)"/>
+          <text x="${selectedLabelX + 9}" y="${top + 30}" fill="#b8ffe9" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="700">BEST ${hex(best.e)} · ${fmtScale(best.scale)}</text>
+          <rect x="${maxLabelX}" y="${top + 48}" width="168" height="31" rx="5" fill="#17110b" stroke="rgba(255,159,67,.46)"/>
+          <text x="${maxLabelX + 9}" y="${top + 68}" fill="#ffd0a2" font-family="IBM Plex Mono, monospace" font-size="10">MAX-FIT ${hex(maxFitCandidate.e)}</text>
+          <text x="${left}" y="18" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="10">${state.importance ? "IMPORTANCE-WEIGHTED MSE" : "UNWEIGHTED MSE"}</text>
+          <text x="${width - right}" y="${height - 8}" text-anchor="end" fill="#767d8a" font-family="IBM Plex Mono, monospace" font-size="9">UE4M3 HALF-SCALE (LOG)</text>
+        `;
+
+        $("#bestScaleCode").textContent = `UE4M3 ${hex(best.e)}`;
+        $("#bestScaleCopy").textContent = `Half-scale ${fmtScale(best.scale)} · Codebook10 reach ±${fmtScale(best.scale * 10)}. ${state.importance ? "The synthetic outlier carries 0.5% relative importance." : "Every value carries equal error weight."}`;
+        $("#bestScaleMse").textContent = fmtError(best.error);
+        $("#maxFitMse").textContent = fmtError(maxFitResult.error);
+      }
+
+      const recipeData = {
+        lean: {
+          title: "STRIX_LEAN",
+          summary: "uses Q5_K at the token boundary, dual-scale ROCmFP4 for attention K/V, and 4.25-BPW FAST ROCmFP4 for most large dense tensors.",
+          formats: {
+            embeddings: "Q5_K",
+            dense: "ROCmFP4 FAST · 4.25 BPW",
+            attention: "Dual ROCmFP4 · 4.50 BPW",
+            output: "FAST / tied-policy"
+          }
+        },
+        strix: {
+          title: "STRIX",
+          summary: "uses Q6_K at the token boundary, dual-scale ROCmFP4 for attention K/V, and 4.25-BPW FAST ROCmFP4 for most large dense tensors.",
+          formats: {
+            embeddings: "Q6_K",
+            dense: "ROCmFP4 FAST · 4.25 BPW",
+            attention: "Dual ROCmFP4 · 4.50 BPW",
+            output: "FAST / tied-policy"
+          }
+        }
+      };
+
+      const nodeDetails = {
+        embeddings: {
+          title: "Token embeddings / protected",
+          copy: recipe => `Embeddings are relatively small but coherence-sensitive. ${recipe === "lean" ? "STRIX_LEAN promotes them to Q5_K" : "STRIX promotes them to Q6_K"}, spending precision where errors can affect every token entering the network.`
+        },
+        dense: {
+          title: "Dense transformer body / compact",
+          copy: () => "Most large dense transformer tensors stay on the single-scale ROCmFP4 FAST layout. At 17 bytes per 32 weights, this is the 4.25-BPW path that carries most of the size and decode-speed benefit."
+        },
+        attention: {
+          title: "Attention K and V / dual-scale",
+          copy: () => "STRIX protects attention K and V in every layer with the safer two-scale ROCmFP4 block. The repository records that all-layer K/V protection beat a first/last-layer-only shortcut on perplexity."
+        },
+        output: {
+          title: "Output / architecture-aware",
+          copy: () => "Output handling depends on whether embeddings are tied and whether output quantization or explicit tensor-type overrides are enabled. The policy avoids pretending every architecture has the same boundary tensors."
+        }
+      };
+
+      function renderRecipe() {
+        const recipe = recipeData[state.recipe];
+        $("#recipeSummary").innerHTML = `<strong>${recipe.title}</strong> ${recipe.summary}`;
+        for (const [key, value] of Object.entries(recipe.formats)) {
+          $(`[data-format="${key}"]`).textContent = value;
+        }
+        $$('[data-recipe]').forEach(button => button.setAttribute("aria-pressed", String(button.dataset.recipe === state.recipe)));
+        $$('.tensor-node').forEach(button => button.setAttribute("aria-pressed", String(button.dataset.node === state.selectedNode)));
+        const detail = nodeDetails[state.selectedNode];
+        $("#recipeDetailTitle").textContent = detail.title;
+        $("#recipeDetailCopy").textContent = detail.copy(state.recipe);
+      }
+
+      function renderAll() {
+        renderCodebook();
+        renderBlockChart();
+        renderSearchChart();
+        renderRecipe();
+      }
+
+      $$('[data-codebook-mode]').forEach(button => {
+        button.addEventListener("click", () => {
+          state.codebookMode = button.dataset.codebookMode;
+          $$('[data-codebook-mode]').forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+          renderCodebook();
+        });
+      });
+
+      $("#probeWeight").addEventListener("input", event => {
+        state.probe = Number(event.target.value);
+        renderCodebook();
+      });
+
+      $("#outlierWeight").addEventListener("input", event => {
+        state.outlier = Number(event.target.value);
+        renderBlockChart();
+        renderSearchChart();
+      });
+
+      $("#importanceToggle").addEventListener("change", event => {
+        state.importance = event.target.checked;
+        renderSearchChart();
+      });
+
+      $$('[data-recipe]').forEach(button => {
+        button.addEventListener("click", () => {
+          state.recipe = button.dataset.recipe;
+          renderRecipe();
+        });
+      });
+
+      $$('.tensor-node').forEach(button => {
+        button.addEventListener("click", () => {
+          state.selectedNode = button.dataset.node;
+          renderRecipe();
+        });
+      });
+
+      const sourceDialog = $("#sourceDialog");
+      $("#openSourceVisual").addEventListener("click", () => {
+        if (typeof sourceDialog.showModal === "function") sourceDialog.showModal();
+        else sourceDialog.setAttribute("open", "");
+      });
+      $("#closeSourceVisual").addEventListener("click", () => sourceDialog.close());
+      sourceDialog.addEventListener("click", event => {
+        const bounds = sourceDialog.getBoundingClientRect();
+        const inside = event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+        if (!inside) sourceDialog.close();
+      });
+
+      const progress = $("#scrollProgress");
+      const updateProgress = () => {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const ratio = scrollable > 0 ? window.scrollY / scrollable : 0;
+        progress.style.width = `${clamp(ratio, 0, 1) * 100}%`;
+      };
+      updateProgress();
+      window.addEventListener("scroll", updateProgress, { passive: true });
+      window.addEventListener("resize", updateProgress);
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const revealNodes = $$('.reveal');
+      if (reduceMotion || !("IntersectionObserver" in window)) {
+        revealNodes.forEach(node => node.classList.add("visible"));
+      } else {
+        const revealObserver = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.08 });
+        revealNodes.forEach(node => revealObserver.observe(node));
+      }
+
+      const navLinks = $$('.nav-link');
+      const navSections = $$('[data-nav]');
+      if ("IntersectionObserver" in window) {
+        const navObserver = new IntersectionObserver(entries => {
+          const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (!visible) return;
+          const key = visible.target.dataset.nav;
+          navLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === `#${key}`));
+        }, { rootMargin: "-18% 0px -62% 0px", threshold: [0.01, 0.2, 0.5] });
+        navSections.forEach(section => navObserver.observe(section));
+      }
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
