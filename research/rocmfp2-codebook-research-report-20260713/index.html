@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="An evidence-backed, accessible technical explanation of the ROCmFP2 S40 codebook, UE4M3 scale metadata, AMD packed int8 dot path, and Hy3 benchmark results.">
+  <title>ROCmFP2 — Four Numbers, One Fast AMD Dot Path</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="assets/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg2: #0e0f12;
+      --panel: rgba(15,16,19,.94);
+      --panel2: rgba(23,24,29,.96);
+      --line: rgba(255,255,255,.13);
+      --line2: rgba(255,255,255,.24);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #737b89;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --cyan: #39d0ff;
+      --green: #20d1a2;
+      --orange: #ff9f43;
+      --yellow: #f6c046;
+      --violet: #c994ff;
+      --radius: 8px;
+      --shadow: 0 24px 70px rgba(0,0,0,.46);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font: 15px/1.56 "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237,28,36,.15), transparent 27%),
+        linear-gradient(300deg, rgba(57,208,255,.09), transparent 31%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.026) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #080808, #111115 48%, #070707);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(237,28,36,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: .35;
+      mask-image: linear-gradient(180deg, #000, transparent 88%);
+    }
+    a { color: var(--cyan); }
+    .mono, code, .value, .eyebrow, .tag, .step-no, th { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+    .shell { width: min(calc(100% - 28px), 1320px); margin: 14px auto 0; }
+    .hero {
+      min-height: 590px;
+      position: relative;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--amd);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      background: #07080a;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(3,4,6,.98) 0%, rgba(3,4,6,.90) 30%, rgba(3,4,6,.28) 60%, rgba(3,4,6,.13)), linear-gradient(0deg, rgba(3,4,6,.96), transparent 58%);
+    }
+    .hero-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .hero-copy { position: relative; z-index: 2; max-width: 800px; padding: clamp(24px,5vw,66px); }
+    .brand { display: inline-grid; grid-template-columns: 40px 1fr; align-items: center; gap: 11px; margin-bottom: 52px; }
+    .brand img { width: 38px; height: 38px; object-fit: contain; padding: 4px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.055); }
+    .brand strong { display: block; font-size: 14px; letter-spacing: .03em; }
+    .brand small { display: block; color: var(--muted); font-size: 12px; }
+    .eyebrow { color: var(--cyan); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 730px; margin: 12px 0 16px; font-size: clamp(38px,6.2vw,76px); line-height: .98; letter-spacing: -.045em; }
+    .hero .lede { max-width: 720px; margin: 0; color: #d4d8df; font-size: clamp(16px,2vw,20px); }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .tag { padding: 6px 9px; border: 1px solid var(--line2); border-radius: 999px; background: rgba(0,0,0,.52); color: #dfe5ec; font-size: 11px; }
+    nav { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0 0; }
+    nav a { color: var(--muted); text-decoration: none; padding: 8px 11px; border: 1px solid var(--line); border-radius: 6px; background: rgba(15,16,19,.9); font-size: 12px; }
+    nav a:hover, nav a:focus-visible { color: white; border-color: var(--cyan); outline: none; }
+    main { width: min(calc(100% - 28px), 1320px); margin: 0 auto; padding: 30px 0 70px; }
+    section { margin: 0 0 38px; scroll-margin-top: 16px; }
+    h2 { margin: 0 0 14px; font-size: clamp(25px,3vw,34px); line-height: 1.12; letter-spacing: -.025em; }
+    h3 { margin: 0 0 9px; font-size: 18px; }
+    p { margin: 0 0 12px; }
+    .section-intro { max-width: 900px; color: var(--muted); font-size: 16px; }
+    .grid { display: grid; gap: 16px; }
+    .grid > * { min-width: 0; }
+    .two { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .three { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .four { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .panel { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    .panel.accent { border-top: 3px solid var(--cyan); }
+    .panel.risk { border-top: 3px solid var(--orange); }
+    .panel.good { border-top: 3px solid var(--green); }
+    .callout { padding: 20px; border-left: 4px solid var(--cyan); border-radius: 7px; background: linear-gradient(90deg, rgba(57,208,255,.12), rgba(57,208,255,.02)); }
+    .callout strong { color: white; }
+    .verdict { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(260px,.7fr); gap: 16px; }
+    .verdict .big { font-size: clamp(21px,2.6vw,32px); line-height: 1.25; letter-spacing: -.025em; }
+    .metric { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)), var(--panel2); }
+    .metric .label { color: var(--subtle); font-size: 11px; text-transform: uppercase; letter-spacing: .09em; }
+    .metric .value { margin-top: 4px; color: var(--cyan); font-size: clamp(23px,3vw,31px); font-weight: 700; line-height: 1.2; }
+    .metric .note { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .block-map { display: grid; grid-template-columns: repeat(10,1fr); gap: 5px; margin: 20px 0 13px; }
+    .byte { min-height: 62px; display: grid; place-items: center; padding: 7px 3px; border: 1px solid rgba(57,208,255,.4); border-radius: 6px; background: rgba(57,208,255,.1); text-align: center; }
+    .byte.scale { border-color: rgba(237,28,36,.55); background: rgba(237,28,36,.13); }
+    .byte b { display: block; font: 700 13px "IBM Plex Mono", monospace; }
+    .byte small { color: var(--muted); font-size: 9px; }
+    .codebook { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 15px; }
+    .code { min-width: 0; padding: 15px 9px; border: 1px solid var(--line); border-radius: 7px; background: #0a0b0e; text-align: center; }
+    .code .bits { color: var(--cyan); font: 600 13px "IBM Plex Mono", monospace; }
+    .code .number { margin: 4px 0; font: 700 clamp(27px,4vw,42px) "IBM Plex Mono", monospace; }
+    .code small { color: var(--muted); font-size: 10px; }
+    .formula { padding: 14px; overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: #07080a; color: #eaf5fb; font: 13px/1.65 "IBM Plex Mono", monospace; white-space: pre-wrap; }
+    .pipeline { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; margin-top: 18px; }
+    .step { position: relative; min-height: 180px; padding: 15px; border: 1px solid var(--line); border-radius: 7px; background: linear-gradient(180deg, rgba(255,255,255,.045), transparent), #0a0b0e; }
+    .step:not(:last-child)::after { content: "→"; position: absolute; top: 50%; right: -18px; z-index: 2; color: var(--cyan); font-size: 21px; }
+    .step-no { color: var(--amd); font-size: 11px; }
+    .step h3 { margin-top: 8px; }
+    .step p { color: var(--muted); font-size: 13px; }
+    .lane-demo { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin-top: 10px; }
+    .lane-demo span { padding: 6px 2px; border-radius: 4px; background: rgba(57,208,255,.13); color: #dff7ff; text-align: center; font: 600 11px "IBM Plex Mono", monospace; }
+    .chart { width: 100%; height: 380px; }
+    .chart.short { height: 320px; }
+    .chart.tall { height: 460px; }
+    .chart-note { margin: -2px 0 0; color: var(--subtle); font-size: 11px; }
+    .split-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    .split-head .status { flex: 0 0 auto; padding: 6px 9px; border: 1px solid rgba(246,192,70,.45); border-radius: 999px; color: var(--yellow); background: rgba(246,192,70,.1); font: 11px "IBM Plex Mono", monospace; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: rgba(0,0,0,.2); }
+    th, td { padding: 10px 11px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #dce4eb; background: rgba(255,255,255,.045); font-size: 11px; letter-spacing: .04em; }
+    td { color: #c6cad2; font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .status-pass { color: var(--green); }
+    .status-reject { color: var(--red); }
+    .status-pending { color: var(--yellow); }
+    .tiny { color: var(--subtle); font-size: 11px; }
+    .evidence code { color: #ccefff; overflow-wrap: anywhere; }
+    .foot { padding-top: 20px; border-top: 1px solid var(--line); color: var(--subtle); font-size: 11px; }
+    .noscript { margin: 14px; padding: 12px; color: #111; background: #ffd166; }
+    @media (max-width: 980px) {
+      .hero { min-height: 540px; }
+      .verdict, .two, .three, .four { grid-template-columns: 1fr 1fr; }
+      .pipeline { grid-template-columns: 1fr 1fr; }
+      .step:not(:last-child)::after { display: none; }
+    }
+    @media (max-width: 680px) {
+      .shell, main { width: min(calc(100% - 16px),1320px); }
+      .hero { min-height: 600px; }
+      .hero-copy { padding: 24px 18px; }
+      .brand { margin-bottom: 82px; }
+      .verdict, .two, .three, .four, .pipeline { grid-template-columns: 1fr; }
+      .block-map { grid-template-columns: repeat(5,1fr); }
+      .codebook { grid-template-columns: repeat(2,1fr); }
+      .chart { height: 350px; }
+      .split-head { align-items: flex-start; flex-direction: column; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <noscript><div class="noscript">JavaScript is required for the interactive charts. The technical explanation and evidence tables remain readable.</div></noscript>
+  <header class="shell hero">
+    <img class="hero-art" src="assets/rocmfp2-dotpath-hero.png" alt="Abstract technical visualization of compact codebook bytes expanding into parallel GPU arithmetic lanes">
+    <div class="hero-copy">
+      <div class="brand">
+        <img src="assets/ccglogo.png" alt="Crown Citadel Group mark">
+        <span><strong>Ciru Inference Lab</strong><small>Crown Citadel Research Report</small></span>
+      </div>
+      <div class="eyebrow">ROCmFPX · HY3 · Strix Halo · 13 July 2026</div>
+      <h1>Four numbers. Ten bytes. One AMD-native dot path.</h1>
+      <p class="lede">ROCmFP2 stores 32 neural-network weights as eight packed code bytes plus two tiny scale bytes. At runtime those codes become signed int8 lanes, feed AMD’s packed four-way dot instruction, and only then regain their scale.</p>
+      <div class="hero-tags">
+        <span class="tag">S40 codebook {−4, −1, +1, +4}</span>
+        <span class="tag">2.50 bits / weight</span>
+        <span class="tag">UE4M3 dual scale</span>
+        <span class="tag">v_perm_b32 → v_dot4</span>
+      </div>
+    </div>
+  </header>
+  <nav class="shell" aria-label="Report sections">
+    <a href="#finding">Finding</a><a href="#block">10-byte block</a><a href="#scale">Scale metadata</a><a href="#dotpath">AMD dot path</a><a href="#results">Results</a><a href="#imatrix">Imatrix</a><a href="#evidence">Evidence</a>
+  </nav>
+
+  <main>
+    <section id="finding">
+      <div class="verdict">
+        <div class="panel accent">
+          <div class="eyebrow">Current answer</div>
+          <p class="big"><strong>Yes—FP2 has a place, but as a speed-and-capacity tier on the bulk expert path, not as a blanket every-tensor recipe.</strong></p>
+          <p class="section-intro">On HY3, the FP2-dominant Speed‑v1 artifact is 2.55% smaller than IQ2_M, cuts end-to-end no-MTP latency by about 2.4% on a short code prompt and 6.2% on a 19,654-token code prompt, and still scores 81 on HermesAgent‑20 and 86 on the full 69-case Tool‑Eval. A larger FP3-heavy candidate was slower and scored worse on the discriminating tests.</p>
+        </div>
+        <div class="grid two">
+          <div class="metric"><div class="label">FP2 block</div><div class="value">10 B</div><div class="note">32 weights · 2.50 BPW</div></div>
+          <div class="metric"><div class="label">Artifact</div><div class="value">90.76 GiB</div><div class="note">2.55% below IQ2_M</div></div>
+          <div class="metric"><div class="label">HA‑20</div><div class="value">81</div><div class="note">1,457.29 s wall</div></div>
+          <div class="metric"><div class="label">Tool‑Eval</div><div class="value">86</div><div class="note">119/138 · 69 cases</div></div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:16px"><strong>First, a naming clarification:</strong> ROCmFP2 is a compact two-bit <em>storage and codebook format</em>. The hardware does not execute native FP2 floating-point math. The runtime turns the stored selectors into exact signed int8 values and uses AMD integer dot products.</div>
+    </section>
+
+    <section id="block">
+      <div class="eyebrow">01 · Storage</div>
+      <h2>The whole FP2 block fits in ten bytes</h2>
+      <p class="section-intro">A block covers 32 original weights. It is split into two 16-weight halves so each half can choose its own scale. Every group of four weights becomes one byte: four 2-bit selectors packed little-endian.</p>
+      <div class="grid two">
+        <div class="panel">
+          <h3>Serialized layout</h3>
+          <div class="block-map" aria-label="Eight code bytes followed by two scale bytes">
+            <div class="byte"><span><b>q0</b><small>weights 0–3</small></span></div>
+            <div class="byte"><span><b>q1</b><small>weights 4–7</small></span></div>
+            <div class="byte"><span><b>q2</b><small>weights 8–11</small></span></div>
+            <div class="byte"><span><b>q3</b><small>weights 12–15</small></span></div>
+            <div class="byte"><span><b>q4</b><small>weights 16–19</small></span></div>
+            <div class="byte"><span><b>q5</b><small>weights 20–23</small></span></div>
+            <div class="byte"><span><b>q6</b><small>weights 24–27</small></span></div>
+            <div class="byte"><span><b>q7</b><small>weights 28–31</small></span></div>
+            <div class="byte scale"><span><b>e0</b><small>scale 0–15</small></span></div>
+            <div class="byte scale"><span><b>e1</b><small>scale 16–31</small></span></div>
+          </div>
+          <div class="formula">8 code bytes × 8 bits  = 64 bits
+2 scale bytes × 8 bits = 16 bits
+total                  = 80 bits / 32 weights = 2.50 BPW</div>
+        </div>
+        <div class="panel">
+          <h3>Why metadata matters at two bits</h3>
+          <p>Two raw bits can name only four states. ROCmFP2 spends the remaining 0.50 bit/weight on two shared scales. That lets the same four integers represent tiny or large weights without storing a floating-point value per weight.</p>
+          <div id="storage-chart" class="chart short" role="img" aria-label="Bytes required for 32 weights in ROCmFP2, ROCmFP3, and BF16"></div>
+          <p class="chart-note">Exact serialized block sizes. FP3 is 12 code bytes + 2 scale bytes; BF16 is 64 data bytes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="scale">
+      <div class="eyebrow">02 · Quantization</div>
+      <h2>The codebook numbers are intentionally simple</h2>
+      <p class="section-intro">The frozen S40/MORD order is not a 256-entry table and it has no zero. It is exactly four signed integer reconstruction levels. Sign chooses the side; normalized magnitude chooses inner or outer at the midpoint 2.5.</p>
+      <div class="grid two">
+        <div class="panel">
+          <div class="codebook" aria-label="ROCmFP2 two-bit codebook">
+            <div class="code"><div class="bits">00₂</div><div class="number">−4</div><small>negative outer</small></div>
+            <div class="code"><div class="bits">01₂</div><div class="number">−1</div><small>negative inner</small></div>
+            <div class="code"><div class="bits">10₂</div><div class="number">+1</div><small>positive inner</small></div>
+            <div class="code"><div class="bits">11₂</div><div class="number">+4</div><small>positive outer</small></div>
+          </div>
+          <div id="codebook-chart" class="chart short" role="img" aria-label="ROCmFP2 codebook values by two-bit code"></div>
+          <div class="formula">normalized magnitude = |x / scale|
+inner  = 1  when magnitude ≤ 2.5
+outer  = 4  when magnitude &gt; 2.5
+reconstructed weight = codebook[code] × scale</div>
+          <div class="callout" style="margin-top:12px"><strong>Concrete byte:</strong> scale metadata <span class="mono">0x38</span> decodes to <span class="mono">s = 0.5</span>. Source values <span class="mono">[−1.8, −0.4, +0.7, +2.1]</span> normalize to <span class="mono">[−3.6, −0.8, +1.4, +4.2]</span>, select <span class="mono">[−4,−1,+1,+4]</span>, and pack as <span class="mono">0xE4</span>. Reconstruction is <span class="mono">[−2.0,−0.5,+0.5,+2.0]</span>.</div>
+        </div>
+        <div class="panel">
+          <h3>One scale byte, 127 legal values</h3>
+          <p>The scale metadata is unsigned UE4M3: four exponent bits and three mantissa bits. Bytes <span class="mono">0x00…0x7E</span> are valid; <span class="mono">0x7F</span> is rejected. The positive range runs from <span class="mono">2⁻¹⁰ = 0.0009765625</span> to <span class="mono">224</span>.</p>
+          <div id="scale-chart" class="chart" role="img" aria-label="Log-scale curve of all positive UE4M3 scale values"></div>
+          <div class="formula">E = byte &gt;&gt; 3; M = byte &amp; 7
+E = 0 : scale = M × 2⁻¹⁰
+E &gt; 0 : scale = (8 + M) × 2^(E − 11)</div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:16px"><strong>How a block is chosen:</strong> start near <span class="mono">max(|x|)/4</span>, test legal UE4M3 scales, map all 16 values to the four codebook levels, and keep the scale with the lowest squared reconstruction error. With an importance matrix, that same error is weighted so mistakes on frequently activated channels cost more.</div>
+    </section>
+
+    <section id="dotpath">
+      <div class="eyebrow">03 · Runtime</div>
+      <h2>From scale metadata to int8—and into AMD’s dot unit</h2>
+      <p class="section-intro">The fast path never expands FP2 weights to FP16 one by one. It expands each stored byte directly into four signed int8 lanes, performs four multiply-adds together against Q8_1 activations, accumulates in int32, then applies the two scales.</p>
+      <div class="pipeline">
+        <article class="step"><div class="step-no">01 · LOAD</div><h3>10-byte block</h3><p>Eight packed code bytes and two UE4M3 scale bytes arrive from memory.</p><div class="lane-demo"><span>q0</span><span>q1</span><span>…</span><span>e0/e1</span></div></article>
+        <article class="step"><div class="step-no">02 · SPREAD</div><h3>2-bit selectors</h3><p>Bit-plane arithmetic spreads four adjacent 2-bit codes into four byte selectors.</p><div class="lane-demo"><span>00</span><span>01</span><span>10</span><span>11</span></div></article>
+        <article class="step"><div class="step-no">03 · PERMUTE</div><h3>Four int8 lanes</h3><p><span class="mono">v_perm_b32</span> selects bytes from the packed constant table <span class="mono">{−4,−1,+1,+4}</span>.</p><div class="lane-demo"><span>−4</span><span>−1</span><span>+1</span><span>+4</span></div></article>
+        <article class="step"><div class="step-no">04 · DOT4</div><h3>Integer MAC</h3><p>RDNA3/RDNA4 uses <span class="mono">__builtin_amdgcn_sudot4</span>: four signed 8-bit products plus an int32 accumulator.</p><div class="lane-demo"><span>w₀×a₀</span><span>w₁×a₁</span><span>w₂×a₂</span><span>w₃×a₃</span></div></article>
+        <article class="step"><div class="step-no">05 · RESCALE</div><h3>Float result</h3><p>Each half’s integer sum is multiplied by its decoded weight scale and the Q8_1 activation scale.</p><div class="formula" style="margin-top:10px">dₐ × (d₀·Σ₀ + d₁·Σ₁)</div></article>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel good">
+          <h3>Why this shape fits AMD</h3>
+          <p>The codebook is a four-byte constant, not a large irregular lookup grid. One GPU byte-permute produces exactly the packed signed-byte shape consumed by AMD’s native four-lane integer dot instruction. That keeps the arithmetic dense while the model traffic stays at 2.5 BPW.</p>
+          <p>The key is <em>separation of concerns</em>: the codebook carries shape, UE4M3 carries range, int8 dot4 carries compute, and scaling happens after accumulation.</p>
+        </div>
+        <div class="panel risk">
+          <h3>Why “AMD-friendly” does not mean “always faster”</h3>
+          <p>At only two bits, unpack cost is large relative to payload. The first kernel expanded FP2 separately for every MTP verification column, leaving the dot unit underfed. The optimized multi-column path expands a target block once and reuses it across all Q8_1 columns.</p>
+          <p>That change is FP2-only and compile-time opt-in; other quants keep their existing kernel paths.</p>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel"><h3>Measured expert-kernel recovery</h3><div id="kernel-chart" class="chart short" role="img" aria-label="FP2 expert decode time before and after adaptive launch optimization"></div><p class="chart-note">Clean paired average, exact HY3 expert shapes. Lower is better.</p></div>
+        <div class="panel">
+          <h3>What the optimization actually removed</h3>
+          <div class="formula">before: for each MTP column
+          expand FP2 byte → int8×4
+          decode FP2 scale
+          dot against one activation column
+
+after:  expand FP2 byte → int8×4 once
+        decode FP2 scale once
+        reuse against every activation column</div>
+          <div class="grid two" style="margin-top:12px"><div class="metric"><div class="label">Paired average</div><div class="value">−23.8%</div><div class="note">66.52 → 50.72 μs</div></div><div class="metric"><div class="label">Correctness</div><div class="value">8 / 8</div><div class="note">1, 4, 32, 128 tokens</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="results">
+      <div class="eyebrow">04 · Measured evidence</div>
+      <h2>What we have found on HY3 so far</h2>
+      <p class="section-intro">Speed‑v1 puts FP2 on all 237 trunk routed-expert tensors, keeps attention/shared tensors at higher precision, and leaves the three MTP expert tensors at FP3. That is deliberately an FP2-dominant recipe—not a claim that every tensor tolerates two bits.</p>
+      <div class="grid three">
+        <div class="panel"><h3>Artifact footprint</h3><div id="size-chart" class="chart short" role="img" aria-label="GGUF artifact sizes for FP2 Speed-v1, IQ2_M, and FP3-heavy Quality-v1"></div><p class="chart-note">Five-shard realized GGUF sizes. Smaller is better.</p></div>
+        <div class="panel"><h3>No-MTP total latency</h3><div id="latency-chart" class="chart short" role="img" aria-label="End-to-end latency on short and long code prompts without MTP"></div><p class="chart-note">128 generated tokens. Log axis keeps both prompt lengths legible.</p></div>
+        <div class="panel"><h3>Quality gates</h3><div id="quality-chart" class="chart short" role="img" aria-label="HermesAgent and Tool-Eval quality scores for FP2 Speed-v1"></div><p class="chart-note">HA‑20 raw score 81.25, reported as 81.</p></div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel">
+          <h3>Prefill wins; raw decode is almost tied</h3>
+          <div id="throughput-chart" class="chart tall" role="img" aria-label="Prefill and decode throughput comparison between FP2 Speed-v1 and IQ2_M"></div>
+          <p class="chart-note">The end-to-end win comes from faster prefill and lower model traffic. Raw no-MTP TG trails IQ2_M by about 2.1% short and 1.5% long.</p>
+        </div>
+        <div class="panel">
+          <h3>MTP must be tuned on real workloads</h3>
+          <div id="mtp-chart" class="chart tall" role="img" aria-label="HermesAgent-08 wall time for FP2 MTP settings, IQ2_M, and the FP3-heavy candidate"></div>
+          <p class="chart-note">All five bars scored 100/100; the chart isolates wall time. FP2 n=2 was selected.</p>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel accent">
+          <h3>Prompt sensitivity is real</h3>
+          <div id="prompt-chart" class="chart" role="img" aria-label="Total request time with and without MTP on short and long code prompts"></div>
+          <p>On the short code prompt, n=2 MTP lowers total time to <span class="mono">8.979 s</span>. On the 19,654-token prompt it raises total time to <span class="mono">166.333 s</span> even though decode itself jumps to <span class="mono">7.865 TG</span>, because draft-prefill overhead dominates. This is why tiny prompts cannot select an MTP config alone.</p>
+        </div>
+        <div class="panel">
+          <h3>Quality and wall-time results</h3>
+          <table>
+            <thead><tr><th>Gate</th><th>Score</th><th>Wall time</th><th>Read</th></tr></thead>
+            <tbody>
+              <tr><td>HermesAgent‑08</td><td class="status-pass">100 / 100</td><td>62.446 s</td><td>n=2 MTP selector</td></tr>
+              <tr><td>Tool‑Eval core15</td><td class="status-pass">100 / 100</td><td>175.3 s</td><td>21.2% faster than IQ2_M</td></tr>
+              <tr><td>HermesAgent‑20</td><td class="status-pass">81 / 100</td><td>1,457.29 s</td><td>81.25 raw; strong promotion result</td></tr>
+              <tr><td>Tool‑Eval full69</td><td class="status-pass">86 / 100</td><td>1,697.287 s</td><td>119/138 · 57 pass · 5 partial · 7 fail</td></tr>
+            </tbody>
+          </table>
+          <div class="callout" style="margin-top:14px"><strong>FP3 did not buy a quality tier:</strong> Quality‑v1 was 13.27% larger, HA‑08 slowed to 75.306 s, targeted Hermes scenarios fell from 425 to 405 raw points, and Tool core15 fell from 100 to 97 while slowing to 205.3 s. The failed 100+ GiB artifact was deleted rather than archived.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="imatrix">
+      <div class="split-head"><div><div class="eyebrow">05 · Active experiment</div><h2>Can importance weighting improve FP2 without changing its size?</h2></div><span class="status">BUILT · VALIDATION PENDING</span></div>
+      <div class="grid three">
+        <div class="metric"><div class="label">Coverage</div><div class="value">237 / 237</div><div class="note">target trunk FP2 tensors</div></div>
+        <div class="metric"><div class="label">Calibration</div><div class="value">16,384</div><div class="note">tokens · 876 matrix entries</div></div>
+        <div class="metric"><div class="label">Unit probe</div><div class="value">5,591.6×</div><div class="note">lower weighted error on constructed case</div></div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel">
+          <h3>What the matrix changes</h3>
+          <p>It does not alter the ten-byte block, the codebook, or the AMD kernel. It changes only which UE4M3 scale wins the offline error search: important channels contribute more to the objective.</p>
+          <div class="formula">plain objective:    Σ (xᵢ − x̂ᵢ)²
+weighted objective: Σ importanceᵢ · √(σ² + xᵢ²) · (xᵢ − x̂ᵢ)²</div>
+          <p class="tiny" style="margin-top:10px">Constructed implementation test: weighted error 0.510835 → 9.13573×10⁻⁵. This proves the weighting path works; it does not predict model-level quality by itself.</p>
+        </div>
+        <div class="panel">
+          <h3>Current artifact status</h3>
+          <table><tbody>
+            <tr><th>Public matrix</th><td>601,544,000 bytes</td></tr>
+            <tr><th>Quantization</th><td class="status-pass">completed in 42m15.61s</td></tr>
+            <tr><th>Reported layout</th><td>92,934.36 MiB · 2.61 BPW</td></tr>
+            <tr><th>Realized bytes</th><td>97,453,897,696</td></tr>
+            <tr><th>Delta</th><td>+224 bytes, provenance metadata only</td></tr>
+            <tr><th>Next gates</th><td class="status-pending">loader parity → speed → HA/Tool quality</td></tr>
+          </tbody></table>
+          <p class="tiny" style="margin-top:10px">The imatrix applies to every covered quantized tensor in the unchanged recipe, including protected higher-precision tensors—not only FP2. The MTP block lacks matrix entries and uses the existing unweighted path.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">06 · Recipe decision</div>
+      <h2>Where FP2 belongs today</h2>
+      <div class="grid three">
+        <article class="panel good"><h3>Use it for</h3><p>Very large MoE expert tensors where memory traffic and prefill dominate, the codebook kernel has a tuned launch policy, and higher precision protects attention, embeddings, shared experts, and other fragile tensors.</p></article>
+        <article class="panel risk"><h3>Do not assume</h3><p>That two bits automatically beat IQ2_M in raw token generation, that more FP3 automatically improves quality, or that one MTP <span class="mono">n_max</span> wins on both short and long prompts.</p></article>
+        <article class="panel accent"><h3>Best next move</h3><p>Finish the imatrix parity gates. Promote it only if HA‑20/Tool‑Eval improves without losing the existing latency frontier. Then test this FP2 placement as a speed profile inside other large mixed recipes.</p></article>
+      </div>
+    </section>
+
+    <section id="evidence" class="evidence">
+      <div class="eyebrow">Evidence ledger</div>
+      <h2>Local sources behind the report</h2>
+      <table>
+        <thead><tr><th>Claim family</th><th>Primary evidence</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Block layout, UE4M3, S40 codebook</td><td><code>src/ROCmFPX-hy3/ggml/rocmfpx/rocmfpx.h</code><br><code>src/ROCmFPX-hy3/ggml/rocmfpx/rocmfpx.c</code></td><td class="status-pass">source-audited</td></tr>
+          <tr><td>AMD byte permute and dot4 path</td><td><code>src/ROCmFPX-hy3/ggml/src/ggml-cuda/vecdotq.cuh</code><br><code>src/ROCmFPX-hy3/ggml/src/ggml-cuda/common.cuh</code><br><code>src/ROCmFPX-hy3/ggml/src/ggml-cuda/mmvq.cu</code></td><td class="status-pass">source-audited</td></tr>
+          <tr><td>Kernel sweep and exact correctness</td><td><code>results/hy3-adaptive-rpb.tsv</code><br><code>results/hy3-adaptive-q2-final-correctness.log</code></td><td class="status-pass">measured</td></tr>
+          <tr><td>No-MTP / MTP API speed</td><td><code>results/*-api-short/results.jsonl</code><br><code>results/*-api-long/results.jsonl</code></td><td class="status-pass">measured</td></tr>
+          <tr><td>HA20 and Tool-Eval</td><td><code>/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260713T121558Z-hermesagent20-hy3-chadrock-speed-v1-mtp-n2-clean-eval/summary.json</code><br><code>/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/2026/07/2026-07-13T13-56-30.458189Z_713cc7e5.md</code></td><td class="status-pass">measured</td></tr>
+          <tr><td>Imatrix artifact</td><td><code>experiments/h4-imatrix/results/imatrix-quantize.log</code><br><code>models/hy3-chadrock-speed-v1-imatrix/</code></td><td class="status-pending">built; eval pending</td></tr>
+        </tbody>
+      </table>
+      <p class="tiny" style="margin-top:12px">Benchmark host: AMD Ryzen AI Max+ 395 / Radeon 8060S unified-memory system, ROCm llama.cpp fork. Timings are local single-host observations, not claims about all AMD architectures. MTP quality tests use the selected n=2 / Q8 draft-cache profile. Full Tool‑Eval generated 217,823 tokens.</p>
+    </section>
+
+    <footer class="foot">
+      <p>Research state: 13 July 2026 · Ciru Inference Lab / Crown Citadel Group. Hero artwork was generated specifically for this report; charts are rendered locally with ECharts from Python-generated data. All performance and quality claims are tied to the evidence ledger above.</p>
+    </footer>
+  </main>
+
+  <script>
+    window.REPORT_DATA={"generated":"2026-07-13","codebook":[{"code":"00","value":-4,"meaning":"negative outer"},{"code":"01","value":-1,"meaning":"negative inner"},{"code":"10","value":1,"meaning":"positive inner"},{"code":"11","value":4,"meaning":"positive outer"}],"scale_curve":[{"byte":1,"hex":"0x01","value":0.0009765625},{"byte":2,"hex":"0x02","value":0.001953125},{"byte":3,"hex":"0x03","value":0.0029296875},{"byte":4,"hex":"0x04","value":0.00390625},{"byte":5,"hex":"0x05","value":0.0048828125},{"byte":6,"hex":"0x06","value":0.005859375},{"byte":7,"hex":"0x07","value":0.0068359375},{"byte":8,"hex":"0x08","value":0.0078125},{"byte":9,"hex":"0x09","value":0.0087890625},{"byte":10,"hex":"0x0A","value":0.009765625},{"byte":11,"hex":"0x0B","value":0.0107421875},{"byte":12,"hex":"0x0C","value":0.01171875},{"byte":13,"hex":"0x0D","value":0.0126953125},{"byte":14,"hex":"0x0E","value":0.013671875},{"byte":15,"hex":"0x0F","value":0.0146484375},{"byte":16,"hex":"0x10","value":0.015625},{"byte":17,"hex":"0x11","value":0.017578125},{"byte":18,"hex":"0x12","value":0.01953125},{"byte":19,"hex":"0x13","value":0.021484375},{"byte":20,"hex":"0x14","value":0.0234375},{"byte":21,"hex":"0x15","value":0.025390625},{"byte":22,"hex":"0x16","value":0.02734375},{"byte":23,"hex":"0x17","value":0.029296875},{"byte":24,"hex":"0x18","value":0.03125},{"byte":25,"hex":"0x19","value":0.03515625},{"byte":26,"hex":"0x1A","value":0.0390625},{"byte":27,"hex":"0x1B","value":0.04296875},{"byte":28,"hex":"0x1C","value":0.046875},{"byte":29,"hex":"0x1D","value":0.05078125},{"byte":30,"hex":"0x1E","value":0.0546875},{"byte":31,"hex":"0x1F","value":0.05859375},{"byte":32,"hex":"0x20","value":0.0625},{"byte":33,"hex":"0x21","value":0.0703125},{"byte":34,"hex":"0x22","value":0.078125},{"byte":35,"hex":"0x23","value":0.0859375},{"byte":36,"hex":"0x24","value":0.09375},{"byte":37,"hex":"0x25","value":0.1015625},{"byte":38,"hex":"0x26","value":0.109375},{"byte":39,"hex":"0x27","value":0.1171875},{"byte":40,"hex":"0x28","value":0.125},{"byte":41,"hex":"0x29","value":0.140625},{"byte":42,"hex":"0x2A","value":0.15625},{"byte":43,"hex":"0x2B","value":0.171875},{"byte":44,"hex":"0x2C","value":0.1875},{"byte":45,"hex":"0x2D","value":0.203125},{"byte":46,"hex":"0x2E","value":0.21875},{"byte":47,"hex":"0x2F","value":0.234375},{"byte":48,"hex":"0x30","value":0.25},{"byte":49,"hex":"0x31","value":0.28125},{"byte":50,"hex":"0x32","value":0.3125},{"byte":51,"hex":"0x33","value":0.34375},{"byte":52,"hex":"0x34","value":0.375},{"byte":53,"hex":"0x35","value":0.40625},{"byte":54,"hex":"0x36","value":0.4375},{"byte":55,"hex":"0x37","value":0.46875},{"byte":56,"hex":"0x38","value":0.5},{"byte":57,"hex":"0x39","value":0.5625},{"byte":58,"hex":"0x3A","value":0.625},{"byte":59,"hex":"0x3B","value":0.6875},{"byte":60,"hex":"0x3C","value":0.75},{"byte":61,"hex":"0x3D","value":0.8125},{"byte":62,"hex":"0x3E","value":0.875},{"byte":63,"hex":"0x3F","value":0.9375},{"byte":64,"hex":"0x40","value":1.0},{"byte":65,"hex":"0x41","value":1.125},{"byte":66,"hex":"0x42","value":1.25},{"byte":67,"hex":"0x43","value":1.375},{"byte":68,"hex":"0x44","value":1.5},{"byte":69,"hex":"0x45","value":1.625},{"byte":70,"hex":"0x46","value":1.75},{"byte":71,"hex":"0x47","value":1.875},{"byte":72,"hex":"0x48","value":2.0},{"byte":73,"hex":"0x49","value":2.25},{"byte":74,"hex":"0x4A","value":2.5},{"byte":75,"hex":"0x4B","value":2.75},{"byte":76,"hex":"0x4C","value":3.0},{"byte":77,"hex":"0x4D","value":3.25},{"byte":78,"hex":"0x4E","value":3.5},{"byte":79,"hex":"0x4F","value":3.75},{"byte":80,"hex":"0x50","value":4.0},{"byte":81,"hex":"0x51","value":4.5},{"byte":82,"hex":"0x52","value":5.0},{"byte":83,"hex":"0x53","value":5.5},{"byte":84,"hex":"0x54","value":6.0},{"byte":85,"hex":"0x55","value":6.5},{"byte":86,"hex":"0x56","value":7.0},{"byte":87,"hex":"0x57","value":7.5},{"byte":88,"hex":"0x58","value":8.0},{"byte":89,"hex":"0x59","value":9.0},{"byte":90,"hex":"0x5A","value":10.0},{"byte":91,"hex":"0x5B","value":11.0},{"byte":92,"hex":"0x5C","value":12.0},{"byte":93,"hex":"0x5D","value":13.0},{"byte":94,"hex":"0x5E","value":14.0},{"byte":95,"hex":"0x5F","value":15.0},{"byte":96,"hex":"0x60","value":16.0},{"byte":97,"hex":"0x61","value":18.0},{"byte":98,"hex":"0x62","value":20.0},{"byte":99,"hex":"0x63","value":22.0},{"byte":100,"hex":"0x64","value":24.0},{"byte":101,"hex":"0x65","value":26.0},{"byte":102,"hex":"0x66","value":28.0},{"byte":103,"hex":"0x67","value":30.0},{"byte":104,"hex":"0x68","value":32.0},{"byte":105,"hex":"0x69","value":36.0},{"byte":106,"hex":"0x6A","value":40.0},{"byte":107,"hex":"0x6B","value":44.0},{"byte":108,"hex":"0x6C","value":48.0},{"byte":109,"hex":"0x6D","value":52.0},{"byte":110,"hex":"0x6E","value":56.0},{"byte":111,"hex":"0x6F","value":60.0},{"byte":112,"hex":"0x70","value":64.0},{"byte":113,"hex":"0x71","value":72.0},{"byte":114,"hex":"0x72","value":80.0},{"byte":115,"hex":"0x73","value":88.0},{"byte":116,"hex":"0x74","value":96.0},{"byte":117,"hex":"0x75","value":104.0},{"byte":118,"hex":"0x76","value":112.0},{"byte":119,"hex":"0x77","value":120.0},{"byte":120,"hex":"0x78","value":128.0},{"byte":121,"hex":"0x79","value":144.0},{"byte":122,"hex":"0x7A","value":160.0},{"byte":123,"hex":"0x7B","value":176.0},{"byte":124,"hex":"0x7C","value":192.0},{"byte":125,"hex":"0x7D","value":208.0},{"byte":126,"hex":"0x7E","value":224.0}],"block_storage":{"formats":["ROCmFP2","ROCmFP3","BF16"],"codes":[8,12,64],"scale_metadata":[2,2,0],"bytes_total":[10,14,64]},"artifacts":[{"name":"FP2 Speed-v1","bytes":97453897472,"gib":90.76101469993591,"role":"promoted"},{"name":"IQ2_M baseline","bytes":100008834816,"gib":93.14048552513123,"role":"baseline"},{"name":"FP3-heavy Quality-v1","bytes":110382692096,"gib":102.80189299583435,"role":"rejected"}],"kernel":{"labels":["Original launch policy","Adaptive FP2 policy"],"microseconds":[66.52,50.72],"gain_percent":23.8},"no_mtp":{"scenarios":["Short code · 50 prompt tokens","Long code · 19,654 prompt tokens"],"total_seconds":{"IQ2_M":[9.6165,169.7376],"FP2 Speed-v1":[9.390044,159.2433],"FP3-heavy Quality-v1":[10.3307,169.6373]},"prefill_tps":{"IQ2_M":[50.198,132.3582],"FP2 Speed-v1":[70.4574,142.7477]},"decode_tps":{"IQ2_M":[15.0708,6.0338],"FP2 Speed-v1":[14.7731,5.9438]}},"mtp_ha08":[{"name":"FP2 n=2","seconds":62.446,"score":100},{"name":"FP2 n=3","seconds":65.458,"score":100},{"name":"FP2 n=4","seconds":66.768,"score":100},{"name":"IQ2_M n=3","seconds":72.902,"score":100},{"name":"FP3-heavy n=2","seconds":75.306,"score":100}],"quality":[{"name":"HermesAgent-08","score":100,"wall_seconds":62.446},{"name":"Tool-Eval core15","score":100,"wall_seconds":175.3},{"name":"HermesAgent-20","score":81,"raw_score":81.25,"wall_seconds":1457.29},{"name":"Tool-Eval 69","score":86,"raw_points":"119/138","wall_seconds":1697.287}],"mtp_prompt_sensitivity":{"scenarios":["Short code","Long code"],"no_mtp_total_seconds":[9.390044,159.2433],"mtp_n2_total_seconds":[8.9791,166.3331],"no_mtp_decode_tps":[14.7731,5.9438],"mtp_n2_decode_tps":[16.7503,7.8649],"accepted":["46/51","38/43"]},"imatrix":{"matrix_bytes":601544000,"entries":876,"calibration_tokens":16384,"covered_fp2_tensors":237,"target_fp2_tensors":237,"plain_weighted_error":0.510835,"imatrix_weighted_error":9.13573e-05,"improvement":5591.6,"artifact_bytes":97453897696,"metadata_delta_bytes":224,"quant_wall_seconds":2535.61,"status":"Artifact built; loader, speed, and quality gates pending"}};
+    (() => {
+      const D = window.REPORT_DATA;
+      const colors = { red:'#ed1c24', cyan:'#39d0ff', green:'#20d1a2', orange:'#ff9f43', yellow:'#f6c046', violet:'#c994ff', muted:'#a8adb7', grid:'rgba(255,255,255,.10)' };
+      const charts = [];
+      const axis = { axisLine:{lineStyle:{color:'rgba(255,255,255,.2)'}}, axisLabel:{color:colors.muted,fontFamily:'IBM Plex Mono'}, splitLine:{lineStyle:{color:colors.grid}} };
+      const tooltip = { trigger:'axis', backgroundColor:'rgba(8,8,10,.96)', borderColor:'rgba(255,255,255,.2)', textStyle:{color:'#fff',fontFamily:'IBM Plex Mono'} };
+      function make(id, option) {
+        const el = document.getElementById(id); if (!el) return;
+        const c = echarts.init(el, null, {renderer:'canvas'}); c.setOption({animationDuration:650, textStyle:{fontFamily:'Space Grotesk',color:'#f7f7f4'}, ...option}); charts.push(c);
+      }
+      make('storage-chart', {tooltip, legend:{bottom:0,textStyle:{color:colors.muted}}, grid:{left:88,right:18,top:18,bottom:54}, xAxis:{...axis,type:'value',name:'bytes / 32 weights',nameTextStyle:{color:colors.muted}}, yAxis:{...axis,type:'category',data:D.block_storage.formats}, series:[
+        {name:'codes / data',type:'bar',stack:'bytes',data:D.block_storage.codes,itemStyle:{color:colors.cyan,borderRadius:[3,0,0,3]},label:{show:true,position:'inside',color:'#071016',fontWeight:700}},
+        {name:'scale metadata',type:'bar',stack:'bytes',data:D.block_storage.scale_metadata,itemStyle:{color:colors.red,borderRadius:[0,3,3,0]},label:{show:true,position:'right',color:'#fff',formatter:p=>p.value?`${p.value} B`:''}}
+      ]});
+      make('codebook-chart', {tooltip:{...tooltip,formatter:p=>`${p[0].name}₂ → ${p[0].value>0?'+':''}${p[0].value}`}, grid:{left:48,right:18,top:18,bottom:42}, xAxis:{...axis,type:'category',data:D.codebook.map(x=>x.code+'₂')}, yAxis:{...axis,type:'value',min:-5,max:5,interval:1}, series:[{type:'bar',data:D.codebook.map((x,i)=>({value:x.value,itemStyle:{color:x.value<0?colors.red:colors.cyan,borderRadius:x.value<0?[0,0,4,4]:[4,4,0,0]}})),label:{show:true,position:p=>p.value<0?'bottom':'top',formatter:p=>(p.value>0?'+':'')+p.value,color:'#fff',fontFamily:'IBM Plex Mono'},markLine:{silent:true,symbol:'none',lineStyle:{color:'rgba(255,255,255,.28)'},data:[{yAxis:0}]}}]});
+      make('scale-chart', {tooltip:{...tooltip,formatter:p=>{const n=p[0].data;return `${n[2]}<br>scale ${n[1].toPrecision(7)}`}}, grid:{left:72,right:22,top:20,bottom:50}, xAxis:{...axis,type:'value',min:1,max:126,name:'metadata byte',nameLocation:'middle',nameGap:31,nameTextStyle:{color:colors.muted}}, yAxis:{...axis,type:'log',name:'scale · log',nameTextStyle:{color:colors.muted}}, series:[{type:'line',showSymbol:false,data:D.scale_curve.map(x=>[x.byte,x.value,x.hex]),lineStyle:{width:2,color:colors.cyan},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(57,208,255,.35)'},{offset:1,color:'rgba(57,208,255,.01)'}]}}}]});
+      make('kernel-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(2)} μs`}, grid:{left:62,right:22,top:20,bottom:65}, xAxis:{...axis,type:'category',data:D.kernel.labels,axisLabel:{...axis.axisLabel,interval:0,rotate:12}}, yAxis:{...axis,type:'value',min:0,name:'μs · lower is better',nameTextStyle:{color:colors.muted}}, series:[{type:'bar',barMaxWidth:80,data:D.kernel.microseconds.map((v,i)=>({value:v,itemStyle:{color:i?colors.green:colors.orange,borderRadius:[5,5,0,0]}})),label:{show:true,position:'top',color:'#fff',formatter:p=>`${p.value.toFixed(2)} μs`,fontFamily:'IBM Plex Mono'}}]});
+      make('size-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(2)} GiB`}, grid:{left:48,right:18,top:22,bottom:72}, xAxis:{...axis,type:'category',data:D.artifacts.map(x=>x.name),axisLabel:{...axis.axisLabel,interval:0,rotate:18}}, yAxis:{...axis,type:'value',min:0,name:'GiB',nameTextStyle:{color:colors.muted}}, series:[{type:'bar',data:D.artifacts.map((x,i)=>({value:x.gib,itemStyle:{color:[colors.cyan,colors.violet,colors.orange][i],borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',color:'#fff',formatter:p=>p.value.toFixed(2),fontFamily:'IBM Plex Mono'}}]});
+      make('latency-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(3)} s`}, legend:{top:0,textStyle:{color:colors.muted}}, grid:{left:58,right:18,top:64,bottom:62}, xAxis:{...axis,type:'category',data:D.no_mtp.scenarios,axisLabel:{...axis.axisLabel,interval:0,formatter:v=>v.split(' · ').join('\n')}}, yAxis:{...axis,type:'log',name:'seconds · log',nameTextStyle:{color:colors.muted}}, series:Object.entries(D.no_mtp.total_seconds).map(([name,values],i)=>({name,type:'bar',data:values,itemStyle:{color:[colors.violet,colors.cyan,colors.orange][i],borderRadius:[3,3,0,0]}}))});
+      const tpCats=['Short prefill','Short decode','Long prefill','Long decode'];
+      make('throughput-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(2)} tok/s`}, legend:{top:0,textStyle:{color:colors.muted}}, grid:{left:66,right:18,top:55,bottom:55}, xAxis:{...axis,type:'category',data:tpCats,axisLabel:{...axis.axisLabel,interval:0}}, yAxis:{...axis,type:'log',name:'tokens / second · log',nameTextStyle:{color:colors.muted}}, series:[
+        {name:'IQ2_M',type:'bar',data:[D.no_mtp.prefill_tps.IQ2_M[0],D.no_mtp.decode_tps.IQ2_M[0],D.no_mtp.prefill_tps.IQ2_M[1],D.no_mtp.decode_tps.IQ2_M[1]],itemStyle:{color:colors.violet}},
+        {name:'FP2 Speed-v1',type:'bar',data:[D.no_mtp.prefill_tps['FP2 Speed-v1'][0],D.no_mtp.decode_tps['FP2 Speed-v1'][0],D.no_mtp.prefill_tps['FP2 Speed-v1'][1],D.no_mtp.decode_tps['FP2 Speed-v1'][1]],itemStyle:{color:colors.cyan}}
+      ]});
+      make('mtp-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(3)} s`}, grid:{left:74,right:22,top:22,bottom:68}, xAxis:{...axis,type:'category',data:D.mtp_ha08.map(x=>x.name),axisLabel:{...axis.axisLabel,interval:0,rotate:17}}, yAxis:{...axis,type:'value',min:0,name:'HA‑08 wall seconds',nameTextStyle:{color:colors.muted}}, series:[{type:'bar',data:D.mtp_ha08.map((x,i)=>({value:x.seconds,itemStyle:{color:i===0?colors.green:i===3?colors.violet:i===4?colors.orange:colors.cyan,borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',color:'#fff',formatter:p=>p.value.toFixed(1),fontFamily:'IBM Plex Mono'}}]});
+      make('quality-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v}/100`}, grid:{left:45,right:18,top:20,bottom:72}, xAxis:{...axis,type:'category',data:D.quality.map(x=>x.name),axisLabel:{...axis.axisLabel,interval:0,rotate:18}}, yAxis:{...axis,type:'value',min:0,max:105,name:'score / 100',nameTextStyle:{color:colors.muted}}, series:[{type:'bar',data:D.quality.map((x,i)=>({value:x.score,itemStyle:{color:i<2?colors.green:colors.cyan,borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',color:'#fff',fontFamily:'IBM Plex Mono'}}]});
+      make('prompt-chart', {tooltip:{...tooltip,valueFormatter:v=>`${v.toFixed(3)} s`}, legend:{top:0,textStyle:{color:colors.muted}}, grid:{left:66,right:20,top:55,bottom:52}, xAxis:{...axis,type:'category',data:D.mtp_prompt_sensitivity.scenarios}, yAxis:{...axis,type:'log',name:'total seconds · log',nameTextStyle:{color:colors.muted}}, series:[
+        {name:'No MTP',type:'bar',data:D.mtp_prompt_sensitivity.no_mtp_total_seconds,itemStyle:{color:colors.violet,borderRadius:[4,4,0,0]}},
+        {name:'MTP n=2',type:'bar',data:D.mtp_prompt_sensitivity.mtp_n2_total_seconds,itemStyle:{color:colors.cyan,borderRadius:[4,4,0,0]},label:{show:true,position:'top',color:'#fff',formatter:p=>D.mtp_prompt_sensitivity.accepted[p.dataIndex]+' accepted',fontFamily:'IBM Plex Mono',fontSize:10}}
+      ]});
+      let timer; addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>charts.forEach(c=>c.resize()),120)});
+    })();
+  </script>
+</body>
+</html>
