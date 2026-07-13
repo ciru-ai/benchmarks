@@ -678,7 +678,7 @@
   },
   "artifacts": [
     {
-      "name": "FP2 Speed-v1",
+      "name": "FPX-IFP2 Speed-v1",
       "bytes": 97453897472,
       "gib": 90.76101469993591,
       "role": "promoted"
@@ -717,7 +717,7 @@
         9.6165,
         169.7376
       ],
-      "FP2 Speed-v1": [
+      "FPX-IFP2 Speed-v1": [
         9.390044,
         159.2433
       ],
@@ -731,7 +731,7 @@
         50.198,
         132.3582
       ],
-      "FP2 Speed-v1": [
+      "FPX-IFP2 Speed-v1": [
         70.4574,
         142.7477
       ]
@@ -741,7 +741,7 @@
         15.0708,
         6.0338
       ],
-      "FP2 Speed-v1": [
+      "FPX-IFP2 Speed-v1": [
         14.7731,
         5.9438
       ]
@@ -749,17 +749,17 @@
   },
   "mtp_ha08": [
     {
-      "name": "FP2 n=2",
+      "name": "FPX-IFP2 n=2",
       "seconds": 62.446,
       "score": 100
     },
     {
-      "name": "FP2 n=3",
+      "name": "FPX-IFP2 n=3",
       "seconds": 65.458,
       "score": 100
     },
     {
-      "name": "FP2 n=4",
+      "name": "FPX-IFP2 n=4",
       "seconds": 66.768,
       "score": 100
     },
@@ -776,26 +776,43 @@
   ],
   "quality": [
     {
-      "name": "HermesAgent-08",
+      "name": "HA-08 · control",
       "score": 100,
-      "wall_seconds": 62.446
+      "wall_seconds": 62.446,
+      "variant": "unweighted"
     },
     {
-      "name": "Tool-Eval core15",
+      "name": "Tool core15 · control",
       "score": 100,
-      "wall_seconds": 175.3
+      "wall_seconds": 175.3,
+      "variant": "unweighted"
     },
     {
-      "name": "HermesAgent-20",
+      "name": "HA-20 · control",
       "score": 81,
       "raw_score": 81.25,
-      "wall_seconds": 1457.29
+      "wall_seconds": 1457.29,
+      "variant": "unweighted"
     },
     {
-      "name": "Tool-Eval 69",
+      "name": "Tool69 · control",
       "score": 86,
       "raw_points": "119/138",
-      "wall_seconds": 1697.287
+      "wall_seconds": 1697.287,
+      "variant": "unweighted"
+    },
+    {
+      "name": "Tool69 · imatrix",
+      "score": 88,
+      "raw_points": "122/138",
+      "wall_seconds": 1885.736,
+      "variant": "imatrix"
+    },
+    {
+      "name": "HA-20 · imatrix + SSD",
+      "score": 80,
+      "wall_seconds": 2296.652,
+      "variant": "imatrix_ssd"
     }
   ],
   "mtp_prompt_sensitivity": {
@@ -824,6 +841,91 @@
       "38/43"
     ]
   },
+  "ssd_cache": {
+    "profile": {
+      "context_tokens": 65536,
+      "cache_ram_mib": 0,
+      "cache_disk_limit_mib": 16384,
+      "target_cache_type": "q8_0",
+      "draft_cache_type": "q8_0",
+      "mtp_n_max": 2,
+      "mtp_p_min": 0.75,
+      "context_shift": false
+    },
+    "ha20": {
+      "score": 80,
+      "control_score": 81,
+      "wall_seconds": 2296.652,
+      "pp_tps": 185.420267,
+      "tg_tps": 17.065507,
+      "prompt_tokens": 260725,
+      "predicted_tokens": 12166,
+      "entries": 21,
+      "tokens_stored": 79675,
+      "saves": 21,
+      "loads": 0,
+      "evictions": 0,
+      "save_failures": 0,
+      "disk_payload_bytes": 14045788400,
+      "disk_payload_gib": 13.0812,
+      "rss_min_kib": 938400,
+      "rss_max_kib": 2101132,
+      "rss_max_gib": 2.0038
+    },
+    "smoke": {
+      "labels": [
+        "Exact prompt",
+        "+15-token extension"
+      ],
+      "cold_first_ttfp_seconds": [
+        9.315688,
+        8.813708
+      ],
+      "cold_repeat_ttfp_seconds": [
+        7.327731,
+        7.65463
+      ],
+      "ssd_hit_ttfp_seconds": [
+        0.264207,
+        0.478237
+      ],
+      "cache_tokens": [
+        1362,
+        1426
+      ],
+      "prompt_tokens_processed": [
+        1,
+        15
+      ],
+      "mtp_accepted": [
+        "13/13",
+        "18/19"
+      ],
+      "tg_tps": [
+        13.871715,
+        15.811519
+      ],
+      "load_ms": [
+        59.8,
+        88.3
+      ],
+      "pass": true
+    },
+    "context_shift": {
+      "forced_context_tokens": 1536,
+      "prompt_tokens": 1300,
+      "generated_tokens": 300,
+      "discarded_tokens": 767,
+      "accepted": 122,
+      "drafted": 129,
+      "acceptance_percent": 94.57,
+      "tg_tps": 16.83,
+      "reference_accepted": 142,
+      "reference_drafted": 143,
+      "reference_tg_tps": 18.6,
+      "pass": true
+    }
+  },
   "imatrix": {
     "matrix_bytes": 601544000,
     "entries": 876,
@@ -833,49 +935,143 @@
     "plain_weighted_error": 0.510835,
     "imatrix_weighted_error": 9.13573e-05,
     "improvement": 5591.6,
-        "artifact_bytes": 97453897696,
-        "metadata_delta_bytes": 224,
-        "quant_wall_seconds": 2535.61,
-        "loader": {
-            "seconds": 24.56,
-            "coherence": "323",
-            "native_tool": true
-        },
-        "no_mtp": {
-            "control_total_seconds": [9.396, 159.2433],
-            "candidate_total_seconds": [8.989755392, 151.556570768],
-            "candidate_pp_tps": [71.411229, 150.57467],
-            "candidate_tg_tps": [15.470015, 6.096415]
-        },
-        "mtp_n2": {
-            "control_total_seconds": [8.9791, 166.3331],
-            "candidate_total_seconds": [8.633876324, 167.586187363],
-            "control_tg_tps": [16.7503, 7.8649],
-            "candidate_tg_tps": [17.624003, 6.521144],
-            "accepted": ["49/53", "20/28"]
-        },
-        "quality": {
-            "core15_score": 100,
-            "targeted8_raw": 425,
-            "targeted8_control_raw": 425,
-            "targeted8_scenario_speedup_percent": 2.53,
-            "full69_score": 88,
-            "full69_raw_points": "122/138",
-            "control_full69_score": 86,
-            "control_full69_raw_points": "119/138",
-            "full69_wall_seconds": 1885.736
-        },
-        "speed_change_percent": {
-            "labels": ["No-MTP short", "No-MTP long", "MTP short", "MTP long", "Targeted Hermes"],
-            "values": [4.32, 4.83, 3.84, -0.75, 2.53]
-        },
-        "prompt_cache": {
-            "normal_speed_enabled": true,
-            "full69_enabled": true,
-            "limit_mib": 8192,
-            "largest_update_ms": 173.03,
-            "timeouts": 0
-        },
-        "status": "Promoted: full Tool-Eval 88 beats control 86; faster no-MTP and short-MTP profile with a long-MTP caveat"
-    }
+    "artifact_bytes": 97453897696,
+    "metadata_delta_bytes": 224,
+    "quant_wall_seconds": 2535.61,
+    "loader": {
+      "seconds": 24.56,
+      "coherence": "323",
+      "native_tool": true
+    },
+    "no_mtp": {
+      "control_total_seconds": [
+        9.396,
+        159.2433
+      ],
+      "candidate_total_seconds": [
+        8.989755392,
+        151.556570768
+      ],
+      "candidate_pp_tps": [
+        71.411229,
+        150.57467
+      ],
+      "candidate_tg_tps": [
+        15.470015,
+        6.096415
+      ]
+    },
+    "mtp_n2": {
+      "control_total_seconds": [
+        8.9791,
+        166.3331
+      ],
+      "candidate_total_seconds": [
+        8.633876324,
+        167.586187363
+      ],
+      "control_tg_tps": [
+        16.7503,
+        7.8649
+      ],
+      "candidate_tg_tps": [
+        17.624003,
+        6.521144
+      ],
+      "accepted": [
+        "49/53",
+        "20/28"
+      ]
+    },
+    "quality": {
+      "core15_score": 100,
+      "targeted8_raw": 425,
+      "targeted8_control_raw": 425,
+      "targeted8_scenario_speedup_percent": 2.53,
+      "full69_score": 88,
+      "full69_raw_points": "122/138",
+      "control_full69_score": 86,
+      "control_full69_raw_points": "119/138",
+      "full69_wall_seconds": 1885.736
+    },
+    "speed_change_percent": {
+      "labels": [
+        "No-MTP short",
+        "No-MTP long",
+        "MTP short",
+        "MTP long",
+        "Targeted Hermes"
+      ],
+      "values": [
+        4.32,
+        4.83,
+        3.84,
+        -0.75,
+        2.53
+      ]
+    },
+    "prompt_cache": {
+      "backend": "ssd_disk_only_final",
+      "automatic_disk_backing": true,
+      "manual_slot_disk_api": true,
+      "manual_slot_saves_mtp_draft": false,
+      "full69_8g": {
+        "limit_mib": 8192,
+        "completed": true,
+        "score": 88,
+        "raw_points": "122/138",
+        "largest_update_ms": 173.03,
+        "updates": 11,
+        "better_cache_hits": 2,
+        "timeouts": 0
+      },
+      "ha20_8g": {
+        "limit_mib": 8192,
+        "completed": false,
+        "aborted_at": "HA-13",
+        "valid_through": "HA-12",
+        "cached_prompts_before_failure": 12,
+        "resident_mib_before_failure": 7657.434,
+        "next_state_mib": 348.502,
+        "result": "kernel_oom_kill",
+        "saves": 13,
+        "recovered_cache_entries": 0,
+        "score": null,
+        "invalid_scenarios": [
+          "HA-13",
+          "HA-14",
+          "HA-15",
+          "HA-16",
+          "HA-17"
+        ]
+      },
+      "ha20_4g": {
+        "limit_mib": 4096,
+        "status": "canceled_not_run",
+        "completed": false,
+        "eval_started": false,
+        "reason": "4 GiB UMA cost is unjustified by the measured cache hit rate",
+        "score": null,
+        "raw_score": null,
+        "wall_seconds": null,
+        "largest_resident_mib": null,
+        "largest_update_ms": null,
+        "evictions": null,
+        "timeouts": null,
+        "oom": null
+      },
+      "automatic_ssd_target_draft_tier": {
+        "status": "validated",
+        "target_state": true,
+        "mtp_draft_state": true,
+        "mtp_boundary_state": true,
+        "disk_only": true,
+        "ha20_completed": true,
+        "exact_hit_passed": true,
+        "extension_hit_passed": true,
+        "context_shift_passed": true
+      }
+    },
+    "status": "Promoted: full Tool-Eval 88 beats control 86; disk-only SSD target+draft cache completed HA20 at 80 versus the 81 control and passed exact, extension, and context-shift checks"
+  }
 }
