@@ -65,6 +65,16 @@ def compact_path(value):
             return value[value.index(marker):]
     return value
 
+def source_path_for_read(value):
+    if value and os.path.exists(value):
+        return value
+    value = str(value or "")
+    for private, public in PUBLIC_PATH_REPLACEMENTS.items():
+        candidate = value.replace(public, private)
+        if candidate != value and os.path.exists(candidate):
+            return candidate
+    return value
+
 CANONICAL_MODEL_NAMES = {
     "Qwen3.6-35B-A3B-HaloStrix-Dyn-MTP-v7": "Qwen3.6-35B-A3B-Crown-Dyn-MTP",
 }
@@ -87,6 +97,8 @@ def family_for(text):
     low = (text or "").lower()
     if "chadrock" in low or "ace-saber" in low or "ace_saber" in low:
         return "Chadrock"
+    if "hy3" in low:
+        return "Hy3"
     if "qwen3-coder-next" in low:
         return "Qwen Coder Next"
     if "qwen3-coder-30b" in low or "qwen3-coder" in low:
@@ -1088,6 +1100,9 @@ CODING_LAB_ROOT = os.environ.get("BENCHV2_CODING_LAB_ROOT") or os.path.join(LAB_
 QUALITY_DB = os.environ.get("BENCHV2_QUALITY_DB") or os.path.join(LAB_ROOT, "quality-results.sqlite3")
 
 PROFILE_LABELS = {
+    "hy3-openrouter-novita-free": "Hy3 Hosted API (OpenRouter / Novita)",
+    "hy3-chadrock-speed-v1-mtp-n2-clean-eval": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP",
+    "hy3-chadrock-speed-v1-imatrix-mtp-n2-ssd-cache-final": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP (SSD cache)",
     "qwen3-coder-next-q4-k-l": "Qwen3 Coder Next Q4_K_L",
     "qwen3-coder-next-q6-k-l": "Qwen3 Coder Next Q6_K_L",
     "qwen3.6-27b-ud-q8-k-xl": "Qwen3.6 27B UD Q8_K_XL",
@@ -1181,6 +1196,7 @@ PROFILE_IDS = {
 }
 
 PUBLIC_PATH_REPLACEMENTS = {
+    "/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260715T112202Z-hy3-openrouter-tools-agents": "quality-evidence/hy3-api-openrouter-novita-20260715",
     "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-eval-20260629",
     "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-hermes20-20260629",
     "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
@@ -1232,6 +1248,8 @@ def public_profile_label(profile_id):
 
 def profile_quant(profile_id):
     text = str(profile_id or "").lower()
+    if "hy3-openrouter-novita-free" in text:
+        return "Hosted API"
     patterns = [
         ("q4-k-l", "Q4_K_L"), ("q6-k-l", "Q6_K_L"), ("q8-k-xl", "Q8_K_XL"),
         ("q6-k-xl", "Q6_K_XL"), ("q5-k-xl", "Q5_K_XL"), ("q4-k-xl", "Q4_K_XL"),
@@ -1313,7 +1331,7 @@ def summarize_hermes_agent_scenarios(agent_rows):
     rows = []
     category_rows = []
     for agent_row in agent_rows:
-        source_path = agent_row.get("sourcePath")
+        source_path = source_path_for_read(agent_row.get("sourcePath"))
         if not source_path or not os.path.exists(source_path):
             continue
         try:
@@ -1524,6 +1542,7 @@ def quality_rows_from_db():
     return [quality_row_public(row) for row in sorted(deduped.values(), key=lambda item: item["seq"] or 0)], excluded
 
 TOOL_EVAL_REPORTS = {
+    "hy3-openrouter-novita-free": "/tooleval/hy3-api-openrouter-novita/",
     "step37-rocmfp4-mtp-vulkan-64k-tool-eval-full-templatefix-toolobs": "/tooleval/stepfun-step37-rocmfp4-mtp-vulkan-64k/",
     "step37-rocmfpx-q3-qualityplus-mtp-64k": "/tooleval/step37-q3-qualityplus-mtp-64k/",
     "qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw": "/tooleval/qwable-27b-chadrock-rocmfpx-ultraquality-7p61bpw/",
@@ -1592,14 +1611,18 @@ def tool_eval_rows_from_artifacts():
         return round(total, 3) if seen else None
 
     rows = []
-    for path in glob.glob(os.path.join(LAB_ROOT, "runs", "*", "outputs", "tool-eval-bench-*.json")):
+    artifact_paths = set(glob.glob(os.path.join(LAB_ROOT, "runs", "*", "outputs", "tool-eval-bench-*.json")))
+    artifact_paths.update(glob.glob(os.path.join(LAB_ROOT, "runs", "*", "tool-eval", "result.json")))
+    for path in sorted(artifact_paths):
         payload = safe_json(open(path, "r", encoding="utf-8").read())
         if not payload:
             continue
         filename = os.path.basename(path)
         if artifact_has_backend_failure(payload):
             continue
-        if filename in {"tool-eval-bench-full.json", "tool-eval-bench-full-fixed.json"}:
+        if filename in {"tool-eval-bench-full.json", "tool-eval-bench-full-fixed.json"} or (
+            filename == "result.json" and int(payload.get("total_scenarios") or 0) == 69
+        ):
             suite = "tool-eval-full"
             row_kind = "aggregate"
         elif filename in {"tool-eval-bench-short.json", "tool-eval-bench-short-fixed.json"}:
@@ -1631,12 +1654,15 @@ def tool_eval_rows_from_artifacts():
         total_runtime_s = sum_scenario_number(scenarios, "duration_seconds")
         prompt_tokens = sum_scenario_number(scenarios, "prompt_tokens")
         completion_tokens = sum_scenario_number(scenarios, "completion_tokens")
+        total_tokens = scores.get("total_tokens")
+        if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+            total_tokens = prompt_tokens + completion_tokens
         wall_completion_tok_s = None
         wall_total_tok_s = None
         if total_runtime_s and completion_tokens is not None:
             wall_completion_tok_s = round(completion_tokens / total_runtime_s, 3)
-        if total_runtime_s and scores.get("total_tokens") is not None:
-            wall_total_tok_s = round(float(scores.get("total_tokens")) / total_runtime_s, 3)
+        if total_runtime_s and total_tokens is not None:
+            wall_total_tok_s = round(float(total_tokens) / total_runtime_s, 3)
         try:
             score = round(float(scores.get("final_score", payload.get("final_score"))) / 100.0, 6)
         except Exception:
@@ -1669,7 +1695,7 @@ def tool_eval_rows_from_artifacts():
             "partialCount": partial_count,
             "failCount": fail_count,
             "medianTurnMs": scores.get("median_turn_ms") or median_turn_ms(scenarios),
-            "totalTokens": scores.get("total_tokens"),
+            "totalTokens": int(total_tokens) if total_tokens is not None else None,
             "promptTokens": int(prompt_tokens) if prompt_tokens is not None else None,
             "completionTokens": int(completion_tokens) if completion_tokens is not None else None,
             "tokenEfficiency": scores.get("token_efficiency"),
