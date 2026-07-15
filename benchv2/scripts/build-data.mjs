@@ -1100,7 +1100,7 @@ CODING_LAB_ROOT = os.environ.get("BENCHV2_CODING_LAB_ROOT") or os.path.join(LAB_
 QUALITY_DB = os.environ.get("BENCHV2_QUALITY_DB") or os.path.join(LAB_ROOT, "quality-results.sqlite3")
 
 PROFILE_LABELS = {
-    "hy3-openrouter-novita-free": "Hy3 Hosted API (OpenRouter / Novita)",
+    "hy3-openrouter-novita-free": "Hy3 Third-Party API (Novita via OpenRouter)",
     "hy3-chadrock-speed-v1-mtp-n2-clean-eval": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP",
     "hy3-chadrock-speed-v1-imatrix-mtp-n2-ssd-cache-final": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP (SSD cache)",
     "qwen3-coder-next-q4-k-l": "Qwen3 Coder Next Q4_K_L",
