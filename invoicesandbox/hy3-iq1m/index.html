@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice Spend Dashboard — Northwind Process Automation</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#171d2b; --panel2:#1f2738; --line:#2a3346;
+    --txt:#e6ebf5; --muted:#9aa7bd; --accent:#4f9dff; --good:#36d399;
+    --warn:#ffb454; --bad:#ff6b6b; --credit:#ff8f6b;
+    --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c111c,#0f1420 240px);color:var(--txt);
+    font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1280px;margin:0 auto;padding:28px 22px 60px;}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:8px;}
+  h1{font-size:26px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px}
+  .gen{margin-left:auto;color:var(--muted);font-size:12px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 26px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .card .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .card .val{font-size:24px;font-weight:700;margin-top:6px}
+  .card .val.accent{color:var(--accent)}
+  .card .val.good{color:var(--good)}
+  .card .val.credit{color:var(--credit)}
+  .card .val.muted{color:var(--muted)}
+  .card .note{font-size:12px;color:var(--muted);margin-top:4px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px;box-shadow:var(--shadow)}
+  section h2{margin:0 0 4px;font-size:18px}
+  section .desc{color:var(--muted);font-size:13px;margin-bottom:14px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;background:var(--panel2)}
+  tbody tr:hover{background:rgba(79,157,255,.06)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+  .strong{font-weight:700;color:var(--txt)}
+  .credit{color:var(--credit)}
+  .cust{font-weight:600}
+  .bar-wrap{display:flex;align-items:center;gap:8px;min-width:160px}
+  .bar{height:14px;background:linear-gradient(90deg,#4f9dff,#36d399);border-radius:7px;min-width:2px}
+  .bar-pct{font-size:12px;color:var(--muted);white-space:nowrap}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.4px}
+  .badge.stmt{background:rgba(255,180,84,.16);color:var(--warn)}
+  .badge.excl{background:rgba(255,107,107,.16);color:var(--bad)}
+  .badge.cm{background:rgba(255,143,107,.16);color:var(--credit)}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;color:var(--muted);font-size:13px}
+  .tab.active{color:var(--txt);border-color:var(--accent);background:rgba(79,157,255,.12)}
+  .panel{display:none}
+  .panel.active{display:block}
+  .foot{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6}
+  .pill{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--panel2);color:var(--muted);font-size:11px;margin-right:6px}
+  @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Customer Spend Dashboard</h1>
+      <div class="sub">Northwind Process Automation LLC &middot; Synthetic AR benchmark packet</div>
+    </div>
+    <div class="gen">Generated 7/17/2026, 1:29:36 AM</div>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="lbl">Net Spend (All Customers)</div><div class="val accent">$3,566,177.15</div><div class="note">After credit memos</div></div>
+    <div class="card"><div class="lbl">Gross Invoice Spend</div><div class="val">$3,568,582.15</div><div class="note">105 valid invoices</div></div>
+    <div class="card"><div class="lbl">Credit Memos</div><div class="val credit">-$2,405.00</div><div class="note">2 subtracted</div></div>
+    <div class="card"><div class="lbl">Excluded Documents</div><div class="val muted">5</div><div class="note">void / superseded / duplicate / statements</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Customer Overview</div>
+    <div class="tab" data-tab="invoices">Valid Invoices</div>
+    <div class="tab" data-tab="credits">Credit Memos</div>
+    <div class="tab" data-tab="excluded">Excluded (Audit Trail)</div>
+  </div>
+
+  <section class="panel active" id="overview">
+    <h2>Net Spend by Customer</h2>
+    <div class="desc">Ranked by net spend. Gross = sum of valid invoice totals. Credits subtracted per customer. Sorted by customer ID in the table below; bars show share of top spender.</div>
+    <table>
+      <thead><tr><th>Cust ID</th><th>Customer</th><th>Industry</th><th>Billing City</th><th class="num">Invoices</th><th class="num">Gross</th><th class="num">Credits</th><th class="num">Net Spend</th><th>Share</th></tr></thead>
+      <tbody>
+  <tr>
+    <td class="mono">C003</td>
+    <td class="cust">Cobalt Harbor Clinics</td>
+    <td>Healthcare</td>
+    <td>Portland</td>
+    <td class="num">9</td>
+    <td class="num">$319,435.57</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$319,435.57</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:100.0%"></div><span class="bar-pct">100.0%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C007</td>
+    <td class="cust">Glasspeak Hospitality</td>
+    <td>Hospitality</td>
+    <td>Chicago</td>
+    <td class="num">9</td>
+    <td class="num">$307,912.37</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$307,912.37</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:96.4%"></div><span class="bar-pct">96.4%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C005</td>
+    <td class="cust">Evergreen Robotics Lab</td>
+    <td>Robotics</td>
+    <td>San Jose</td>
+    <td class="num">11</td>
+    <td class="num">$303,624.75</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$303,624.75</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:95.1%"></div><span class="bar-pct">95.1%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C001</td>
+    <td class="cust">Aster North Analytics</td>
+    <td>Analytics</td>
+    <td>Boston</td>
+    <td class="num">10</td>
+    <td class="num">$291,587.51</td>
+    <td class="num credit">-$1,480.00</td>
+    <td class="num strong">$290,107.51</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:90.8%"></div><span class="bar-pct">90.8%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C014</td>
+    <td class="cust">Northstar Produce Cooperative</td>
+    <td>Food</td>
+    <td>Boise</td>
+    <td class="num">6</td>
+    <td class="num">$264,592.01</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$264,592.01</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:82.8%"></div><span class="bar-pct">82.8%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C009</td>
+    <td class="cust">Ion Trail Logistics</td>
+    <td>Logistics</td>
+    <td>Phoenix</td>
+    <td class="num">7</td>
+    <td class="num">$244,015.08</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$244,015.08</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:76.4%"></div><span class="bar-pct">76.4%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C013</td>
+    <td class="cust">Meridian Public Works</td>
+    <td>Government</td>
+    <td>Sacramento</td>
+    <td class="num">6</td>
+    <td class="num">$240,319.72</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$240,319.72</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:75.2%"></div><span class="bar-pct">75.2%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C008</td>
+    <td class="cust">Hearthstone Community Bank</td>
+    <td>Banking</td>
+    <td>Charlotte</td>
+    <td class="num">5</td>
+    <td class="num">$197,314.50</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$197,314.50</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:61.8%"></div><span class="bar-pct">61.8%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C011</td>
+    <td class="cust">Keystone Renewable Works</td>
+    <td>Energy</td>
+    <td>Pittsburgh</td>
+    <td class="num">6</td>
+    <td class="num">$193,492.50</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$193,492.50</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:60.6%"></div><span class="bar-pct">60.6%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C016</td>
+    <td class="cust">Prairie Signal Telecom</td>
+    <td>Telecom</td>
+    <td>Omaha</td>
+    <td class="num">7</td>
+    <td class="num">$191,606.36</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$191,606.36</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:60.0%"></div><span class="bar-pct">60.0%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C012</td>
+    <td class="cust">Lumen Arc Studios</td>
+    <td>Media</td>
+    <td>Nashville</td>
+    <td class="num">4</td>
+    <td class="num">$158,782.87</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$158,782.87</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:49.7%"></div><span class="bar-pct">49.7%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C002</td>
+    <td class="cust">Brightline Field Services</td>
+    <td>Field Services</td>
+    <td>Denver</td>
+    <td class="num">4</td>
+    <td class="num">$154,117.21</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$154,117.21</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:48.2%"></div><span class="bar-pct">48.2%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C018</td>
+    <td class="cust">Riverbend Arts Foundation</td>
+    <td>Nonprofit</td>
+    <td>Minneapolis</td>
+    <td class="num">4</td>
+    <td class="num">$146,674.75</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$146,674.75</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:45.9%"></div><span class="bar-pct">45.9%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C006</td>
+    <td class="cust">Forgewell Manufacturing</td>
+    <td>Manufacturing</td>
+    <td>Cleveland</td>
+    <td class="num">4</td>
+    <td class="num">$142,799.54</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$142,799.54</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:44.7%"></div><span class="bar-pct">44.7%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C015</td>
+    <td class="cust">Oak & Slate Interiors</td>
+    <td>Design</td>
+    <td>Raleigh</td>
+    <td class="num">4</td>
+    <td class="num">$137,276.66</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$137,276.66</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:43.0%"></div><span class="bar-pct">43.0%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C017</td>
+    <td class="cust">Quartzline Insurance</td>
+    <td>Insurance</td>
+    <td>Hartford</td>
+    <td class="num">4</td>
+    <td class="num">$119,295.31</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$119,295.31</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:37.3%"></div><span class="bar-pct">37.3%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C004</td>
+    <td class="cust">Driftwood Legal Group</td>
+    <td>Legal</td>
+    <td>Austin</td>
+    <td class="num">2</td>
+    <td class="num">$96,431.11</td>
+    <td class="num credit">—</td>
+    <td class="num strong">$96,431.11</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:30.2%"></div><span class="bar-pct">30.2%</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td class="mono">C010</td>
+    <td class="cust">Juniper Ridge Schools</td>
+    <td>Education</td>
+    <td>Madison</td>
+    <td class="num">3</td>
+    <td class="num">$59,304.33</td>
+    <td class="num credit">-$925.00</td>
+    <td class="num strong">$58,379.33</td>
+    <td>
+      <div class="bar-wrap"><div class="bar" style="width:18.3%"></div><span class="bar-pct">18.3%</span></div>
+    </td>
+  </tr></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="invoices">
+    <h2>Valid Invoice Detail</h2>
+    <div class="desc">105 invoices parsed from page 1 of each PDF (appendix pages excluded). Sorted by customer, then date.</div>
+    <table>
+      <thead><tr><th>Invoice</th><th>Cust ID</th><th>Customer</th><th>Date</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+      <tbody><tr>
+    <td class="mono">INV-2025-1097</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-02-24</td>
+    <td class="num">$19,892.89</td>
+    <td class="num">$1,193.57</td>
+    <td class="num strong">$21,086.46</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1009</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-03-10</td>
+    <td class="num">$29,632.64</td>
+    <td class="num">$1,689.06</td>
+    <td class="num strong">$29,840.07</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1012</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-05-29</td>
+    <td class="num">$9,951.04</td>
+    <td class="num">$597.06</td>
+    <td class="num strong">$10,548.10</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1087</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-07-09</td>
+    <td class="num">$31,408.65</td>
+    <td class="num">$1,884.52</td>
+    <td class="num strong">$33,293.17</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1086</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-07-18</td>
+    <td class="num">$42,748.00</td>
+    <td class="num">$2,436.64</td>
+    <td class="num strong">$43,047.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1031</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-08-20</td>
+    <td class="num">$55,858.39</td>
+    <td class="num">$3,351.50</td>
+    <td class="num strong">$59,209.89</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1088</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-09-20</td>
+    <td class="num">$13,561.94</td>
+    <td class="num">$801.51</td>
+    <td class="num strong">$14,160.02</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1020</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-09-28</td>
+    <td class="num">$21,811.43</td>
+    <td class="num">$1,243.25</td>
+    <td class="num strong">$21,964.11</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1061</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-10-05</td>
+    <td class="num">$8,777.80</td>
+    <td class="num">$526.67</td>
+    <td class="num strong">$9,304.47</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1096</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-11-18</td>
+    <td class="num">$46,352.81</td>
+    <td class="num">$2,781.17</td>
+    <td class="num strong">$49,133.98</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1044</td>
+    <td class="mono">C002</td>
+    <td>Brightline Field Services</td>
+    <td>2025-01-21</td>
+    <td class="num">$33,328.82</td>
+    <td class="num">$1,666.44</td>
+    <td class="num strong">$34,995.26</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1072</td>
+    <td class="mono">C002</td>
+    <td>Brightline Field Services</td>
+    <td>2025-03-13</td>
+    <td class="num">$35,307.20</td>
+    <td class="num">$1,765.36</td>
+    <td class="num strong">$37,072.56</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1069</td>
+    <td class="mono">C002</td>
+    <td>Brightline Field Services</td>
+    <td>2025-06-11</td>
+    <td class="num">$44,871.12</td>
+    <td class="num">$2,131.38</td>
+    <td class="num strong">$44,758.94</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1068</td>
+    <td class="mono">C002</td>
+    <td>Brightline Field Services</td>
+    <td>2025-07-16</td>
+    <td class="num">$36,055.54</td>
+    <td class="num">$1,775.74</td>
+    <td class="num strong">$37,290.45</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1084</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-02-07</td>
+    <td class="num">$19,477.08</td>
+    <td class="num">$1,139.41</td>
+    <td class="num strong">$20,129.56</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1002</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-02-08</td>
+    <td class="num">$15,841.62</td>
+    <td class="num">$936.24</td>
+    <td class="num strong">$16,540.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1039</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-02-08</td>
+    <td class="num">$53,087.85</td>
+    <td class="num">$3,185.27</td>
+    <td class="num strong">$56,273.12</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1090</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-05-24</td>
+    <td class="num">$31,071.65</td>
+    <td class="num">$1,864.30</td>
+    <td class="num strong">$32,935.95</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1029</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-06-17</td>
+    <td class="num">$38,561.46</td>
+    <td class="num">$2,255.85</td>
+    <td class="num strong">$39,853.27</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1036</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-06-22</td>
+    <td class="num">$38,577.43</td>
+    <td class="num">$2,314.65</td>
+    <td class="num strong">$40,892.08</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1060</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-07-13</td>
+    <td class="num">$29,349.99</td>
+    <td class="num">$1,761.00</td>
+    <td class="num strong">$31,110.99</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1103</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-08-09</td>
+    <td class="num">$23,529.72</td>
+    <td class="num">$1,411.78</td>
+    <td class="num strong">$24,941.50</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1098</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td>2025-10-02</td>
+    <td class="num">$54,919.07</td>
+    <td class="num">$3,212.77</td>
+    <td class="num strong">$56,758.86</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1033</td>
+    <td class="mono">C004</td>
+    <td>Driftwood Legal Group</td>
+    <td>2025-07-26</td>
+    <td class="num">$59,582.64</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$59,582.64</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1100</td>
+    <td class="mono">C004</td>
+    <td>Driftwood Legal Group</td>
+    <td>2025-08-31</td>
+    <td class="num">$36,848.47</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$36,848.47</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1049</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-01-29</td>
+    <td class="num">$24,482.15</td>
+    <td class="num">$2,203.39</td>
+    <td class="num strong">$26,685.54</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1075</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-03-16</td>
+    <td class="num">$26,332.26</td>
+    <td class="num">$2,251.41</td>
+    <td class="num strong">$27,267.06</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1059</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-04-13</td>
+    <td class="num">$39,647.10</td>
+    <td class="num">$3,514.72</td>
+    <td class="num strong">$42,567.11</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1073</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-04-20</td>
+    <td class="num">$28,032.23</td>
+    <td class="num">$2,522.90</td>
+    <td class="num strong">$30,555.13</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1046</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-05-05</td>
+    <td class="num">$11,466.25</td>
+    <td class="num">$1,006.16</td>
+    <td class="num strong">$12,185.75</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1007</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-06-18</td>
+    <td class="num">$18,687.14</td>
+    <td class="num">$1,681.84</td>
+    <td class="num strong">$20,368.98</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1093</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-07-12</td>
+    <td class="num">$48,823.16</td>
+    <td class="num">$4,394.08</td>
+    <td class="num strong">$53,217.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1094</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-08-04</td>
+    <td class="num">$33,369.00</td>
+    <td class="num">$3,003.21</td>
+    <td class="num strong">$36,372.21</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1053</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-08-29</td>
+    <td class="num">$13,328.60</td>
+    <td class="num">$1,199.57</td>
+    <td class="num strong">$14,528.17</td>
+  </tr><tr>
+    <td class="mono">INV-2025-2101-R1</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-09-20</td>
+    <td class="num">$12,650.00</td>
+    <td class="num">$1,138.50</td>
+    <td class="num strong">$13,788.50</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1011</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td>2025-11-09</td>
+    <td class="num">$25,194.65</td>
+    <td class="num">$2,154.14</td>
+    <td class="num strong">$26,089.06</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1025</td>
+    <td class="mono">C006</td>
+    <td>Forgewell Manufacturing</td>
+    <td>2025-01-11</td>
+    <td class="num">$20,530.95</td>
+    <td class="num">$1,201.06</td>
+    <td class="num strong">$21,218.74</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1067</td>
+    <td class="mono">C006</td>
+    <td>Forgewell Manufacturing</td>
+    <td>2025-01-17</td>
+    <td class="num">$53,281.28</td>
+    <td class="num">$3,148.92</td>
+    <td class="num strong">$55,630.98</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1082</td>
+    <td class="mono">C006</td>
+    <td>Forgewell Manufacturing</td>
+    <td>2025-04-19</td>
+    <td class="num">$29,632.17</td>
+    <td class="num">$1,777.93</td>
+    <td class="num strong">$31,410.10</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1028</td>
+    <td class="mono">C006</td>
+    <td>Forgewell Manufacturing</td>
+    <td>2025-08-15</td>
+    <td class="num">$32,584.64</td>
+    <td class="num">$1,955.08</td>
+    <td class="num strong">$34,539.72</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1095</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-01-28</td>
+    <td class="num">$64,690.76</td>
+    <td class="num">$6,469.08</td>
+    <td class="num strong">$71,159.84</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1099</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-02-11</td>
+    <td class="num">$17,388.56</td>
+    <td class="num">$1,695.39</td>
+    <td class="num strong">$18,649.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1089</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-03-11</td>
+    <td class="num">$11,376.86</td>
+    <td class="num">$1,080.80</td>
+    <td class="num strong">$11,888.82</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1078</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-03-31</td>
+    <td class="num">$26,246.56</td>
+    <td class="num">$2,493.42</td>
+    <td class="num strong">$27,427.65</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1057</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-04-01</td>
+    <td class="num">$61,273.21</td>
+    <td class="num">$6,127.32</td>
+    <td class="num strong">$67,400.53</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1051</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-06-16</td>
+    <td class="num">$20,321.54</td>
+    <td class="num">$1,930.55</td>
+    <td class="num strong">$21,236.01</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1076</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-06-23</td>
+    <td class="num">$17,132.11</td>
+    <td class="num">$1,670.38</td>
+    <td class="num strong">$18,374.19</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1042</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-07-05</td>
+    <td class="num">$42,562.11</td>
+    <td class="num">$4,043.40</td>
+    <td class="num strong">$44,477.40</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1023</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td>2025-07-26</td>
+    <td class="num">$26,123.15</td>
+    <td class="num">$2,481.70</td>
+    <td class="num strong">$27,298.69</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1062</td>
+    <td class="mono">C008</td>
+    <td>Hearthstone Community Bank</td>
+    <td>2025-01-13</td>
+    <td class="num">$66,491.69</td>
+    <td class="num">$3,324.58</td>
+    <td class="num strong">$69,816.27</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1050</td>
+    <td class="mono">C008</td>
+    <td>Hearthstone Community Bank</td>
+    <td>2025-04-07</td>
+    <td class="num">$27,497.51</td>
+    <td class="num">$1,374.88</td>
+    <td class="num strong">$28,872.39</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1064</td>
+    <td class="mono">C008</td>
+    <td>Hearthstone Community Bank</td>
+    <td>2025-06-05</td>
+    <td class="num">$33,528.79</td>
+    <td class="num">$1,676.44</td>
+    <td class="num strong">$35,205.23</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1083</td>
+    <td class="mono">C008</td>
+    <td>Hearthstone Community Bank</td>
+    <td>2025-09-21</td>
+    <td class="num">$11,130.97</td>
+    <td class="num">$548.20</td>
+    <td class="num strong">$11,512.21</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1008</td>
+    <td class="mono">C008</td>
+    <td>Hearthstone Community Bank</td>
+    <td>2025-10-23</td>
+    <td class="num">$50,189.41</td>
+    <td class="num">$2,471.83</td>
+    <td class="num strong">$51,908.40</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1102</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-01-30</td>
+    <td class="num">$26,629.53</td>
+    <td class="num">$2,077.10</td>
+    <td class="num strong">$28,040.89</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1035</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-03-18</td>
+    <td class="num">$15,490.05</td>
+    <td class="num">$1,208.22</td>
+    <td class="num strong">$16,311.02</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1091</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-03-25</td>
+    <td class="num">$21,954.31</td>
+    <td class="num">$1,756.34</td>
+    <td class="num strong">$23,710.65</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1037</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-05-02</td>
+    <td class="num">$44,495.04</td>
+    <td class="num">$3,559.60</td>
+    <td class="num strong">$48,054.64</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1034</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-06-18</td>
+    <td class="num">$29,037.59</td>
+    <td class="num">$2,323.01</td>
+    <td class="num strong">$31,360.60</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1017</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-07-31</td>
+    <td class="num">$28,887.49</td>
+    <td class="num">$2,253.22</td>
+    <td class="num strong">$30,418.52</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1041</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td>2025-11-04</td>
+    <td class="num">$62,790.84</td>
+    <td class="num">$4,897.69</td>
+    <td class="num strong">$66,118.76</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1104</td>
+    <td class="mono">C010</td>
+    <td>Juniper Ridge Schools</td>
+    <td>2025-01-25</td>
+    <td class="num">$10,085.16</td>
+    <td class="num">$491.65</td>
+    <td class="num strong">$10,324.68</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1058</td>
+    <td class="mono">C010</td>
+    <td>Juniper Ridge Schools</td>
+    <td>2025-02-23</td>
+    <td class="num">$24,410.87</td>
+    <td class="num">$1,159.52</td>
+    <td class="num strong">$24,349.85</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1063</td>
+    <td class="mono">C010</td>
+    <td>Juniper Ridge Schools</td>
+    <td>2025-09-19</td>
+    <td class="num">$23,456.95</td>
+    <td class="num">$1,172.85</td>
+    <td class="num strong">$24,629.80</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1038</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-02-23</td>
+    <td class="num">$15,030.72</td>
+    <td class="num">$999.54</td>
+    <td class="num strong">$15,278.72</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1048</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-04-04</td>
+    <td class="num">$46,427.60</td>
+    <td class="num">$3,249.93</td>
+    <td class="num strong">$49,677.53</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1001</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-05-01</td>
+    <td class="num">$12,592.25</td>
+    <td class="num">$881.46</td>
+    <td class="num strong">$13,473.71</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1019</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-09-11</td>
+    <td class="num">$31,611.97</td>
+    <td class="num">$2,212.84</td>
+    <td class="num strong">$33,824.81</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1066</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-11-21</td>
+    <td class="num">$40,553.77</td>
+    <td class="num">$2,838.76</td>
+    <td class="num strong">$43,392.53</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1004</td>
+    <td class="mono">C011</td>
+    <td>Keystone Renewable Works</td>
+    <td>2025-12-03</td>
+    <td class="num">$35,369.35</td>
+    <td class="num">$2,475.85</td>
+    <td class="num strong">$37,845.20</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1071</td>
+    <td class="mono">C012</td>
+    <td>Lumen Arc Studios</td>
+    <td>2025-02-20</td>
+    <td class="num">$26,483.51</td>
+    <td class="num">$2,383.52</td>
+    <td class="num strong">$28,867.03</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1032</td>
+    <td class="mono">C012</td>
+    <td>Lumen Arc Studios</td>
+    <td>2025-05-09</td>
+    <td class="num">$36,268.80</td>
+    <td class="num">$3,264.19</td>
+    <td class="num strong">$39,532.99</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1005</td>
+    <td class="mono">C012</td>
+    <td>Lumen Arc Studios</td>
+    <td>2025-05-28</td>
+    <td class="num">$50,298.36</td>
+    <td class="num">$4,526.85</td>
+    <td class="num strong">$54,825.21</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1003</td>
+    <td class="mono">C012</td>
+    <td>Lumen Arc Studios</td>
+    <td>2025-10-07</td>
+    <td class="num">$32,621.69</td>
+    <td class="num">$2,935.95</td>
+    <td class="num strong">$35,557.64</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1013</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-03-02</td>
+    <td class="num">$47,204.65</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$47,204.65</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1080</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-03-13</td>
+    <td class="num">$39,527.03</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$39,527.03</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1092</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-05-03</td>
+    <td class="num">$70,271.81</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$68,515.01</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1018</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-05-17</td>
+    <td class="num">$10,139.45</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$10,139.45</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1006</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-05-20</td>
+    <td class="num">$43,190.03</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$43,190.03</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1070</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td>2025-07-20</td>
+    <td class="num">$31,743.55</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$31,743.55</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1052</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-04-21</td>
+    <td class="num">$40,727.16</td>
+    <td class="num">$2,382.54</td>
+    <td class="num strong">$42,091.52</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1074</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-06-03</td>
+    <td class="num">$52,851.81</td>
+    <td class="num">$3,171.11</td>
+    <td class="num strong">$56,022.92</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1024</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-06-08</td>
+    <td class="num">$69,671.92</td>
+    <td class="num">$4,180.32</td>
+    <td class="num strong">$73,852.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1055</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-07-21</td>
+    <td class="num">$32,249.00</td>
+    <td class="num">$1,886.57</td>
+    <td class="num strong">$33,329.34</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1085</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-08-01</td>
+    <td class="num">$31,125.05</td>
+    <td class="num">$1,839.49</td>
+    <td class="num strong">$32,497.66</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1030</td>
+    <td class="mono">C014</td>
+    <td>Northstar Produce Cooperative</td>
+    <td>2025-10-13</td>
+    <td class="num">$26,612.04</td>
+    <td class="num">$1,516.89</td>
+    <td class="num strong">$26,798.33</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1027</td>
+    <td class="mono">C015</td>
+    <td>Oak & Slate Interiors</td>
+    <td>2025-03-17</td>
+    <td class="num">$14,819.20</td>
+    <td class="num">$1,037.34</td>
+    <td class="num strong">$15,856.54</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1010</td>
+    <td class="mono">C015</td>
+    <td>Oak & Slate Interiors</td>
+    <td>2025-05-29</td>
+    <td class="num">$34,797.30</td>
+    <td class="num">$2,374.92</td>
+    <td class="num strong">$36,302.29</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1016</td>
+    <td class="mono">C015</td>
+    <td>Oak & Slate Interiors</td>
+    <td>2025-06-19</td>
+    <td class="num">$22,177.79</td>
+    <td class="num">$1,552.45</td>
+    <td class="num strong">$23,730.24</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1047</td>
+    <td class="mono">C015</td>
+    <td>Oak & Slate Interiors</td>
+    <td>2025-07-16</td>
+    <td class="num">$60,391.14</td>
+    <td class="num">$4,016.01</td>
+    <td class="num strong">$61,387.59</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1045</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-01-20</td>
+    <td class="num">$44,290.03</td>
+    <td class="num">$2,657.40</td>
+    <td class="num strong">$46,947.43</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1021</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-02-03</td>
+    <td class="num">$14,102.52</td>
+    <td class="num">$803.84</td>
+    <td class="num strong">$14,201.23</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1077</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-05-19</td>
+    <td class="num">$16,435.29</td>
+    <td class="num">$961.46</td>
+    <td class="num strong">$16,985.87</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1101</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-05-29</td>
+    <td class="num">$32,593.93</td>
+    <td class="num">$1,955.64</td>
+    <td class="num strong">$34,549.57</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1081</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-06-24</td>
+    <td class="num">$24,557.20</td>
+    <td class="num">$1,436.60</td>
+    <td class="num strong">$25,379.87</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1065</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-07-23</td>
+    <td class="num">$35,170.88</td>
+    <td class="num">$2,110.25</td>
+    <td class="num strong">$37,281.13</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1054</td>
+    <td class="mono">C016</td>
+    <td>Prairie Signal Telecom</td>
+    <td>2025-09-12</td>
+    <td class="num">$15,340.81</td>
+    <td class="num">$920.45</td>
+    <td class="num strong">$16,261.26</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1079</td>
+    <td class="mono">C017</td>
+    <td>Quartzline Insurance</td>
+    <td>2025-01-07</td>
+    <td class="num">$29,777.19</td>
+    <td class="num">$1,697.30</td>
+    <td class="num strong">$29,985.63</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1043</td>
+    <td class="mono">C017</td>
+    <td>Quartzline Insurance</td>
+    <td>2025-02-07</td>
+    <td class="num">$19,317.96</td>
+    <td class="num">$1,159.08</td>
+    <td class="num strong">$20,477.04</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1022</td>
+    <td class="mono">C017</td>
+    <td>Quartzline Insurance</td>
+    <td>2025-03-05</td>
+    <td class="num">$49,560.42</td>
+    <td class="num">$2,973.63</td>
+    <td class="num strong">$52,534.05</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1014</td>
+    <td class="mono">C017</td>
+    <td>Quartzline Insurance</td>
+    <td>2025-03-09</td>
+    <td class="num">$15,376.03</td>
+    <td class="num">$922.56</td>
+    <td class="num strong">$16,298.59</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1040</td>
+    <td class="mono">C018</td>
+    <td>Riverbend Arts Foundation</td>
+    <td>2025-05-03</td>
+    <td class="num">$20,172.06</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$19,869.48</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1026</td>
+    <td class="mono">C018</td>
+    <td>Riverbend Arts Foundation</td>
+    <td>2025-05-17</td>
+    <td class="num">$65,025.31</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$64,049.93</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1015</td>
+    <td class="mono">C018</td>
+    <td>Riverbend Arts Foundation</td>
+    <td>2025-08-25</td>
+    <td class="num">$52,105.38</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$52,105.38</td>
+  </tr><tr>
+    <td class="mono">INV-2025-1056</td>
+    <td class="mono">C018</td>
+    <td>Riverbend Arts Foundation</td>
+    <td>2025-09-24</td>
+    <td class="num">$10,649.96</td>
+    <td class="num">$0.00</td>
+    <td class="num strong">$10,649.96</td>
+  </tr></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="credits">
+    <h2>Credit Memos (Subtracted)</h2>
+    <div class="desc">Credit memos are subtracted from net spend but never counted as valid invoice spend.</div>
+    <table>
+      <thead><tr><th>Memo</th><th>Cust ID</th><th>Customer</th><th>Date</th><th class="num">Amount</th></tr></thead>
+      <tbody><tr>
+    <td class="mono">CM-2025-077</td>
+    <td class="mono">C001</td>
+    <td>Aster North Analytics</td>
+    <td>2025-12-05</td>
+    <td class="num credit">-$1,480.00</td>
+  </tr><tr>
+    <td class="mono">CM-2025-091</td>
+    <td class="mono">C010</td>
+    <td>Juniper Ridge Schools</td>
+    <td>2025-12-05</td>
+    <td class="num credit">-$925.00</td>
+  </tr></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="excluded">
+    <h2>Excluded Documents — Audit Trail</h2>
+    <div class="desc">These were deliberately excluded from spend: statements (reference only), voids, superseded originals, and duplicate scans.</div>
+    <table>
+      <thead><tr><th>Document</th><th>Cust ID</th><th>Customer</th><th>Type</th><th>Reason</th><th class="num">Stated Total</th></tr></thead>
+      <tbody><tr>
+    <td class="mono">INV-2025-1013</td>
+    <td class="mono">C013</td>
+    <td>Meridian Public Works</td>
+    <td><span class="badge excl">INVOICE</span></td>
+    <td>duplicate scan</td>
+    <td class="num">$47,204.65</td>
+  </tr><tr>
+    <td class="mono">INV-2025-2101</td>
+    <td class="mono">C005</td>
+    <td>Evergreen Robotics Lab</td>
+    <td><span class="badge excl">INVOICE</span></td>
+    <td>superseded original</td>
+    <td class="num">$10,791.00</td>
+  </tr><tr>
+    <td class="mono">INV-2025-2199</td>
+    <td class="mono">C009</td>
+    <td>Ion Trail Logistics</td>
+    <td><span class="badge excl">INVOICE</span></td>
+    <td>void - do not pay</td>
+    <td class="num">$11,109.15</td>
+  </tr><tr>
+    <td class="mono">STMT-2025-Q3</td>
+    <td class="mono">C003</td>
+    <td>Cobalt Harbor Clinics</td>
+    <td><span class="badge stmt">STATEMENT</span></td>
+    <td>statement (reference only, not spend)</td>
+    <td class="num">$10,218.37</td>
+  </tr><tr>
+    <td class="mono">STMT-2025-Q4</td>
+    <td class="mono">C007</td>
+    <td>Glasspeak Hospitality</td>
+    <td><span class="badge stmt">STATEMENT</span></td>
+    <td>statement (reference only, not spend)</td>
+    <td class="num">$11,959.33</td>
+  </tr></tbody>
+    </table>
+    <div class="foot">
+      <span class="pill">INV-2025-2199 — VOID, do not pay</span>
+      <span class="pill">INV-2025-2101 original — SUPERSEDED by R1 revised</span>
+      <span class="pill">INV-2025-1013 duplicate scan — counted once</span>
+      <span class="pill">STMT-2025-Q3 / Q4 — statements, not invoices</span>
+    </div>
+  </section>
+
+  <div class="foot">
+    Methodology: PDFs parsed with <code>pdf-parse</code> (page 1 only, <code>{ max: 1 }</code>). Totals, subtotals, tax, status, and customer ID extracted via regex. Bank deposits and AR-aging snapshots were <b>not</b> used as spend sources. Net spend = gross invoice totals − credit memos.
+  </div>
+</div>
+
+<script>
+  const tabs=document.querySelectorAll('.tab');
+  const panels=document.querySelectorAll('.panel');
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.remove('active'));
+    panels.forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  }));
+</script>
+</body>
+</html>
