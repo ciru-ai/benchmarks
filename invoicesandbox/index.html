@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Pi agent invoice-sandbox benchmark: HY3 IQ1_M, HY3 iFP2, and Step 3.7 FP3 on 112 synthetic invoice PDFs.">
+  <meta name="description" content="Pi agent invoice-sandbox benchmark: HY3 IQ1_M, Ternary Bonsai 27B, HY3 iFP2, and Step 3.7 FP3 on 112 synthetic invoice PDFs.">
   <title>Invoice Sandbox · Ciru Inference Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,8 +29,8 @@
     <header>
       <div class="kicker">Agent benchmark · July 17, 2026</div>
       <h1>Invoice Sandbox</h1>
-      <p>Three local quantized models received the same synthetic back-office workspace, the same exact prompt, and the same Pi tool harness. The task: parse page one of 112 PDFs, reject accounting traps, aggregate customer spend, and ship a useful HTML dashboard.</p>
-      <div class="chips"><span class="chip">3 model runs</span><span class="chip">Pi 0.78.0</span><span class="chip">112 PDFs</span><span class="chip">105 valid invoices</span><span class="chip">18 customers</span><span class="chip">AMD Ryzen AI MAX+ 395</span><span class="chip">NixOS · RADV / ROCm</span></div>
+      <p>Four quantized model runs received the same synthetic back-office workspace, the same exact prompt, and the same Pi tool harness. The task: parse page one of 112 PDFs, reject accounting traps, aggregate customer spend, and ship a useful HTML dashboard.</p>
+      <div class="chips"><span class="chip">4 model runs</span><span class="chip">Pi 0.78.0</span><span class="chip">112 PDFs</span><span class="chip">105 valid invoices</span><span class="chip">18 customers</span><span class="chip">Local + LAN inference</span><span class="chip">AMD + NVIDIA hosts</span></div>
     </header>
     <main>
       <div class="outcome">
@@ -40,6 +40,13 @@
           <p><span class="mono">AngelSlim/Hy3-GGUF IQ1_M MTP</span> delivered the dashboard and matched every customer total, every invoice total, both credit memos, and all accounting-trap checks exactly.</p>
           <div class="metrics"><div class="metric"><span>Net exact</span><b>18 / 18</b></div><div class="metric"><span>Invoice totals</span><b>105 / 105</b></div><div class="metric"><span>Wall time</span><b>25m 44s</b></div><div class="metric"><span>Tool calls</span><b>36</b></div><div class="metric"><span>PP</span><b>77.65 t/s</b></div><div class="metric"><span>TG</span><b>9.68 t/s</b></div></div>
           <div class="actions"><a class="button" href="hy3-iq1m/">Open model dashboard</a><a class="button secondary" href="#audit">Read audit</a></div>
+        </article>
+        <article class="run">
+          <div class="status">Completed · dashboard produced</div>
+          <h2>Ternary Bonsai 27B</h2>
+          <p><span class="mono">Ternary Bonsai 27B Q2_0 · LAN API</span> found every valid invoice and extracted all 105 invoice totals exactly. It systematically emitted malformed <span class="mono">IDC…</span> customer IDs and missed both credit amounts.</p>
+          <div class="metrics"><div class="metric"><span>Net exact</span><b>0 / 18</b></div><div class="metric"><span>Invoice totals</span><b>105 / 105</b></div><div class="metric"><span>Wall time</span><b>10m 37s</b></div><div class="metric"><span>Tool calls</span><b>23</b></div><div class="metric"><span>PP</span><b>1,805.55 t/s</b></div><div class="metric"><span>TG</span><b>53.23 t/s</b></div></div>
+          <div class="actions"><a class="button" href="bonsai-27b/">Open model dashboard</a><a class="button secondary" href="#audit">Read audit</a></div>
         </article>
         <article class="run">
           <div class="status">Completed · dashboard produced</div>
@@ -60,27 +67,29 @@
       <section class="section" id="audit">
         <h2>Strict result audit</h2>
         <p>Scores come from the repository answer key after each run. “Exact” means equal to the cent for every customer or invoice; document detection is scored independently from money extraction.</p>
-        <div class="table-wrap"><table><thead><tr><th>Measure</th><th>HY3 IQ1_M</th><th>HY3 iFP2</th><th>Step3.7 FP3</th></tr></thead><tbody>
-          <tr><td>HTML dashboard delivered</td><td class="good">Yes</td><td class="good">Yes</td><td class="bad">No</td></tr>
-          <tr><td>Valid document precision / recall</td><td class="good mono">100% / 100%</td><td class="good mono">100% / 100%</td><td class="bad">Not scorable</td></tr>
-          <tr><td>Customer invoice counts exact</td><td class="good mono">18 / 18</td><td class="good mono">18 / 18</td><td class="bad">Not scorable</td></tr>
-          <tr><td>Customer net totals exact</td><td class="good mono">18 / 18 (100%)</td><td class="bad mono">1 / 18 (5.6%)</td><td class="bad">Not scorable</td></tr>
-          <tr><td>Invoice totals exact</td><td class="good mono">105 / 105 (100%)</td><td class="bad mono">9 / 105 (8.6%)</td><td class="bad">Not scorable</td></tr>
-          <tr><td>Trap families passed</td><td class="good mono">6 / 6</td><td class="warn mono">5 / 6</td><td class="bad">No final artifact</td></tr>
-          <tr><td>Expected net spend</td><td class="mono">$3,566,177.15</td><td class="mono">$3,566,177.15</td><td class="mono">$3,566,177.15</td></tr>
-          <tr><td>Reported net spend</td><td class="good mono">$3,566,177.15</td><td class="bad mono">$3,413,274.81</td><td class="bad">Not reported</td></tr>
+        <div class="table-wrap"><table><thead><tr><th>Measure</th><th>HY3 IQ1_M</th><th>Bonsai 27B</th><th>HY3 iFP2</th><th>Step3.7 FP3</th></tr></thead><tbody>
+          <tr><td>HTML dashboard delivered</td><td class="good">Yes</td><td class="good">Yes</td><td class="good">Yes</td><td class="bad">No</td></tr>
+          <tr><td>Valid document precision / recall</td><td class="good mono">100% / 100%</td><td class="good mono">100% / 100%</td><td class="good mono">100% / 100%</td><td class="bad">Not scorable</td></tr>
+          <tr><td>Customer invoice counts exact</td><td class="good mono">18 / 18</td><td class="bad mono">0 / 18</td><td class="good mono">18 / 18</td><td class="bad">Not scorable</td></tr>
+          <tr><td>Customer net totals exact</td><td class="good mono">18 / 18 (100%)</td><td class="bad mono">0 / 18 (0%)</td><td class="bad mono">1 / 18 (5.6%)</td><td class="bad">Not scorable</td></tr>
+          <tr><td>Invoice totals exact</td><td class="good mono">105 / 105 (100%)</td><td class="good mono">105 / 105 (100%)</td><td class="bad mono">9 / 105 (8.6%)</td><td class="bad">Not scorable</td></tr>
+          <tr><td>Trap families passed</td><td class="good mono">6 / 6</td><td class="warn mono">5 / 6</td><td class="warn mono">5 / 6</td><td class="bad">No final artifact</td></tr>
+          <tr><td>Expected net spend</td><td class="mono">$3,566,177.15</td><td class="mono">$3,566,177.15</td><td class="mono">$3,566,177.15</td><td class="mono">$3,566,177.15</td></tr>
+          <tr><td>Reported net spend</td><td class="good mono">$3,566,177.15</td><td class="bad mono">$3,568,582.15</td><td class="bad mono">$3,413,274.81</td><td class="bad">Not reported</td></tr>
         </tbody></table></div>
         <div class="callout"><strong>HY3 IQ1_M result.</strong> The Q1 run recovered from two parser/debugging errors, then produced exact document selection, exact invoice totals, exact per-customer aggregation, correct negative credit handling, and a zero-cent global error.</div>
+        <div class="callout warning"><strong>Bonsai result.</strong> The model's regex captured <span class="mono">IDC001</span> through <span class="mono">IDC018</span> rather than the exact IDs <span class="mono">C001</span> through <span class="mono">C018</span>, so strict keyed scoring is 0/18. Removing only that systematic prefix as a diagnostic yields 16/18 exact net totals and 18/18 exact gross totals; the two remaining misses are the $1,480 and $925 credit memos. It also made one exploratory <span class="mono">pdfminer</span> call, contrary to the prescribed parser path, before returning to the required <span class="mono">pdf-parse</span> implementation.</div>
         <div class="callout warning"><strong>HY3 root cause.</strong> Its case-insensitive <code>/Total/</code> regex matched the “Subtotal” line first for most invoices. It also stored credit memos as negative numbers, then subtracted those negatives—adding $2,405 instead of reducing spend. The filtering logic was much stronger than the arithmetic.</div>
       </section>
 
       <section class="section" id="method">
         <h2>Controlled setup</h2>
         <div class="method-grid">
-          <article><h3>Identical workspaces</h3><p>All three fresh copies contained 148 files and 112 PDFs. Their pre-run SHA-256 manifests matched byte for byte. The grading keys were outside the agent-visible directories.</p></article>
+          <article><h3>Identical workspaces</h3><p>All four fresh copies contained 148 files and 112 PDFs. Their pre-run SHA-256 manifests matched byte for byte. The grading keys were outside the agent-visible directories.</p></article>
           <article><h3>Same Pi surface</h3><p>Pi 0.78.0 exposed only <span class="mono">read, bash, edit, write, grep, find, ls</span>. Skills, extensions, prompt templates, and context files were disabled.</p></article>
           <article><h3>Required PDF path</h3><p><span class="mono">pdf-parse 1.1.1</span> was installed at the exact requested CommonJS path and smoke-tested with <span class="mono">await pdf(buffer, { max: 1 })</span>.</p></article>
-          <article><h3>Model context</h3><p>Both HY3 runs used 65,536-token profiles. Step3.7’s scored run used its primary 262,144-token profile with Pi’s model context set to the same value.</p></article>
+          <article><h3>Model context</h3><p>Both HY3 runs used 65,536-token profiles. Step3.7 and Bonsai used 262,144-token model contexts. Bonsai was served through a LAN OpenAI-compatible API; no remote filesystem or benchmark data was exposed by the endpoint.</p></article>
+          <article><h3>Serving profiles</h3><p>The Pi harness did not override model sampling. Bonsai used its endpoint-native profile: temperature 1.0, top-k 20, top-p 0.95, min-p 0.05, and a random seed. The other runs likewise retained their recorded serving-profile settings.</p></article>
         </div>
         <div class="callout"><strong>Additional Step3.7 control.</strong> A preserved 64k attempt also failed: 184 tool calls, a 65,610-token request against a 65,536-token slot, automatic compaction, and the same unrecovered repeated-tool behavior. It created no files and is excluded from the scored row above.</div>
       </section>
@@ -89,6 +98,7 @@
         <h2>Runtime telemetry</h2>
         <div class="table-wrap"><table><thead><tr><th>Run</th><th class="num">Context</th><th class="num">Server prompt tokens</th><th class="num">Server output tokens</th><th class="num">Prompt / prefill</th><th class="num">Decode</th><th class="num">Turns</th><th class="num">Tool errors</th></tr></thead><tbody>
           <tr><td>HY3 IQ1_M (Q1)</td><td class="num">65,536</td><td class="num">27,001</td><td class="num">11,547</td><td class="num">77.65 tok/s</td><td class="num">9.68 tok/s</td><td class="num">29</td><td class="num">2</td></tr>
+          <tr><td>Ternary Bonsai 27B Q2_0</td><td class="num">262,144</td><td class="num">272,858</td><td class="num">25,690</td><td class="num">1,805.55 tok/s</td><td class="num">53.23 tok/s</td><td class="num">21</td><td class="num">1</td></tr>
           <tr><td>HY3 iFP2</td><td class="num">65,536</td><td class="num">192,221</td><td class="num">9,685</td><td class="num">161.91 tok/s</td><td class="num">12.98 tok/s</td><td class="num">22</td><td class="num">0</td></tr>
           <tr><td>Step3.7 FP3</td><td class="num">262,144</td><td class="num">25,839</td><td class="num">4,960</td><td class="num">179.30 tok/s</td><td class="num">34.29 tok/s</td><td class="num">48</td><td class="num">1</td></tr>
         </tbody></table></div>
@@ -97,7 +107,7 @@
 
       <section class="section">
         <h2>Exact agent prompt</h2>
-        <details><summary>Show the prompt given to all three models</summary><pre>I want you to organize the invoices in this workspace, parse the invoice PDFs.
+        <details><summary>Show the prompt given to all four runs</summary><pre>I want you to organize the invoices in this workspace, parse the invoice PDFs.
 
 Use const pdf = require("/tmp/node_modules/pdf-parse")
 
