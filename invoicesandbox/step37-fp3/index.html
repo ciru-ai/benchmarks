@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Step3.7 FP3 Failure Report · Invoice Sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#080808;--panel:rgba(15,16,19,.94);--panel2:rgba(23,24,29,.96);--line:rgba(255,255,255,.13);--text:#f7f7f4;--muted:#a8adb7;--amd:#ed1c24;--red:#ff4e5f;--orange:#ff9f43;--green:#20d1a2;--cyan:#39d0ff;--shadow:0 24px 70px rgba(0,0,0,.46)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);font-family:"Space Grotesk",system-ui,sans-serif;background:linear-gradient(120deg,rgba(237,28,36,.2),transparent 29%),linear-gradient(300deg,rgba(57,208,255,.11),transparent 32%),repeating-linear-gradient(135deg,rgba(255,255,255,.034) 0 1px,transparent 1px 20px),linear-gradient(180deg,#090809,#111115 48%,#070707)}body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(237,28,36,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:36px 36px;opacity:.34}.wrap{width:min(calc(100% - 28px),1080px);margin:auto;position:relative}.brand{display:flex;align-items:center;gap:12px;padding:18px 0 12px;color:var(--text);text-decoration:none}.brand img{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:6px;padding:4px}.brand span span{display:block;color:var(--muted);font-size:.78rem}a{color:var(--cyan)}.mono,.stat b,code{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}header,section{border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:var(--shadow)}header{padding:26px;background:linear-gradient(120deg,rgba(237,28,36,.26),transparent 38%),linear-gradient(180deg,rgba(28,28,31,.96),rgba(9,9,10,.93));border-top:3px solid var(--amd)}.kicker{font:700 .75rem "IBM Plex Mono",monospace;color:var(--red);letter-spacing:.12em;text-transform:uppercase}h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1;margin:14px 0}p{color:var(--muted);line-height:1.65}.notice{border:1px solid rgba(255,78,95,.28);border-left:5px solid var(--red);background:rgba(255,78,95,.08);padding:15px 17px;border-radius:8px;margin-top:18px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat{border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:14px}.stat span{display:block;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.07em}.stat b{display:block;color:var(--cyan);font-size:1.2rem;margin-top:6px}main{padding:20px 0 50px}section{padding:22px;margin-top:16px}section h2{margin-top:0}.timeline{list-style:none;margin:0;padding:0}.timeline li{border-left:3px solid var(--line);padding:4px 0 18px 18px;color:#c9cdd5}.timeline li:last-child{border-left-color:var(--red)}.timeline b{display:block;color:var(--text);margin-bottom:5px}.button{display:inline-flex;padding:10px 14px;border:1px solid rgba(57,208,255,.35);border-radius:6px;background:rgba(57,208,255,.09);font-weight:700;text-decoration:none}.disclaimer{font-size:.82rem;color:var(--orange)}@media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="brand" href="../"><img src="../../ccglogo.png" alt="Crown Citadel Group"><span><strong>Ciru Inference Lab</strong><span>invoice sandbox / Step3.7 FP3</span></span></a>
+    <header>
+      <div class="kicker">Failure report · no contestant dashboard</div>
+      <h1>Step3.7 FP3</h1>
+      <p>Step 3.7 Flash ROCmFPX FP3 QualityPlus MTP was run through Pi against the invoice sandbox. The model did not complete the requested artifact.</p>
+      <div class="notice"><strong>No HTML dashboard was created.</strong> This page is the post-run benchmark report, not a replacement dashboard authored on the model’s behalf.</div>
+    </header>
+    <main>
+      <div class="stats"><div class="stat"><span>Wall time</span><b>4m 58s</b></div><div class="stat"><span>Tool calls</span><b>48</b></div><div class="stat"><span>PP</span><b>179.30 t/s</b></div><div class="stat"><span>TG</span><b>34.29 t/s</b></div><div class="stat"><span>Context</span><b>262,144</b></div><div class="stat"><span>Parsed rows</span><b>112</b></div><div class="stat"><span>Customer IDs</span><b>0</b></div><div class="stat"><span>Repeat calls</span><b>29</b></div></div>
+      <section>
+        <h2>What happened</h2>
+        <ol class="timeline">
+          <li><b>Workspace discovery</b>The model inspected invoices, CRM, controller notes, bank exports, operational data, and representative trap PDFs.</li>
+          <li><b>Batch parser created</b>It wrote <span class="mono">parse_invoices.js</span> and generated 112 JSON records using the required page-one <span class="mono">pdf-parse</span> call.</li>
+          <li><b>Extraction failed</b>The customer regex resolved zero customer IDs. The model began debugging the first invoice rather than repairing the batch logic directly.</li>
+          <li><b>Stable tool loop</b>It issued the same parse command for <span class="mono">INV-2025-1001_C011.pdf</span> 29 times. The run was stopped at the reproducible loop boundary.</li>
+          <li><b>Artifact contract missed</b>No HTML file existed at termination, so customer totals and trap accuracy were not scoreable.</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Runtime evidence</h2>
+        <p>llama.cpp processed <span class="mono">25,839</span> prompt tokens and <span class="mono">4,960</span> generated tokens. The request-weighted averages were <span class="mono">179.303 prompt tok/s</span> and <span class="mono">34.290 generated tok/s</span>. Pi recorded one tool error and no terminal assistant answer.</p>
+        <p class="disclaimer">A separate preserved 64k control also failed after context overflow and automatic compaction. It is documented on the benchmark index and excluded from this scored run.</p>
+      </section>
+      <section>
+        <h2>Result</h2>
+        <p>Fast decode did not translate into task completion. The failure mode was agentic: inefficient exploration, a faulty regex, and repeated tool selection. No score is imputed for work that was never delivered.</p>
+        <a class="button" href="../">Back to comparison</a>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

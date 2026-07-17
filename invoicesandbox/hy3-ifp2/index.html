@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice Spending Dashboard</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --txt:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  header { padding:24px 32px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:22px; }
+  .sub { color:var(--muted); margin-top:6px; font-size:13px; }
+  .kpis { display:flex; gap:16px; flex-wrap:wrap; padding:24px 32px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; min-width:180px; }
+  .kpi .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi .val { font-size:20px; margin-top:6px; font-weight:600; }
+  .kpi.net .val { color:var(--good); }
+  .kpi.credit .val { color:var(--warn); }
+  main { padding:0 32px 40px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  th, td { text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); font-size:13px; }
+  th { background:#243049; color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:.04em; cursor:pointer; user-select:none; }
+  th:hover { color:var(--accent); }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr:hover td { background:#22304a; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; min-width:80px; }
+  .bar > span { display:block; height:100%; background:var(--accent); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; border:1px solid var(--line); }
+  .pill.paid { color:var(--good); border-color:#163a2b; }
+  .pill.open { color:var(--warn); border-color:#3a2f12; }
+  .pill.partial { color:var(--accent); border-color:#1c3a4a; }
+  .pill.credit { color:var(--bad); border-color:#3a1620; }
+  details { margin-top:8px; }
+  details summary { cursor:pointer; color:var(--accent); font-size:12px; }
+  .excl { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:20px 0; }
+  .excl h2 { font-size:14px; margin:0 0 8px; }
+  .excl ul { margin:0; padding-left:18px; color:var(--muted); font-size:13px; }
+  .excl li b { color:var(--txt); }
+  .foot { color:var(--muted); font-size:12px; margin-top:24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Customer Invoice Spending Dashboard</h1>
+  <div class="sub">Generated 2026-07-16 · Source: parsed invoice PDFs (page 1 only) · Sorted by customer ID</div>
+</header>
+<section class="kpis">
+  <div class="kpi"><div class="label">Valid Invoices</div><div class="val">105</div></div>
+  <div class="kpi"><div class="label">Customers</div><div class="val">18</div></div>
+  <div class="kpi"><div class="label">Gross Billed</div><div class="val">$3,410,869.81</div></div>
+  <div class="kpi credit"><div class="label">Credit Memos (subtracted)</div><div class="val">$2,405.00</div></div>
+  <div class="kpi net"><div class="label">Net Spend</div><div class="val">$3,413,274.81</div></div>
+</section>
+<section class="excl">
+  <h2>Excluded from spend (not counted as invoices)</h2>
+  <ul>
+    <li><b>statement_C003_2025_Q3.pdf</b> — statement summary</li><li><b>statement_C007_2025_Q4.pdf</b> — statement summary</li><li><b>INV-2025-1013_duplicate_scan_from_email.pdf</b> — duplicate scan</li><li><b>INV-2025-2101_original_superseded.pdf</b> — superseded original (replaced by revised R1)</li><li><b>INV-2025-2199_VOID_do_not_pay.pdf</b> — void — do not pay</li>
+  </ul>
+  <h2 style="margin-top:14px">Credit memos subtracted from net spend</h2>
+  <ul>
+    <li><b>CM-2025-077_C001.pdf</b> — Aster North Analytics (C001): $-1,480.00 · status CREDIT</li><li><b>CM-2025-091_C010.pdf</b> — Juniper Ridge Schools (C010): $-925.00 · status CREDIT</li>
+  </ul>
+</section>
+<main>
+<table id="tbl">
+  <thead>
+    <tr>
+      <th data-k="id">Customer ID</th>
+      <th data-k="name">Customer</th>
+      <th class="num" data-k="count">Invoices</th>
+      <th class="num" data-k="gross">Gross</th>
+      <th class="num" data-k="credit">Credit</th>
+      <th class="num" data-k="net">Net Spend</th>
+      <th>Share</th>
+      <th class="num" data-k="paid">Paid</th>
+      <th class="num" data-k="open">Open</th>
+      <th class="num" data-k="partial">Partial</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td>C001</td>
+      <td>Aster North Analytics</td>
+      <td class="num">10</td>
+      <td class="num">$279,995.59</td>
+      <td class="num">$-1,480.00</td>
+      <td class="num"><b>$281,475.59</b></td>
+      <td><div class="bar"><span style="width:92.5%"></span></div> <span style="color:var(--muted);font-size:11px">8.2%</span></td>
+      <td class="num">$128,684.49</td>
+      <td class="num">$122,640.41</td>
+      <td class="num">$28,670.69</td>
+    </tr>
+    <tr>
+      <td>C002</td>
+      <td>Brightline Field Services</td>
+      <td class="num">4</td>
+      <td class="num">$149,562.68</td>
+      <td class="num">—</td>
+      <td class="num"><b>$149,562.68</b></td>
+      <td><div class="bar"><span style="width:49.1%"></span></div> <span style="color:var(--muted);font-size:11px">4.4%</span></td>
+      <td class="num">$78,199.94</td>
+      <td class="num">$35,307.20</td>
+      <td class="num">$36,055.54</td>
+    </tr>
+    <tr>
+      <td>C003</td>
+      <td>Cobalt Harbor Clinics</td>
+      <td class="num">9</td>
+      <td class="num">$304,415.87</td>
+      <td class="num">—</td>
+      <td class="num"><b>$304,415.87</b></td>
+      <td><div class="bar"><span style="width:100.0%"></span></div> <span style="color:var(--muted);font-size:11px">8.9%</span></td>
+      <td class="num">$122,528.79</td>
+      <td class="num">$126,968.01</td>
+      <td class="num">$54,919.07</td>
+    </tr>
+    <tr>
+      <td>C004</td>
+      <td>Driftwood Legal Group</td>
+      <td class="num">2</td>
+      <td class="num">$96,431.11</td>
+      <td class="num">—</td>
+      <td class="num"><b>$96,431.11</b></td>
+      <td><div class="bar"><span style="width:31.7%"></span></div> <span style="color:var(--muted);font-size:11px">2.8%</span></td>
+      <td class="num">$0.00</td>
+      <td class="num">$59,582.64</td>
+      <td class="num">$36,848.47</td>
+    </tr>
+    <tr>
+      <td>C005</td>
+      <td>Evergreen Robotics Lab</td>
+      <td class="num">11</td>
+      <td class="num">$282,012.54</td>
+      <td class="num">—</td>
+      <td class="num"><b>$282,012.54</b></td>
+      <td><div class="bar"><span style="width:92.6%"></span></div> <span style="color:var(--muted);font-size:11px">8.3%</span></td>
+      <td class="num">$57,210.39</td>
+      <td class="num">$198,469.89</td>
+      <td class="num">$26,332.26</td>
+    </tr>
+    <tr>
+      <td>C006</td>
+      <td>Forgewell Manufacturing</td>
+      <td class="num">4</td>
+      <td class="num">$136,029.04</td>
+      <td class="num">—</td>
+      <td class="num"><b>$136,029.04</b></td>
+      <td><div class="bar"><span style="width:44.7%"></span></div> <span style="color:var(--muted);font-size:11px">4.0%</span></td>
+      <td class="num">$0.00</td>
+      <td class="num">$82,747.76</td>
+      <td class="num">$53,281.28</td>
+    </tr>
+    <tr>
+      <td>C007</td>
+      <td>Glasspeak Hospitality</td>
+      <td class="num">9</td>
+      <td class="num">$287,114.86</td>
+      <td class="num">—</td>
+      <td class="num"><b>$287,114.86</b></td>
+      <td><div class="bar"><span style="width:94.3%"></span></div> <span style="color:var(--muted);font-size:11px">8.4%</span></td>
+      <td class="num">$42,562.11</td>
+      <td class="num">$244,552.75</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C008</td>
+      <td>Hearthstone Community Bank</td>
+      <td class="num">5</td>
+      <td class="num">$188,838.37</td>
+      <td class="num">—</td>
+      <td class="num"><b>$188,838.37</b></td>
+      <td><div class="bar"><span style="width:62.0%"></span></div> <span style="color:var(--muted);font-size:11px">5.5%</span></td>
+      <td class="num">$77,622.66</td>
+      <td class="num">$111,215.71</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C009</td>
+      <td>Ion Trail Logistics</td>
+      <td class="num">7</td>
+      <td class="num">$229,284.85</td>
+      <td class="num">—</td>
+      <td class="num"><b>$229,284.85</b></td>
+      <td><div class="bar"><span style="width:75.3%"></span></div> <span style="color:var(--muted);font-size:11px">6.7%</span></td>
+      <td class="num">$136,173.37</td>
+      <td class="num">$48,583.84</td>
+      <td class="num">$44,527.64</td>
+    </tr>
+    <tr>
+      <td>C010</td>
+      <td>Juniper Ridge Schools</td>
+      <td class="num">3</td>
+      <td class="num">$57,952.98</td>
+      <td class="num">$-925.00</td>
+      <td class="num"><b>$58,877.98</b></td>
+      <td><div class="bar"><span style="width:19.3%"></span></div> <span style="color:var(--muted);font-size:11px">1.7%</span></td>
+      <td class="num">$23,456.95</td>
+      <td class="num">$34,496.03</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C011</td>
+      <td>Keystone Renewable Works</td>
+      <td class="num">6</td>
+      <td class="num">$181,585.66</td>
+      <td class="num">—</td>
+      <td class="num"><b>$181,585.66</b></td>
+      <td><div class="bar"><span style="width:59.7%"></span></div> <span style="color:var(--muted);font-size:11px">5.3%</span></td>
+      <td class="num">$90,953.84</td>
+      <td class="num">$78,039.57</td>
+      <td class="num">$12,592.25</td>
+    </tr>
+    <tr>
+      <td>C012</td>
+      <td>Lumen Arc Studios</td>
+      <td class="num">4</td>
+      <td class="num">$145,672.36</td>
+      <td class="num">—</td>
+      <td class="num"><b>$145,672.36</b></td>
+      <td><div class="bar"><span style="width:47.9%"></span></div> <span style="color:var(--muted);font-size:11px">4.3%</span></td>
+      <td class="num">$50,298.36</td>
+      <td class="num">$62,752.31</td>
+      <td class="num">$32,621.69</td>
+    </tr>
+    <tr>
+      <td>C013</td>
+      <td>Meridian Public Works</td>
+      <td class="num">6</td>
+      <td class="num">$242,076.52</td>
+      <td class="num">—</td>
+      <td class="num"><b>$242,076.52</b></td>
+      <td><div class="bar"><span style="width:79.5%"></span></div> <span style="color:var(--muted);font-size:11px">7.1%</span></td>
+      <td class="num">$167,142.94</td>
+      <td class="num">$74,933.58</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C014</td>
+      <td>Northstar Produce Cooperative</td>
+      <td class="num">6</td>
+      <td class="num">$253,236.98</td>
+      <td class="num">—</td>
+      <td class="num"><b>$253,236.98</b></td>
+      <td><div class="bar"><span style="width:83.2%"></span></div> <span style="color:var(--muted);font-size:11px">7.4%</span></td>
+      <td class="num">$57,737.09</td>
+      <td class="num">$195,499.89</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C015</td>
+      <td>Oak & Slate Interiors</td>
+      <td class="num">4</td>
+      <td class="num">$132,185.43</td>
+      <td class="num">—</td>
+      <td class="num"><b>$132,185.43</b></td>
+      <td><div class="bar"><span style="width:43.4%"></span></div> <span style="color:var(--muted);font-size:11px">3.9%</span></td>
+      <td class="num">$34,797.30</td>
+      <td class="num">$97,388.13</td>
+      <td class="num">$0.00</td>
+    </tr>
+    <tr>
+      <td>C016</td>
+      <td>Prairie Signal Telecom</td>
+      <td class="num">7</td>
+      <td class="num">$182,490.66</td>
+      <td class="num">—</td>
+      <td class="num"><b>$182,490.66</b></td>
+      <td><div class="bar"><span style="width:59.9%"></span></div> <span style="color:var(--muted);font-size:11px">5.3%</span></td>
+      <td class="num">$40,992.49</td>
+      <td class="num">$106,327.29</td>
+      <td class="num">$35,170.88</td>
+    </tr>
+    <tr>
+      <td>C017</td>
+      <td>Quartzline Insurance</td>
+      <td class="num">4</td>
+      <td class="num">$114,031.60</td>
+      <td class="num">—</td>
+      <td class="num"><b>$114,031.60</b></td>
+      <td><div class="bar"><span style="width:37.5%"></span></div> <span style="color:var(--muted);font-size:11px">3.3%</span></td>
+      <td class="num">$49,095.15</td>
+      <td class="num">$0.00</td>
+      <td class="num">$64,936.45</td>
+    </tr>
+    <tr>
+      <td>C018</td>
+      <td>Riverbend Arts Foundation</td>
+      <td class="num">4</td>
+      <td class="num">$147,952.71</td>
+      <td class="num">—</td>
+      <td class="num"><b>$147,952.71</b></td>
+      <td><div class="bar"><span style="width:48.6%"></span></div> <span style="color:var(--muted);font-size:11px">4.3%</span></td>
+      <td class="num">$0.00</td>
+      <td class="num">$85,197.37</td>
+      <td class="num">$62,755.34</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr style="background:#243049;font-weight:600">
+      <td colspan="2">TOTAL</td>
+      <td class="num">105</td>
+      <td class="num">$3,410,869.81</td>
+      <td class="num">$-2,405.00</td>
+      <td class="num">$3,413,274.81</td>
+      <td>100%</td>
+      <td class="num">$1,157,455.87</td>
+      <td class="num">$1,764,702.38</td>
+      <td class="num">$488,711.56</td>
+    </tr>
+  </tfoot>
+</table>
+
+<h2 style="margin:28px 0 8px;font-size:16px">Per-customer invoice detail</h2>
+
+<details>
+  <summary>C001 · Aster North Analytics — 10 invoices, net $281,475.59</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1009PAGE</td><td>INV-2025-1009_C001.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$29,632.64</td><td class="num">$1,689.06</td><td class="num">$29,632.64</td></tr><tr><td>INV-2025-1012PAGE</td><td>INV-2025-1012_C001.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$9,951.04</td><td class="num">$597.06</td><td class="num">$9,951.04</td></tr><tr><td>INV-2025-1020PAGE</td><td>INV-2025-1020_C001.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$21,811.43</td><td class="num">$1,243.25</td><td class="num">$21,811.43</td></tr><tr><td>INV-2025-1031PAGE</td><td>INV-2025-1031_C001.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$55,858.39</td><td class="num">$3,351.50</td><td class="num">$55,858.39</td></tr><tr><td>INV-2025-1061PAGE</td><td>INV-2025-1061_C001.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$8,777.80</td><td class="num">$526.67</td><td class="num">$8,777.80</td></tr><tr><td>INV-2025-1086PAGE</td><td>INV-2025-1086_C001.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$42,748.00</td><td class="num">$2,436.64</td><td class="num">$42,748.00</td></tr><tr><td>INV-2025-1087PAGE</td><td>INV-2025-1087_C001.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$31,408.65</td><td class="num">$1,884.52</td><td class="num">$31,408.65</td></tr><tr><td>INV-2025-1088PAGE</td><td>INV-2025-1088_C001.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$13,561.94</td><td class="num">$801.51</td><td class="num">$13,561.94</td></tr><tr><td>INV-2025-1096PAGE</td><td>INV-2025-1096_C001.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$46,352.81</td><td class="num">$2,781.17</td><td class="num">$46,352.81</td></tr><tr><td>INV-2025-1097PAGE</td><td>INV-2025-1097_C001.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$19,892.89</td><td class="num">$1,193.57</td><td class="num">$19,892.89</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C002 · Brightline Field Services — 4 invoices, net $149,562.68</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1044PAGE</td><td>INV-2025-1044_C002.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$33,328.82</td><td class="num">$1,666.44</td><td class="num">$33,328.82</td></tr><tr><td>INV-2025-1068PAGE</td><td>INV-2025-1068_C002.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$36,055.54</td><td class="num">$1,775.74</td><td class="num">$36,055.54</td></tr><tr><td>INV-2025-1069PAGE</td><td>INV-2025-1069_C002.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$44,871.12</td><td class="num">$2,131.38</td><td class="num">$44,871.12</td></tr><tr><td>INV-2025-1072PAGE</td><td>INV-2025-1072_C002.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$35,307.20</td><td class="num">$1,765.36</td><td class="num">$35,307.20</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C003 · Cobalt Harbor Clinics — 9 invoices, net $304,415.87</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1002PAGE</td><td>INV-2025-1002_C003.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$15,841.62</td><td class="num">$936.24</td><td class="num">$15,841.62</td></tr><tr><td>INV-2025-1029PAGE</td><td>INV-2025-1029_C003.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$38,561.46</td><td class="num">$2,255.85</td><td class="num">$38,561.46</td></tr><tr><td>INV-2025-1036PAGE</td><td>INV-2025-1036_C003.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$38,577.43</td><td class="num">$2,314.65</td><td class="num">$38,577.43</td></tr><tr><td>INV-2025-1039PAGE</td><td>INV-2025-1039_C003.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$53,087.85</td><td class="num">$3,185.27</td><td class="num">$53,087.85</td></tr><tr><td>INV-2025-1060PAGE</td><td>INV-2025-1060_C003.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$29,349.99</td><td class="num">$1,761.00</td><td class="num">$29,349.99</td></tr><tr><td>INV-2025-1084PAGE</td><td>INV-2025-1084_C003.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$19,477.08</td><td class="num">$1,139.41</td><td class="num">$19,477.08</td></tr><tr><td>INV-2025-1090PAGE</td><td>INV-2025-1090_C003.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$31,071.65</td><td class="num">$1,864.30</td><td class="num">$31,071.65</td></tr><tr><td>INV-2025-1098PAGE</td><td>INV-2025-1098_C003.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$54,919.07</td><td class="num">$3,212.77</td><td class="num">$54,919.07</td></tr><tr><td>INV-2025-1103PAGE</td><td>INV-2025-1103_C003.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$23,529.72</td><td class="num">$1,411.78</td><td class="num">$23,529.72</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C004 · Driftwood Legal Group — 2 invoices, net $96,431.11</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1033PAGE</td><td>INV-2025-1033_C004.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$59,582.64</td><td class="num">$0.00</td><td class="num">$59,582.64</td></tr><tr><td>INV-2025-1100PAGE</td><td>INV-2025-1100_C004.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$36,848.47</td><td class="num">$0.00</td><td class="num">$36,848.47</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C005 · Evergreen Robotics Lab — 11 invoices, net $282,012.54</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1007PAGE</td><td>INV-2025-1007_C005.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$18,687.14</td><td class="num">$1,681.84</td><td class="num">$18,687.14</td></tr><tr><td>INV-2025-1011PAGE</td><td>INV-2025-1011_C005.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$25,194.65</td><td class="num">$2,154.14</td><td class="num">$25,194.65</td></tr><tr><td>INV-2025-1046PAGE</td><td>INV-2025-1046_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$11,466.25</td><td class="num">$1,006.16</td><td class="num">$11,466.25</td></tr><tr><td>INV-2025-1049PAGE</td><td>INV-2025-1049_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$24,482.15</td><td class="num">$2,203.39</td><td class="num">$24,482.15</td></tr><tr><td>INV-2025-1053PAGE</td><td>INV-2025-1053_C005.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$13,328.60</td><td class="num">$1,199.57</td><td class="num">$13,328.60</td></tr><tr><td>INV-2025-1059PAGE</td><td>INV-2025-1059_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$39,647.10</td><td class="num">$3,514.72</td><td class="num">$39,647.10</td></tr><tr><td>INV-2025-1073PAGE</td><td>INV-2025-1073_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$28,032.23</td><td class="num">$2,522.90</td><td class="num">$28,032.23</td></tr><tr><td>INV-2025-1075PAGE</td><td>INV-2025-1075_C005.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$26,332.26</td><td class="num">$2,251.41</td><td class="num">$26,332.26</td></tr><tr><td>INV-2025-1093PAGE</td><td>INV-2025-1093_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$48,823.16</td><td class="num">$4,394.08</td><td class="num">$48,823.16</td></tr><tr><td>INV-2025-1094PAGE</td><td>INV-2025-1094_C005.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$33,369.00</td><td class="num">$3,003.21</td><td class="num">$33,369.00</td></tr><tr><td>INV-2025-2101</td><td>INV-2025-2101_R1_revised.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$12,650.00</td><td class="num">$1,138.50</td><td class="num">$12,650.00</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C006 · Forgewell Manufacturing — 4 invoices, net $136,029.04</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1025PAGE</td><td>INV-2025-1025_C006.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$20,530.95</td><td class="num">$1,201.06</td><td class="num">$20,530.95</td></tr><tr><td>INV-2025-1028PAGE</td><td>INV-2025-1028_C006.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$32,584.64</td><td class="num">$1,955.08</td><td class="num">$32,584.64</td></tr><tr><td>INV-2025-1067PAGE</td><td>INV-2025-1067_C006.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$53,281.28</td><td class="num">$3,148.92</td><td class="num">$53,281.28</td></tr><tr><td>INV-2025-1082PAGE</td><td>INV-2025-1082_C006.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$29,632.17</td><td class="num">$1,777.93</td><td class="num">$29,632.17</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C007 · Glasspeak Hospitality — 9 invoices, net $287,114.86</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1023PAGE</td><td>INV-2025-1023_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$26,123.15</td><td class="num">$2,481.70</td><td class="num">$26,123.15</td></tr><tr><td>INV-2025-1042PAGE</td><td>INV-2025-1042_C007.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$42,562.11</td><td class="num">$4,043.40</td><td class="num">$42,562.11</td></tr><tr><td>INV-2025-1051PAGE</td><td>INV-2025-1051_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$20,321.54</td><td class="num">$1,930.55</td><td class="num">$20,321.54</td></tr><tr><td>INV-2025-1057PAGE</td><td>INV-2025-1057_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$61,273.21</td><td class="num">$6,127.32</td><td class="num">$61,273.21</td></tr><tr><td>INV-2025-1076PAGE</td><td>INV-2025-1076_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$17,132.11</td><td class="num">$1,670.38</td><td class="num">$17,132.11</td></tr><tr><td>INV-2025-1078PAGE</td><td>INV-2025-1078_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$26,246.56</td><td class="num">$2,493.42</td><td class="num">$26,246.56</td></tr><tr><td>INV-2025-1089PAGE</td><td>INV-2025-1089_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$11,376.86</td><td class="num">$1,080.80</td><td class="num">$11,376.86</td></tr><tr><td>INV-2025-1095PAGE</td><td>INV-2025-1095_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$64,690.76</td><td class="num">$6,469.08</td><td class="num">$64,690.76</td></tr><tr><td>INV-2025-1099PAGE</td><td>INV-2025-1099_C007.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$17,388.56</td><td class="num">$1,695.39</td><td class="num">$17,388.56</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C008 · Hearthstone Community Bank — 5 invoices, net $188,838.37</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1008PAGE</td><td>INV-2025-1008_C008.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$50,189.41</td><td class="num">$2,471.83</td><td class="num">$50,189.41</td></tr><tr><td>INV-2025-1050PAGE</td><td>INV-2025-1050_C008.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$27,497.51</td><td class="num">$1,374.88</td><td class="num">$27,497.51</td></tr><tr><td>INV-2025-1062PAGE</td><td>INV-2025-1062_C008.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$66,491.69</td><td class="num">$3,324.58</td><td class="num">$66,491.69</td></tr><tr><td>INV-2025-1064PAGE</td><td>INV-2025-1064_C008.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$33,528.79</td><td class="num">$1,676.44</td><td class="num">$33,528.79</td></tr><tr><td>INV-2025-1083PAGE</td><td>INV-2025-1083_C008.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$11,130.97</td><td class="num">$548.20</td><td class="num">$11,130.97</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C009 · Ion Trail Logistics — 7 invoices, net $229,284.85</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1017PAGE</td><td>INV-2025-1017_C009.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$28,887.49</td><td class="num">$2,253.22</td><td class="num">$28,887.49</td></tr><tr><td>INV-2025-1034PAGE</td><td>INV-2025-1034_C009.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$29,037.59</td><td class="num">$2,323.01</td><td class="num">$29,037.59</td></tr><tr><td>INV-2025-1035PAGE</td><td>INV-2025-1035_C009.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$15,490.05</td><td class="num">$1,208.22</td><td class="num">$15,490.05</td></tr><tr><td>INV-2025-1037PAGE</td><td>INV-2025-1037_C009.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$44,495.04</td><td class="num">$3,559.60</td><td class="num">$44,495.04</td></tr><tr><td>INV-2025-1041PAGE</td><td>INV-2025-1041_C009.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$62,790.84</td><td class="num">$4,897.69</td><td class="num">$62,790.84</td></tr><tr><td>INV-2025-1091PAGE</td><td>INV-2025-1091_C009.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$21,954.31</td><td class="num">$1,756.34</td><td class="num">$21,954.31</td></tr><tr><td>INV-2025-1102PAGE</td><td>INV-2025-1102_C009.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$26,629.53</td><td class="num">$2,077.10</td><td class="num">$26,629.53</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C010 · Juniper Ridge Schools — 3 invoices, net $58,877.98</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1058PAGE</td><td>INV-2025-1058_C010.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$24,410.87</td><td class="num">$1,159.52</td><td class="num">$24,410.87</td></tr><tr><td>INV-2025-1063PAGE</td><td>INV-2025-1063_C010.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$23,456.95</td><td class="num">$1,172.85</td><td class="num">$23,456.95</td></tr><tr><td>INV-2025-1104PAGE</td><td>INV-2025-1104_C010.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$10,085.16</td><td class="num">$491.65</td><td class="num">$10,085.16</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C011 · Keystone Renewable Works — 6 invoices, net $181,585.66</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1001PAGE</td><td>INV-2025-1001_C011.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$12,592.25</td><td class="num">$881.46</td><td class="num">$12,592.25</td></tr><tr><td>INV-2025-1004PAGE</td><td>INV-2025-1004_C011.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$35,369.35</td><td class="num">$2,475.85</td><td class="num">$35,369.35</td></tr><tr><td>INV-2025-1019PAGE</td><td>INV-2025-1019_C011.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$31,611.97</td><td class="num">$2,212.84</td><td class="num">$31,611.97</td></tr><tr><td>INV-2025-1038PAGE</td><td>INV-2025-1038_C011.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$15,030.72</td><td class="num">$999.54</td><td class="num">$15,030.72</td></tr><tr><td>INV-2025-1048PAGE</td><td>INV-2025-1048_C011.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$46,427.60</td><td class="num">$3,249.93</td><td class="num">$46,427.60</td></tr><tr><td>INV-2025-1066PAGE</td><td>INV-2025-1066_C011.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$40,553.77</td><td class="num">$2,838.76</td><td class="num">$40,553.77</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C012 · Lumen Arc Studios — 4 invoices, net $145,672.36</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1003PAGE</td><td>INV-2025-1003_C012.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$32,621.69</td><td class="num">$2,935.95</td><td class="num">$32,621.69</td></tr><tr><td>INV-2025-1005PAGE</td><td>INV-2025-1005_C012.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$50,298.36</td><td class="num">$4,526.85</td><td class="num">$50,298.36</td></tr><tr><td>INV-2025-1032PAGE</td><td>INV-2025-1032_C012.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$36,268.80</td><td class="num">$3,264.19</td><td class="num">$36,268.80</td></tr><tr><td>INV-2025-1071PAGE</td><td>INV-2025-1071_C012.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$26,483.51</td><td class="num">$2,383.52</td><td class="num">$26,483.51</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C013 · Meridian Public Works — 6 invoices, net $242,076.52</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1006PAGE</td><td>INV-2025-1006_C013.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$43,190.03</td><td class="num">$0.00</td><td class="num">$43,190.03</td></tr><tr><td>INV-2025-1013PAGE</td><td>INV-2025-1013_C013.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$47,204.65</td><td class="num">$0.00</td><td class="num">$47,204.65</td></tr><tr><td>INV-2025-1018PAGE</td><td>INV-2025-1018_C013.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$10,139.45</td><td class="num">$0.00</td><td class="num">$10,139.45</td></tr><tr><td>INV-2025-1070PAGE</td><td>INV-2025-1070_C013.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$31,743.55</td><td class="num">$0.00</td><td class="num">$31,743.55</td></tr><tr><td>INV-2025-1080PAGE</td><td>INV-2025-1080_C013.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$39,527.03</td><td class="num">$0.00</td><td class="num">$39,527.03</td></tr><tr><td>INV-2025-1092PAGE</td><td>INV-2025-1092_C013.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$70,271.81</td><td class="num">$0.00</td><td class="num">$70,271.81</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C014 · Northstar Produce Cooperative — 6 invoices, net $253,236.98</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1024PAGE</td><td>INV-2025-1024_C014.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$69,671.92</td><td class="num">$4,180.32</td><td class="num">$69,671.92</td></tr><tr><td>INV-2025-1030PAGE</td><td>INV-2025-1030_C014.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$26,612.04</td><td class="num">$1,516.89</td><td class="num">$26,612.04</td></tr><tr><td>INV-2025-1052PAGE</td><td>INV-2025-1052_C014.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$40,727.16</td><td class="num">$2,382.54</td><td class="num">$40,727.16</td></tr><tr><td>INV-2025-1055PAGE</td><td>INV-2025-1055_C014.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$32,249.00</td><td class="num">$1,886.57</td><td class="num">$32,249.00</td></tr><tr><td>INV-2025-1074PAGE</td><td>INV-2025-1074_C014.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$52,851.81</td><td class="num">$3,171.11</td><td class="num">$52,851.81</td></tr><tr><td>INV-2025-1085PAGE</td><td>INV-2025-1085_C014.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$31,125.05</td><td class="num">$1,839.49</td><td class="num">$31,125.05</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C015 · Oak & Slate Interiors — 4 invoices, net $132,185.43</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1010PAGE</td><td>INV-2025-1010_C015.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$34,797.30</td><td class="num">$2,374.92</td><td class="num">$34,797.30</td></tr><tr><td>INV-2025-1016PAGE</td><td>INV-2025-1016_C015.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$22,177.79</td><td class="num">$1,552.45</td><td class="num">$22,177.79</td></tr><tr><td>INV-2025-1027PAGE</td><td>INV-2025-1027_C015.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$14,819.20</td><td class="num">$1,037.34</td><td class="num">$14,819.20</td></tr><tr><td>INV-2025-1047PAGE</td><td>INV-2025-1047_C015.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$60,391.14</td><td class="num">$4,016.01</td><td class="num">$60,391.14</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C016 · Prairie Signal Telecom — 7 invoices, net $182,490.66</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1021PAGE</td><td>INV-2025-1021_C016.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$14,102.52</td><td class="num">$803.84</td><td class="num">$14,102.52</td></tr><tr><td>INV-2025-1045PAGE</td><td>INV-2025-1045_C016.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$44,290.03</td><td class="num">$2,657.40</td><td class="num">$44,290.03</td></tr><tr><td>INV-2025-1054PAGE</td><td>INV-2025-1054_C016.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$15,340.81</td><td class="num">$920.45</td><td class="num">$15,340.81</td></tr><tr><td>INV-2025-1065PAGE</td><td>INV-2025-1065_C016.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$35,170.88</td><td class="num">$2,110.25</td><td class="num">$35,170.88</td></tr><tr><td>INV-2025-1077PAGE</td><td>INV-2025-1077_C016.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$16,435.29</td><td class="num">$961.46</td><td class="num">$16,435.29</td></tr><tr><td>INV-2025-1081PAGE</td><td>INV-2025-1081_C016.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$24,557.20</td><td class="num">$1,436.60</td><td class="num">$24,557.20</td></tr><tr><td>INV-2025-1101PAGE</td><td>INV-2025-1101_C016.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$32,593.93</td><td class="num">$1,955.64</td><td class="num">$32,593.93</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C017 · Quartzline Insurance — 4 invoices, net $114,031.60</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1014PAGE</td><td>INV-2025-1014_C017.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$15,376.03</td><td class="num">$922.56</td><td class="num">$15,376.03</td></tr><tr><td>INV-2025-1022PAGE</td><td>INV-2025-1022_C017.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$49,560.42</td><td class="num">$2,973.63</td><td class="num">$49,560.42</td></tr><tr><td>INV-2025-1043PAGE</td><td>INV-2025-1043_C017.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$19,317.96</td><td class="num">$1,159.08</td><td class="num">$19,317.96</td></tr><tr><td>INV-2025-1079PAGE</td><td>INV-2025-1079_C017.pdf</td><td><span class="pill paid">PAID</span></td><td class="num">$29,777.19</td><td class="num">$1,697.30</td><td class="num">$29,777.19</td></tr>
+    </tbody>
+  </table>
+</details>
+<details>
+  <summary>C018 · Riverbend Arts Foundation — 4 invoices, net $147,952.71</summary>
+  <table style="margin-top:8px">
+    <thead><tr><th>Invoice #</th><th>File</th><th>Status</th><th class="num">Subtotal</th><th class="num">Tax</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td>INV-2025-1015PAGE</td><td>INV-2025-1015_C018.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$52,105.38</td><td class="num">$0.00</td><td class="num">$52,105.38</td></tr><tr><td>INV-2025-1026PAGE</td><td>INV-2025-1026_C018.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$65,025.31</td><td class="num">$0.00</td><td class="num">$65,025.31</td></tr><tr><td>INV-2025-1040PAGE</td><td>INV-2025-1040_C018.pdf</td><td><span class="pill open">OPEN</span></td><td class="num">$20,172.06</td><td class="num">$0.00</td><td class="num">$20,172.06</td></tr><tr><td>INV-2025-1056PAGE</td><td>INV-2025-1056_C018.pdf</td><td><span class="pill partial">PARTIAL</span></td><td class="num">$10,649.96</td><td class="num">$0.00</td><td class="num">$10,649.96</td></tr>
+    </tbody>
+  </table>
+</details>
+
+<div class="foot">Net spend = gross billed − credit memos. Statements, voids, duplicate scans, and superseded originals are excluded. The superseded INV-2025-2101 original was replaced by the revised R1 document. Page 1 of each PDF parsed only; appendix pages ignored.</div>
+</main>
+<script>
+  const tbl = document.getElementById('tbl');
+  const tbody = tbl.tBodies[0];
+  const trs = Array.from(tbody.rows);
+  let asc = true;
+  tbl.querySelectorAll('th[data-k]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      asc = !asc;
+      trs.sort((a,b) => {
+        const av = a.cells[th.cellIndex].textContent.trim();
+        const bv = b.cells[th.cellIndex].textContent.trim();
+        const an = parseFloat(av.replace(/[^0-9.-]/g,''));
+        const bn = parseFloat(bv.replace(/[^0-9.-]/g,''));
+        if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      trs.forEach(tr => tbody.appendChild(tr));
+    });
+  });
+</script>
+</body>
+</html>
