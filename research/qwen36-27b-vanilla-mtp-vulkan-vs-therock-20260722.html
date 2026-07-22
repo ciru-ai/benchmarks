@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen3.6 27B Vanilla MTP: Vulkan vs TheRock | Ciru Inference Lab</title>
+  <meta name="description" content="A matched 4K/128 served-MTP comparison of vanilla Qwen3.6 27B across Vulkan and TheRock ROCm on AMD Strix Halo, covering BF16, Q8, Q6, Q5, Q4, ROCmFP4, and vanilla ROCmFPX UltraQuality.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --max: 1500px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      line-height: 1.55;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.2), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover, a:focus-visible { color: #fff; text-decoration: underline; }
+    header, main, footer {
+      width: min(calc(100% - 28px), var(--max));
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      margin-top: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.96), rgba(9, 9, 10, 0.93));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 3px solid var(--amd);
+      background:
+        linear-gradient(90deg, rgba(237, 28, 36, 0.16), transparent 50%),
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.04) 28px 29px);
+    }
+    header > * { position: relative; z-index: 1; }
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 0;
+    }
+    .brand-lockup { display: inline-flex; align-items: center; gap: 12px; color: var(--text); }
+    .logo-plate {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(237, 28, 36, 0.32);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+    }
+    .logo-plate img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.2); }
+    .brand-title { display: block; font-weight: 700; text-transform: uppercase; line-height: 1.05; }
+    .brand-subtitle {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font: 0.72rem "IBM Plex Mono", monospace;
+    }
+    .back-link, nav a {
+      border: 1px solid rgba(57, 208, 255, 0.32);
+      border-radius: var(--radius);
+      background: rgba(57, 208, 255, 0.08);
+      color: #e9f7ff;
+      padding: 8px 11px;
+      font: 700 0.76rem "IBM Plex Mono", monospace;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .hero { padding: 28px 20px 24px; }
+    .kicker {
+      margin: 0 0 10px;
+      color: #ff7863;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 1180px;
+      font-size: clamp(2rem, 4vw, 4rem);
+      line-height: 0.98;
+      text-transform: uppercase;
+    }
+    .subtitle { max-width: 1100px; margin: 18px 0 0; color: #c6c9cf; font-size: 1.08rem; }
+    nav { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .stat {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)), var(--panel-2);
+    }
+    .stat b {
+      display: block;
+      color: var(--cyan);
+      font: 700 clamp(1.3rem, 2.2vw, 1.9rem) "IBM Plex Mono", monospace;
+    }
+    .stat span { display: block; margin-top: 5px; color: var(--muted); font-size: .84rem; }
+    main { padding: 26px 0 50px; }
+    section {
+      margin-bottom: 20px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    h2 { margin: 0 0 14px; font-size: 1.42rem; text-transform: uppercase; }
+    p { margin: 0 0 14px; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.2);
+    }
+    table {
+      width: 100%;
+      min-width: 1240px;
+      border-collapse: collapse;
+      font: .78rem/1.35 "IBM Plex Mono", monospace;
+    }
+    th, td { padding: 10px 11px; border: 1px solid var(--line); vertical-align: middle; }
+    th { background: rgba(255,255,255,.065); color: var(--text); text-align: left; }
+    th.group { text-align: center; color: var(--cyan); }
+    td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: rgba(57,208,255,.045); }
+    .winner { color: var(--green); font-weight: 700; }
+    .format { color: #fff; font-weight: 700; white-space: nowrap; }
+    .note { margin-top: 14px; color: var(--muted); font-size: .86rem; }
+    .callout {
+      padding: 16px 18px;
+      border: 1px solid rgba(57,208,255,.24);
+      border-left: 5px solid var(--cyan);
+      border-radius: var(--radius);
+      background: rgba(57,208,255,.08);
+    }
+    .callout.warning {
+      border-color: rgba(255,159,67,.25);
+      border-left-color: var(--orange);
+      background: rgba(255,159,67,.08);
+    }
+    .method-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .method-grid h3 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; }
+    .method-grid ul { margin: 0; padding-left: 20px; color: var(--muted); }
+    .method-grid li { margin: 7px 0; }
+    code { color: #dff8ff; font-family: "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
+    footer { padding: 0 0 38px; color: var(--subtle); font: .76rem "IBM Plex Mono", monospace; }
+    @media (max-width: 900px) { .stats, .method-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 620px) {
+      header, main, footer { width: min(calc(100% - 20px), var(--max)); }
+      .brand-row { align-items: flex-start; flex-direction: column; }
+      .stats, .method-grid { grid-template-columns: 1fr; }
+      section { padding: 16px; }
+      .hero { padding: 24px 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <a class="brand-lockup" href="../">
+        <span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span>
+        <span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span>
+      </a>
+      <a class="back-link" href="./">Research Index</a>
+    </div>
+    <div class="hero">
+      <p class="kicker">Crown Citadel Research Report · July 22, 2026</p>
+      <h1>Qwen3.6 27B Vanilla MTP: Vulkan vs TheRock</h1>
+      <p class="subtitle">Matched served-API measurements across seven vanilla Qwen3.6 27B formats on AMD Strix Halo. Every row uses the same source family, request shape, runtime commit, and MTP serving policy.</p>
+      <nav aria-label="Report sections"><a href="#results">One-table results</a><a href="#findings">Findings</a><a href="#method">Method</a></nav>
+      <div class="stats">
+        <div class="stat"><b>320.00</b><span>Fastest prompt processing, TheRock ROCmFP4.</span></div>
+        <div class="stat"><b>38.24</b><span>Fastest generation, TheRock ROCmFP4.</span></div>
+        <div class="stat"><b>7 formats</b><span>BF16 through quality-first custom quantization.</span></div>
+        <div class="stat"><b>14 runs</b><span>One cold served measurement per backend and format.</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="results">
+      <h2>Consolidated results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th rowspan="2">Vanilla format</th><th colspan="4" class="group">Vulkan / RADV</th><th colspan="4" class="group">TheRock ROCm 7.15</th><th rowspan="2">TG winner</th></tr>
+            <tr><th class="num">PP tok/s</th><th class="num">TG tok/s</th><th class="num">TTFP</th><th class="num">MTP accepted</th><th class="num">PP tok/s</th><th class="num">TG tok/s</th><th class="num">TTFP</th><th class="num">MTP accepted</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="format">BF16</td><td class="num">80.84</td><td class="num winner">13.69</td><td class="num">43.60 s</td><td class="num">106 / 124</td><td class="num">261.90</td><td class="num">9.47</td><td class="num">13.46 s</td><td class="num">99 / 160</td><td>Vulkan</td></tr>
+            <tr><td class="format">UD-Q8_K_XL</td><td class="num">136.49</td><td class="num winner">14.86</td><td class="num">25.83 s</td><td class="num">98 / 169</td><td class="num">200.47</td><td class="num">14.67</td><td class="num">17.58 s</td><td class="num">98 / 169</td><td>Vulkan +1.3%</td></tr>
+            <tr><td class="format">UD-Q6_K_XL</td><td class="num">129.31</td><td class="num">14.75</td><td class="num">27.26 s</td><td class="num">97 / 173</td><td class="num">223.33</td><td class="num winner">19.37</td><td class="num">15.78 s</td><td class="num">99 / 160</td><td>TheRock</td></tr>
+            <tr><td class="format">UD-Q5_K_XL</td><td class="num">156.21</td><td class="num winner">29.00</td><td class="num">22.57 s</td><td class="num">103 / 139</td><td class="num">224.44</td><td class="num">18.14</td><td class="num">15.71 s</td><td class="num">100 / 156</td><td>Vulkan</td></tr>
+            <tr><td class="format">UD-Q4_K_XL</td><td class="num">217.26</td><td class="num winner">28.26</td><td class="num">16.23 s</td><td class="num">100 / 156</td><td class="num">258.08</td><td class="num">19.08</td><td class="num">13.66 s</td><td class="num">99 / 160</td><td>Vulkan</td></tr>
+            <tr><td class="format">ROCmFP4</td><td class="num">282.78</td><td class="num">34.21</td><td class="num">12.47 s</td><td class="num">93 / 133</td><td class="num winner">320.00</td><td class="num winner">38.24</td><td class="num winner">11.02 s</td><td class="num">98 / 116</td><td class="winner">TheRock</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td class="num">137.02</td><td class="num">19.16</td><td class="num">25.73 s</td><td class="num">100 / 158</td><td class="num">232.25</td><td class="num winner">22.27</td><td class="num">15.19 s</td><td class="num">100 / 154</td><td class="winner">TheRock</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">PP is prompt processing. TG is generated-token throughput. TTFP includes uncached prompt ingestion. MTP accepted reports accepted draft tokens over proposed draft tokens. Higher PP/TG and lower TTFP are better.</p>
+    </section>
+
+    <section id="findings">
+      <h2>What the matrix shows</h2>
+      <div class="callout"><strong>ROCmFP4 on TheRock is the overall throughput winner.</strong> It leads both prompt processing at 320.00 tok/s and generation at 38.24 tok/s, while posting the lowest measured TTFP at 11.02 seconds.</div>
+      <p style="margin-top:16px">The backend winner depends on the quantization path. Vulkan leads generation for BF16, Q8, Q5, and Q4; TheRock leads Q6, ROCmFP4, and vanilla UltraQuality. TheRock consistently processes this prompt faster, but that PP advantage does not automatically translate into faster token generation.</p>
+      <p>The corrected UltraQuality row is built from the same vanilla Unsloth BF16 source as the rest of the matrix using the ranked leave-32 ROCmFPX/Q6_K-splice policy. No fine-tuned derivative weights are included.</p>
+    </section>
+
+    <section id="method">
+      <h2>Method and scope</h2>
+      <div class="method-grid">
+        <div><h3>Matched serving controls</h3><ul><li>Same runtime source commit: <code>5d04ce30c</code>.</li><li>Vulkan0 via RADV versus ROCm0 via TheRock 7.15.</li><li>One slot, full GPU offload, flash attention, 8K server context.</li><li>MTP cap 6 except ROCmFP4 cap 4; backend draft sampling disabled.</li></ul></div>
+        <div><h3>Request and limitations</h3><ul><li>The standard 4K fixture tokenized to 3,524 prompt tokens.</li><li>Exactly 128 generated tokens, prompt cache disabled, temperature 0.</li><li>One served-API measurement per cell; these are not multi-run averages.</li><li>Results characterize this Strix Halo host and these exact builds.</li></ul></div>
+      </div>
+      <div class="callout warning" style="margin-top:18px"><strong>UltraQuality naming note.</strong> The vanilla artifact applies the UltraQuality tensor policy but omits the extra multimodal payload present in the earlier public 7.61-BPW fine-tuned artifact. It is therefore labeled simply <em>ROCmFPX UltraQuality</em>, without claiming the fine-tuned model identity or exact file-wide BPW.</div>
+    </section>
+  </main>
+
+  <footer>Ciru Inference Lab / Qwen3.6 27B vanilla MTP backend matrix / published 2026-07-22</footer>
+</body>
+</html>
