@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Qwen3.6 27B Vanilla MTP: Vulkan vs TheRock | Ciru Inference Lab</title>
-  <meta name="description" content="A matched 4K/128 served-MTP comparison of vanilla Qwen3.6 27B across Vulkan and TheRock ROCm on AMD Strix Halo, covering BF16, Q8, Q6, Q5, Q4, ROCmFP4, and vanilla ROCmFPX UltraQuality.">
+  <meta name="description" content="Speed, Tool-Eval Hard Mode quality, MTP draft-cap, and effective-BPW results for vanilla Qwen3.6 27B across Vulkan and TheRock ROCm on AMD Strix Halo.">
   <meta name="theme-color" content="#080808">
   <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -183,6 +183,7 @@
       border-collapse: collapse;
       font: .78rem/1.35 "IBM Plex Mono", monospace;
     }
+    table.compact { min-width: 760px; }
     th, td { padding: 10px 11px; border: 1px solid var(--line); vertical-align: middle; }
     th { background: rgba(255,255,255,.065); color: var(--text); text-align: left; }
     th.group { text-align: center; color: var(--cyan); }
@@ -229,22 +230,22 @@
       <a class="back-link" href="./">Research Index</a>
     </div>
     <div class="hero">
-      <p class="kicker">Crown Citadel Research Report · July 22, 2026</p>
+      <p class="kicker">Crown Citadel Research Report · July 22, 2026 · Quality addendum</p>
       <h1>Qwen3.6 27B Vanilla MTP: Vulkan vs TheRock</h1>
-      <p class="subtitle">Matched served-API measurements across seven vanilla Qwen3.6 27B formats on AMD Strix Halo. Every row uses the same source family, request shape, runtime commit, and MTP serving policy.</p>
-      <nav aria-label="Report sections"><a href="#results">One-table results</a><a href="#findings">Findings</a><a href="#method">Method</a></nav>
+      <p class="subtitle">Matched served-API speed measurements plus corrected Tool-Eval Hard Mode quality, MTP cap selection, and effective bits-per-weight across seven vanilla Qwen3.6 27B formats on AMD Strix Halo.</p>
+      <nav aria-label="Report sections"><a href="#results">Initial matrix</a><a href="#speed-gates">Validated speed</a><a href="#quality">Hard Mode</a><a href="#mtp">MTP cap</a><a href="#footprint">BPW</a><a href="#findings">Findings</a><a href="#method">Method</a></nav>
       <div class="stats">
-        <div class="stat"><b>320.00</b><span>Fastest prompt processing, TheRock ROCmFP4.</span></div>
-        <div class="stat"><b>38.24</b><span>Fastest generation, TheRock ROCmFP4.</span></div>
-        <div class="stat"><b>7 formats</b><span>BF16 through quality-first custom quantization.</span></div>
-        <div class="stat"><b>14 runs</b><span>One cold served measurement per backend and format.</span></div>
+        <div class="stat"><b>336.69</b><span>Fastest validated prompt gate, BF16 new TheRock.</span></div>
+        <div class="stat"><b>34.49</b><span>Fastest validated generation, ROCmFP4 Vulkan.</span></div>
+        <div class="stat"><b>70 / 100</b><span>Best Qwen Hard Mode score, ROCmFP4 Vulkan.</span></div>
+        <div class="stat"><b>Cap 3</b><span>Best measured Q4 MTP generation throughput.</span></div>
       </div>
     </div>
   </header>
 
   <main>
     <section id="results">
-      <h2>Consolidated results</h2>
+      <h2>Initial matched 4K / 128 speed matrix</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -262,23 +263,123 @@
           </tbody>
         </table>
       </div>
-      <p class="note">PP is prompt processing. TG is generated-token throughput. TTFP includes uncached prompt ingestion. MTP accepted reports accepted draft tokens over proposed draft tokens. Higher PP/TG and lower TTFP are better.</p>
+      <p class="note">PP is prompt processing. TG is generated-token throughput. TTFP includes uncached prompt ingestion. MTP accepted reports accepted draft tokens over proposed draft tokens. Higher PP/TG and lower TTFP are better. This original cross-backend matrix is retained as measured; the validated new-TheRock gates and corrected cap selection below are the current tuning reference.</p>
+    </section>
+
+    <section id="speed-gates">
+      <h2>Validated new-TheRock and specialized-runner speed gates</h2>
+      <p>These are the corrected optimized-build gates used alongside the Hard Mode audit. The stock lanes run stock llama.cpp; ROCmFP4 and UltraQuality run the required ROCmFPX or dedicated Vulkan implementations.</p>
+      <div class="table-wrap">
+        <table class="compact">
+          <thead><tr><th>Lane</th><th>Backend / runner</th><th class="num">PP tok/s</th><th class="num">Generation tok/s</th><th class="num">Draft acceptance</th></tr></thead>
+          <tbody>
+            <tr><td class="format">BF16</td><td>Stock / new TheRock</td><td class="num winner">336.69</td><td class="num">8.83</td><td class="num">90 / 110 (81.82%)</td></tr>
+            <tr><td class="format">UD-Q8_K_XL</td><td>Stock / new TheRock</td><td class="num">294.38</td><td class="num">14.20</td><td class="num">90 / 110 (81.82%)</td></tr>
+            <tr><td class="format">UD-Q6_K_XL</td><td>Stock / new TheRock</td><td class="num">254.04</td><td class="num">18.08</td><td class="num">90 / 108 (83.33%)</td></tr>
+            <tr><td class="format">UD-Q5_K_XL</td><td>Stock / new TheRock</td><td class="num">280.39</td><td class="num">20.08</td><td class="num">90 / 111 (81.08%)</td></tr>
+            <tr><td class="format">UD-Q4_K_XL</td><td>Stock / new TheRock</td><td class="num">295.80</td><td class="num">21.48</td><td class="num winner">91 / 108 (84.26%)</td></tr>
+            <tr><td class="format">ROCmFP4</td><td>ROCmFPX / new TheRock</td><td class="num">277.55</td><td class="num">33.65</td><td class="num">90 / 108 (83.33%)</td></tr>
+            <tr><td class="format">ROCmFP4</td><td>Dedicated Vulkan, cap 4</td><td class="num">263.12</td><td class="num winner">34.49</td><td class="num">Suite counters</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td>Matched Vulkan</td><td class="num">192.95</td><td class="num">23.81</td><td class="num winner">91 / 108 (84.26%)</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td>ROCmFPX / new TheRock</td><td class="num">236.90</td><td class="num">23.04</td><td class="num">90 / 111 (81.08%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">The dedicated Vulkan ROCmFP4 values are active counters from its earlier valid suite run and retain that lane's cap-4 profile. All other rows are standardized 3.5K-prompt / 128-generation gates.</p>
+    </section>
+
+    <section id="quality">
+      <h2>Corrected Tool-Eval Hard Mode quality</h2>
+      <p>The optional Hard Mode suite covers TC-70 through TC-84: 15 scenarios scored on tool choice, argument construction, recovery, state handling, and verification. Quality is intentionally reported separately from the short speed gate.</p>
+      <div class="table-wrap">
+        <table class="compact">
+          <thead><tr><th>Lane</th><th>Backend / runner</th><th class="num">Score</th><th class="num">Pass / partial / fail</th><th class="num">Runtime</th></tr></thead>
+          <tbody>
+            <tr><td class="format">ROCmFP4</td><td>Dedicated Vulkan, MTP cap 4</td><td class="num winner">70</td><td class="num">9 / 3 / 3</td><td class="num">261 s</td></tr>
+            <tr><td class="format">UD-Q8_K_XL</td><td>Stock llama.cpp, new TheRock, cap 3</td><td class="num">67</td><td class="num">9 / 2 / 4</td><td class="num">501 s</td></tr>
+            <tr><td class="format">BF16</td><td>Stock llama.cpp, new TheRock, cap 3</td><td class="num">63</td><td class="num">8 / 3 / 4</td><td class="num">659 s</td></tr>
+            <tr><td class="format">UD-Q4_K_XL</td><td>Stock llama.cpp, new TheRock, cap 3</td><td class="num">63</td><td class="num">8 / 3 / 4</td><td class="num">454 s</td></tr>
+            <tr><td class="format">ROCmFP4</td><td>ROCmFPX, new TheRock, cap 3</td><td class="num">63</td><td class="num">8 / 3 / 4</td><td class="num">330 s</td></tr>
+            <tr><td class="format">UD-Q6_K_XL</td><td>Stock llama.cpp, new TheRock, cap 3</td><td class="num">60</td><td class="num">8 / 2 / 5</td><td class="num">465 s</td></tr>
+            <tr><td class="format">UD-Q5_K_XL</td><td>Stock llama.cpp, new TheRock, cap 3</td><td class="num">57</td><td class="num">7 / 3 / 5</td><td class="num">443 s</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td>Matched Vulkan, cap 3</td><td class="num">53</td><td class="num">7 / 2 / 6</td><td class="num">468 s</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td>ROCmFPX, new TheRock, cap 3</td><td class="num">53</td><td class="num">7 / 2 / 6</td><td class="num">446 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Comparable stored Hard Mode evidence</h3>
+      <div class="table-wrap">
+        <table class="compact">
+          <thead><tr><th>Model / profile</th><th class="num">Score</th><th>Comparison note</th></tr></thead>
+          <tbody>
+            <tr><td class="format">Laguna S 2.1 Q4</td><td class="num winner">87</td><td>Target-only Vulkan; highest stored 2.0.7 Hard Mode result found</td></tr>
+            <tr><td class="format">DeepSeek V4 Flash API</td><td class="num">83</td><td>Clean API rerun</td></tr>
+            <tr><td class="format">Step 3.7 QualityPlus</td><td class="num">83</td><td>Prior best, temperature 1, seed 43</td></tr>
+            <tr><td class="format">Hy3 FPX-iFP2</td><td class="num">80</td><td>Native MTP, intended profile</td></tr>
+            <tr><td class="format">Step 3.7 AGENTKV</td><td class="num">80</td><td>Prior best, temperature 1, seed 43</td></tr>
+            <tr><td class="format">Qwen3.6 35B MoEQuality 7.07 BPW</td><td class="num">73</td><td>Prior comparable local result</td></tr>
+            <tr><td class="format">Qwen3.6 35B vanilla Q8</td><td class="num">70</td><td>Prior comparable local result</td></tr>
+            <tr><td class="format">Atlas PR #353 NVFP4 MTP</td><td class="num">63</td><td>Same Qwen3.6 27B family</td></tr>
+            <tr><td class="format">Qwen3.6 35B ROCmFP4</td><td class="num">60</td><td>Prior comparable local result</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">The intended-profile rows do not all share one sampler. They are useful cross-model context, not a claim that quantization alone caused every score difference.</p>
+    </section>
+
+    <section id="mtp">
+      <h2>Why MTP cap 3 replaced cap 6</h2>
+      <p>The initial speed matrix used a six-token Q4 draft cap. A corrected sweep on the same stock Q4/new-TheRock long request showed that six was over-drafting: acceptance fell to 59.04% and actual generation slowed.</p>
+      <div class="table-wrap">
+        <table class="compact">
+          <thead><tr><th class="num">Draft cap</th><th class="num">Generation tok/s</th><th class="num">Accepted / drafted</th><th class="num">Acceptance</th><th>Decision</th></tr></thead>
+          <tbody>
+            <tr><td class="num">6</td><td class="num">18.69</td><td class="num">98 / 166</td><td class="num">59.04%</td><td>Rejected: excessive drafting</td></tr>
+            <tr><td class="num">4</td><td class="num">20.90</td><td class="num">95 / 126</td><td class="num">75.40%</td><td>Better, still below target</td></tr>
+            <tr><td class="num winner">3</td><td class="num winner">22.07</td><td class="num">91 / 108</td><td class="num">84.26%</td><td class="winner">Selected: fastest</td></tr>
+            <tr><td class="num">2</td><td class="num">20.02</td><td class="num">81 / 91</td><td class="num winner">89.01%</td><td>Highest acceptance, lower speed</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Acceptance is a diagnostic, not the objective by itself. Cap 3 won because it delivered the highest measured generation throughput while clearing 80% acceptance.</p>
+    </section>
+
+    <section id="footprint">
+      <h2>Artifact footprint and effective bits per weight</h2>
+      <div class="table-wrap">
+        <table class="compact">
+          <thead><tr><th>Vanilla format</th><th class="num">GGUF size</th><th class="num">Effective BPW</th><th>Basis</th></tr></thead>
+          <tbody>
+            <tr><td class="format">BF16</td><td class="num">54.658 GB</td><td class="num">16.00</td><td>Two GGUF shards</td></tr>
+            <tr><td class="format">UD-Q8_K_XL</td><td class="num">35.776 GB</td><td class="num">10.48</td><td>Full artifact</td></tr>
+            <tr><td class="format">UD-Q6_K_XL</td><td class="num">26.015 GB</td><td class="num">7.62</td><td>Full artifact</td></tr>
+            <tr><td class="format">UD-Q5_K_XL</td><td class="num">20.351 GB</td><td class="num">5.96</td><td>Full artifact</td></tr>
+            <tr><td class="format">UD-Q4_K_XL</td><td class="num">17.909 GB</td><td class="num">5.24</td><td>Full artifact</td></tr>
+            <tr><td class="format">ROCmFP4</td><td class="num winner">14.817 GB</td><td class="num winner">4.34</td><td>Full artifact</td></tr>
+            <tr><td class="format">ROCmFPX UltraQuality</td><td class="num">22.382 GB</td><td class="num">6.55</td><td>Vanilla text-only artifact</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Effective BPW is total GGUF bytes × 8 divided by 27,320,697,856 model parameters. It includes GGUF metadata and therefore measures the downloadable artifact, not merely the nominal tensor label. The run logs captured whole-host GTT on this unified-memory APU, not a clean per-process loaded allocation, so no misleading “VRAM loaded” column is reported. Runtime memory would also include KV cache, MTP context, and compute buffers and would vary with context and backend.</p>
     </section>
 
     <section id="findings">
       <h2>What the matrix shows</h2>
-      <div class="callout"><strong>ROCmFP4 on TheRock is the overall throughput winner.</strong> It leads both prompt processing at 320.00 tok/s and generation at 38.24 tok/s, while posting the lowest measured TTFP at 11.02 seconds.</div>
+      <div class="callout"><strong>The initial 4K/128 matrix favored ROCmFP4 on TheRock.</strong> It led that matrix's prompt processing at 320.00 tok/s and generation at 38.24 tok/s, while posting the lowest measured TTFP at 11.02 seconds. In the later validated gates, BF16/new-TheRock led PP at 336.69 tok/s and the dedicated Vulkan ROCmFP4 lane led generation at 34.49 tok/s.</div>
       <p style="margin-top:16px">The backend winner depends on the quantization path. Vulkan leads generation for BF16, Q8, Q5, and Q4; TheRock leads Q6, ROCmFP4, and vanilla UltraQuality. TheRock consistently processes this prompt faster, but that PP advantage does not automatically translate into faster token generation.</p>
-      <p>The corrected UltraQuality row is built from the same vanilla Unsloth BF16 source as the rest of the matrix using the ranked leave-32 ROCmFPX/Q6_K-splice policy. No fine-tuned derivative weights are included.</p>
+      <p><strong>UltraQuality's low quality score is real in this harness, but the root cause is narrower than “TheRock is worse.”</strong> Matched Vulkan and new-TheRock runs both scored exactly 53 with the same 7/2/6 outcome and the same configuration fingerprint. Compared with Q8 at 67, UltraQuality specifically lost TC-80 and TC-82 while every other scenario status matched.</p>
+      <p>That rules out the old ROCm stack and rules out Vulkan versus new TheRock as the explanation. It does not completely separate the UltraQuality artifact from tensor-type-specific ROCmFPX kernels shared by both runners. ROCmFP4 scoring 63 on new TheRock and 70 on its dedicated Vulkan runner shows that ROCmFPX execution is not generically destroying tool quality.</p>
+      <p>The corrected UltraQuality artifact is built from the same vanilla Unsloth BF16 source as the rest of the matrix using the ranked leave-32 ROCmFPX/Q6_K-splice policy. No fine-tuned derivative weights are included.</p>
     </section>
 
     <section id="method">
       <h2>Method and scope</h2>
       <div class="method-grid">
-        <div><h3>Matched serving controls</h3><ul><li>Same runtime source commit: <code>5d04ce30c</code>.</li><li>Vulkan0 via RADV versus ROCm0 via TheRock 7.15.</li><li>One slot, full GPU offload, flash attention, 8K server context.</li><li>MTP cap 6 except ROCmFP4 cap 4; backend draft sampling disabled.</li></ul></div>
-        <div><h3>Request and limitations</h3><ul><li>The standard 4K fixture tokenized to 3,524 prompt tokens.</li><li>Exactly 128 generated tokens, prompt cache disabled, temperature 0.</li><li>One served-API measurement per cell; these are not multi-run averages.</li><li>Results characterize this Strix Halo host and these exact builds.</li></ul></div>
+        <div><h3>Initial speed matrix</h3><ul><li>Same runtime source commit: <code>5d04ce30c</code>.</li><li>Vulkan0 via RADV versus ROCm0 via TheRock 7.15.</li><li>One slot, full GPU offload, flash attention, 8K server context.</li><li>The 3,524-token prompt generated exactly 128 tokens with cache off and temperature 0.</li><li>MTP cap 6 except ROCmFP4 cap 4. The later Q4 sweep demonstrates why cap 6 should not be treated as the final tuned setting.</li></ul></div>
+        <div><h3>Corrected Hard Mode matrix</h3><ul><li>Tool-Eval Bench 2.0.7 optional Hard Mode, TC-70 through TC-84.</li><li>Stock formats use stock llama.cpp; only ROCmFPX formats use their specialized runners.</li><li>TheRock means the new TheRock 7.15 runtime, not the older ROCm stack.</li><li>Matched Qwen controls: embedded Jinja template, reasoning off, temperature 0, top-p 0.95, top-k 20, min-p 0, seed 123, 64K context, and MTP cap 3.</li><li>Results characterize this Strix Halo host and these exact builds.</li></ul></div>
       </div>
-      <div class="callout warning" style="margin-top:18px"><strong>UltraQuality naming note.</strong> The vanilla artifact applies the UltraQuality tensor policy but omits the extra multimodal payload present in the earlier public 7.61-BPW fine-tuned artifact. It is therefore labeled simply <em>ROCmFPX UltraQuality</em>, without claiming the fine-tuned model identity or exact file-wide BPW.</div>
+      <div class="callout warning" style="margin-top:18px"><strong>Excluded failures.</strong> The roughly 0.1 tok/s stock results came from accidentally unoptimized O0 builds and are not results. The earlier UltraQuality ROCm 7.2 run is also excluded because it did not use the requested new TheRock runtime. A DeepSeek artifact affected by HTTP 429 rate limiting was replaced by the clean 83-point rerun.</div>
+      <div class="callout warning" style="margin-top:18px"><strong>UltraQuality naming note.</strong> The vanilla artifact applies the UltraQuality tensor policy but omits the extra multimodal payload present in the earlier public 7.61-BPW fine-tuned artifact. Its measured text-only artifact is 22.382 GB, or 6.55 effective BPW against the vanilla model's 27.3207B parameters.</div>
     </section>
   </main>
 
