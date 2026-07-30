@@ -739,23 +739,9 @@ buildPagoda();
 buildGarden();
 
 // ── Create Instanced Mesh ──
-const uniqueColors = [...new Set(voxelData.map(v => v.color))];
-const colorMap = new Map();
-uniqueColors.forEach((c, i) => colorMap.set(c, i));
-
-const colorArray = new Float32Array(voxelData.length * 3);
-voxelData.forEach((v, i) => {
-  const col = new THREE.Color(v.color);
-  colorArray[i * 3] = col.r;
-  colorArray[i * 3 + 1] = col.g;
-  colorArray[i * 3 + 2] = col.b;
-});
-
 const mergedGeo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
-mergedGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
 
 const material = new THREE.MeshStandardMaterial({
-  vertexColors: true,
   roughness: 0.8,
   metalness: 0.1,
   flatShading: true,
@@ -766,13 +752,16 @@ voxels.castShadow = true;
 voxels.receiveShadow = true;
 
 const dummy = new THREE.Object3D();
+const instanceColor = new THREE.Color();
 voxelData.forEach((v, i) => {
   dummy.position.set(v.x, v.y, v.z);
   dummy.updateMatrix();
   voxels.setMatrixAt(i, dummy.matrix);
+  voxels.setColorAt(i, instanceColor.set(v.color));
 });
 
 voxels.instanceMatrix.needsUpdate = true;
+voxels.instanceColor.needsUpdate = true;
 scene.add(voxels);
 
 // ── Sky dome ──
