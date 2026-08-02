@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111532">
+  <meta name="description" content="Lanterns of Hanamori — an interactive, procedural voxel pagoda garden.">
+  <title>Lanterns of Hanamori — Voxel Garden</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --sky-top: #090d2a;
+      --sky-mid: #352356;
+      --sky-low: #b25f78;
+      --ink: #fff9ec;
+      --muted: rgba(255, 249, 236, .66);
+      --line: rgba(255, 255, 255, .16);
+      --glass: rgba(11, 13, 35, .48);
+      --gold: #ffd887;
+      --pink: #ff93bd;
+      --teal: #6ce4d1;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--ink);
+      background: var(--sky-top);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 74% 18%, rgba(255, 210, 170, .12), transparent 24%),
+        linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 58%, var(--sky-low) 125%);
+      transition: background 900ms ease;
+    }
+
+    button { font: inherit; }
+
+    #app, #viewport, #scene {
+      position: absolute;
+      inset: 0;
+    }
+
+    #scene canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      outline: none;
+    }
+
+    #scene canvas:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; }
+
+    .atmosphere, .vignette, .grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .atmosphere {
+      background:
+        radial-gradient(circle at 50% 72%, transparent 0 34%, rgba(12, 10, 32, .25) 76%, rgba(5, 6, 20, .58) 120%),
+        linear-gradient(180deg, transparent 50%, rgba(18, 12, 38, .28));
+      mix-blend-mode: multiply;
+    }
+
+    .vignette { box-shadow: inset 0 0 13vw rgba(5, 5, 18, .68); }
+
+    .grain {
+      opacity: .09;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 4px);
+      background-size: 5px 5px, 7px 7px;
+      mix-blend-mode: soft-light;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      padding: max(22px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    }
+
+    .brand {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top));
+      left: max(26px, env(safe-area-inset-left));
+      max-width: 410px;
+      text-shadow: 0 3px 24px rgba(5, 7, 22, .72);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: var(--gold);
+      font-size: 10px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: .26em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 28px;
+      height: 1px;
+      content: "";
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 400;
+      font-size: clamp(30px, 4.1vw, 65px);
+      line-height: .89;
+      letter-spacing: -.055em;
+    }
+
+    h1 span {
+      display: block;
+      margin: 8px 0 0 3px;
+      color: var(--pink);
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: .22em;
+      font-weight: 680;
+      line-height: 1;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+    }
+
+    .season {
+      position: absolute;
+      top: max(24px, env(safe-area-inset-top));
+      right: max(24px, env(safe-area-inset-right));
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 7px;
+      pointer-events: auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--glass);
+      box-shadow: 0 16px 45px rgba(5, 6, 20, .3), inset 0 1px 0 rgba(255,255,255,.1);
+      backdrop-filter: blur(14px);
+    }
+
+    .chip, .icon-button, .landmark {
+      min-height: 44px;
+      border: 1px solid transparent;
+      color: var(--ink);
+      cursor: pointer;
+      background: transparent;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .chip:hover, .chip[aria-pressed="true"] { background: rgba(255,255,255,.12); }
+    .chip:hover, .icon-button:hover, .landmark:hover { transform: translateY(-1px); }
+    button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .landmarks {
+      position: absolute;
+      right: max(26px, env(safe-area-inset-right));
+      top: 50%;
+      display: grid;
+      gap: 7px;
+      pointer-events: auto;
+      transform: translateY(-50%);
+    }
+
+    .landmark {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      align-items: center;
+      width: 132px;
+      padding: 6px 12px 6px 7px;
+      border-color: var(--line);
+      border-radius: 12px;
+      text-align: left;
+      background: rgba(11, 13, 35, .43);
+      backdrop-filter: blur(12px);
+    }
+
+    .landmark b {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      color: var(--gold);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      font-family: Georgia, serif;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .landmark span {
+      font-size: 10px;
+      font-weight: 720;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .landmark.active { border-color: rgba(255,216,135,.55); background: rgba(255,216,135,.12); }
+
+    .guide {
+      position: absolute;
+      left: max(26px, env(safe-area-inset-left));
+      bottom: max(23px, env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 16px rgba(0,0,0,.6);
+    }
+
+    .guide span { display: inline-flex; align-items: center; gap: 7px; }
+    .guide kbd {
+      display: inline-grid;
+      min-width: 25px;
+      height: 25px;
+      padding: 0 6px;
+      place-items: center;
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 7px;
+      background: rgba(11,13,35,.5);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+      font: 700 10px/1 Inter, sans-serif;
+    }
+
+    .actions {
+      position: absolute;
+      right: max(26px, env(safe-area-inset-right));
+      bottom: max(23px, env(safe-area-inset-bottom));
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      min-height: 46px;
+      place-items: center;
+      border-color: var(--line);
+      border-radius: 14px;
+      background: rgba(11,13,35,.5);
+      box-shadow: 0 12px 32px rgba(4,5,18,.25), inset 0 1px 0 rgba(255,255,255,.1);
+      backdrop-filter: blur(12px);
+      font-size: 17px;
+    }
+
+    .icon-button[aria-pressed="true"] { color: var(--gold); border-color: rgba(255,216,135,.45); }
+
+    .credit {
+      position: absolute;
+      left: 50%;
+      bottom: max(22px, env(safe-area-inset-bottom));
+      color: rgba(255,255,255,.48);
+      font-family: Georgia, serif;
+      font-size: 11px;
+      font-style: italic;
+      letter-spacing: .06em;
+      transform: translateX(-50%);
+    }
+
+    #loader, #fallback {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(91,66,142,.35), transparent 35%),
+        linear-gradient(155deg, #080b22, #1b183f 62%, #562d55);
+      transition: opacity 700ms ease, visibility 700ms ease;
+    }
+
+    #loader.done { opacity: 0; visibility: hidden; }
+
+    .loader-card { width: min(430px, calc(100vw - 48px)); text-align: center; }
+    .mon { width: 68px; height: 68px; margin: 0 auto 22px; position: relative; }
+    .mon::before, .mon::after { position: absolute; inset: 0; content: ""; transform: rotate(45deg); }
+    .mon::before { border: 1px solid rgba(255,216,135,.7); animation: mon 2.6s ease-in-out infinite; }
+    .mon::after { inset: 11px; border: 1px solid rgba(255,147,189,.75); animation: mon 2.6s .3s ease-in-out infinite reverse; }
+    @keyframes mon { 0%,100% { transform: rotate(45deg) scale(.86); opacity: .5; } 50% { transform: rotate(135deg) scale(1); opacity: 1; } }
+    .loader-card strong { display: block; font: 400 clamp(26px,7vw,42px)/1 Georgia, serif; }
+    .loader-card p { margin: 12px 0 22px; color: var(--muted); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+    .loader-line { height: 1px; overflow: hidden; background: rgba(255,255,255,.13); }
+    .loader-line i { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: load 1.4s linear infinite; }
+    @keyframes load { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+
+    #fallback { z-index: 30; padding: 24px; text-align: center; }
+    #fallback[hidden] { display: none; }
+    #fallback .fallback-card { max-width: 520px; padding: 34px; border: 1px solid var(--line); border-radius: 24px; background: rgba(10,12,33,.72); }
+    #fallback h2 { margin: 0 0 12px; font: 400 34px/1 Georgia, serif; }
+    #fallback p { margin: 0; color: var(--muted); line-height: 1.7; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 720px) {
+      .brand { top: max(18px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); }
+      h1 { font-size: 34px; }
+      .eyebrow { font-size: 8px; }
+      .season { top: auto; right: auto; left: 50%; bottom: max(76px, calc(env(safe-area-inset-bottom) + 76px)); transform: translateX(-50%); }
+      .season .chip { min-width: 44px; width: 44px; padding: 0; justify-content: center; }
+      .season .chip .label { display: none; }
+      .landmarks { top: max(108px, calc(env(safe-area-inset-top) + 108px)); right: max(14px, env(safe-area-inset-right)); transform: none; }
+      .landmark { width: 46px; height: 46px; grid-template-columns: 1fr; padding: 7px; }
+      .landmark span { display: none; }
+      .landmark b { width: 30px; }
+      .guide { display: none; }
+      .credit { display: none; }
+      .actions { right: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(50%); }
+    }
+
+    @media (max-height: 480px) {
+      .brand h1 span, .eyebrow { display: none; }
+      .landmarks { display: none; }
+      .season { top: 12px; bottom: auto; left: auto; right: 12px; transform: none; }
+      .actions { bottom: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="viewport">
+      <div id="scene"></div>
+      <div class="atmosphere"></div>
+      <div class="vignette"></div>
+      <div class="grain"></div>
+    </div>
+
+    <div class="hud">
+      <header class="brand">
+        <div class="eyebrow">A living voxel sanctuary</div>
+        <h1>Lanterns of<br>Hanamori <span>Garden above the clouds</span></h1>
+      </header>
+
+      <div class="season" aria-label="Scene settings">
+        <button class="chip" id="timeButton" type="button" aria-label="Change time of day">
+          <i class="dot"></i><span class="label" id="timeLabel">Lantern hour</span>
+        </button>
+        <button class="chip" id="petalButton" type="button" aria-pressed="true" aria-label="Toggle drifting petals">
+          <span>✦</span><span class="label">Petals</span>
+        </button>
+      </div>
+
+      <nav class="landmarks" aria-label="Garden landmarks">
+        <button class="landmark active" data-view="garden" type="button" aria-current="true"><b>庭</b><span>Garden</span></button>
+        <button class="landmark" data-view="pagoda" type="button"><b>塔</b><span>Pagoda</span></button>
+        <button class="landmark" data-view="bridge" type="button"><b>橋</b><span>Bridge</span></button>
+        <button class="landmark" data-view="sakura" type="button"><b>桜</b><span>Sakura</span></button>
+      </nav>
+
+      <div class="guide" aria-label="Controls">
+        <span>Drag to orbit</span><span>Scroll to zoom</span><span><kbd>R</kbd> reset</span><span><kbd>F</kbd> fullscreen</span>
+      </div>
+
+      <div class="actions">
+        <button class="icon-button" id="motionButton" type="button" aria-label="Toggle gentle camera rotation" aria-pressed="true" title="Toggle camera drift">◌</button>
+        <button class="icon-button" id="resetButton" type="button" aria-label="Reset garden view" title="Reset view">↺</button>
+        <button class="icon-button" id="fullButton" type="button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+      </div>
+
+      <div class="credit">Hand-built in light, stone &amp; blossom</div>
+    </div>
+
+    <div id="loader" role="status" aria-live="polite">
+      <div class="loader-card">
+        <div class="mon"></div>
+        <strong>Planting the garden</strong>
+        <p>Placing lanterns · folding petals · waking koi</p>
+        <div class="loader-line"><i></i></div>
+      </div>
+    </div>
+
+    <div id="fallback" hidden>
+      <div class="fallback-card">
+        <h2>The garden is resting</h2>
+        <p id="fallbackText">This scene needs WebGL and an internet connection to load the pinned Three.js library. Try a current browser with hardware acceleration enabled.</p>
+      </div>
+    </div>
+
+    <div id="status" class="sr-only" aria-live="polite"></div>
+    <noscript><div style="position:fixed;inset:0;display:grid;place-items:center;padding:2rem;background:#0b0e29;color:#fff;text-align:center;z-index:99">JavaScript is required to grow this voxel garden.</div></noscript>
+  </div>
+
+  <script>
+    window.__HANAMORI_READY__ = false;
+    window.__HANAMORI_FAILED__ = false;
+    window.__HANAMORI_FAIL__ = function (message) {
+      window.__HANAMORI_FAILED__ = true;
+      const fallback = document.getElementById('fallback');
+      const text = document.getElementById('fallbackText');
+      if (text && message) text.textContent = message;
+      if (fallback) fallback.hidden = false;
+    };
+    window.__HANAMORI_TIMER__ = setTimeout(function () {
+      if (!window.__HANAMORI_READY__ && !window.__HANAMORI_FAILED__) {
+        window.__HANAMORI_FAIL__('The 3D library did not arrive. Check your connection, then reload the page to reopen the garden.');
+      }
+    }, 15000);
+  </script>
+
+  <script type="module">
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const compact = matchMedia('(max-width: 720px), (pointer: coarse)').matches;
+    const sceneHost = document.getElementById('scene');
+    const loader = document.getElementById('loader');
+    const status = document.getElementById('status');
+    const palette = {
+      grass: ['#275f4d', '#33745a', '#49805a', '#6b9c5f'],
+      moss: ['#6a9450', '#86ad5a', '#4f7d48'],
+      soil: ['#4a302f', '#5b3734', '#69423b'],
+      rock: ['#4b4c67', '#5d6179', '#73798b', '#8d91a0'],
+      roof: ['#0c4650', '#125663', '#16717a', '#1b7f84'],
+      red: ['#962f35', '#b43b3a', '#d04a3e', '#ef684c'],
+      blossom: ['#ff75a8', '#ff97bc', '#ffc0d3', '#ffe0e9', '#e765a0'],
+      pine: ['#153f3d', '#1d5446', '#286652', '#36775a'],
+      gold: ['#f3b74d', '#ffd371', '#fff0a6'],
+      water: ['#187f8f', '#229aaa', '#39bdb7', '#78ddd0']
+    };
+
+    let seed = 0x7a31b2c9;
+    const rand = () => ((seed = Math.imul(seed ^ seed >>> 15, 1 | seed), seed ^= seed + Math.imul(seed ^ seed >>> 7, 61 | seed), ((seed ^ seed >>> 14) >>> 0) / 4294967296));
+    const pick = values => values[Math.floor(rand() * values.length)];
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    try {
+      const THREE = await import('three');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      const renderer = new THREE.WebGLRenderer({ antialias: !compact, alpha: true, powerPreference: 'high-performance' });
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setPixelRatio(1);
+      renderer.domElement.setAttribute('role', 'img');
+      renderer.domElement.setAttribute('tabindex', '0');
+      renderer.domElement.setAttribute('aria-label', 'Interactive voxel garden with a five-tier pagoda, cherry trees, moon bridge, koi pond, lanterns, bamboo, pine trees, and drifting petals. Drag to orbit and scroll to zoom.');
+      sceneHost.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x3c2d57, 0.0125);
+      const frustum = 46;
+      const camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 180);
+      camera.position.set(35, 28, 40);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(-1, 6.5, 0);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.055;
+      controls.enablePan = false;
+      controls.minZoom = .72;
+      controls.maxZoom = 2.15;
+      controls.minPolarAngle = .48;
+      controls.maxPolarAngle = 1.43;
+      controls.autoRotate = !reducedMotion;
+      controls.autoRotateSpeed = .3;
+      controls.update();
+
+      const hemi = new THREE.HemisphereLight(0xb9c9ff, 0x1d2440, 2.25);
+      scene.add(hemi);
+      const sun = new THREE.DirectionalLight(0xffc993, 3.7);
+      sun.position.set(-20, 34, 26);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(compact ? 1024 : 2048, compact ? 1024 : 2048);
+      Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 100 });
+      sun.shadow.bias = -.00025;
+      sun.shadow.normalBias = .03;
+      sun.shadow.camera.updateProjectionMatrix();
+      scene.add(sun);
+      const rim = new THREE.DirectionalLight(0x9a7cff, 1.2);
+      rim.position.set(24, 18, -30);
+      scene.add(rim);
+
+      const root = new THREE.Group();
+      root.rotation.y = -.08;
+      scene.add(root);
+
+      const cube = new THREE.BoxGeometry(1, 1, 1);
+      const batches = new Map();
+      const mats = {
+        ground: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .93 }),
+        cliff: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }),
+        stone: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .96 }),
+        wood: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .74 }),
+        roof: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5, metalness: .08 }),
+        foliage: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .88 }),
+        blossom: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .8 }),
+        sand: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }),
+        cloud: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: .2, depthWrite: false }),
+        glow: new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+        translucent: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .28, transparent: true, opacity: .68, depthWrite: false })
+      };
+      const styleFlags = {
+        ground: [false, true], cliff: [false, true], stone: [true, true], wood: [true, true], roof: [true, true],
+        foliage: [!compact, true], blossom: [false, true], sand: [false, true], cloud: [false, false], glow: [false, false], translucent: [false, false]
+      };
+
+      function voxel(style, x, y, z, sx = 1, sy = 1, sz = 1, color = '#ffffff', rx = 0, ry = 0, rz = 0) {
+        if (!batches.has(style)) batches.set(style, []);
+        batches.get(style).push({ x, y, z, sx, sy, sz, color, rx, ry, rz });
+      }
+
+      function voxelLine(style, a, b, width, color, step = .55) {
+        const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        const count = Math.max(2, Math.ceil(Math.hypot(dx, dy, dz) / step));
+        for (let i = 0; i <= count; i++) {
+          const t = i / count;
+          voxel(style, lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t), width, width, width, color);
+        }
+      }
+
+      function buildIsland() {
+        const waterMask = (x, z) => Math.pow((x - 8) / 7.8, 2) + Math.pow((z - 2) / 5.8, 2) < 1;
+        for (let x = -19; x <= 19; x += 1.08) {
+          for (let z = -14.5; z <= 14.5; z += 1.08) {
+            const d = Math.pow(x / 20.2, 2) + Math.pow(z / 15.3, 2);
+            if (d > 1 || rand() < Math.max(0, d - .84) * 1.1) continue;
+            const top = -.06 + Math.sin(x * .42) * .07 + Math.cos(z * .38) * .06;
+            const depth = 1.2 + (1 - d) * 3.4 + rand() * 1.8;
+            voxel('cliff', x, top - depth / 2 - .25, z, 1.02, depth, 1.02, d > .78 ? pick(palette.rock) : pick(palette.soil));
+            if (!waterMask(x, z)) {
+              voxel('ground', x, top, z, 1.02, .34, 1.02, pick(palette.grass));
+              if (rand() < .08) voxel('foliage', x + (rand() - .5) * .4, top + .28, z + (rand() - .5) * .4, .38, .2, .38, pick(palette.moss));
+            } else {
+              voxel('stone', x, -.55, z, 1.03, .45, 1.03, pick(['#33445f','#3d526b','#496477']));
+            }
+          }
+        }
+
+        for (let i = 0; i < 25; i++) {
+          const a = rand() * Math.PI * 2;
+          const x = Math.cos(a) * (17 + rand() * 2.4);
+          const z = Math.sin(a) * (12.8 + rand() * 1.5);
+          voxel('foliage', x, -.1 - rand() * 1.4, z, .45 + rand() * .6, .25, .45 + rand() * .6, pick(palette.moss));
+        }
+
+        for (let i = 0; i < 12; i++) {
+          const x = -15 + i * 2.3;
+          const z = 13.8 - i * 1.03 + Math.sin(i * .8) * 1.3;
+          voxel('stone', x, .38, z, 1.45, .3, 1.05, pick(palette.rock), 0, (rand() - .5) * .25, 0);
+        }
+
+        for (let i = 0; i < 17; i++) {
+          const a = i / 17 * Math.PI * 2;
+          const x = 8 + Math.cos(a) * (7.9 + rand() * .3);
+          const z = 2 + Math.sin(a) * (5.9 + rand() * .3);
+          voxel('stone', x, .18, z, .8 + rand() * .65, .48 + rand() * .4, .8 + rand() * .65, pick(palette.rock), 0, rand() * Math.PI, 0);
+        }
+
+        for (let i = 0; i < 9; i++) {
+          const x = 17.4 + (i % 3) * .55;
+          const z = -4.6 + Math.floor(i / 3) * .6;
+          voxel('translucent', x, -3.4, z, .48, 7.2 + rand() * 1.2, .48, pick(palette.water));
+        }
+        for (let i = 0; i < 18; i++) voxel('cloud', 18 + (rand() - .5) * 5, -7.3 + rand() * 2.1, -4 + (rand() - .5) * 4, 1.2 + rand() * 2, .35 + rand() * .5, 1 + rand() * 1.8, '#c8d5ef');
+
+        for (let i = 0; i < 10; i++) {
+          const x = -18 + rand() * 36, z = -12 + rand() * 24;
+          if (Math.pow((x - 8) / 8, 2) + Math.pow((z - 2) / 6, 2) < 1.3) continue;
+          voxel('glow', x, -2.2 - rand() * 3.2, z, .2 + rand() * .28, .7 + rand() * 1.5, .2 + rand() * .28, pick(['#5de6d4','#9a86ff','#ffd46f']), 0, 0, (rand()-.5)*.4);
+        }
+      }
+
+      function buildMountainsMoon() {
+        for (let x = -38; x <= 39; x += 3.2) {
+          const h = 4 + rand() * 8 + (Math.sin(x * .22) + 1) * 2.4;
+          for (let y = -2; y < h; y += 2.2) {
+            const shrink = y * .14;
+            voxel('cloud', x + (rand() - .5), y + 1, -31 - rand() * 4, 3.1 - shrink * .08, 2.3, 3.2, pick(['#4e4f80','#5f5488','#706096']));
+          }
+        }
+        const moon = [-15, 22, -27], radius = 3.7;
+        for (let x = -3; x <= 3; x++) for (let y = -3; y <= 3; y++) for (let z = -3; z <= 3; z++) {
+          const d = Math.hypot(x, y, z);
+          if (d <= radius && d > 2.25 && rand() > .16) voxel('glow', moon[0] + x * .92, moon[1] + y * .92, moon[2] + z * .92, .86, .86, .86, pick(['#ffdca0','#ffe9ba','#fff2ce']));
+        }
+        for (let c = 0; c < 8; c++) {
+          const cx = -28 + rand() * 58, cy = 11 + rand() * 11, cz = -23 - rand() * 9;
+          for (let i = 0; i < 3 + Math.floor(rand() * 4); i++) voxel('cloud', cx + i * 1.9, cy + Math.sin(i) * .35, cz, 2.5 + rand() * 2, .65 + rand() * .6, 1.2 + rand(), '#d4c5e9');
+        }
+      }
+
+      function roofTiles(cx, cz, y, width, depth) {
+        const step = .72;
+        for (let x = -width / 2; x <= width / 2; x += step) {
+          for (let z = -depth / 2; z <= depth / 2; z += step) {
+            const edge = Math.min(1 - Math.abs(x) / (width / 2 + .01), 1 - Math.abs(z) / (depth / 2 + .01));
+            const rise = Math.max(0, edge) * .95;
+            voxel('roof', cx + x, y + rise, cz + z, .68, .18, .68, pick(palette.roof));
+          }
+        }
+        voxel('wood', cx, y - .15, cz - depth / 2, width + .6, .25, .25, '#5a242d');
+        voxel('wood', cx, y - .15, cz + depth / 2, width + .6, .25, .25, '#5a242d');
+        voxel('wood', cx - width / 2, y - .15, cz, .25, .25, depth + .6, '#5a242d');
+        voxel('wood', cx + width / 2, y - .15, cz, .25, .25, depth + .6, '#5a242d');
+        const corners = [[-1,-1],[-1,1],[1,-1],[1,1]];
+        corners.forEach(([sx,sz]) => {
+          voxel('roof', cx + sx * (width / 2 + .42), y + .48, cz + sz * (depth / 2 + .42), .75, .22, .75, '#16717a', 0, 0, sx * .12);
+          voxel('glow', cx + sx * (width / 2 + .5), y + .75, cz + sz * (depth / 2 + .5), .23, .32, .23, '#ffd36f');
+        });
+      }
+
+      function buildPagoda() {
+        const cx = -4.8, cz = -4.2;
+        voxel('stone', cx, .55, cz, 11.8, 1.1, 9.6, '#65697c');
+        voxel('stone', cx, 1.08, cz, 10.8, .3, 8.6, '#8c8e9a');
+        const tiers = [
+          [9.2, 7.1, 2.65], [7.8, 6.1, 2.35], [6.4, 5.2, 2.1], [5.1, 4.3, 1.85], [3.9, 3.4, 1.65]
+        ];
+        let baseY = 1.24;
+        tiers.forEach(([w, d, h], index) => {
+          voxel('wood', cx, baseY, cz, w + .6, .3, d + .6, '#51232b');
+          voxel('sand', cx, baseY + h * .5, cz, w - 1.25, h, d - 1.25, index ? '#e9d6b4' : '#efd9b7');
+          const pillars = [[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1],[-1,0],[1,0]];
+          pillars.forEach(([px,pz]) => voxel('wood', cx + px * (w / 2 - .42), baseY + h / 2, cz + pz * (d / 2 - .42), .38, h + .35, .38, pick(palette.red)));
+          for (let s = -1; s <= 1; s += 2) {
+            voxel('glow', cx - w * .2, baseY + h * .54, cz + s * (d / 2 - .59), w * .22, h * .42, .08, '#ffd47c');
+            voxel('glow', cx + w * .2, baseY + h * .54, cz + s * (d / 2 - .59), w * .22, h * .42, .08, '#ffd47c');
+            voxel('wood', cx, baseY + h * .55, cz + s * (d / 2 - .51), .13, h * .48, .13, '#57232b');
+          }
+          if (index < 4) {
+            const railY = baseY + h + .18;
+            voxel('wood', cx, railY, cz + d / 2 + .33, w + .15, .18, .16, '#8f2f37');
+            voxel('wood', cx, railY, cz - d / 2 - .33, w + .15, .18, .16, '#8f2f37');
+            for (let x = -w / 2; x <= w / 2; x += .82) {
+              voxel('wood', cx + x, railY - .32, cz + d / 2 + .33, .12, .7, .12, '#a93639');
+              voxel('wood', cx + x, railY - .32, cz - d / 2 - .33, .12, .7, .12, '#a93639');
+            }
+          }
+          roofTiles(cx, cz, baseY + h + .58, w + 2.1, d + 2.05);
+          baseY += h + 1.42;
+        });
+        for (let i = 0; i < 7; i++) voxel('glow', cx, baseY + i * .58 - .2, cz, .34 - i * .018, .48, .34 - i * .018, pick(palette.gold));
+        voxel('glow', cx, baseY + 4.0, cz, .22, .78, .22, '#fff0a6');
+
+        voxel('wood', cx, 2.35, cz + 3.38, 2.0, 2.55, .18, '#4d202a');
+        for (let i = 0; i < 5; i++) voxel('wood', cx, .45 + i * .23, cz + 5.3 + i * .47, 3.1 - i * .2, .24, 1.15, '#77798a');
+        [[-1.9, 3.8],[1.9,3.8]].forEach(([dx,dz]) => {
+          voxel('stone', cx+dx,.8,cz+dz,.9,1.15,.9,'#717586');
+          voxel('stone', cx+dx,1.55,cz+dz,.55,.55,.65,'#9697a1');
+        });
+      }
+
+      function blossomCluster(cx, cy, cz, radius, count) {
+        for (let i = 0; i < count; i++) {
+          const a = rand() * Math.PI * 2, u = rand() * 2 - 1, rr = radius * Math.cbrt(rand());
+          const q = Math.sqrt(1 - u * u);
+          const s = .42 + rand() * .48;
+          voxel('blossom', cx + Math.cos(a) * q * rr, cy + u * rr * .72, cz + Math.sin(a) * q * rr, s, s * (.72 + rand() * .45), s, pick(palette.blossom));
+        }
+      }
+
+      function cherryTree(x, z, height, lean = 0) {
+        const base = .3;
+        for (let y = base; y < height; y += .58) voxel('wood', x + lean * y / height, y, z, .55 - y / height * .15, .68, .55 - y / height * .15, pick(['#4e2d34','#5e3438','#713c42']));
+        const crownX = x + lean;
+        const branches = [[-3,1.6,-1.1],[2.7,1.2,.7],[-1.3,2.1,2.1],[1.4,2.3,-2.2],[.1,2.7,.2]];
+        branches.forEach((b, i) => {
+          const start = [crownX, height * .58 + (i % 2) * .4, z];
+          const end = [crownX + b[0], height + b[1], z + b[2]];
+          voxelLine('wood', start, end, .31, '#60343b', .45);
+          blossomCluster(end[0], end[1], end[2], 2.05 + rand() * .75, compact ? 24 : 38);
+        });
+        blossomCluster(crownX, height + 2.4, z, 2.6, compact ? 28 : 48);
+      }
+
+      function pineTree(x, z, height) {
+        voxel('wood', x, height * .48, z, .48, height, .48, '#49352f');
+        for (let y = 2.2; y < height; y += 1.35) {
+          const radius = 2.65 * (1 - y / height) + .9;
+          for (let a = 0; a < Math.PI * 2; a += .65) {
+            const r = radius * (.55 + rand() * .45);
+            voxel('foliage', x + Math.cos(a) * r, y, z + Math.sin(a) * r, 1.15, .55, 1.15, pick(palette.pine), 0, -a, (rand()-.5)*.15);
+          }
+        }
+        voxel('foliage', x, height + .4, z, 1.1, 1.2, 1.1, pick(palette.pine));
+      }
+
+      function bambooGrove(x, z) {
+        for (let i = 0; i < 10; i++) {
+          const bx = x + (rand() - .5) * 3.7, bz = z + (rand() - .5) * 3.4, h = 4.5 + rand() * 4.5;
+          for (let y = .6; y < h; y += .85) {
+            voxel('foliage', bx, y, bz, .2, .72, .2, pick(['#6d9c43','#83b34a','#a1c95a']));
+            voxel('wood', bx, y + .38, bz, .25, .09, .25, '#cccb68');
+            if (rand() < .58) voxel('foliage', bx + (rand()-.5)*.9, y + .3, bz + (rand()-.5)*.9, .65, .12, .2, pick(['#638f3f','#80ad49']), (rand()-.5)*.5, rand()*Math.PI, (rand()-.5)*.8);
+          }
+        }
+      }
+
+      function stoneLantern(x, z, scale = 1) {
+        voxel('stone', x, .22*scale, z, 1.1*scale, .42*scale, 1.1*scale, '#75798a');
+        voxel('stone', x, .95*scale, z, .42*scale, 1.15*scale, .42*scale, '#8a8d98');
+        voxel('stone', x, 1.62*scale, z, 1.05*scale, .2*scale, 1.05*scale, '#777b8b');
+        voxel('glow', x, 1.98*scale, z, .62*scale, .62*scale, .62*scale, '#ffd777');
+        voxel('stone', x, 2.34*scale, z, 1.35*scale, .22*scale, 1.35*scale, '#6a6d7f');
+        voxel('stone', x, 2.58*scale, z, .32*scale, .32*scale, .32*scale, '#8d8e99');
+      }
+
+      function buildGarden() {
+        cherryTree(-14, -1, 6.2, 1.1);
+        cherryTree(-11.5, 8.4, 5.1, -.8);
+        cherryTree(12.8, -7.8, 5.9, -.65);
+        cherryTree(15.1, 7.7, 4.6, .5);
+        pineTree(-16.2, -9.5, 9.2);
+        pineTree(16.1, 10.0, 8.2);
+        pineTree(13.8, -11.5, 6.6);
+        bambooGrove(4.8, -10.2);
+        [[-9,8],[-2,8.5],[3,8.2],[12,10.2],[14,-1],[-12,-9]].forEach(([x,z],i)=>stoneLantern(x,z,i===0?1.05:.82));
+
+        voxel('wood', -1.7, 2.7, 11.1, .55, 5.4, .55, '#bc3d3c');
+        voxel('wood', 2.0, 2.7, 11.1, .55, 5.4, .55, '#bc3d3c');
+        voxel('wood', .15, 5.02, 11.1, 5.25, .5, .55, '#d84b40');
+        voxel('wood', .15, 5.7, 11.1, 6.4, .42, .68, '#a92f36');
+        voxel('roof', .15, 6.05, 11.1, 6.8, .2, .95, '#133e4b');
+        voxel('glow', .15, 4.98, 11.45, .7, .8, .16, '#f0b84f');
+
+        for (let x = -14.8; x <= -8.2; x += .85) for (let z = 4.3; z <= 9.6; z += .85) voxel('sand', x, .18, z, .78, .18, .78, pick(['#c7b69d','#d5c5aa','#bca98f']));
+        for (let i = 0; i < 7; i++) {
+          const z = 4.8 + i * .7;
+          voxel('stone', -11.5 + Math.sin(i*.7)*1.7, .38 + rand()*.25, z, .7+rand()*.8, .6+rand()*.9, .7+rand()*.8, pick(palette.rock), rand(), rand(), rand());
+        }
+
+        for (let i = 0; i < 48; i++) {
+          const x = -18 + rand() * 34, z = -12 + rand() * 24;
+          const pond = Math.pow((x-8)/8.6,2)+Math.pow((z-2)/6.6,2)<1;
+          if (pond || (x > -9 && x < 1 && z > -9 && z < 1)) continue;
+          const c = pick(['#fb727e','#f5a85e','#b890ff','#72d18c','#ffe17a']);
+          voxel('foliage', x, .45, z, .24, .52 + rand()*.45, .24, '#37764e');
+          voxel('blossom', x, .84 + rand()*.25, z, .35, .28, .35, c);
+        }
+      }
+
+      function buildBridgePond() {
+        const cx = 8;
+        for (let i = 0; i <= 18; i++) {
+          const t = i / 18, z = -4 + t * 12, y = .72 + Math.sin(t * Math.PI) * 2.55;
+          const slope = -Math.atan((Math.cos(t * Math.PI) * Math.PI * 2.55) / 12);
+          voxel('wood', cx, y, z, 3.35, .28, .74, i%2 ? '#b83a38' : '#ce493f', slope, 0, 0);
+          [-1.78,1.78].forEach(dx => {
+            if (i % 2 === 0) {
+              voxel('wood', cx+dx, y+.72, z, .22, 1.55, .22, '#ad3438');
+              voxel('glow', cx+dx, y+1.58, z, .3, .25, .3, '#f2b74d');
+            }
+            voxel('wood', cx+dx, y+1.2, z, .2, .2, .82, '#c9413d', slope, 0, 0);
+          });
+        }
+        for (let i = 0; i < 17; i++) {
+          const a = rand() * Math.PI * 2, r = Math.sqrt(rand());
+          const x = 8 + Math.cos(a)*r*6.3, z = 2 + Math.sin(a)*r*4.4;
+          voxel('foliage', x, .47, z, .72+rand()*.42, .1, .72+rand()*.42, pick(['#4e8e54','#66a95d','#85bc62']), 0, rand()*Math.PI, 0);
+          if (rand() < .45) {
+            voxel('blossom', x-.18,.68,z,.32,.16,.32,pick(palette.blossom),0,.5,0);
+            voxel('blossom', x+.18,.68,z,.32,.16,.32,pick(palette.blossom),0,-.5,0);
+          }
+        }
+      }
+
+      function buildTeaHouse() {
+        const x = 13.2, z = -9.3;
+        voxel('stone', x,.38,z,6.2,.7,4.5,'#686b7b');
+        voxel('wood',x,.88,z,5.5,.32,3.8,'#5d2730');
+        [[-2.3,-1.5],[-2.3,1.5],[2.3,-1.5],[2.3,1.5]].forEach(([dx,dz])=>voxel('wood',x+dx,2.4,z+dz,.35,3.4,.35,'#b43a38'));
+        voxel('sand',x,2.3,z,4.5,2.6,3,'#e4d1af');
+        voxel('glow',x,2.4,z+1.53,2.6,1.5,.1,'#ffd477');
+        roofTiles(x,z,4.15,7.0,5.4);
+      }
+
+      buildMountainsMoon();
+      buildIsland();
+      buildPagoda();
+      buildGarden();
+      buildBridgePond();
+      buildTeaHouse();
+
+      const dummy = new THREE.Object3D();
+      for (const [style, items] of batches) {
+        const mesh = new THREE.InstancedMesh(cube, mats[style], items.length);
+        items.forEach((v, i) => {
+          dummy.position.set(v.x, v.y, v.z);
+          dummy.rotation.set(v.rx, v.ry, v.rz);
+          dummy.scale.set(v.sx, v.sy, v.sz);
+          dummy.updateMatrix();
+          mesh.setMatrixAt(i, dummy.matrix);
+          mesh.setColorAt(i, new THREE.Color(v.color));
+        });
+        mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+        mesh.castShadow = styleFlags[style][0];
+        mesh.receiveShadow = styleFlags[style][1];
+        mesh.computeBoundingSphere();
+        root.add(mesh);
+      }
+
+      const waterItems = [];
+      for (let x = 1; x <= 15; x += .9) for (let z = -3.1; z <= 7.1; z += .9) {
+        if (Math.pow((x-8)/7.3,2)+Math.pow((z-2)/5.2,2)<1) waterItems.push({x,z,phase:rand()*Math.PI*2});
+      }
+      const waterMat = new THREE.MeshStandardMaterial({ color: 0x41c6c2, roughness: .2, metalness: .08, transparent: true, opacity: .63, depthWrite: false });
+      const waterMesh = new THREE.InstancedMesh(cube, waterMat, waterItems.length);
+      waterMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      root.add(waterMesh);
+
+      const petalCount = compact ? 85 : 170;
+      const petalGeo = new THREE.BoxGeometry(.32,.08,.18);
+      const petalMat = new THREE.MeshBasicMaterial({ color: 0xff9ec2, toneMapped: false });
+      const petals = new THREE.InstancedMesh(petalGeo, petalMat, petalCount);
+      petals.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      const petalData = Array.from({length:petalCount},()=>({x:-20+rand()*40,y:2+rand()*21,z:-14+rand()*28,speed:.32+rand()*.64,phase:rand()*Math.PI*2,spin:rand()*2}));
+      root.add(petals);
+
+      const koi = [];
+      const koiColors = [0xffeee1,0xef6a3c,0xffd8b4,0xe84d3e,0xffffff];
+      for (let i=0;i<6;i++) {
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(.8,.22,.36), new THREE.MeshStandardMaterial({color:koiColors[i%koiColors.length],roughness:.65}));
+        const patch = new THREE.Mesh(new THREE.BoxGeometry(.26,.24,.38), new THREE.MeshStandardMaterial({color:i%2?0xf05b3b:0x202437,roughness:.65}));
+        patch.position.x = .08;
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(.28,.12,.55), new THREE.MeshStandardMaterial({color:koiColors[i%koiColors.length],roughness:.65}));
+        tail.position.x = -.48; tail.rotation.y = .25;
+        g.add(body,patch,tail); g.userData={angle:rand()*Math.PI*2,radius:1.8+rand()*3.9,speed:.08+rand()*.08,tail,offset:rand()*2};
+        root.add(g); koi.push(g);
+      }
+
+      const flyCount = compact ? 26 : 48;
+      const flyPositions = new Float32Array(flyCount*3);
+      const flyData = [];
+      for(let i=0;i<flyCount;i++) { const f={x:-16+rand()*32,y:1+rand()*8,z:-12+rand()*24,p:rand()*6.28}; flyData.push(f); flyPositions.set([f.x,f.y,f.z],i*3); }
+      const flyGeo = new THREE.BufferGeometry(); flyGeo.setAttribute('position',new THREE.BufferAttribute(flyPositions,3));
+      const fireflies = new THREE.Points(flyGeo,new THREE.PointsMaterial({color:0xffd76e,size:compact?.22:.28,transparent:true,opacity:.92,sizeAttenuation:true,depthWrite:false,toneMapped:false}));
+      root.add(fireflies);
+
+      function updateDynamic(t, dt) {
+        waterItems.forEach((w,i)=>{ dummy.position.set(w.x,.24+Math.sin(t*1.2+w.phase)*.045,w.z); dummy.rotation.set(0,0,0); dummy.scale.set(.84,.12,.84); dummy.updateMatrix(); waterMesh.setMatrixAt(i,dummy.matrix); });
+        waterMesh.instanceMatrix.needsUpdate=true;
+        if (petals.visible) {
+          petalData.forEach((p,i)=>{ p.y-=p.speed*dt; p.x+=Math.sin(t*.55+p.phase)*dt*.18; p.z+=Math.cos(t*.34+p.phase)*dt*.12; if(p.y<-.4){p.y=18+rand()*7;p.x=-20+rand()*40;p.z=-14+rand()*28;} dummy.position.set(p.x,p.y,p.z); dummy.rotation.set(t*p.spin+p.phase,p.phase,t*.7+p.phase); const s=.75+Math.sin(p.phase)*.2; dummy.scale.set(s,s,s); dummy.updateMatrix(); petals.setMatrixAt(i,dummy.matrix); });
+          petals.instanceMatrix.needsUpdate=true;
+        }
+        koi.forEach((g,i)=>{const d=g.userData,a=t*d.speed+d.angle;g.position.set(8+Math.cos(a)*d.radius,.02+Math.sin(t*1.4+i)*.05,2+Math.sin(a)*d.radius*.62);g.rotation.y=-a-Math.PI/2;d.tail.rotation.y=Math.sin(t*4.2+i)*.38;});
+        for(let i=0;i<flyCount;i++){const f=flyData[i];flyPositions[i*3]=f.x+Math.sin(t*.36+f.p)*.65;flyPositions[i*3+1]=f.y+Math.sin(t*.8+f.p)*.32;flyPositions[i*3+2]=f.z+Math.cos(t*.28+f.p)*.55;} flyGeo.attributes.position.needsUpdate=true;
+        waterMat.opacity=.58+Math.sin(t*.7)*.045;
+        petalMat.color.setHSL(.94+Math.sin(t*.1)*.012,.85,.76);
+      }
+      updateDynamic(0, 0);
+
+      const views = {
+        garden: { p:[35,28,40], t:[-1,6.5,0], z:1 },
+        pagoda: { p:[18,18,23], t:[-4.8,9,-4.2], z:1.25 },
+        bridge: { p:[27,13,25], t:[8,2.2,2], z:1.35 },
+        sakura: { p:[-24,13,22], t:[-12,5,1.8], z:1.35 }
+      };
+      let tween = null;
+      function goToView(name) {
+        const v=views[name]; if(!v)return;
+        if(reducedMotion){camera.position.set(...v.p);controls.target.set(...v.t);camera.zoom=v.z;camera.updateProjectionMatrix();controls.update();tween=null;}
+        else tween={start:performance.now(),fromP:camera.position.clone(),toP:new THREE.Vector3(...v.p),fromT:controls.target.clone(),toT:new THREE.Vector3(...v.t),fromZ:camera.zoom,toZ:v.z};
+        document.querySelectorAll('.landmark').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});
+        status.textContent=`Viewing ${name}`;
+      }
+      function updateTween(now) {
+        if(!tween)return;
+        let t=clamp((now-tween.start)/1050,0,1);t=1-Math.pow(1-t,3);
+        camera.position.lerpVectors(tween.fromP,tween.toP,t);controls.target.lerpVectors(tween.fromT,tween.toT,t);camera.zoom=lerp(tween.fromZ,tween.toZ,t);camera.updateProjectionMatrix();
+        if(t>=1)tween=null;
+      }
+
+      const themes = [
+        {label:'Lantern hour',sky:['#090d2a','#352356','#b25f78'],fog:0x3c2d57,sun:0xffc993,hemi:0xb9c9ff,exp:1.08},
+        {label:'Moon garden',sky:['#050a20','#101d44','#283d69'],fog:0x172646,sun:0x94adff,hemi:0x728ee8,exp:.9},
+        {label:'Blossom dawn',sky:['#5a5476','#db8d9b','#f4c690'],fog:0xbc8b96,sun:0xffd1a1,hemi:0xd9d8ff,exp:1.16}
+      ];
+      let themeIndex=0;
+      function setTheme(){const th=themes[themeIndex];document.documentElement.style.setProperty('--sky-top',th.sky[0]);document.documentElement.style.setProperty('--sky-mid',th.sky[1]);document.documentElement.style.setProperty('--sky-low',th.sky[2]);scene.fog.color.setHex(th.fog);sun.color.setHex(th.sun);hemi.color.setHex(th.hemi);renderer.toneMappingExposure=th.exp;document.getElementById('timeLabel').textContent=th.label;status.textContent=`Time changed to ${th.label}`;}
+
+      document.getElementById('timeButton').addEventListener('click',()=>{themeIndex=(themeIndex+1)%themes.length;setTheme();});
+      document.getElementById('petalButton').addEventListener('click',e=>{petals.visible=!petals.visible;e.currentTarget.setAttribute('aria-pressed',String(petals.visible));status.textContent=petals.visible?'Petals drifting':'Petals paused';});
+      const motionButton = document.getElementById('motionButton');
+      motionButton.setAttribute('aria-pressed', String(controls.autoRotate));
+      motionButton.addEventListener('click',e=>{controls.autoRotate=!controls.autoRotate;e.currentTarget.setAttribute('aria-pressed',String(controls.autoRotate));status.textContent=controls.autoRotate?'Camera drift on':'Camera drift off';});
+      document.getElementById('resetButton').addEventListener('click',()=>goToView('garden'));
+      document.getElementById('fullButton').addEventListener('click',()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.();});
+      document.querySelectorAll('.landmark').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.view)));
+      controls.addEventListener('start',()=>{controls.autoRotate=false;document.getElementById('motionButton').setAttribute('aria-pressed','false');});
+      window.addEventListener('keydown',e=>{if(e.target instanceof HTMLElement&&e.target.closest('button,input,select,textarea,a'))return;if(e.key.toLowerCase()==='r')goToView('garden');if(e.key.toLowerCase()==='f')document.getElementById('fullButton').click();if(e.code==='Space'){e.preventDefault();document.getElementById('motionButton').click();}});
+
+      function resize() {
+        const w=innerWidth,h=innerHeight,aspect=w/h;
+        camera.left=-frustum*aspect/2;camera.right=frustum*aspect/2;camera.top=frustum/2;camera.bottom=-frustum/2;camera.updateProjectionMatrix();
+        const dprCap=compact?1.25:1.7,maxPixels=compact?1600000:3400000;
+        const dpr=Math.min(devicePixelRatio||1,dprCap,Math.sqrt(maxPixels/Math.max(1,w*h)));
+        renderer.setPixelRatio(Math.max(.25,dpr));
+        renderer.setSize(w,h,false);
+      }
+      addEventListener('resize',resize,{passive:true});resize();
+
+      renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__HANAMORI_FAIL__('The graphics context was lost. Reload the page to regrow the garden.');});
+      const clock=new THREE.Clock();let elapsed=0;
+      function animate(now){const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;if(!reducedMotion)updateDynamic(elapsed,dt);updateTween(now);controls.update(dt);renderer.render(scene,camera);}
+      renderer.setAnimationLoop(animate);
+      document.addEventListener('visibilitychange',()=>{if(document.hidden)renderer.setAnimationLoop(null);else{clock.getDelta();renderer.setAnimationLoop(animate);}});
+
+      if(renderer.compileAsync) await renderer.compileAsync(scene,camera); else renderer.compile(scene,camera);
+      renderer.render(scene,camera);
+      window.__HANAMORI_READY__=true;
+      window.__HANAMORI_FAILED__=false;
+      clearTimeout(window.__HANAMORI_TIMER__);
+      document.getElementById('fallback').hidden=true;
+      loader.classList.add('done');
+      status.textContent='Lanterns of Hanamori is ready to explore';
+    } catch (error) {
+      console.error(error);
+      window.__HANAMORI_FAIL__('The garden could not start. Check the internet connection for its 3D engine and make sure WebGL hardware acceleration is enabled, then reload.');
+    }
+  </script>
+</body>
+</html>
