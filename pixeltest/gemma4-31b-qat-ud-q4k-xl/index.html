@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Pagoda Garden</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.4);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div id="ui">
+        <h1 style="margin:0; font-size: 32px;">Zen Voxel Garden</h1>
+        <p style="margin:5px 0 0 0; opacity: 0.9;">A peaceful voxel pagoda retreat</p>
+    </div>
+    <div class="controls">
+        <b>Controls:</b> Left Click to Rotate &bull; Right Click to Pan &bull; Scroll to Zoom
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+        import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const VOXEL_SIZE = 1;
+        const PALETTE = {
+            grass: 0x7cfc00,
+            grassDark: 0x55aa00,
+            water: 0x40e0d0,
+            waterDeep: 0x008b8b,
+            pagodaWood: 0x8b4513,
+            pagodaRoof: 0xcc0000,
+            pagodaWall: 0xfffafa,
+            pagodaGold: 0xffd700,
+            leafGreen: 0x228b22,
+            leafLight: 0x32cd32,
+            cherryBlossom: 0xffb7c5,
+            cherryDark: 0xff69b4,
+            stone: 0x808080,
+            stoneLight: 0xa9a9a9,
+            path: 0xdeb887
+        };
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(40, 30, 40);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 5, 0);
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(20, 50, 20);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.left = -50;
+        sunLight.shadow.camera.right = 50;
+        sunLight.shadow.camera.top = 50;
+        sunLight.shadow.camera.bottom = -50;
+        scene.add(sunLight);
+
+        // --- Voxel Engine ---
+        const voxels = [];
+        function addVoxel(x, y, z, color) {
+            voxels.push({ x, y, z, color });
+        }
+
+        // --- World Generation ---
+        
+        // 1. Terrain & Water
+        const worldSize = 60;
+        for (let x = -worldSize/2; x < worldSize/2; x++) {
+            for (let z = -worldSize/2; z < worldSize/2; z++) {
+                const dist = Math.sqrt(x*x + z*z);
+                
+                // Create a custom pond shape
+                const isInPond = (x > 8 && z > 8 && x < 22 && z < 22) || (x < -15 && z < -15 && x < -10 && z < -10);
+                
+                if (isInPond) {
+                    addVoxel(x, 0, z, PALETTE.water);
+                } else if (dist > 28) {
+                    addVoxel(x, 0, z, PALETTE.waterDeep);
+                } else {
+                    const noise = Math.random() > 0.8 ? PALETTE.grassDark : PALETTE.grass;
+                    
+                    // Path to pagoda
+                    const isPath = (Math.abs(x) < 3 && z < 0) || (Math.abs(z) < 3 && x < 0);
+                    if (isPath) {
+                        addVoxel(x, 0, z, PALETTE.path);
+                    } else {
+                        addVoxel(x, 0, z, noise);
+                    }
+                }
+            }
+        }
+
+        // 2. The Pagoda
+        function buildPagodaLayer(baseY, size, height, roofSize) {
+            // Walls
+            for (let y = 0; y < height; y++) {
+                for (let x = -size/2; x <= size/2; x++) {
+                    for (let z = -size/2; z <= size/2; z++) {
+                        if (Math.abs(x) === size/2 || Math.abs(z) === size/2) {
+                            // Corner pillars are wood, walls are white
+                            const isCorner = Math.abs(x) === size/2 && Math.abs(z) === size/2;
+                            addVoxel(x, baseY + y, z, isCorner ? PALETTE.pagodaWood : PALETTE.pagodaWall);
+                        }
+                    }
+                }
+            }
+            // Roof
+            const roofY = baseY + height;
+            for (let r = 0; r < 2; r++) {
+                const currentRoofSize = roofSize - r;
+                for (let x = -currentRoofSize/2; x <= currentRoofSize/2; x++) {
+                    for (let z = -currentRoofSize/2; z <= currentRoofSize/2; z++) {
+                        if (Math.abs(x) === currentRoofSize/2 || Math.abs(z) === currentRoofSize/2 || r === 1) {
+                            addVoxel(x, roofY + r, z, PALETTE.pagodaRoof);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3-Story Pagoda with varying sizes
+        buildPagodaLayer(1, 6, 4, 9);   // Floor 1
+        buildPagodaLayer(6, 4, 3, 7);   // Floor 2
+        buildPagodaLayer(10, 3, 3, 5);  // Floor 3
+        
+        // Pagoda Tip
+        for(let i=0; i<3; i++) addVoxel(0, 14+i, 0, PALETTE.pagodaGold);
+
+        // 3. Trees
+        function buildTree(tx, tz, type) {
+            const trunkHeight = 4 + Math.random() * 3;
+            const leafColor = type === 'cherry' ? PALETTE.cherryBlossom : PALETTE.leafGreen;
+            const leafColor2 = type === 'cherry' ? PALETTE.cherryDark : PALETTE.leafLight;
+
+            // Trunk
+            for (let y = 1; y <= trunkHeight; y++) {
+                addVoxel(tx, y, tz, PALETTE.pagodaWood);
+            }
+
+            // Foliage
+            for (let x = -3; x <= 3; x++) {
+                for (let y = -2; y <= 4; y++) {
+                    for (let z = -3; z <= 3; z++) {
+                        const dist = Math.sqrt(x*x + (y-trunkHeight)*(y-trunkHeight) + z*z);
+                        if (dist < 3.5) {
+                            const color = Math.random() > 0.3 ? leafColor : leafColor2;
+                            addVoxel(tx + x, trunkHeight + y, tz + z, color);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Place variety of trees
+        buildTree(-15, -10, 'green');
+        buildTree(-12, 12, 'cherry');
+        buildTree(12, -15, 'cherry');
+        buildTree(18, 5, 'green');
+        buildTree(-5, 18, 'cherry');
+        buildTree(15, 15, 'green');
+        buildTree(-20, 5, 'cherry');
+
+        // 4. Decorative Elements
+        // Small bridge over water
+        for (let x = 8; x <= 12; x++) {
+            for (let z = 14; z <= 16; z++) {
+                addVoxel(x, 1, z, PALETTE.stoneLight);
+            }
+        }
+
+        // Random garden stones
+        for (let i = 0; i < 20; i++) {
+            const sx = Math.floor(Math.random() * 40) - 20;
+            const sz = Math.floor(Math.random() * 40) - 20;
+            if (Math.abs(sx) > 6 || Math.abs(sz) > 6) {
+                addVoxel(sx, 1, sz, PALETTE.stone);
+            }
+        }
+
+        // --- Mesh Optimization ---
+        const colorsMap = {};
+        voxels.forEach(v => {
+            if (!colorsMap[v.color]) colorsMap[v.color] = [];
+            colorsMap[v.color].push(v);
+        });
+
+        const boxGeo = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+        
+        Object.entries(colorsMap).forEach(([color, instances]) => {
+            const material = new THREE.MeshStandardMaterial({ 
+                color: parseInt(color),
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const iMesh = new THREE.InstancedMesh(boxGeo, material, instances.length);
+            iMesh.castShadow = true;
+            iMesh.receiveShadow = true;
+
+            const dummy = new THREE.Object3D();
+            instances.forEach((v, i) => {
+                dummy.position.set(v.x, v.y + 0.5, v.z);
+                dummy.updateMatrix();
+                iMesh.setMatrixAt(i, dummy.matrix);
+            });
+            scene.add(iMesh);
+        });
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
