@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🌸 Voxel Pagoda Garden</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #info {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-family: 'Georgia', serif; font-size: 13px; color: rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.35); padding: 6px 18px; border-radius: 20px;
+    backdrop-filter: blur(6px); pointer-events: none; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div id="info">🌸 Voxel Pagoda Garden — drag to rotate · scroll to zoom</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─────────────────────────────────────────────
+//  SETUP
+// ─────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(55, 40, 55);
+camera.lookAt(0, 8, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 8, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.maxDistance = 120;
+controls.minDistance = 15;
+controls.maxPolarAngle = Math.PI / 2 + 0.1;
+controls.update();
+
+// ─────────────────────────────────────────────
+//  LIGHTING
+// ─────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0xfff5e8, 0.9);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xfff2d0, 3.5);
+sunLight.position.set(40, 50, 20);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 200;
+sunLight.shadow.camera.left = -70;
+sunLight.shadow.camera.right = 70;
+sunLight.shadow.camera.top = 70;
+sunLight.shadow.camera.bottom = -70;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+
+const fillLight = new THREE.DirectionalLight(0xffd4a0, 0.6);
+fillLight.position.set(-20, 15, -15);
+scene.add(fillLight);
+
+const bounceLight = new THREE.DirectionalLight(0xaaccff, 0.4);
+bounceLight.position.set(0, 5, 30);
+scene.add(bounceLight);
+
+const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x3a5f2a, 0.5);
+scene.add(hemisphereLight);
+
+// ─────────────────────────────────────────────
+//  VOXEL RENDERER  (InstancedMesh for perf)
+// ─────────────────────────────────────────────
+class VoxelWorld {
+  constructor() {
+    this.geometry = new THREE.BoxGeometry(1, 1, 1);
+    this.mesh = null;
+    this.voxels = []; // {x, y, z, r, g, b}
+  }
+
+  add(x, y, z, r, g, b) {
+    this.voxels.push({ x, y, z, r: r / 255, g: g / 255, b: b / 255 });
+  }
+
+  build() {
+    const count = this.voxels.length;
+    if (count === 0) return;
+
+    const material = new THREE.MeshStandardMaterial({
+      vertexColors: false,
+      roughness: 0.75,
+      metalness: 0.05,
+    });
+
+    this.mesh = new THREE.InstancedMesh(this.geometry, material, count);
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+
+    for (let i = 0; i < count; i++) {
+      const v = this.voxels[i];
+      dummy.position.set(v.x, v.y, v.z);
+      dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, dummy.matrix);
+      color.setRGB(v.r, v.g, v.b);
+      this.mesh.setColorAt(i, color);
+    }
+
+    this.mesh.instanceMatrix.needsUpdate = true;
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+    scene.add(this.mesh);
+  }
+}
+
+const W = new VoxelWorld();
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function fillBox(x1, x2, y1, y2, z1, z2, r, g, b) {
+  for (let x = x1; x <= x2; x++)
+    for (let y = y1; y <= y2; y++)
+      for (let z = z1; z <= z2; z++)
+        W.add(x, y, z, r, g, b);
+}
+
+function fillHollowBox(x1, x2, y1, y2, z1, z2, r, g, b) {
+  for (let x = x1; x <= x2; x++)
+    for (let y = y1; y <= y2; y++)
+      for (let z = z1; z <= z2; z++) {
+        const isFace = (x === x1 || x === x2 || y === y1 || y === y2 || z === z1 || z === z2);
+        if (isFace) W.add(x, y, z, r, g, b);
+      }
+}
+
+function addSphere(cx, cy, cz, radius, r, g, b) {
+  for (let x = -radius; x <= radius; x++)
+    for (let y = -radius; y <= radius; y++)
+      for (let z = -radius; z <= radius; z++) {
+        const d = Math.sqrt(x * x + y * y + z * z);
+        if (d <= radius + 0.5) W.add(cx + x, cy + y, cz + z, r, g, b);
+      }
+}
+
+function addEllipsoid(cx, cy, cz, rx, ry, rz, r, g, b) {
+  for (let x = -rx; x <= rx; x++)
+    for (let y = -ry; y <= ry; y++)
+      for (let z = -rz; z <= rz; z++) {
+        const nx = x / rx, ny = y / ry, nz = z / rz;
+        if (nx * nx + ny * ny + nz * nz <= 1) W.add(cx + x, cy + y, cz + z, r, g, b);
+      }
+}
+
+function addCylinder(cx, cz, r, h, yBase, cr, cg, cb) {
+  for (let x = -r; x <= r; x++)
+    for (let z = -r; z <= r; z++)
+      for (let y = yBase; y < yBase + h; y++) {
+        const d = Math.sqrt(x * x + z * z);
+        if (d <= r + 0.3) W.add(cx + x, y, cz + z, cr, cg, cb);
+      }
+}
+
+function addCone(cx, cz, r, h, yBase, cr, cg, cb) {
+  for (let x = -r; x <= r; x++)
+    for (let z = -r; z <= r; z++)
+      for (let y = yBase; y < yBase + h; y++) {
+        const frac = (y - yBase) / h;
+        const radiusAtY = r * (1 - frac) + 0.5;
+        const d = Math.sqrt(x * x + z * z);
+        if (d <= radiusAtY) W.add(cx + x, y, cz + z, cr, cg, cb);
+      }
+}
+
+// ─────────────────────────────────────────────
+//  COLOR PALETTE
+// ─────────────────────────────────────────────
+const C = {
+  grassDark:   [34,  85,  34],
+  grassMid:    [52, 120,  42],
+  grassLight:  [72, 150,  52],
+  grassPale:   [90, 175,  65],
+  dirt:        [120, 90, 50],
+  dirtDark:    [90, 65, 35],
+  stoneDark:   [70, 70, 75],
+  stoneMid:    [110, 110, 115],
+  stoneLight:  [145, 145, 150],
+  stonePale:   [170, 170, 175],
+  woodDark:    [90,  55,  25],
+  woodMid:     [130, 85, 45],
+  woodLight:   [165, 115, 65],
+  woodPale:    [195, 150, 100],
+  goldDark:    [160, 125, 30],
+  goldMid:     [220, 180, 50],
+  goldLight:   [255, 225, 100],
+  goldPale:    [255, 245, 180],
+  redDark:     [160, 25,  20],
+  redMid:      [210, 50,  40],
+  redLight:    [240, 85,  70],
+  redPale:     [255, 150, 140],
+  cherryDark:  [210, 100, 140],
+  cherryMid:   [255, 160, 195],
+  cherryLight: [255, 210, 235],
+  cherryWhite: [255, 245, 255],
+  leafDark:    [30,  80,  30],
+  leafMid:     [45, 120, 40],
+  leafLight:   [65, 165, 55],
+  leafPale:    [90, 210, 75],
+  leafYellow:  [200, 200, 50],
+  mapleRed:    [200, 30,  30],
+  mapleDark:   [140, 20,  20],
+  pineGreen:   [20,  70,  25],
+  pineDark:    [15,  50,  18],
+  bambooGreen: [55, 140, 55],
+  bambooDark:  [35, 95,  35],
+  water:       [40, 100, 180],
+  waterDeep:   [20,  60, 140],
+  waterShall:  [60, 140, 210],
+  skyBlue:     [135, 210, 240],
+  cloudWhite:  [255, 255, 255],
+  toriiRed:    [210, 30,  25],
+  toriiDark:   [140, 20,  15],
+  pathStone:   [190, 180, 165],
+  pathDark:    [150, 140, 125],
+  flowerRed:   [255, 40,  60],
+  flowerPink:  [255, 130, 170],
+  flowerWhite: [255, 255, 240],
+  flowerYellow:[255, 230, 50],
+  flowerPurple:[180, 80, 220],
+  bgMount:     [120, 145, 180],
+  bgMountDark: [85, 110, 145],
+  bark:         [80,  55,  35],
+  barkDark:     [55,  38,  25],
+  pebble:       [160, 155, 145],
+};
+
+// ─────────────────────────────────────────────
+//  TERRAIN
+// ─────────────────────────────────────────────
+function buildTerrain() {
+  // Large green ground with slight undulation
+  for (let x = -40; x <= 40; x++) {
+    for (let z = -40; z <= 40; z++) {
+      const dist = Math.sqrt(x * x + z * z);
+      if (dist > 38) continue; // circular island
+
+      // Subtle height variation
+      const h = Math.sin(x * 0.15) * Math.cos(z * 0.15) * 1.2 + Math.sin(x * 0.4 + z * 0.3) * 0.5;
+      const y = Math.round(h);
+
+      // Color variation based on position
+      let r, g, b;
+      const noise = Math.sin(x * 0.7) * Math.cos(z * 0.7) * 0.5 + 0.5;
+      if (noise < 0.33) {
+        r = C.grassDark[0]; g = C.grassDark[1]; b = C.grassDark[2];
+      } else if (noise < 0.66) {
+        r = C.grassMid[0]; g = C.grassMid[1]; b = C.grassMid[2];
+      } else {
+        r = C.grassLight[0]; g = C.grassLight[1]; b = C.grassLight[2];
+      }
+
+      // Dirt patches
+      const dirtNoise = Math.sin(x * 1.3 + 5) * Math.cos(z * 1.1 + 3);
+      if (dirtNoise > 0.6) {
+        r = C.dirt[0]; g = C.dirt[1]; b = C.dirt[2];
+      }
+
+      // Occasional lighter grass tufts
+      const lightNoise = Math.sin(x * 2.1 - 2) * Math.cos(z * 1.8 + 1);
+      if (lightNoise > 0.75) {
+        r = C.grassPale[0]; g = C.grassPale[1]; b = C.grassPale[2];
+      }
+
+      W.add(x, y, z, r, g, b);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  STONE PATH  (winding paths)
+// ─────────────────────────────────────────────
+function buildPaths() {
+  // Main path from bottom to pagoda
+  const pathPoints = [
+    [0, 1, -30], [0, 1, -25], [1, 1, -20], [2, 1, -15],
+    [1, 1, -10], [0, 1, -5], [0, 1, 0], [-1, 1, 5],
+    [-1, 1, 10], [0, 1, 14]
+  ];
+
+  for (let i = 0; i < pathPoints.length - 1; i++) {
+    const [x1, y, z1] = pathPoints[i];
+    const [x2, _, z2] = pathPoints[i + 1];
+    const steps = Math.max(Math.abs(x2 - x1), Math.abs(z2 - z1));
+    for (let s = 0; s <= steps; s++) {
+      const t = steps === 0 ? 0 : s / steps;
+      const px = Math.round(x1 + (x2 - x1) * t);
+      const pz = Math.round(z1 + (z2 - z1) * t);
+      // 3-wide path
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const noise = Math.sin(px * 3 + pz * 7) * 0.5 + 0.5;
+          if (noise > 0.25) {
+            const r = noise > 0.7 ? C.pathStone[0] : C.pathDark[0];
+            const g = noise > 0.7 ? C.pathStone[1] : C.pathDark[1];
+            const b = noise > 0.7 ? C.pathStone[2] : C.pathDark[2];
+            W.add(px + dx, y, pz + dz, r, g, b);
+          }
+        }
+      }
+    }
+  }
+
+  // Side paths
+  // Left branch
+  for (let z = -15; z <= 5; z++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const nx = -8 + dx;
+      const noise = Math.sin(nx * 5 + z * 3) * 0.5 + 0.5;
+      if (noise > 0.3) {
+        W.add(nx, 1, z, C.pathStone[0], C.pathStone[1], C.pathStone[2]);
+      }
+    }
+  }
+
+  // Right branch
+  for (let z = -10; z <= 10; z++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const nx = 9 + dx;
+      const noise = Math.sin(nx * 5 + z * 3) * 0.5 + 0.5;
+      if (noise > 0.3) {
+        W.add(nx, 1, z, C.pathStone[0], C.pathStone[1], C.pathStone[2]);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  KOI POND
+// ─────────────────────────────────────────────
+function buildPond() {
+  // Stone border
+  const borderPoints = [];
+  for (let a = 0; a < Math.PI * 2; a += 0.25) {
+    const rx = 9 + Math.sin(a * 3) * 1.5 + Math.cos(a * 5) * 0.8;
+    const rz = 12 + Math.cos(a * 2) * 2 + Math.sin(a * 4) * 0.6;
+    borderPoints.push({ x: Math.round(rx), z: Math.round(rz) });
+  }
+
+  // Fill border ring
+  for (let i = 0; i < borderPoints.length; i++) {
+    const curr = borderPoints[i];
+    const next = borderPoints[(i + 1) % borderPoints.length];
+    const steps = Math.max(1, Math.round(Math.sqrt((next.x - curr.x) ** 2 + (next.z - curr.z) ** 2)));
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const px = Math.round(curr.x + (next.x - curr.x) * t);
+      const pz = Math.round(curr.z + (next.z - curr.z) * t);
+      for (let dy = 0; dy < 3; dy++) {
+        const stoneNoise = Math.sin(px * 7 + pz * 11 + dy * 3) * 0.5 + 0.5;
+        if (stoneNoise > 0.3) {
+          const c = stoneNoise > 0.65 ? C.stoneLight : stoneNoise > 0.4 ? C.stoneMid : C.stoneDark;
+          W.add(px, -1 + dy, pz, c[0], c[1], c[2]);
+        }
+      }
+    }
+  }
+
+  // Fill pond interior with water
+  // Use flood-fill-ish approach with bounding box
+  const minX = 1, maxX = 18, minZ = 5, maxZ = 20;
+  const pondCx = 9, pondCz = 12, pondR = 8;
+  for (let x = minX; x <= maxX; x++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      const dx = x - pondCx, dz = z - pondCz;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d < pondR - 1) {
+        // Water
+        const wave = Math.sin(x * 0.5 + z * 0.4) * 0.3 + 0.5;
+        const wc = wave > 0.6 ? C.waterShall : wave > 0.3 ? C.water : C.waterDeep;
+        W.add(x, -1, z, wc[0], wc[1], wc[2]);
+        // Maybe a second water layer slightly lighter
+        if (wave > 0.5) W.add(x, 0, z, C.waterShall[0], C.waterShall[1], C.waterShall[2]);
+      }
+    }
+  }
+
+  // Underwater ground
+  for (let x = minX; x <= maxX; x++) {
+    for (let z = minZ; z <= maxZ; z++) {
+      const dx = x - pondCx, dz = z - pondCz;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d < pondR - 1) {
+        W.add(x, -2, z, C.dirtDark[0], C.dirtDark[1], C.dirtDark[2]);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  BRIDGE  (curved stone bridge over pond)
+// ─────────────────────────────────────────────
+function buildBridge() {
+  // Bridge spans from x=-3 to x=8, z=11, y=-1
+  const bridgeZ = 11;
+  for (let x = -4; x <= 8; x++) {
+    const distFromCenter = Math.abs(x - 2);
+    const archHeight = Math.round(Math.cos((distFromCenter / 6) * Math.PI * 0.5) * 2.5);
+    const baseY = -1 + archHeight;
+
+    // Bridge deck
+    for (let dz = -1; dz <= 1; dz++) {
+      const noise = Math.sin(x * 9 + bridgeZ * 3 + dz * 5) * 0.5 + 0.5;
+      const c = noise > 0.6 ? C.stoneLight : noise > 0.3 ? C.stoneMid : C.stoneDark;
+      W.add(x, baseY, bridgeZ + dz, c[0], c[1], c[2]);
+    }
+
+    // Railings
+    if (x % 2 === 0 || x === -4 || x === 8) {
+      for (let dy = 1; dy <= 3; dy++) {
+        // Left railing
+        W.add(x, baseY + dy, bridgeZ - 2, C.woodMid[0], C.woodMid[1], C.woodMid[2]);
+        // Right railing
+        W.add(x, baseY + dy, bridgeZ + 2, C.woodMid[0], C.woodMid[1], C.woodMid[2]);
+      }
+      // Top rail
+      W.add(x, baseY + 3, bridgeZ - 2, C.woodLight[0], C.woodLight[1], C.woodLight[2]);
+      W.add(x, baseY + 3, bridgeZ + 2, C.woodLight[0], C.woodLight[1], C.woodLight[2]);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PAGODA
+// ─────────────────────────────────────────────
+function buildPagoda() {
+  const cx = 0, cz = -5;
+
+  // Base platform - wide stone foundation
+  fillBox(-6, 6, 0, 1, -9, 0, C.stoneDark[0], C.stoneDark[1], C.stoneDark[2]);
+  // Platform border (golden trim)
+  fillBox(-7, 7, 1, 2, -10, 1, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+  // Golden accent line on platform
+  fillBox(-7, 7, 2, 2, -10, -9, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+
+  // Steps leading up
+  for (let step = 0; step < 4; step++) {
+    const sy = 1 + step;
+    const sx1 = -4 + step, sx2 = 4 - step;
+    const sz = -10 - step;
+    fillBox(sx1, sx2, sy, sy, sz, sz, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+    // Step edge highlight
+    fillBox(sx1, sx2, sy + 1, sy + 1, sz, sz, C.goldDark[0], C.goldDark[1], C.goldDark[2]);
+  }
+
+  // Platform top floor (golden)
+  fillBox(-5, 5, 5, 5, -8, -1, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+
+  // ── Tier 1 (bottom) ──
+  const t1Base = 6;
+  // Walls
+  fillHollowBox(-4, 4, t1Base, t1Base + 3, -7, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  // Inner dark
+  fillBox(-3, 3, t1Base + 1, t1Base + 2, -6, 0, C.redDark[0], C.redDark[1], C.redDark[2]);
+  // Windows / openings (golden lattice)
+  fillBox(-4, -4, t1Base + 1, t1Base + 2, -5, -4, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(4, 4, t1Base + 1, t1Base + 2, -5, -4, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-1, 1, t1Base + 1, t1Base + 2, -7, -7, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  // Door
+  fillBox(-1, 1, t1Base + 1, t1Base + 3, 1, 1, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  // Roof tier 1
+  const r1y = t1Base + 4;
+  // Main roof slab with overhang
+  fillBox(-6, 6, r1y, r1y, -8, 3, C.redDark[0], C.redDark[1], C.redDark[2]);
+  // Roof top surface
+  fillBox(-5, 5, r1y + 1, r1y + 1, -7, 2, C.redMid[0], C.redMid[1], C.redMid[2]);
+  // Roof edge golden trim
+  fillBox(-6, 6, r1y + 1, r1y + 1, -8, -8, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-6, 6, r1y + 1, r1y + 1, 3, 3, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  // Corner ornaments (golden)
+  for (let dx of [-6, 6]) {
+    for (let dz of [-8, 3]) {
+      addCone(dx, dz, 1, 2, r1y + 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+    }
+  }
+  // Ridge ornaments
+  fillBox(-1, 1, r1y + 2, r1y + 3, -6, -5, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+
+  // ── Tier 2 ──
+  const t2Base = r1y + 4;
+  fillHollowBox(-3, 3, t2Base, t2Base + 3, -6, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(-2, 2, t2Base + 1, t2Base + 2, -5, 0, C.redDark[0], C.redDark[1], C.redDark[2]);
+  // Windows
+  fillBox(-3, -3, t2Base + 1, t2Base + 2, -4, -3, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(3, 3, t2Base + 1, t2Base + 2, -4, -3, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-1, 1, t2Base + 1, t2Base + 2, -6, -6, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-1, 1, t2Base + 1, t2Base + 3, 1, 1, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  const r2y = t2Base + 4;
+  fillBox(-5, 5, r2y, r2y, -7, 2, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-4, 4, r2y + 1, r2y + 1, -6, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(-5, 5, r2y + 1, r2y + 1, -7, -7, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-5, 5, r2y + 1, r2y + 1, 2, 2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  for (let dx of [-5, 5]) {
+    for (let dz of [-7, 2]) {
+      addCone(dx, dz, 1, 2, r2y + 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+    }
+  }
+  fillBox(-1, 1, r2y + 2, r2y + 3, -5, -4, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+
+  // ── Tier 3 ──
+  const t3Base = r2y + 4;
+  fillHollowBox(-2, 2, t3Base, t3Base + 3, -5, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(-1, 1, t3Base + 1, t3Base + 2, -4, 0, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-2, -2, t3Base + 1, t3Base + 2, -3, -2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(2, 2, t3Base + 1, t3Base + 2, -3, -2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-1, 1, t3Base + 1, t3Base + 3, 1, 1, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  const r3y = t3Base + 4;
+  fillBox(-4, 4, r3y, r3y, -6, 2, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-3, 3, r3y + 1, r3y + 1, -5, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(-4, 4, r3y + 1, r3y + 1, -6, -6, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-4, 4, r3y + 1, r3y + 1, 2, 2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  for (let dx of [-4, 4]) {
+    for (let dz of [-6, 2]) {
+      addCone(dx, dz, 1, 2, r3y + 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+    }
+  }
+  fillBox(-1, 1, r3y + 2, r3y + 3, -4, -3, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+
+  // ── Tier 4 ──
+  const t4Base = r3y + 4;
+  fillHollowBox(-1, 1, t4Base, t4Base + 3, -4, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(0, 0, t4Base + 1, t4Base + 2, -3, 0, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-1, -1, t4Base + 1, t4Base + 2, -2, -1, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(1, 1, t4Base + 1, t4Base + 2, -2, -1, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(0, 0, t4Base + 1, t4Base + 3, 1, 1, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  const r4y = t4Base + 4;
+  fillBox(-3, 3, r4y, r4y, -5, 2, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-2, 2, r4y + 1, r4y + 1, -4, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(-3, 3, r4y + 1, r4y + 1, -5, -5, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-3, 3, r4y + 1, r4y + 1, 2, 2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  for (let dx of [-3, 3]) {
+    for (let dz of [-5, 2]) {
+      addCone(dx, dz, 1, 2, r4y + 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+    }
+  }
+  fillBox(0, 0, r4y + 2, r4y + 3, -3, -2, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+
+  // ── Tier 5 (spire top) ──
+  const t5Base = r4y + 4;
+  fillBox(-1, 1, t5Base, t5Base + 2, -3, 2, C.redMid[0], C.redMid[1], C.redMid[2]);
+  fillBox(0, 0, t5Base + 1, t5Base + 2, -2, 1, C.redDark[0], C.redDark[1], C.redDark[2]);
+
+  const r5y = t5Base + 3;
+  fillBox(-2, 2, r5y, r5y, -4, 2, C.redDark[0], C.redDark[1], C.redDark[2]);
+  fillBox(-1, 1, r5y + 1, r5y + 1, -3, 1, C.redMid[0], C.redMid[1], C.redMid[2]);
+  for (let dz of [-4, 2]) {
+    W.add(-2, r5y + 1, dz, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+    W.add(2, r5y + 1, dz, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  }
+
+  // Golden spire tip
+  const spireBase = r5y + 2;
+  addCylinder(0, 0, 1, 3, spireBase, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+  addCylinder(0, 0, 1, 1, spireBase + 3, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+  addSphere(0, spireBase + 4, 0, 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+  // Tiny spire spike
+  addCone(0, 0, 0, 2, spireBase + 5, C.goldPale[0], C.goldPale[1], C.goldPale[2]);
+  W.add(0, spireBase + 7, 0, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+
+  // Decorative finials on each roof tier (small golden spheres at corners)
+  const roofYs = [r1y + 2, r2y + 2, r3y + 2, r4y + 2];
+  const roofExtents = [
+    [[-6, 6], [-8, 3]],
+    [[-5, 5], [-7, 2]],
+    [[-4, 4], [-6, 2]],
+    [[-3, 3], [-5, 2]]
+  ];
+  for (let ri = 0; ri < roofYs.length; ri++) {
+    const [xr, zr] = roofExtents[ri];
+    for (let x of [xr[0], xr[1]]) {
+      for (let z of [zr[0], zr[1]]) {
+        addSphere(x, roofYs[ri], z, 1, C.goldLight[0], C.goldLight[1], C.goldLight[2]);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  TORII GATE
+// ─────────────────────────────────────────────
+function buildTorii() {
+  const cx = -18, cz = -18;
+
+  // Two main pillars
+  for (let dy = 0; dy < 16; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const pillarNoise = Math.sin(dx * 3 + dz * 5 + dy * 2) * 0.5 + 0.5;
+        if (pillarNoise > 0.25) {
+          const c = pillarNoise > 0.6 ? C.redLight : pillarNoise > 0.4 ? C.redMid : C.redDark;
+          W.add(cx - 5 + dx, dy, cz + dz, c[0], c[1], c[2]);
+          W.add(cx + 5 + dx, dy, cz + dz, c[0], c[1], c[2]);
+        }
+      }
+    }
+  }
+
+  // Upper crossbeam (kasagi) - curved
+  for (let x = -7; x <= 7; x++) {
+    const curve = Math.abs(x) > 4 ? 1 : 0;
+    for (let dz = -1; dz <= 1; dz++) {
+      const c = Math.abs(x) > 5 ? C.redDark : C.redMid;
+      W.add(cx + x, 16 + curve, cz + dz, c[0], c[1], c[2]);
+    }
+    // Curved ends (nuki style)
+    if (Math.abs(x) === 7) {
+      W.add(cx + x, 17, cz, C.redDark[0], C.redDark[1], C.redDark[2]);
+      W.add(cx + x, 18, cz, C.redDark[0], C.redDark[1], C.redDark[2]);
+    }
+  }
+
+  // Lower crossbeam
+  for (let x = -6; x <= 6; x++) {
+    for (let dz = -1; dz <= 1; dz++) {
+      W.add(cx + x, 12, cz + dz, C.redMid[0], C.redMid[1], C.redMid[2]);
+    }
+  }
+
+  // Small tie beam
+  for (let x = -5; x <= 5; x++) {
+    W.add(cx + x, 14, cz, C.redDark[0], C.redDark[1], C.redDark[2]);
+  }
+
+  // Golden accents on beams
+  fillBox(-7, 7, 16, 16, cz + 2, cz + 2, C.goldMid[0], C.goldMid[1], C.goldMid[2]);
+  fillBox(-6, 6, 12, 12, cz + 2, cz + 2, C.goldDark[0], C.goldDark[1], C.goldDark[2]);
+
+  // Base steps
+  fillBox(-6, 6, 0, 0, cz - 2, cz + 2, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+}
+
+// ─────────────────────────────────────────────
+//  STONE LANTERNS
+// ─────────────────────────────────────────────
+function buildLantern(x, z) {
+  const baseY = 1;
+  // Base pedestal
+  fillBox(x - 1, x + 1, baseY, baseY + 1, z - 1, z + 1, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+  // Post
+  fillBox(x - 1, x + 1, baseY + 2, baseY + 5, z - 1, z + 1, C.stoneLight[0], C.stoneLight[1], C.stoneLight[2]);
+  // Light chamber
+  fillBox(x - 2, x + 2, baseY + 6, baseY + 7, z - 2, z + 2, C.stonePale[0], C.stonePale[1], C.stonePale[2]);
+  // Window openings (dark inside - warm glow)
+  fillBox(x - 1, x + 1, baseY + 6, baseY + 6, z - 1, z - 1, 255, 220, 140);
+  fillBox(x - 1, x + 1, baseY + 6, baseY + 6, z + 1, z + 1, 255, 220, 140);
+  fillBox(x - 1, x - 1, baseY + 6, baseY + 6, z, z, 255, 220, 140);
+  fillBox(x + 1, x + 1, baseY + 6, baseY + 6, z, z, 255, 220, 140);
+  // Roof
+  fillBox(x - 3, x + 3, baseY + 8, baseY + 8, z - 3, z + 3, C.stoneDark[0], C.stoneDark[1], C.stoneDark[2]);
+  fillBox(x - 2, x + 2, baseY + 9, baseY + 9, z - 2, z + 2, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+  // Roof peak
+  addCone(x, z, 1, 2, baseY + 10, C.stoneDark[0], C.stoneDark[1], C.stoneDark[2]);
+  // Finial
+  addSphere(x, baseY + 13, z, 1, C.goldDark[0], C.goldDark[1], C.goldDark[2]);
+}
+
+// ─────────────────────────────────────────────
+//  CHERRY BLOSSOM TREE
+// ─────────────────────────────────────────────
+function buildCherryTree(cx, cz, scale = 1) {
+  const s = scale;
+  const trunkH = Math.round(8 * s);
+
+  // Trunk (curved-ish using offset layers)
+  for (let y = 1; y <= trunkH; y++) {
+    const frac = y / trunkH;
+    const radius = Math.max(1, Math.round(2 * s * (1 - frac * 0.6)));
+    const lean = Math.sin(y * 0.4) * 0.3 * s;
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d <= radius + 0.3) {
+          const barkVar = Math.sin(dx * 5 + dz * 3 + y * 7) * 0.5 + 0.5;
+          const c = barkVar > 0.5 ? C.bark : C.barkDark;
+          W.add(cx + Math.round(dx + lean), y, cz + Math.round(dz), c[0], c[1], c[2]);
+        }
+      }
+    }
+  }
+
+  // Branches extending out
+  const branchY = Math.round(trunkH * 0.6);
+  const branchDirections = [
+    { dx: 1, dz: 0.3 }, { dx: -1, dz: -0.2 }, { dx: 0.2, dz: 1 },
+    { dx: -0.3, dz: -1 }, { dx: 0.8, dz: 0.8 }, { dx: -0.7, dz: -0.9 },
+    { dx: 1.2, dz: -0.5 }, { dx: -1.1, dz: 0.6 }
+  ];
+
+  for (const dir of branchDirections) {
+    const branchLen = Math.round((4 + Math.random() * 3) * s);
+    for (let i = 1; i <= branchLen; i++) {
+      const bx = Math.round(cx + dir.dx * i);
+      const bz = Math.round(cz + dir.dz * i);
+      const by = branchY + Math.round(Math.sin(i * 0.5) * 1.5 * s);
+      const br = Math.max(1, Math.round(1 * s * (1 - i / (branchLen + 2))));
+      for (let dy = -1; dy <= 0; dy++) {
+        W.add(bx, by + dy, bz, C.bark[0], C.bark[1], C.bark[2]);
+      }
+    }
+
+    // Blossom cluster at branch end
+    const endX = Math.round(cx + dir.dx * branchLen);
+    const endZ = Math.round(cz + dir.dz * branchLen);
+    const endY = branchY + Math.round(Math.sin(branchLen * 0.5) * 1.5 * s);
+    addEllipsoid(endX, endY, endZ, Math.round(3 * s), Math.round(2.5 * s), Math.round(3 * s),
+      C.cherryLight[0], C.cherryLight[1], C.cherryLight[2]);
+    // Darker inner
+    addEllipsoid(endX, endY - 1, endZ, Math.round(2 * s), Math.round(1.5 * s), Math.round(2 * s),
+      C.cherryMid[0], C.cherryMid[1], C.cherryMid[2]);
+  }
+
+  // Main canopy - multiple overlapping ellipsoids for fluffy look
+  const canopyY = Math.round(trunkH * 0.75);
+  const canopyOffsets = [
+    { dx: 0, dy: 1, dz: 0, rx: 5, ry: 4, rz: 5 },
+    { dx: 2, dy: 0, dz: 2, rx: 4, ry: 3.5, rz: 4 },
+    { dx: -2, dy: 0.5, dz: -1, rx: 4, ry: 3, rz: 4 },
+    { dx: 1, dy: 0, dz: -2, rx: 3.5, ry: 3, rz: 3.5 },
+    { dx: -1, dy: 0.5, dz: 1.5, rx: 3, ry: 3, rz: 3 },
+  ];
+
+  for (const co of canopyOffsets) {
+    const rx = Math.round(co.rx * s), ry = Math.round(co.ry * s), rz = Math.round(co.rz * s);
+    // Outer cherry blossoms (light pink-white)
+    for (let x = -rx; x <= rx; x++)
+      for (let y = -ry; y <= ry; y++)
+        for (let z = -rz; z <= rz; z++) {
+          const nx = x / rx, ny = y / ry, nz = z / rz;
+          if (nx * nx + ny * ny + nz * nz <= 1) {
+            const varNoise = Math.sin(x * 2.3 + y * 1.7 + z * 2.1) * 0.5 + 0.5;
+            const c = varNoise > 0.7 ? C.cherryWhite : varNoise > 0.4 ? C.cherryLight : C.cherryMid;
+            W.add(cx + co.dx * Math.round(s) + x, canopyY + co.dy * Math.round(s) + y,
+                  cz + co.dz * Math.round(s) + z, c[0], c[1], c[2]);
+          }
+        }
+  }
+
+  // Falling petals (scattered below canopy)
+  for (let i = 0; i < 25 * s; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * 6 * s;
+    const px = Math.round(cx + Math.cos(angle) * dist);
+    const pz = Math.round(cz + Math.sin(angle) * dist);
+    const py = Math.round(canopyY + Math.random() * 4 * s - trunkH * 0.3);
+    const petalNoise = Math.random();
+    const c = petalNoise > 0.5 ? C.cherryLight : C.cherryWhite;
+    W.add(px, Math.max(1, Math.min(py, canopyY + 3)), pz, c[0], c[1], c[2]);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  GREEN TREES  (maple + pine variety)
+// ─────────────────────────────────────────────
+function buildGreenTree(cx, cz, type = 'maple', scale = 1) {
+  const s = scale;
+  const trunkH = Math.round(7 * s);
+
+  // Trunk
+  for (let y = 1; y <= trunkH; y++) {
+    const frac = y / trunkH;
+    const r = Math.max(1, Math.round(2 * s * (1 - frac * 0.5)));
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dz = -r; dz <= r; dz++) {
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d <= r + 0.3) {
+          const barkVar = Math.sin(dx * 5 + dz * 3 + y * 7) * 0.5 + 0.5;
+          const c = barkVar > 0.5 ? C.bark : C.barkDark;
+          W.add(cx + dx, y, cz + dz, c[0], c[1], c[2]);
+        }
+      }
+    }
+  }
+
+  const canopyY = Math.round(trunkH * 0.7);
+
+  if (type === 'maple') {
+    // Maple - round canopy with red-green mix
+    const offsets = [
+      { dx: 0, dy: 1, dz: 0, rx: 4, ry: 3.5, rz: 4 },
+      { dx: 1.5, dy: 0, dz: 1, rx: 3.5, ry: 3, rz: 3.5 },
+      { dx: -1.5, dy: 0.5, dz: -1, rx: 3, ry: 2.5, rz: 3 },
+      { dx: 0.5, dy: 0, dz: -1.5, rx: 3, ry: 2.5, rz: 3 },
+      { dx: -0.5, dy: 0.5, dz: 1, rx: 2.5, ry: 2, rz: 2.5 },
+    ];
+    for (const co of offsets) {
+      const rx = Math.round(co.rx * s), ry = Math.round(co.ry * s), rz = Math.round(co.rz * s);
+      for (let x = -rx; x <= rx; x++)
+        for (let y = -ry; y <= ry; y++)
+          for (let z = -rz; z <= rz; z++) {
+            const nx = x / rx, ny = y / ry, nz = z / rz;
+            if (nx * nx + ny * ny + nz * nz <= 1) {
+              const noise = Math.sin(x * 2.5 + y * 1.5 + z * 2.8) * 0.5 + 0.5;
+              const c = noise > 0.65 ? C.leafYellow :
+                        noise > 0.45 ? C.leafLight :
+                        noise > 0.25 ? C.mapleRed :
+                        noise > 0.15 ? C.mapleDark : C.leafDark;
+              W.add(cx + co.dx * Math.round(s) + x, canopyY + co.dy * Math.round(s) + y,
+                    cz + co.dz * Math.round(s) + z, c[0], c[1], c[2]);
+            }
+          }
+    }
+  } else if (type === 'pine') {
+    // Pine - layered triangular shape
+    for (let layer = 0; layer < 4; layer++) {
+      const ly = canopyY + layer * Math.round(2 * s);
+      const lr = Math.round((5 - layer * 0.8) * s);
+      const lh = Math.round((2 + layer * 0.3) * s);
+      for (let x = -lr; x <= lr; x++)
+        for (let z = -lr; z <= lr; z++)
+          for (let y = ly; y < ly + lh; y++) {
+            const dx = x / (lr + 0.5), dz = z / (lr + 0.5);
+            const fracH = (y - ly) / lh;
+            if (dx * dx + dz * dz <= (1 - fracH * 0.6) * (1 - fracH * 0.6)) {
+              const noise = Math.sin(x * 3 + z * 2 + y * 4) * 0.5 + 0.5;
+              const c = noise > 0.6 ? C.leafPale : noise > 0.3 ? C.pineGreen : C.pineDark;
+              W.add(cx + x, y, cz + z, c[0], c[1], c[2]);
+            }
+          }
+    }
+  } else {
+    // Round tree (generic green)
+    addEllipsoid(cx, canopyY + Math.round(s), cz, Math.round(4 * s), Math.round(4 * s), Math.round(4 * s),
+      C.leafLight[0], C.leafLight[1], C.leafLight[2]);
+    addEllipsoid(cx, canopyY + Math.round(s), cz, Math.round(3 * s), Math.round(3.5 * s), Math.round(3 * s),
+      C.leafMid[0], C.leafMid[1], C.leafMid[2]);
+    addEllipsoid(cx, canopyY + Math.round(s * 1.5), cz, Math.round(2 * s), Math.round(2.5 * s), Math.round(2 * s),
+      C.leafPale[0], C.leafPale[1], C.leafPale[2]);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  BAMBOO GROVE
+// ─────────────────────────────────────────────
+function buildBamboo(x, z, count = 5) {
+  for (let i = 0; i < count; i++) {
+    const bx = x + Math.round((Math.random() - 0.5) * 3);
+    const bz = z + Math.round((Math.random() - 0.5) * 3);
+    const bh = 10 + Math.round(Math.random() * 5);
+
+    // Segmented bamboo stalk
+    for (let y = 1; y <= bh; y++) {
+      const segmentGap = (y % 3 === 0);
+      const r = 1;
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          const d = Math.sqrt(dx * dx + dz * dz);
+          if (d <= r + 0.3) {
+            const c = segmentGap ? C.bambooDark : C.bambooGreen;
+            W.add(bx + dx, y, bz + dz, c[0], c[1], c[2]);
+          }
+        }
+      }
+      // Segment ring
+      if (segmentGap && y < bh) {
+        for (let dz = -r - 1; dz <= r + 1; dz++) {
+          W.add(bx - r - 1, y, bz + dz, C.bambooDark[0], C.bambooDark[1], C.bambooDark[2]);
+          W.add(bx + r + 1, y, bz + dz, C.bambooDark[0], C.bambooDark[1], C.bambooDark[2]);
+        }
+      }
+    }
+
+    // Leaf cluster at top
+    const leafY = bh + 1;
+    for (let l = 0; l < 5; l++) {
+      const la = Math.random() * Math.PI * 2;
+      const ldist = 1 + Math.random() * 2;
+      const lx = Math.round(bx + Math.cos(la) * ldist);
+      const lz = Math.round(bz + Math.sin(la) * ldist);
+      const ly = leafY + Math.round(Math.random() * 2);
+      addEllipsoid(lx, ly, lz, 1, 1, 2, C.leafLight[0], C.leafLight[1], C.leafLight[2]);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  FLOWER BEDS
+// ─────────────────────────────────────────────
+function buildFlowerBed(cx, cz, w, d, flowerType) {
+  // Border
+  fillBox(cx - w, cx + w, 1, 1, cz - d, cz + d, C.pathStone[0], C.pathStone[1], C.pathStone[2]);
+  // Soil
+  fillBox(cx - w + 1, cx + w - 1, 1, 1, cz - d + 1, cz + d - 1, C.darkDirt || C.dirtDark[0], C.dirtDark[1], C.dirtDark[2]);
+
+  // Flowers
+  const flowerColors = {
+    red: C.flowerRed,
+    pink: C.flowerPink,
+    white: C.flowerWhite,
+    yellow: C.flowerYellow,
+    purple: C.flowerPurple,
+    mix: null,
+  };
+
+  const fc = flowerColors[flowerType] || [C.flowerRed, C.flowerPink, C.flowerWhite, C.flowerPurple][Math.floor(Math.random() * 4)];
+  for (let x = cx - w + 1; x <= cx + w - 1; x++) {
+    for (let z = cz - d + 1; z <= cz + d - 1; z++) {
+      const spacingX = Math.abs(x - cx) % 2 === 0;
+      const spacingZ = Math.abs(z - cz) % 2 === 0;
+      if (spacingX && spacingZ) {
+        // Flower
+        W.add(x, 2, z, C.leafDark[0], C.leafDark[1], C.leafDark[2]); // stem base
+        W.add(x, 3, z, fc[0], fc[1], fc[2]); // flower top
+        // Center dot
+        W.add(x, 4, z, C.flowerYellow[0], C.flowerYellow[1], C.flowerYellow[2]);
+      } else if (Math.random() > 0.5) {
+        // Scattered smaller flowers
+        const mixColors = [C.flowerRed, C.flowerPink, C.flowerWhite, C.flowerPurple];
+        const mc = mixColors[Math.floor(Math.random() * mixColors.length)];
+        W.add(x, 2, z, C.leafMid[0], C.leafMid[1], C.leafMid[2]);
+        W.add(x, 3, z, mc[0], mc[1], mc[2]);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ROCKS & BOULDERS
+// ─────────────────────────────────────────────
+function buildRock(x, z, scale = 1) {
+  const s = scale;
+  addEllipsoid(x, 1, z, Math.round(2 * s), Math.round(1.5 * s), Math.round(2 * s),
+    C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+  addEllipsoid(x, 1, z, Math.round(1.5 * s), Math.round(1 * s), Math.round(1.5 * s),
+    C.stoneLight[0], C.stoneLight[1], C.stoneLight[2]);
+  // Shadow side
+  addEllipsoid(x - Math.round(0.5 * s), 1, z - Math.round(0.5 * s),
+    Math.round(1 * s), Math.round(0.8 * s), Math.round(1 * s),
+    C.stoneDark[0], C.stoneDark[1], C.stoneDark[2]);
+}
+
+// ─────────────────────────────────────────────
+//  SMALL DECORATIVE BUSHES
+// ─────────────────────────────────────────────
+function buildBush(x, z, size = 1) {
+  const s = size;
+  addSphere(x, 1 + Math.round(s), z, Math.round(2 * s),
+    C.leafMid[0], C.leafMid[1], C.leafMid[2]);
+  addSphere(x + Math.round(s * 0.8), 1 + Math.round(s * 0.7), z + Math.round(s * 0.5),
+    Math.round(1.5 * s), C.leafLight[0], C.leafLight[1], C.leafLight[2]);
+  addSphere(x - Math.round(s * 0.6), 1 + Math.round(s * 0.6), z - Math.round(s * 0.4),
+    Math.round(1.3 * s), C.leafDark[0], C.leafDark[1], C.leafDark[2]);
+}
+
+// ─────────────────────────────────────────────
+//  BACKGROUND MOUNTAINS
+// ─────────────────────────────────────────────
+function buildMountains() {
+  // Far mountains - large low-poly silhouettes
+  const mountainData = [
+    { cx: -30, cz: -35, rx: 12, rz: 10, h: 15, c: C.bgMount },
+    { cx: -10, cz: -38, rx: 10, rz: 8, h: 18, c: C.bgMountDark },
+    { cx: 10, cz: -36, rx: 11, rz: 9, h: 16, c: C.bgMount },
+    { cx: 30, cz: -34, rx: 13, rz: 11, h: 14, c: C.bgMountDark },
+    { cx: -20, cz: -33, rx: 8, rz: 7, h: 20, c: C.bgMountDark },
+    { cx: 20, cz: -37, rx: 9, rz: 8, h: 17, c: C.bgMount },
+  ];
+
+  for (const m of mountainData) {
+    // Simplified mountain as stacked decreasing ellipsoids
+    for (let layer = 0; layer < 5; layer++) {
+      const layerY = layer * 3;
+      const layerRx = m.rx * (1 - layer * 0.2);
+      const layerRz = m.rz * (1 - layer * 0.2);
+      const c = layer === 0 ? C.bgMountDark :
+                layer === 1 ? C.bgMount :
+                layer === 2 ? C.bgMount : C.bgMount;
+
+      for (let x = -m.rx; x <= m.rx; x++)
+        for (let y = 0; y <= m.h; y++)
+          for (let z = -m.rz; z <= m.rz; z++) {
+            const nx = x / (m.rx + 1), ny = y / (m.h + 1), nz = z / (m.rz + 1);
+            const peakY = 1 - Math.abs(nx) * 0.5 - Math.abs(nz) * 0.5;
+            if (ny <= peakY * (1 - layer * 0.15) && nx * nx + nz * nz <= 1) {
+              const snowLine = m.h * 0.65;
+              if (y > snowLine) {
+                W.add(m.cx + x, -2 + y, m.cz + z, 240, 245, 255);
+              } else {
+                W.add(m.cx + x, -2 + y, m.cz + z, c[0], c[1], c[2]);
+              }
+            }
+          }
+    }
+  }
+
+  // Small foothills
+  for (let x = -35; x <= 35; x += 4) {
+    const h = 3 + Math.sin(x * 0.3) * 2 + Math.cos(x * 0.7) * 1.5;
+    for (let z = -32; z <= -28; z++) {
+      const dx = (x - (-35 + Math.round(x / 4) * 4));
+      if (Math.abs(dx) > 3) continue;
+      const dz = Math.abs(z - (-30));
+      if (dz > h) continue;
+      W.add(x, -2, z, C.grassMid[0], C.grassMid[1], C.grassMid[2]);
+      if (dz > h - 2) {
+        W.add(x, -1, z, C.bgMount[0], C.bgMount[1], C.bgMount[2]);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CLOUDS
+// ─────────────────────────────────────────────
+function buildClouds() {
+  const cloudData = [
+    { cx: -25, cy: 35, cz: -20, rx: 6, ry: 2, rz: 3 },
+    { cx: 15, cy: 38, cz: -25, rx: 5, ry: 2, rz: 2.5 },
+    { cx: -5, cy: 40, cz: -30, rx: 7, ry: 2, rz: 4 },
+    { cx: 30, cy: 36, cz: -15, rx: 4, ry: 1.5, rz: 2 },
+    { cx: -35, cy: 37, cz: -22, rx: 5, ry: 2, rz: 3 },
+    { cx: 10, cy: 42, cz: -28, rx: 6, ry: 2, rz: 3 },
+  ];
+
+  for (const cl of cloudData) {
+    const offsets = [
+      { dx: 0, dy: 0, dz: 0, rx: cl.rx, ry: cl.ry, rz: cl.rz },
+      { dx: cl.rx * 0.5, dy: -0.5, dz: 0, rx: cl.rx * 0.7, ry: cl.ry * 0.8, rz: cl.rz * 0.8 },
+      { dx: -cl.rx * 0.4, dy: -0.3, dz: cl.rz * 0.3, rx: cl.rx * 0.6, ry: cl.ry * 0.7, rz: cl.rz * 0.7 },
+    ];
+    for (const co of offsets) {
+      for (let x = -Math.ceil(co.rx); x <= Math.ceil(co.rx); x++)
+        for (let y = -Math.ceil(co.ry); y <= Math.ceil(co.ry); y++)
+          for (let z = -Math.ceil(co.rz); z <= Math.ceil(co.rz); z++) {
+            const nx = x / (co.rx + 0.5), ny = y / (co.ry + 0.5), nz = z / (co.rz + 0.5);
+            if (nx * nx + ny * ny + nz * nz <= 1) {
+              W.add(cl.cx + Math.round(co.dx + x), cl.cy + Math.round(co.dy + y),
+                    cl.cz + Math.round(co.dz + z), C.cloudWhite[0], C.cloudWhite[1], C.cloudWhite[2]);
+            }
+          }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  WATER LILIES & POND DETAILS
+// ─────────────────────────────────────────────
+function buildPondDetails() {
+  // Water lilies
+  const lilyPositions = [
+    [4, 8], [7, 10], [11, 7], [14, 11], [6, 15], [12, 14], [16, 9], [3, 13]
+  ];
+  for (const [lx, lz] of lilyPositions) {
+    // Lily pad
+    addEllipsoid(lx, 0, lz, 2, 0.3, 2, C.leafDark[0], C.leafDark[1], C.leafDark[2]);
+    // Flower
+    addSphere(lx, 1, lz, 1, C.flowerWhite[0], C.flowerWhite[1], C.flowerWhite[2]);
+    addSphere(lx, 2, lz, 1, C.flowerYellow[0], C.flowerYellow[1], C.flowerYellow[2]);
+  }
+
+  // Koi fish (simple colored voxels)
+  const koiPositions = [
+    { x: 6, z: 10, dir: 1 },
+    { x: 13, z: 8, dir: -1 },
+    { x: 9, z: 14, dir: 0.5 },
+  ];
+  for (const koi of koiPositions) {
+    const kx = koi.x, kz = koi.z;
+    // Body
+    fillBox(kx - 1, kx + 1, -1, -1, kz - 1, kz + 1, 255, 255, 255);
+    // Orange spots
+    W.add(kx - 1, -1, kz - 1, 255, 140, 0);
+    W.add(kx + 1, -1, kz + 1, 255, 100, 0);
+    W.add(kx, -1, kz, 220, 120, 20);
+    // Tail
+    W.add(kx + Math.round(koi.dir * 2), -1, kz - 1, 255, 255, 255);
+    W.add(kx + Math.round(koi.dir * 2), -1, kz + 1, 255, 140, 0);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SCATTERED DECORATIONS
+// ─────────────────────────────────────────────
+function buildScatteredDecorations() {
+  // Various green trees around the garden
+  buildGreenTree(18, 10, 'maple', 1.2);
+  buildGreenTree(22, -15, 'pine', 1.3);
+  buildGreenTree(-22, 5, 'maple', 1);
+  buildGreenTree(-25, -20, 'pine', 1.1);
+  buildGreenTree(25, -25, 'maple', 1.1);
+  buildGreenTree(-18, 18, 'pine', 0.9);
+  buildGreenTree(15, 22, 'maple', 1);
+  buildGreenTree(-30, -10, 'pine', 1.2);
+  buildGreenTree(30, 15, 'maple', 1.3);
+  buildGreenTree(-28, 25, 'pine', 1);
+
+  // Cherry trees at various locations
+  buildCherryTree(-15, 8, 1);
+  buildCherryTree(20, -8, 1.1);
+  buildCherryTree(-25, -28, 0.9);
+  buildCherryTree(28, 20, 1);
+  buildCherryTree(12, 25, 0.8);
+  buildCherryTree(-30, 22, 1.1);
+
+  // Bamboo groves
+  buildBamboo(-15, -22, 6);
+  buildBamboo(25, 0, 5);
+  buildBamboo(-28, 12, 4);
+
+  // Lanterns
+  buildLantern(-9, -3);
+  buildLantern(9, -3);
+  buildLantern(-7, 8);
+  buildLantern(7, 8);
+  buildLantern(-20, -15);
+  buildLantern(20, -20);
+  buildLantern(-12, -25);
+  buildLantern(15, 25);
+
+  // Flower beds
+  buildFlowerBed(14, -14, 2, 1, 'pink');
+  buildFlowerBed(-14, -14, 2, 1, 'red');
+  buildFlowerBed(-14, 16, 2, 1, 'purple');
+  buildFlowerBed(14, 16, 2, 1, 'yellow');
+  buildFlowerBed(0, 20, 3, 1, 'mix');
+  buildFlowerBed(-20, 0, 2, 1, 'white');
+
+  // Rocks
+  buildRock(12, -18, 1);
+  buildRock(-12, -20, 1.2);
+  buildRock(24, -12, 0.8);
+  buildRock(-24, 15, 1.1);
+  buildRock(18, 25, 0.9);
+  buildRock(-18, -25, 1.3);
+  buildRock(5, -22, 0.7);
+  buildRock(-5, 24, 1);
+
+  // Bushes
+  buildBush(10, -10, 1);
+  buildBush(-10, -12, 0.8);
+  buildBush(16, 10, 1.1);
+  buildBush(-16, 12, 0.9);
+  buildBush(22, -22, 1);
+  buildBush(-22, 20, 0.8);
+}
+
+// ─────────────────────────────────────────────
+//  FLOATING CHERRY PETALS (particle effect)
+// ─────────────────────────────────────────────
+function addFloatingPetals() {
+  for (let i = 0; i < 200; i++) {
+    const px = Math.round((Math.random() - 0.5) * 70);
+    const py = Math.round(3 + Math.random() * 25);
+    const pz = Math.round((Math.random() - 0.5) * 70);
+    const noise = Math.random();
+    const c = noise > 0.6 ? C.cherryLight : noise > 0.3 ? C.cherryWhite : C.cherryMid;
+    W.add(px, py, pz, c[0], c[1], c[2]);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SMALL DETAILS
+// ─────────────────────────────────────────────
+function buildSmallDetails() {
+  // Stone stairs with railings near pond
+  // Small shrine/altar near pagoda
+  fillBox(6, 10, 1, 1, -12, -11, C.stoneDark[0], C.stoneDark[1], C.stoneDark[2]);
+  fillBox(7, 9, 2, 3, -12, -11, C.stoneMid[0], C.stoneMid[1], C.stoneMid[2]);
+  fillBox(7, 9, 4, 4, -12, -11, C.woodMid[0], C.woodMid[1], C.woodMid[2]);
+  // Offering box
+  fillBox(7, 9, 5, 6, -12, -11, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  // Small stone arrangement
+  buildRock(5, -14, 0.6);
+  buildRock(6, -13, 0.5);
+  buildRock(4, -13, 0.4);
+
+  // Benches
+  // Bench 1
+  fillBox(11, 15, 1, 1, 3, 3, C.woodMid[0], C.woodMid[1], C.woodMid[2]);
+  fillBox(11, 15, 2, 2, 3, 3, C.woodLight[0], C.woodLight[1], C.woodLight[2]);
+  fillBox(11, 11, 1, 2, 3, 3, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+  fillBox(15, 15, 1, 2, 3, 3, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+
+  // Bench 2
+  fillBox(-15, -11, 1, 1, 3, 3, C.woodMid[0], C.woodMid[1], C.woodMid[2]);
+  fillBox(-15, -11, 2, 2, 3, 3, C.woodLight[0], C.woodLight[1], C.woodLight[2]);
+  fillBox(-15, -15, 1, 2, 3, 3, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+  fillBox(-11, -11, 1, 2, 3, 3, C.woodDark[0], C.woodDark[1], C.woodDark[2]);
+}
+
+// ─────────────────────────────────────────────
+//  BUILD THE ENTIRE SCENE
+// ─────────────────────────────────────────────
+console.log('Building terrain...');
+buildTerrain();
+console.log('Building paths...');
+buildPaths();
+console.log('Building pond...');
+buildPond();
+console.log('Building bridge...');
+buildBridge();
+console.log('Building pagoda...');
+buildPagoda();
+console.log('Building torii gate...');
+buildTorii();
+console.log('Building lanterns...');
+buildLantern(-9, -3);
+buildLantern(9, -3);
+buildLantern(-7, 8);
+buildLantern(7, 8);
+console.log('Building trees...');
+buildCherryTree(-15, 8, 1);
+buildCherryTree(20, -8, 1.1);
+buildCherryTree(-25, -28, 0.9);
+buildCherryTree(28, 20, 1);
+buildCherryTree(12, 25, 0.8);
+buildCherryTree(-30, 22, 1.1);
+buildGreenTree(18, 10, 'maple', 1.2);
+buildGreenTree(22, -15, 'pine', 1.3);
+buildGreenTree(-22, 5, 'maple', 1);
+buildGreenTree(-25, -20, 'pine', 1.1);
+buildGreenTree(25, -25, 'maple', 1.1);
+buildGreenTree(-18, 18, 'pine', 0.9);
+buildGreenTree(15, 22, 'maple', 1);
+buildGreenTree(-30, -10, 'pine', 1.2);
+buildGreenTree(30, 15, 'maple', 1.3);
+buildGreenTree(-28, 25, 'pine', 1);
+console.log('Building bamboo...');
+buildBamboo(-15, -22, 6);
+buildBamboo(25, 0, 5);
+buildBamboo(-28, 12, 4);
+console.log('Building flowers...');
+buildFlowerBed(14, -14, 2, 1, 'pink');
+buildFlowerBed(-14, -14, 2, 1, 'red');
+buildFlowerBed(-14, 16, 2, 1, 'purple');
+buildFlowerBed(14, 16, 2, 1, 'yellow');
+buildFlowerBed(0, 20, 3, 1, 'mix');
+buildFlowerBed(-20, 0, 2, 1, 'white');
+console.log('Building rocks & bushes...');
+buildRock(12, -18, 1); buildRock(-12, -20, 1.2); buildRock(24, -12, 0.8);
+buildRock(-24, 15, 1.1); buildRock(18, 25, 0.9); buildRock(-18, -25, 1.3);
+buildRock(5, -22, 0.7); buildRock(-5, 24, 1);
+buildBush(10, -10, 1); buildBush(-10, -12, 0.8); buildBush(16, 10, 1.1);
+buildBush(-16, 12, 0.9); buildBush(22, -22, 1); buildBush(-22, 20, 0.8);
+console.log('Building pond details...');
+buildPondDetails();
+console.log('Building small details...');
+buildSmallDetails();
+console.log('Building floating petals...');
+addFloatingPetals();
+console.log('Building clouds...');
+buildClouds();
+console.log('Building mountains...');
+buildMountains();
+
+console.log('Building voxel mesh... (this may take a moment)');
+const startTime = performance.now();
+W.build();
+const buildTime = performance.now() - startTime;
+console.log(`Voxel mesh built in ${buildTime.toFixed(1)}ms with ${W.voxels.length} voxels`);
+
+// ─────────────────────────────────────────────
+//  WATER SURFACE PLANE (extra polish)
+// ─────────────────────────────────────────────
+const waterGeo = new THREE.PlaneGeometry(18, 16, 1, 1);
+waterGeo.rotateX(-Math.PI / 2);
+const waterMat = new THREE.MeshStandardMaterial({
+  color: 0x2a6abf,
+  roughness: 0.2,
+  metalness: 0.1,
+  transparent: true,
+  opacity: 0.5,
+});
+const waterPlane = new THREE.Mesh(waterGeo, waterMat);
+waterPlane.position.set(9, -0.5, 12);
+waterPlane.receiveShadow = true;
+scene.add(waterPlane);
+
+// ─────────────────────────────────────────────
+//  ANIMATION LOOP
+// ─────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const time = clock.getElapsedTime();
+
+  // Gentle water shimmer
+  waterPlane.position.y = -0.5 + Math.sin(time * 0.8) * 0.1;
+
+  // Slow camera auto-rotation (very subtle)
+  // controls.autoRotate = true;
+  // controls.autoRotateSpeed = 0.3;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ─────────────────────────────────────────────
+//  RESIZE HANDLER
+// ─────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+console.log('🌸 Scene ready! Drag to rotate, scroll to zoom.');
+</script>
+</body>
+</html>
