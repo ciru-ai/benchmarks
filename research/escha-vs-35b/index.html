@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2-bit Escha W2 vs the Local 35B Quality Field | Ciru Inference Lab</title>
+  <meta name="description" content="Interactive local quality research showing how 2-bit-class Escha W2 compares with higher-quant 35B runs across HermesAgent-20, coding, and tool use.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root { color-scheme: dark; --bg:#080808; --bg2:#111114; --panel:rgba(15,16,19,.94); --panel2:rgba(23,24,29,.96); --line:rgba(255,255,255,.13); --line2:rgba(255,255,255,.26); --text:#f7f7f4; --muted:#a8adb7; --subtle:#767d8a; --amd:#ed1c24; --red:#ff4e5f; --orange:#ff9f43; --yellow:#f6c046; --green:#20d1a2; --cyan:#39d0ff; --blue:#78a8ff; --violet:#c994ff; --shadow:0 24px 70px rgba(0,0,0,.46); --radius:8px; --max:1640px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; color:var(--text); font-family:"Space Grotesk",system-ui,sans-serif; line-height:1.5; background:linear-gradient(120deg,rgba(237,28,36,.2),transparent 29%),linear-gradient(300deg,rgba(57,208,255,.11),transparent 32%),repeating-linear-gradient(135deg,rgba(255,255,255,.034) 0 1px,transparent 1px 20px),linear-gradient(180deg,#090809 0%,#111115 45%,#080808 100%); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(237,28,36,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px); background-size:36px 36px; opacity:.34; mask-image:linear-gradient(180deg,rgba(0,0,0,.76),transparent 84%); }
+    a { color:var(--cyan); text-decoration:none; } a:hover,a:focus-visible { color:#fff; text-decoration:underline; }
+    header,main,.footer { width:min(calc(100% - 28px),var(--max)); margin-inline:auto; position:relative; z-index:1; }
+    header { margin-top:6px; border:1px solid var(--line); border-radius:10px; background:linear-gradient(120deg,rgba(237,28,36,.22),transparent 36%),linear-gradient(180deg,rgba(28,28,31,.96),rgba(9,9,10,.93)); box-shadow:var(--shadow); overflow:hidden; }
+    header::before { content:""; position:absolute; inset:0; pointer-events:none; border-top:3px solid var(--amd); background:linear-gradient(90deg,rgba(237,28,36,.16),transparent 50%),repeating-linear-gradient(90deg,transparent 0 28px,rgba(255,255,255,.04) 28px 29px); }
+    header>* { position:relative; z-index:1; }
+    .brand-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px 0; }
+    .brand-lockup { display:inline-flex; align-items:center; gap:12px; color:var(--text); text-decoration:none; }
+    .logo-plate { display:grid; place-items:center; width:42px; height:42px; border:1px solid rgba(237,28,36,.32); border-radius:8px; background:linear-gradient(135deg,rgba(237,28,36,.16),rgba(57,208,255,.06)),rgba(0,0,0,.26); overflow:hidden; }
+    .logo-plate img { width:100%; height:100%; object-fit:contain; transform:scale(1.2); }
+    .brand-title { display:block; font-weight:800; text-transform:uppercase; line-height:1.05; }
+    .brand-subtitle,.mono { font-family:"IBM Plex Mono",ui-monospace,monospace; } .brand-subtitle { display:block; color:var(--muted); font-size:.72rem; margin-top:4px; }
+    .button,nav a { border:1px solid rgba(57,208,255,.32); border-radius:8px; background:rgba(57,208,255,.08); color:#e9f7ff; padding:8px 11px; font:700 .75rem "IBM Plex Mono",monospace; text-transform:uppercase; text-decoration:none; white-space:nowrap; }
+    .button:hover,nav a:hover { border-color:rgba(57,208,255,.72); color:#fff; text-decoration:none; }
+    .hero { padding:30px 20px 25px; }
+    .kicker { color:#ff7863; font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:.72rem; margin:0 0 10px; }
+    h1 { margin:0; max-width:1200px; font-size:clamp(2.1rem,5.4vw,5.2rem); line-height:.92; letter-spacing:-.045em; text-transform:uppercase; }
+    .subtitle { max-width:1040px; margin:18px 0 0; color:#c6c9cf; font-size:1.08rem; }
+    .meta-row,.tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+    .tag { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,.04); padding:5px 8px; color:var(--muted); font:700 .68rem "IBM Plex Mono",monospace; text-transform:uppercase; }
+    .tag.red { border-color:rgba(237,28,36,.45); color:#ff8a8f; background:rgba(237,28,36,.1); } .tag.cyan { border-color:rgba(57,208,255,.38); color:#b9efff; background:rgba(57,208,255,.08); } .tag.green { border-color:rgba(32,209,162,.4); color:#8ff0d5; background:rgba(32,209,162,.08); } .tag.warn { border-color:rgba(255,159,67,.45); color:#ffc388; background:rgba(255,159,67,.08); }
+    nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+    main { padding:26px 0 52px; }
+    section { margin:0 0 20px; padding:22px; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow); }
+    h2 { margin:0 0 8px; font-size:clamp(1.25rem,2.4vw,1.65rem); line-height:1.16; text-transform:uppercase; } h3 { margin:0 0 10px; font-size:1.05rem; }
+    .section-intro { margin:0 0 18px; max-width:1050px; color:var(--muted); }
+    .stats { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; }
+    .stat { border:1px solid var(--line); border-radius:8px; background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018)),var(--panel2); padding:15px; min-height:118px; }
+    .stat b { display:block; color:var(--cyan); font:700 clamp(1.35rem,2.3vw,2rem) "IBM Plex Mono",monospace; line-height:1.05; } .stat.escha b { color:#ff6f73; } .stat span { display:block; margin-top:8px; color:var(--muted); font-size:.82rem; } .stat small { display:block; margin-top:5px; color:var(--subtle); font:500 .66rem "IBM Plex Mono",monospace; }
+    .callout { margin-top:16px; border:1px solid rgba(57,208,255,.24); border-left:5px solid var(--cyan); border-radius:8px; background:rgba(57,208,255,.08); padding:15px 18px; } .callout.warning { border-color:rgba(255,159,67,.25); border-left-color:var(--orange); background:rgba(255,159,67,.08); } .callout.good { border-color:rgba(32,209,162,.25); border-left-color:var(--green); background:rgba(32,209,162,.08); } .callout p { margin:0; }
+    .chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .chart-panel { min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.2); padding:10px; }
+    .chart-panel.full { grid-column:1/-1; }
+    .echarts-root>div { max-width:100%; }
+    .score-strip { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:9px; margin-bottom:14px; } .score-chip { border:1px solid var(--line); background:rgba(255,255,255,.035); border-radius:7px; padding:12px; } .score-chip b { display:block; font:700 1.25rem "IBM Plex Mono",monospace; color:var(--cyan); } .score-chip.escha b { color:#ff6f73; } .score-chip span { color:var(--muted); font-size:.76rem; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; } .tab { appearance:none; border:1px solid var(--line); border-radius:6px; padding:8px 10px; background:rgba(255,255,255,.04); color:var(--muted); font:700 .72rem "IBM Plex Mono",monospace; cursor:pointer; text-transform:uppercase; } .tab.active { border-color:rgba(57,208,255,.55); color:#fff; background:rgba(57,208,255,.12); }
+    .tab-panel { display:none; } .tab-panel.active { display:block; }
+    .table-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; }
+    input,select { min-height:38px; border:1px solid var(--line); border-radius:6px; background:#0d0e10; color:var(--text); padding:8px 10px; font:500 .78rem "IBM Plex Mono",monospace; } input { min-width:min(430px,100%); flex:1; }
+    .table-wrap { max-height:720px; overflow:auto; border:1px solid var(--line); border-radius:7px; }
+    table { width:100%; border-collapse:separate; border-spacing:0; background:rgba(0,0,0,.18); font-size:.78rem; }
+    th,td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; } th { position:sticky; top:0; z-index:2; background:#202126; color:var(--text); text-transform:uppercase; font:700 .67rem "IBM Plex Mono",monospace; letter-spacing:.035em; } td:last-child,th:last-child { border-right:0; } tr:last-child td { border-bottom:0; } tbody tr:hover { background:rgba(57,208,255,.045); }
+    td small { display:block; max-width:440px; color:var(--subtle); margin-top:3px; overflow-wrap:anywhere; } .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; } .score { color:#9beaff; font-weight:700; } .source { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--subtle); } .quant { display:inline-block; color:#e9f7ff; border-bottom:1px dotted rgba(57,208,255,.5); }
+    .method-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .method { border:1px solid var(--line); border-radius:7px; padding:14px; background:rgba(255,255,255,.025); } .method p { margin:0; color:var(--muted); font-size:.84rem; }
+    code { font-family:"IBM Plex Mono",monospace; color:#b9efff; overflow-wrap:anywhere; } .empty { color:var(--muted); padding:30px; text-align:center; }
+    .footer { padding:0 0 32px; color:var(--subtle); font:500 .72rem "IBM Plex Mono",monospace; }
+    @media (max-width:1180px) { .stats,.score-strip { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:850px) { .chart-grid,.method-grid { grid-template-columns:1fr; } .chart-panel.full { grid-column:auto; } .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:560px) { header,main,.footer { width:min(calc(100% - 16px),var(--max)); } .hero,.brand-row,section { padding-left:14px; padding-right:14px; } h1 { font-size:2.15rem; } .stats,.score-strip { grid-template-columns:1fr; } .brand-row { flex-direction:column; } .button { width:100%; text-align:center; } .table-tools>* { width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <a class="brand-lockup" href="../"><span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span><span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span></a>
+      <a class="button" href="../">Research Index</a>
+    </div>
+    <div class="hero">
+      <p class="kicker">Crown Citadel Research Report</p>
+      <h1>2-bit Escha, high-quant quality</h1>
+      <p class="subtitle">How EschaMoE W2 preserves serious 35B quality against substantially higher local quants. Every discoverable quality result stays tied to its suite, quant, and protocol—without cross-machine speed or wall-time comparisons.</p>
+      <div class="meta-row"><span class="tag red">2-bit-class EschaMoE W2</span><span class="tag cyan">Qwen3.6 35B-A3B</span><span class="tag green">Quality comparison only</span><span class="tag warn">Qualified local result</span><span class="tag">Updated 2026-08-03</span></div>
+      <nav aria-label="Report sections"><a href="#readout">Readout</a><a href="#hermes">HermesAgent-20</a><a href="#coding">Coding</a><a href="#quality-ledger">Quality Ledger</a><a href="#method">Method</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="readout">
+      <h2>Executive readout</h2>
+      <p class="section-intro">The result is quality density. Escha’s 2-bit-class W2 format leads the local 35B HermesAgent field and stays within a few percentage points of the best higher-quant coding runs.</p>
+      <div class="stats">
+        <div class="stat escha"><b>2-bit W2</b><span>Expert quant core</span><small>2b gate/up · 3b down · INT8 dense</small></div>
+        <div class="stat escha"><b>90 / 100</b><span>HermesAgent-20</span><small>rank #1 of 31 full quality runs</small></div>
+        <div class="stat"><b>90.9%</b><span>HumanEval+ plus</span><small>2.4 pp from local best</small></div>
+        <div class="stat"><b>75.7%</b><span>MBPP+ plus</span><small>286/378 · 2.4 pp from local best</small></div>
+        <div class="stat"><b>29.73%</b><span>BigCodeBench Hard</span><small>44/148 · 2.0 pp from local best</small></div>
+        <div class="stat"><b>87 / 100</b><span>Tool Eval · 69</span><small>80/100 on the 15-task hard set</small></div>
+      </div>
+      <div class="callout good"><p><strong>Bottom line.</strong> A 2-bit-class Escha model posts the best local 35B HermesAgent-20 score, while landing only 2.4 points behind the best HumanEval+ result, 2.4 behind the best MBPP+ result, and 2.0 behind the best comparable BigCodeBench Hard result. That is the meaningful story: unusually high retained quality at W2.</p></div>
+      <div class="callout warning"><p><strong>Qualification.</strong> The Hermes score is a real completed 20-scenario result, but HA-14 and HA-15 used a verifier branch that did not preserve <code>agent-result.json</code>; the five-suite campaign also carries explicit evaluator caveats. These rows are shown in red and are not represented as quality-store-imported records.</p></div>
+    </section>
+
+    <section id="hermes">
+      <h2>HermesAgent-20</h2>
+      <p class="section-intro">Complete 20-scenario quality runs only. Documented harness-invalid imports and one-case smokes are excluded from the headline, while all 54 aggregate records remain searchable in the ledger.</p>
+      <div class="chart-grid"><div class="chart-panel full echarts-root"><!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Awesome-pyecharts</title>
+                <script type="text/javascript" src="https://assets.pyecharts.org/assets/v5/echarts.min.js"></script>
+
+    
+</head>
+<body >
+    <div id="hermes_score_chart" class="chart-container" style="width:100%; height:963px; "></div>
+    <script>
+        var chart_hermes_score_chart = echarts.init(
+            document.getElementById('hermes_score_chart'), 'dark', {renderer: 'canvas'});
+        var option_hermes_score_chart = {
+    "backgroundColor": "rgba(0,0,0,0)",
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 500,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "Score",
+            "legendHoverLink": true,
+            "data": [
+                65.0,
+                68.0,
+                69.0,
+                70.0,
+                71.0,
+                73.0,
+                73.0,
+                74.0,
+                76.0,
+                77.0,
+                77.0,
+                78.0,
+                78.0,
+                79.0,
+                79.0,
+                79.0,
+                79.0,
+                80.0,
+                81.0,
+                82.0,
+                82.0,
+                82.0,
+                83.0,
+                83.0,
+                83.0,
+                84.0,
+                85.0,
+                87.0,
+                88.0,
+                88.0,
+                90.0
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "36%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "right",
+                "margin": 8,
+                "formatter": "{c}",
+                "valueAnimation": false
+            },
+            "markLine": {
+                "silent": false,
+                "precision": 2,
+                "label": {
+                    "show": true,
+                    "margin": 8,
+                    "valueAnimation": false
+                },
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "dashed",
+                    "color": "#ed1c24"
+                },
+                "data": [
+                    {
+                        "name": "Escha",
+                        "xAxis": 90
+                    }
+                ]
+            },
+            "itemStyle": {
+                "color": function(p){return [30].includes(p.dataIndex)?'#ed1c24':'#39d0ff';},
+                "borderRadius": [
+                    0,
+                    3,
+                    3,
+                    0
+                ]
+            },
+            "rippleEffect": {
+                "show": true,
+                "brushType": "stroke",
+                "scale": 2.5,
+                "period": 4
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "Score"
+            ],
+            "selected": {},
+            "show": false,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "axis",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "shadow"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "formatter": function(p){let d=p[0];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100';},
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#a8adb7",
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "min": 0,
+            "max": 100,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid",
+                    "color": "rgba(255,255,255,.11)"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "yAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#f7f7f4",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "Chadrock v2 \u00b7 ROCmFPX MoEQuality 7.07 BPW",
+                "Qwen3.6 35B \u00b7 Q8",
+                "Qwen3.6 35B \u00b7 Q8",
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Unsloth Qwen3.6 \u00b7 Q6_K_XL",
+                "Chadrock \u00b7 Strix Lean mixed quant",
+                "Chadrock \u00b7 ROCmFP4",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "H29-B / Qwen3.6 \u00b7 H29-B UltraQuality",
+                "Chadrock \u00b7 ROCmFP4",
+                "Chadrock \u00b7 ROCmFP4",
+                "Dynamic Strix \u00b7 Dynamic mixed quant",
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP",
+                "Chadrock \u00b7 ROCmFP4",
+                "Chadrock \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "Chadrock v2 \u00b7 ROCmFPX MoEQuality 7.07 BPW",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Ornith 1.0 \u00b7 Q4_K_M",
+                "Chadrock v2 \u00b7 ROCmFPX MoEQuality 7.07 BPW",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP",
+                "Ornith 1.0 \u00b7 Q8",
+                "Ornith 1.0 \u00b7 Q7S8 hybrid",
+                "Escha W2 \u00b7 Escha W2 / hybrid 2\u20133b + INT8"
+            ]
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "HermesAgent-20 \u00b7 local 35B quality",
+            "target": "blank",
+            "subtext": "Complete 20-scenario runs; documented harness-invalid imports and one-case smokes stay out of the headline",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "color": "#f7f7f4"
+            },
+            "subtextStyle": {
+                "color": "#a8adb7"
+            }
+        }
+    ],
+    "toolbox": {
+        "show": true,
+        "orient": "horizontal",
+        "itemSize": 15,
+        "itemGap": 10,
+        "left": "80%",
+        "feature": {
+            "saveAsImage": {
+                "title": "Save PNG",
+                "backgroundColor": "#080808"
+            },
+            "restore": {
+                "title": "Reset"
+            },
+            "dataView": {
+                "title": "Data",
+                "readOnly": true
+            }
+        }
+    },
+    "grid": {
+        "left": "25%",
+        "right": "9%",
+        "top": 88,
+        "bottom": 46,
+        "containLabel": false
+    }
+};
+        chart_hermes_score_chart.setOption(option_hermes_score_chart);
+            window.addEventListener('resize', function(){
+                chart_hermes_score_chart.resize();
+            })
+    </script>
+</body>
+</html>
+</div></div>
+      <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best full local result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever the durable model/profile metadata makes it identifiable.</p></div>
+    </section>
+
+    <section id="coding">
+      <h2>Coding and tool use</h2>
+      <p class="section-intro">Each benchmark keeps its own protocol and denominator. Repeated local runs stay visible; cross-suite scores are never averaged into a synthetic “quality” number.</p>
+      <div class="score-strip">
+        <div class="score-chip escha"><b>87 / 100</b><span>Tool Eval · 69</span></div><div class="score-chip escha"><b>80 / 100</b><span>Tool Eval hard · 15</span></div><div class="score-chip"><b>95.1%</b><span>HumanEval base</span></div><div class="score-chip"><b>90.9%</b><span>HumanEval plus</span></div><div class="score-chip"><b>75.7%</b><span>MBPP plus</span></div><div class="score-chip"><b>29.73%</b><span>BigCode Hard</span></div>
+      </div>
+      <div class="tabs" data-tabs="coding"><button class="tab active" data-tab="humaneval">HumanEval+</button><button class="tab" data-tab="mbpp">MBPP+</button><button class="tab" data-tab="bigcode">BigCodeBench</button></div>
+      <div class="tab-panel active echarts-root" data-panel="humaneval"><!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Awesome-pyecharts</title>
+                <script type="text/javascript" src="https://assets.pyecharts.org/assets/v5/echarts.min.js"></script>
+
+    
+</head>
+<body >
+    <div id="humaneval_chart" class="chart-container" style="width:100%; height:702px; "></div>
+    <script>
+        var chart_humaneval_chart = echarts.init(
+            document.getElementById('humaneval_chart'), 'dark', {renderer: 'canvas'});
+        var option_humaneval_chart = {
+    "backgroundColor": "rgba(0,0,0,0)",
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 500,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "Score",
+            "legendHoverLink": true,
+            "data": [
+                85.9756,
+                86.5854,
+                87.1951,
+                89.0244,
+                89.0244,
+                89.0244,
+                89.0244,
+                90.2439,
+                90.2439,
+                90.2439,
+                90.853659,
+                90.8537,
+                90.8537,
+                90.8537,
+                90.8537,
+                90.8537,
+                91.4634,
+                91.4634,
+                91.4634,
+                91.4634,
+                91.4634,
+                93.2927
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "36%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "right",
+                "margin": 8,
+                "formatter": "{c}",
+                "valueAnimation": false
+            },
+            "markLine": {
+                "silent": false,
+                "precision": 2,
+                "label": {
+                    "show": true,
+                    "margin": 8,
+                    "valueAnimation": false
+                },
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "dashed",
+                    "color": "#ed1c24"
+                },
+                "data": [
+                    {
+                        "name": "Escha",
+                        "xAxis": 90
+                    }
+                ]
+            },
+            "itemStyle": {
+                "color": function(p){return [10].includes(p.dataIndex)?'#ed1c24':'#39d0ff';},
+                "borderRadius": [
+                    0,
+                    3,
+                    3,
+                    0
+                ]
+            },
+            "rippleEffect": {
+                "show": true,
+                "brushType": "stroke",
+                "scale": 2.5,
+                "period": 4
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "Score"
+            ],
+            "selected": {},
+            "show": false,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "axis",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "shadow"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "formatter": function(p){let d=p[0];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100';},
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#a8adb7",
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "min": 0,
+            "max": 100,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid",
+                    "color": "rgba(255,255,255,.11)"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "yAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#f7f7f4",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "Qwopus 3.6 \u00b7 Q5_K_M",
+                "Qwopus 3.6 \u00b7 Q4_K_M",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFPX MoEQuality 7.07 BPW",
+                "Escha W2 \u00b7 hybrid 2\u20133b + INT8",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock \u00b7 Strix Lean mixed quant",
+                "Chadrock \u00b7 Strix Lean mixed quant",
+                "H29-B / Qwen3.6 \u00b7 ROCmFPX H29-B UQ / Q6_0",
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP",
+                "Chadrock \u00b7 Strix Lean mixed quant",
+                "H29-B / Qwen3.6 \u00b7 ROCmFPX H29-B UQ / Q6_0",
+                "H29-B / Qwen3.6 \u00b7 ROCmFPX H29-B UQ / Q6_0",
+                "Unsloth Qwen3.6 \u00b7 Q6_K_XL",
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP"
+            ]
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "HumanEval+ \u00b7 local 35B runs",
+            "target": "blank",
+            "subtext": "EvalPlus plus pass@1; repeated runs remain visible",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "color": "#f7f7f4"
+            },
+            "subtextStyle": {
+                "color": "#a8adb7"
+            }
+        }
+    ],
+    "toolbox": {
+        "show": true,
+        "orient": "horizontal",
+        "itemSize": 15,
+        "itemGap": 10,
+        "left": "80%",
+        "feature": {
+            "saveAsImage": {
+                "title": "Save PNG",
+                "backgroundColor": "#080808"
+            },
+            "restore": {
+                "title": "Reset"
+            },
+            "dataView": {
+                "title": "Data",
+                "readOnly": true
+            }
+        }
+    },
+    "grid": {
+        "left": "25%",
+        "right": "9%",
+        "top": 88,
+        "bottom": 46,
+        "containLabel": false
+    }
+};
+        chart_humaneval_chart.setOption(option_humaneval_chart);
+            window.addEventListener('resize', function(){
+                chart_humaneval_chart.resize();
+            })
+    </script>
+</body>
+</html>
+</div>
+      <div class="tab-panel echarts-root" data-panel="mbpp"><!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Awesome-pyecharts</title>
+                <script type="text/javascript" src="https://assets.pyecharts.org/assets/v5/echarts.min.js"></script>
+
+    
+</head>
+<body >
+    <div id="mbpp_chart" class="chart-container" style="width:100%; height:430px; "></div>
+    <script>
+        var chart_mbpp_chart = echarts.init(
+            document.getElementById('mbpp_chart'), 'dark', {renderer: 'canvas'});
+        var option_mbpp_chart = {
+    "backgroundColor": "rgba(0,0,0,0)",
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 500,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "Score",
+            "legendHoverLink": true,
+            "data": [
+                74.8677,
+                74.8677,
+                74.8677,
+                75.3968,
+                75.661376,
+                76.7196,
+                76.9841,
+                77.2487,
+                77.5132,
+                78.0423
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "36%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "right",
+                "margin": 8,
+                "formatter": "{c}",
+                "valueAnimation": false
+            },
+            "markLine": {
+                "silent": false,
+                "precision": 2,
+                "label": {
+                    "show": true,
+                    "margin": 8,
+                    "valueAnimation": false
+                },
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "dashed",
+                    "color": "#ed1c24"
+                },
+                "data": [
+                    {
+                        "name": "Escha",
+                        "xAxis": 90
+                    }
+                ]
+            },
+            "itemStyle": {
+                "color": function(p){return [4].includes(p.dataIndex)?'#ed1c24':'#39d0ff';},
+                "borderRadius": [
+                    0,
+                    3,
+                    3,
+                    0
+                ]
+            },
+            "rippleEffect": {
+                "show": true,
+                "brushType": "stroke",
+                "scale": 2.5,
+                "period": 4
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "Score"
+            ],
+            "selected": {},
+            "show": false,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "axis",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "shadow"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "formatter": function(p){let d=p[0];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100';},
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#a8adb7",
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "min": 0,
+            "max": 100,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid",
+                    "color": "rgba(255,255,255,.11)"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "yAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#f7f7f4",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Qwopus 3.6 \u00b7 Q5_K_M",
+                "Qwopus 3.6 \u00b7 Q4_K_M",
+                "Escha W2 \u00b7 hybrid 2\u20133b + INT8",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "H29-B / Qwen3.6 \u00b7 ROCmFPX H29-B UQ / Q6_0",
+                "Unsloth Qwen3.6 \u00b7 Q6_K_XL",
+                "H29-B / Qwen3.6 \u00b7 ROCmFPX H29-B UQ / Q6_0"
+            ]
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "MBPP+ \u00b7 local 35B runs",
+            "target": "blank",
+            "subtext": "EvalPlus plus pass@1; Escha appears after preserved-first-sample scoring",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "color": "#f7f7f4"
+            },
+            "subtextStyle": {
+                "color": "#a8adb7"
+            }
+        }
+    ],
+    "toolbox": {
+        "show": true,
+        "orient": "horizontal",
+        "itemSize": 15,
+        "itemGap": 10,
+        "left": "80%",
+        "feature": {
+            "saveAsImage": {
+                "title": "Save PNG",
+                "backgroundColor": "#080808"
+            },
+            "restore": {
+                "title": "Reset"
+            },
+            "dataView": {
+                "title": "Data",
+                "readOnly": true
+            }
+        }
+    },
+    "grid": {
+        "left": "25%",
+        "right": "9%",
+        "top": 88,
+        "bottom": 46,
+        "containLabel": false
+    }
+};
+        chart_mbpp_chart.setOption(option_mbpp_chart);
+            window.addEventListener('resize', function(){
+                chart_mbpp_chart.resize();
+            })
+    </script>
+</body>
+</html>
+</div>
+      <div class="tab-panel echarts-root" data-panel="bigcode"><!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Awesome-pyecharts</title>
+                <script type="text/javascript" src="https://assets.pyecharts.org/assets/v5/echarts.min.js"></script>
+
+    
+</head>
+<body >
+    <div id="bigcode_chart" class="chart-container" style="width:100%; height:430px; "></div>
+    <script>
+        var chart_bigcode_chart = echarts.init(
+            document.getElementById('bigcode_chart'), 'dark', {renderer: 'canvas'});
+        var option_bigcode_chart = {
+    "backgroundColor": "rgba(0,0,0,0)",
+    "animation": true,
+    "animationThreshold": 2000,
+    "animationDuration": 500,
+    "animationEasing": "cubicOut",
+    "animationDelay": 0,
+    "animationDurationUpdate": 300,
+    "animationEasingUpdate": "cubicOut",
+    "animationDelayUpdate": 0,
+    "aria": {
+        "enabled": false
+    },
+    "series": [
+        {
+            "type": "bar",
+            "name": "Score",
+            "legendHoverLink": true,
+            "data": [
+                27.7027,
+                27.7027,
+                29.0541,
+                29.72973,
+                30.4054,
+                31.7568
+            ],
+            "realtimeSort": false,
+            "showBackground": false,
+            "stackStrategy": "samesign",
+            "cursor": "pointer",
+            "barMinHeight": 0,
+            "barCategoryGap": "36%",
+            "barGap": "30%",
+            "large": false,
+            "largeThreshold": 400,
+            "seriesLayoutBy": "column",
+            "datasetIndex": 0,
+            "clip": true,
+            "zlevel": 0,
+            "z": 2,
+            "label": {
+                "show": true,
+                "position": "right",
+                "margin": 8,
+                "formatter": "{c}",
+                "valueAnimation": false
+            },
+            "markLine": {
+                "silent": false,
+                "precision": 2,
+                "label": {
+                    "show": true,
+                    "margin": 8,
+                    "valueAnimation": false
+                },
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "dashed",
+                    "color": "#ed1c24"
+                },
+                "data": [
+                    {
+                        "name": "Escha",
+                        "xAxis": 90
+                    }
+                ]
+            },
+            "itemStyle": {
+                "color": function(p){return [3].includes(p.dataIndex)?'#ed1c24':'#39d0ff';},
+                "borderRadius": [
+                    0,
+                    3,
+                    3,
+                    0
+                ]
+            },
+            "rippleEffect": {
+                "show": true,
+                "brushType": "stroke",
+                "scale": 2.5,
+                "period": 4
+            }
+        }
+    ],
+    "legend": [
+        {
+            "data": [
+                "Score"
+            ],
+            "selected": {},
+            "show": false,
+            "padding": 5,
+            "itemGap": 10,
+            "itemWidth": 25,
+            "itemHeight": 14,
+            "backgroundColor": "transparent",
+            "borderColor": "#ccc",
+            "borderRadius": 0,
+            "pageButtonItemGap": 5,
+            "pageButtonPosition": "end",
+            "pageFormatter": "{current}/{total}",
+            "pageIconColor": "#2f4554",
+            "pageIconInactiveColor": "#aaa",
+            "pageIconSize": 15,
+            "animationDurationUpdate": 800,
+            "selector": false,
+            "selectorPosition": "auto",
+            "selectorItemGap": 7,
+            "selectorButtonGap": 10
+        }
+    ],
+    "tooltip": {
+        "show": true,
+        "trigger": "axis",
+        "triggerOn": "mousemove|click",
+        "axisPointer": {
+            "type": "shadow"
+        },
+        "showContent": true,
+        "alwaysShowContent": false,
+        "showDelay": 0,
+        "hideDelay": 100,
+        "enterable": false,
+        "confine": false,
+        "appendToBody": false,
+        "transitionDuration": 0.4,
+        "formatter": function(p){let d=p[0];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100';},
+        "textStyle": {
+            "fontSize": 14
+        },
+        "borderWidth": 0,
+        "padding": 5,
+        "order": "seriesAsc"
+    },
+    "xAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#a8adb7",
+                "margin": 8,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "min": 0,
+            "max": 100,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid",
+                    "color": "rgba(255,255,255,.11)"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0
+        }
+    ],
+    "yAxis": [
+        {
+            "show": true,
+            "scale": false,
+            "nameLocation": "end",
+            "nameGap": 15,
+            "gridIndex": 0,
+            "axisLabel": {
+                "show": true,
+                "color": "#f7f7f4",
+                "margin": 8,
+                "fontSize": 10,
+                "valueAnimation": false
+            },
+            "inverse": false,
+            "offset": 0,
+            "splitNumber": 5,
+            "minInterval": 0,
+            "splitLine": {
+                "show": true,
+                "lineStyle": {
+                    "show": true,
+                    "width": 1,
+                    "opacity": 1,
+                    "curveness": 0,
+                    "type": "solid"
+                }
+            },
+            "animation": true,
+            "animationThreshold": 2000,
+            "animationDuration": 1000,
+            "animationEasing": "cubicOut",
+            "animationDelay": 0,
+            "animationDurationUpdate": 300,
+            "animationEasingUpdate": "cubicOut",
+            "animationDelayUpdate": 0,
+            "data": [
+                "Ornith 1.0 \u00b7 DualView FPX7 + Q8 MTP",
+                "Ornith 1.0 \u00b7 Q4_K_M",
+                "Crown Halo Dynamic \u00b7 Dynamic mixed quant",
+                "Escha W2 \u00b7 hybrid 2\u20133b + INT8",
+                "Chadrock v2 \u00b7 ROCmFP4",
+                "Chadrock v2 \u00b7 ROCmFP4"
+            ]
+        }
+    ],
+    "title": [
+        {
+            "show": true,
+            "text": "BigCodeBench Hard Instruct \u00b7 local 35B runs",
+            "target": "blank",
+            "subtext": "Pass@1; full 1,140-task Qwopus Instruct run is a different suite and stays in the ledger",
+            "subtarget": "blank",
+            "padding": 5,
+            "itemGap": 10,
+            "textAlign": "auto",
+            "textVerticalAlign": "auto",
+            "triggerEvent": false,
+            "textStyle": {
+                "color": "#f7f7f4"
+            },
+            "subtextStyle": {
+                "color": "#a8adb7"
+            }
+        }
+    ],
+    "toolbox": {
+        "show": true,
+        "orient": "horizontal",
+        "itemSize": 15,
+        "itemGap": 10,
+        "left": "80%",
+        "feature": {
+            "saveAsImage": {
+                "title": "Save PNG",
+                "backgroundColor": "#080808"
+            },
+            "restore": {
+                "title": "Reset"
+            },
+            "dataView": {
+                "title": "Data",
+                "readOnly": true
+            }
+        }
+    },
+    "grid": {
+        "left": "25%",
+        "right": "9%",
+        "top": 88,
+        "bottom": 46,
+        "containLabel": false
+    }
+};
+        chart_bigcode_chart.setOption(option_bigcode_chart);
+            window.addEventListener('resize', function(){
+                chart_bigcode_chart.resize();
+            })
+    </script>
+</body>
+</html>
+</div>
+      <div class="callout warning"><p><strong>MBPP scoring is complete.</strong> MBPP+: 90.7% base / 75.7% plus. Mbpp/84 remains a preserved failure. No samples were regenerated or retried.</p></div>
+    </section>
+
+    <section id="quality-ledger">
+      <h2>Complete 35B quality ledger</h2>
+      <p class="section-intro">De-duplicated run-level aggregate, dataset, and manifest rows from the verified quality store, plus the explicitly labeled Escha observations. Search model, quant, suite, run ID, or path.</p>
+      <div class="table-tools"><input id="quality-search" type="search" placeholder="Search quality rows…"><select id="quality-family"><option value="">All families</option><option value='bfcl'>bfcl</option><option value='bigcodebench'>bigcodebench</option><option value='evalplus'>evalplus</option><option value='hermesagent-20'>hermesagent-20</option><option value='livecodebench'>livecodebench</option><option value='tool-eval-bench'>tool-eval-bench</option><option value='tool_eval_bench'>tool_eval_bench</option><option value='unknown'>unknown</option></select><span class="tag cyan" id="quality-count"></span></div>
+      <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Model / profile</th><th>Quant</th><th class="num">Tasks</th><th class="num">Score</th><th>Run</th></tr></thead><tbody><tr data-family='evalplus' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='dataset'><td class='mono'>20260702T2</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-cap2-vision2…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='runs/20260702T203820Z-quick-coding-test-small/raw/evalplus/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-cap2-vision256k/humaneval/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-cap2-vision256k_openai_temp_0_eval_results.json'>20260702T203820Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>20260702T2</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-cap2-vision2…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T203820Z-quick-coding-test-small/outputs/evalplus/chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-7.07bpw-cap2-vision256k-summary.json'>20260702T203820Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='Q6_K_XL' data-kind='dataset'><td class='mono'>20260702T1</td><td>evalplus</td><td>mbpp</td><td><b>Unsloth Qwen3.6</b><small>unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16</small></td><td><span class='quant'>Q6_K_XL</span></td><td class='num'>378</td><td class='num score'>77.51</td><td class='mono source' title='runs/20260702T162334Z-stock-unsloth-q6-draftkv16-vulkan-mbpp-64k/raw/evalplus/mbpp/unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16_openai_temp_0_eval_results.json'>20260702T162334Z-stock-unsloth-…</td></tr><tr data-family='evalplus' data-quant='Q6_K_XL' data-kind='aggregate'><td class='mono'>20260702T1</td><td>evalplus</td><td>aggregate</td><td><b>Unsloth Qwen3.6</b><small>unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16</small></td><td><span class='quant'>Q6_K_XL</span></td><td class='num'>378</td><td class='num score'>77.51</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T162334Z-stock-unsloth-q6-draftkv16-vulkan-mbpp-64k/outputs/evalplus/unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16-summary.json'>20260702T162334Z-stock-unsloth-…</td></tr><tr data-family='evalplus' data-quant='Q6_K_XL' data-kind='dataset'><td class='mono'>20260702T1</td><td>evalplus</td><td>humaneval</td><td><b>Unsloth Qwen3.6</b><small>unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16</small></td><td><span class='quant'>Q6_K_XL</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='runs/20260702T160107Z-stock-unsloth-q6-draftkv16-vulkan-humaneval-64k/raw/evalplus/humaneval/unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16_openai_temp_0_eval_results.json'>20260702T160107Z-stock-unsloth-…</td></tr><tr data-family='evalplus' data-quant='Q6_K_XL' data-kind='aggregate'><td class='mono'>20260702T1</td><td>evalplus</td><td>aggregate</td><td><b>Unsloth Qwen3.6</b><small>unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16</small></td><td><span class='quant'>Q6_K_XL</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T160107Z-stock-unsloth-q6-draftkv16-vulkan-humaneval-64k/outputs/evalplus/unsloth-qwen36-35b-q6-k-xl-vanilla-vulkan-draftkv16-summary.json'>20260702T160107Z-stock-unsloth-…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='dataset'><td class='mono'>20260702T0</td><td>evalplus</td><td>mbpp</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>378</td><td class='num score'>77.25</td><td class='mono source' title='runs/20260702T054412Z-h29b-draftkv16-rocm-mbpp-64k/raw/evalplus/h29b-uq-draftkv16/mbpp/h29b-uq-draftkv16_openai_temp_0_eval_results.json'>20260702T054412Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='aggregate'><td class='mono'>20260702T0</td><td>evalplus</td><td>aggregate</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>378</td><td class='num score'>77.25</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T054412Z-h29b-draftkv16-rocm-mbpp-64k/outputs/evalplus/h29b-uq-draftkv16-summary.json'>20260702T054412Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='dataset'><td class='mono'>20260702T0</td><td>evalplus</td><td>mbpp</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16-vulkan</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>378</td><td class='num score'>78.04</td><td class='mono source' title='runs/20260702T051916Z-h29b-draftkv16-vulkan-mbpp-64k/raw/evalplus/h29b-uq-draftkv16-vulkan/mbpp/h29b-uq-draftkv16-vulkan_openai_temp_0_eval_results.json'>20260702T051916Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='aggregate'><td class='mono'>20260702T0</td><td>evalplus</td><td>aggregate</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16-vulkan</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>378</td><td class='num score'>78.04</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T051916Z-h29b-draftkv16-vulkan-mbpp-64k/outputs/evalplus/h29b-uq-draftkv16-vulkan-summary.json'>20260702T051916Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='dataset'><td class='mono'>20260702T0</td><td>evalplus</td><td>humaneval</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16-vulkan</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='runs/20260702T050414Z-h29b-draftkv16-vulkan-humaneval-64k/raw/evalplus/h29b-uq-draftkv16-vulkan/humaneval/h29b-uq-draftkv16-vulkan_openai_temp_0_eval_results.json'>20260702T050414Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='aggregate'><td class='mono'>20260702T0</td><td>evalplus</td><td>aggregate</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16-vulkan</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T050414Z-h29b-draftkv16-vulkan-humaneval-64k/outputs/evalplus/h29b-uq-draftkv16-vulkan-summary.json'>20260702T050414Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='dataset'><td class='mono'>20260702T0</td><td>evalplus</td><td>humaneval</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='runs/20260702T044746Z-h29b-draftkv16-rocm-humaneval-64k/raw/evalplus/h29b-uq-draftkv16/humaneval/h29b-uq-draftkv16_openai_temp_0_eval_results.json'>20260702T044746Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='aggregate'><td class='mono'>20260702T0</td><td>evalplus</td><td>aggregate</td><td><b>H29-B / Qwen3.6</b><small>h29b-uq-draftkv16</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T044746Z-h29b-draftkv16-rocm-humaneval-64k/outputs/evalplus/h29b-uq-draftkv16-summary.json'>20260702T044746Z-h29b-draftkv16…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='dataset'><td class='mono'>20260702T0</td><td>evalplus</td><td>humaneval</td><td><b>H29-B / Qwen3.6</b><small>h29b-mtp-rocm-64k</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='runs/20260702T012412Z-h29b-mtp-rocm-64k-evalplus-humaneval-64k/raw/evalplus/h29b-mtp-rocm-64k/humaneval/h29b-mtp-rocm-64k_openai_temp_0_eval_results.json'>20260702T012412Z-h29b-mtp-rocm-…</td></tr><tr data-family='evalplus' data-quant='ROCmFPX H29-B UQ / Q6_0' data-kind='aggregate'><td class='mono'>20260702T0</td><td>evalplus</td><td>aggregate</td><td><b>H29-B / Qwen3.6</b><small>h29b-mtp-rocm-64k</small></td><td><span class='quant'>ROCmFPX H29-B UQ / Q6_0</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260702T012412Z-h29b-mtp-rocm-64k-evalplus-humaneval-64k/outputs/evalplus/h29b-mtp-rocm-64k-summary.json'>20260702T012412Z-h29b-mtp-rocm-…</td></tr><tr data-family='evalplus' data-quant='Q4_K_M' data-kind='dataset'><td class='mono'>20260629T2</td><td>evalplus</td><td>humaneval</td><td><b>Qwopus 3.6</b><small>qwopus36-q4-eval-frogger-256k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>164</td><td class='num score'>86.59</td><td class='mono source' title='runs/20260629T211845Z-qwopus-q4-frogger-temp06/outputs/evalplus/humaneval/qwopus36-q4-eval-frogger-256k_openai_temp_0.6_eval_results.json'>20260629T211845Z-qwopus-q4-frog…</td></tr><tr data-family='evalplus' data-quant='Q4_K_M' data-kind='dataset'><td class='mono'>20260629T2</td><td>evalplus</td><td>mbpp</td><td><b>Qwopus 3.6</b><small>qwopus36-q4-eval-frogger-256k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>378</td><td class='num score'>75.40</td><td class='mono source' title='runs/20260629T211845Z-qwopus-q4-frogger-temp06/outputs/evalplus/mbpp/qwopus36-q4-eval-frogger-256k_openai_temp_0.6_eval_results.json'>20260629T211845Z-qwopus-q4-frog…</td></tr><tr data-family='evalplus' data-quant='Q4_K_M' data-kind='aggregate'><td class='mono'>20260629T2</td><td>evalplus</td><td>aggregate</td><td><b>Qwopus 3.6</b><small>qwopus36-q4-eval-frogger-256k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>542</td><td class='num score'>78.78</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260629T211845Z-qwopus-q4-frogger-temp06/outputs/evalplus/qwopus36-q4-eval-frogger-256k-summary.json'>20260629T211845Z-qwopus-q4-frog…</td></tr><tr data-family='bigcodebench' data-quant='Q4_K_M' data-kind='dataset'><td class='mono'>20260629T2</td><td>bigcodebench</td><td>bigcodebench-instruct-full</td><td><b>Qwopus 3.6</b><small>qwopus36-q4-eval-frogger-256k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>1140</td><td class='num score'>47.81</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260629T211845Z-qwopus-q4-frogger-temp06/outputs/bigcodebench/qwopus36-q4-eval-frogger-256k--main--bigcodebench-instruct--openai-0.6-1-sanitized_calibrated_pass_at_k.json'>20260629T211845Z-qwopus-q4-frog…</td></tr><tr data-family='bigcodebench' data-quant='Q4_K_M' data-kind='dataset'><td class='mono'>20260626T0</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-32k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>148</td><td class='num score'>27.70</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260626T070243Z-full-coding-benchmark-large/outputs/bigcodebench/ornith-1.0-35b-Q4_K_M.gguf--ornith35b-q4km-dunamis-llamacpp-32k-t06topk20-p8--bigcodebench-hard-instruct--openai-0.6-1-sanitized_calibrated_pass_at_k.json'>20260626T070243Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260624T1</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>87.20</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260624T172655Z-chadrockv2-ace-saber-froggeric-humaneval/raw/evalplus/chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template/humaneval/main_openai_temp_0_eval_results.json'>20260624T172655Z-chadrockv2-ace…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260624T1</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>87.20</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260624T172655Z-chadrockv2-ace-saber-froggeric-humaneval/outputs/evalplus/chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template-summary.json'>20260624T172655Z-chadrockv2-ace…</td></tr><tr data-family='bigcodebench' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260620T2</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Chadrock v2</b><small>Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>148</td><td class='num score'>30.41</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T221633Z-full-coding-benchmark-large/outputs/bigcodebench/main--chadrock-v2-qwen36-35b-a3b-nsc-ace-saber-mtp-rocmfp4-strix-lean--bigcodebench-hard-instruct--openai-0-1-sanitized_calibrated_pass_at_k.json'>20260620T221633Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260620T2</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T215857Z-full-benchmark-small/raw/evalplus/Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN/humaneval/main_openai_temp_0_eval_results.json'>20260620T215857Z-full-benchmark…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260620T2</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T215857Z-full-benchmark-small/outputs/evalplus/Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN-summary.json'>20260620T215857Z-full-benchmark…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260620T2</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T213114Z-quick-coding-test-small/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k/humaneval/main_openai_temp_0_eval_results.json'>20260620T213114Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260620T2</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T213114Z-quick-coding-test-small/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k-summary.json'>20260620T213114Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260607T1</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260607T155635Z-quick-coding-test-small/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k/humaneval/main_openai_temp_0_eval_results.json'>20260607T155635Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260607T1</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260607T155635Z-quick-coding-test-small/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k-summary.json'>20260607T155635Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260607T1</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260607T155635Z-quick-coding-test-small/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k/humaneval/main_openai_temp_0_eval_results.json'>20260607T155635Z-quick-coding-t…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260607T1</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.24</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260607T155635Z-quick-coding-test-small/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-d2-quality32k-summary.json'>20260607T155635Z-quick-coding-t…</td></tr><tr data-family='bigcodebench' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260607T0</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Chadrock v2</b><small>qwen3.6-35b-a3b-ace-saber-rocmfp4-vulkan-d2</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>148</td><td class='num score'>31.76</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260607T081458Z-standard-coding-test-medium/outputs/bigcodebench/main--qwen3.6-35b-a3b-ace-saber-rocmfp4-vulkan-d2--bigcodebench-hard-instruct--openai-0-1-sanitized_calibrated_pass_at_k.json'>20260607T081458Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='dataset'><td class='mono'>20260604T0</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/raw/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN/humaneval/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN_openai_temp_0_eval_results.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='aggregate'><td class='mono'>20260604T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/outputs/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN-summary.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='dataset'><td class='mono'>20260604T0</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/raw/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN/humaneval/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN_openai_temp_0_eval_results.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='aggregate'><td class='mono'>20260604T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/outputs/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN-summary.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='dataset'><td class='mono'>20260604T0</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/raw/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN/humaneval/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN_openai_temp_0_eval_results.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='aggregate'><td class='mono'>20260604T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/outputs/evalplus/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN-summary.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260602T0</td><td>evalplus</td><td>mbpp</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>378</td><td class='num score'>76.98</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T043442Z-standard-coding-test-medium/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler/mbpp/main_openai_temp_0.7_eval_results.json'>20260602T043442Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260602T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>378</td><td class='num score'>76.98</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T043442Z-standard-coding-test-medium/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler-summary.json'>20260602T043442Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260602T0</td><td>evalplus</td><td>mbpp</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>378</td><td class='num score'>76.72</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T043442Z-standard-coding-test-medium/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler/mbpp/main_openai_temp_0.7_eval_results.json'>20260602T043442Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260602T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>378</td><td class='num score'>76.72</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T043442Z-standard-coding-test-medium/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-qwen-nonthinking-docsampler-summary.json'>20260602T043442Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260602T0</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T023437Z-chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-humaneval/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff/humaneval/main_openai_temp_0_eval_results.json'>20260602T023437Z-chadrock-qwen3…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260602T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T023437Z-chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-humaneval/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-summary.json'>20260602T023437Z-chadrock-qwen3…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='dataset'><td class='mono'>20260602T0</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T023437Z-chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-humaneval/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff/humaneval/main_openai_temp_0_eval_results.json'>20260602T023437Z-chadrock-qwen3…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>20260602T0</td><td>evalplus</td><td>aggregate</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260602T023437Z-chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-humaneval/outputs/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-rebuilt-reasonoff-summary.json'>20260602T023437Z-chadrock-qwen3…</td></tr><tr data-family='bigcodebench' data-quant='Dynamic mixed quant' data-kind='dataset'><td class='mono'>20260527T0</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Crown Halo Dynamic</b><small>qwen36-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>148</td><td class='num score'>29.05</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260527T060130Z-standard-coding-test-medium/outputs/bigcodebench/qwen3.6-35b-a3b-crown-halo-mtp-dynamic--crown-halo-mtp-dynamic-v7--bigcodebench-hard-instruct--openai-0-1-sanitized_calibrated_pass_at_k.json'>20260527T060130Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='dataset'><td class='mono'>20260523T1</td><td>evalplus</td><td>humaneval</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/raw/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic/humaneval/main_openai_temp_0_eval_results.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='dataset'><td class='mono'>20260523T1</td><td>evalplus</td><td>mbpp</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>378</td><td class='num score'>74.87</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/raw/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic/mbpp/main_openai_temp_0_eval_results.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Q5_K_M' data-kind='dataset'><td class='mono'>20260523T1</td><td>evalplus</td><td>humaneval</td><td><b>Qwopus 3.6</b><small>qwopus3.6-35b-a3b-v1-q5-k-m</small></td><td><span class='quant'>Q5_K_M</span></td><td class='num'>164</td><td class='num score'>85.98</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/raw/evalplus/qwopus3.6-35b-a3b-v1-q5-k-m/humaneval/main_openai_temp_0_eval_results.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Q5_K_M' data-kind='dataset'><td class='mono'>20260523T1</td><td>evalplus</td><td>mbpp</td><td><b>Qwopus 3.6</b><small>qwopus3.6-35b-a3b-v1-q5-k-m</small></td><td><span class='quant'>Q5_K_M</span></td><td class='num'>378</td><td class='num score'>74.87</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/raw/evalplus/qwopus3.6-35b-a3b-v1-q5-k-m/mbpp/main_openai_temp_0_eval_results.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>20260523T1</td><td>evalplus</td><td>aggregate</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>542</td><td class='num score'>79.15</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/outputs/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic-summary.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Q5_K_M' data-kind='aggregate'><td class='mono'>20260523T1</td><td>evalplus</td><td>aggregate</td><td><b>Qwopus 3.6</b><small>qwopus3.6-35b-a3b-v1-q5-k-m</small></td><td><span class='quant'>Q5_K_M</span></td><td class='num'>542</td><td class='num score'>78.23</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/outputs/evalplus/qwopus3.6-35b-a3b-v1-q5-k-m-summary.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>20260523T1</td><td>evalplus</td><td>aggregate</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>542</td><td class='num score'>79.15</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/outputs/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic-summary.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Q5_K_M' data-kind='aggregate'><td class='mono'>20260523T1</td><td>evalplus</td><td>aggregate</td><td><b>Qwopus 3.6</b><small>qwopus3.6-35b-a3b-v1-q5-k-m</small></td><td><span class='quant'>Q5_K_M</span></td><td class='num'>542</td><td class='num score'>78.23</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260523T104718Z-evalplus-qwopus-gemma-crown-metrics/outputs/evalplus/qwopus3.6-35b-a3b-v1-q5-k-m-summary.json'>20260523T104718Z-evalplus-qwopu…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='dataset'><td class='mono'>20260522T2</td><td>evalplus</td><td>humaneval</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260522T205318Z-full-coding-benchmark-large/raw/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic/humaneval/main_openai_temp_0_eval_results.json'>20260522T205318Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='dataset'><td class='mono'>20260522T2</td><td>evalplus</td><td>mbpp</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>378</td><td class='num score'>74.87</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260522T205318Z-full-coding-benchmark-large/raw/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic/mbpp/main_openai_temp_0_eval_results.json'>20260522T205318Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>20260522T2</td><td>evalplus</td><td>aggregate</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>542</td><td class='num score'>79.15</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260522T205318Z-full-coding-benchmark-large/outputs/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic-summary.json'>20260522T205318Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>20260522T2</td><td>evalplus</td><td>aggregate</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>542</td><td class='num score'>79.15</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260522T205318Z-full-coding-benchmark-large/outputs/evalplus/qwen3.6-35b-a3b-crown-halo-mtp-dynamic-summary.json'>20260522T205318Z-full-coding-be…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-08-03</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-hermes64k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>83.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260803T104332Z-full-benchmark-large/hermes-revision-turnfloor24/production-rocmfp4-full20/results/20260803T114808Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-hermes64k/summary.json'>20260803T114808Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>2026-08-03</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-fro…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>20</td><td class='num score'>80.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260803T104332Z-full-benchmark-large/hermes-revision-turnfloor24/production-moequality-full20/results/20260803T112607Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/summary.json'>20260803T112607Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='aggregate-qualified'><td class='mono'>2026-08-03</td><td>hermesagent-20</td><td>official-20</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>20</td><td class='num score'>90.00</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='evalplus' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='dataset-qualified'><td class='mono'>2026-08-03</td><td>evalplus</td><td>humaneval</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='evalplus' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='dataset-qualified'><td class='mono'>2026-08-03</td><td>evalplus</td><td>mbpp</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>378</td><td class='num score'>75.66</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='bigcodebench' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='dataset-qualified'><td class='mono'>2026-08-03</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>148</td><td class='num score'>29.73</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='tool-eval-bench' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='dataset-qualified'><td class='mono'>2026-08-03</td><td>tool-eval-bench</td><td>standard-69</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>69</td><td class='num score'>87.00</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='tool-eval-bench' data-quant='Escha W2 / hybrid 2–3b + INT8' data-kind='dataset-qualified'><td class='mono'>2026-08-03</td><td>tool-eval-bench</td><td>hard-15</td><td><b>Escha W2</b><small>74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput</small></td><td><span class='quant'>Escha W2 / hybrid 2–3b + INT8</span></td><td class='num'>15</td><td class='num score'>80.00</td><td class='mono source' title='/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full'>manual:019fc722-ac86-7bd0-ab41-…</td></tr><tr data-family='tool-eval-bench' data-quant='DualView FPX7 + Q8 MTP' data-kind='dataset'><td class='mono'>2026-07-27</td><td>tool-eval-bench</td><td>standard-69</td><td><b>Ornith 1.0</b><small>Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>69</td><td class='num score'>89.13</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260727T180034Z-standard-coding-test-medium/outputs/tool-eval-69.json'>20260727T180034Z-standard-codin…</td></tr><tr data-family='evalplus' data-quant='DualView FPX7 + Q8 MTP' data-kind='dataset'><td class='mono'>2026-07-27</td><td>evalplus</td><td>humaneval</td><td><b>Ornith 1.0</b><small>Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260727T174034Z-full-coding-benchmark-large/outputs/evalplus/humaneval/Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP_openai_temp_0.6_eval_results.json'>20260727T174034Z-full-coding-be…</td></tr><tr data-family='bigcodebench' data-quant='DualView FPX7 + Q8 MTP' data-kind='dataset'><td class='mono'>2026-07-27</td><td>bigcodebench</td><td>bigcodebench-hard-instruct</td><td><b>Ornith 1.0</b><small>Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>148</td><td class='num score'>27.70</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260727T000553Z-standard-model-eval-medium/coding/bigcodebench-thinking-off-t06/results/Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP--main--bigcodebench-hard-instruct--openai-0.6-1-sanitized_calibrated_pass_at_k.json'>20260727T000553Z-standard-model…</td></tr><tr data-family='evalplus' data-quant='DualView FPX7 + Q8 MTP' data-kind='dataset'><td class='mono'>2026-07-27</td><td>evalplus</td><td>humaneval</td><td><b>Ornith 1.0</b><small>Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>164</td><td class='num score'>93.29</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260727T000553Z-standard-model-eval-medium/coding/humaneval-official-v2/results/humaneval/Ornith1.0-35b-CIRU-DUALVIEW-FPX7+Q8-MTP_openai_temp_0.6_eval_results.json'>20260727T000553Z-standard-model…</td></tr><tr data-family='hermesagent-20' data-quant='DualView FPX7 + Q8 MTP' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-dualview-mtp-d7-hermes-trial-3</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>20</td><td class='num score'>84.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-mtp-20260726/agent-quality/dualview-mtp-d7/hermes/trial-3/20260726T134322Z-hermesagent20-ornith35b-dualview-mtp-d7-hermes-trial-3/summary.json'>20260726T134322Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='DualView FPX7 + Q8 MTP' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-dualview-mtp-d7-hermes-trial-2</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>20</td><td class='num score'>78.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-mtp-20260726/agent-quality/dualview-mtp-d7/hermes/trial-2/20260726T133113Z-hermesagent20-ornith35b-dualview-mtp-d7-hermes-trial-2/summary.json'>20260726T133113Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='DualView FPX7 + Q8 MTP' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-dualview-mtp-d7-hermes-trial-1</small></td><td><span class='quant'>DualView FPX7 + Q8 MTP</span></td><td class='num'>20</td><td class='num score'>87.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-mtp-20260726/agent-quality/dualview-mtp-d7/hermes/trial-1/20260726T131919Z-hermesagent20-ornith35b-dualview-mtp-d7-hermes-trial-1/summary.json'>20260726T131919Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-trial-3</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>79.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-20260726/agent-quality/q7s8/hermes/trial-3/20260726T085509Z-hermesagent20-ornith35b-q7s8-hermes-trial-3/summary.json'>20260726T085509Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-trial-2</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>88.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-20260726/agent-quality/q7s8/hermes/trial-2/20260726T083758Z-hermesagent20-ornith35b-q7s8-hermes-trial-2/summary.json'>20260726T083758Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-trial-1</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>85.00</td><td class='mono source' title='/srv/ssd/sn850x/scratch/crown/research/ornith-quality-dualview-20260726/agent-quality/q7s8/hermes/trial-1/20260726T082026Z-hermesagent20-ornith35b-q7s8-hermes-trial-1/summary.json'>20260726T082026Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q8k-rocm-f32safe-hermes-trial-1</small></td><td><span class='quant'>Q8</span></td><td class='num'>20</td><td class='num score'>88.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q8k-rocm-f32safe/hermes/trial-1/20260725T065652Z-hermesagent20-ornith35b-q8k-rocm-f32safe-hermes-trial-1/summary.json'>20260725T065652Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-valid-trial-3</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>82.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes-valid/trial-3/20260725T055222Z-hermesagent20-ornith35b-q7s8-hermes-valid-trial-3/summary.json'>20260725T055222Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-valid-trial-2</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>83.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes-valid/trial-2/20260725T053336Z-hermesagent20-ornith35b-q7s8-hermes-valid-trial-2/summary.json'>20260725T053336Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q8-hermes-valid-trial-1-tail</small></td><td><span class='quant'>Q8</span></td><td class='num'>4</td><td class='num score'>56.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q8/hermes-valid/trial-1-tail/20260725T052835Z-hermesagent20-ornith35b-q8-hermes-valid-trial-1-tail/summary.json'>20260725T052835Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-hermes-valid-trial-1</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>74.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes-valid/trial-1/20260725T044924Z-hermesagent20-ornith35b-q7s8-hermes-valid-trial-1/summary.json'>20260725T044924Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q8-trial-1</small></td><td><span class='quant'>Q8</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q8/hermes/trial-1/20260725T040343Z-hermesagent20-ornith35b-q8-trial-1/summary.json'>20260725T040343Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-trial-3</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes/trial-3/20260725T035846Z-hermesagent20-ornith35b-q7s8-trial-3/summary.json'>20260725T035846Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-trial-2</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes/trial-2/20260725T035400Z-hermesagent20-ornith35b-q7s8-trial-2/summary.json'>20260725T035400Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q7S8 hybrid' data-kind='aggregate'><td class='mono'>2026-07-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q7s8-trial-1</small></td><td><span class='quant'>Q7S8 hybrid</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260725T013956Z-ornith10-35b-ciru-dualview-rocmfpx7/agent-quality/q7s8/hermes/trial-1/20260725T034944Z-hermesagent20-ornith35b-q7s8-trial-1/summary.json'>20260725T034944Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>Qwen3.6 35B</b><small>qwen3.6-35b-a3b-mtp-rocmfpx-q8-agent</small></td><td><span class='quant'>Q8</span></td><td class='num'>20</td><td class='num score'>69.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T131000Z-vanilla-qwen36-35b-rocmfpx-q8-agent-hermesagent20/full/20260721T130529Z-hermesagent20-qwen3-6-35b-a3b-mtp-rocmfpx-q8-agent/summary.json'>20260721T130529Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>73.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/full/20260721T121930Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260721T121930Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='H29-B UltraQuality' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>H29-B / Qwen3.6</b><small>h29-b-qwen35moe-ultraquality-ranked-draftkv16-rocm-hermes64k</small></td><td><span class='quant'>H29-B UltraQuality</span></td><td class='num'>20</td><td class='num score'>76.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/full/20260721T121211Z-hermesagent20-h29-b-qwen35moe-ultraquality-ranked-draftkv16-rocm-hermes64k/summary.json'>20260721T121211Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>Qwen3.6 35B</b><small>qwen3.6-35b-a3b-mtp-rocmfpx-q8</small></td><td><span class='quant'>Q8</span></td><td class='num'>20</td><td class='num score'>68.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/full/20260721T120531Z-hermesagent20-qwen3-6-35b-a3b-mtp-rocmfpx-q8/summary.json'>20260721T120531Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>100.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/preflight/20260721T120501Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260721T120501Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='H29-B UltraQuality' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>H29-B / Qwen3.6</b><small>h29-b-qwen35moe-ultraquality-ranked-draftkv16-rocm-hermes64k</small></td><td><span class='quant'>H29-B UltraQuality</span></td><td class='num'>1</td><td class='num score'>100.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/preflight/20260721T120438Z-hermesagent20-h29-b-qwen35moe-ultraquality-ranked-draftkv16-rocm-hermes64k/summary.json'>20260721T120438Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q8' data-kind='aggregate'><td class='mono'>2026-07-21</td><td>hermesagent-20</td><td>official-20</td><td><b>Qwen3.6 35B</b><small>qwen3.6-35b-a3b-mtp-rocmfpx-q8</small></td><td><span class='quant'>Q8</span></td><td class='num'>1</td><td class='num score'>100.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260721T120307Z-vanilla-qwen36-35b-q8-vs-moequality-vs-rocmfp4-hermesagent20/preflight/20260721T120402Z-hermesagent20-qwen3-6-35b-a3b-mtp-rocmfpx-q8/summary.json'>20260721T120402Z-hermesagent20-…</td></tr><tr data-family='tool_eval_bench' data-quant='ROCmFPX MoEQuality 7.08 BPW' data-kind='manifest_result'><td class='mono'>2026-07-04</td><td>tool_eval_bench</td><td>full_69_fixed_structured_json_object</td><td><b>Qwopus 3.6</b><small>qwopus36-35b-coder-mtp-rocmfpx-moequality-708bpw-hermes64k-froggeric-te…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.08 BPW</span></td><td class='num'>69</td><td class='num score'>72.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260704T034146Z-tool-calling-test-medium/outputs/tool-eval-bench-full-fixed.json'>20260704T034146Z-tool-calling-t…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>2026-07-02</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-fro…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>20</td><td class='num score'>65.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260702T223056Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/summary.json'>20260702T223056Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>2026-07-02</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-fro…</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>1</td><td class='num score'>10.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260702T223024Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k-froggeric-template/summary.json'>20260702T223024Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>2026-07-02</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>20</td><td class='num score'>82.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260702T220548Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k/summary.json'>20260702T220548Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFPX MoEQuality 7.07 BPW' data-kind='aggregate'><td class='mono'>2026-07-02</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k</small></td><td><span class='quant'>ROCmFPX MoEQuality 7.07 BPW</span></td><td class='num'>1</td><td class='num score'>100.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260702T220518Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfpx-moequality-707bpw-hermes64k/summary.json'>20260702T220518Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q6_K_XL' data-kind='aggregate'><td class='mono'>2026-07-02</td><td>hermesagent-20</td><td>official-20</td><td><b>Unsloth Qwen3.6</b><small>unsloth-qwen36-35b-mtp-q6-k-xl-vanilla-vulkan-draftkv16-hermes64k</small></td><td><span class='quant'>Q6_K_XL</span></td><td class='num'>20</td><td class='num score'>71.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260702T155358Z-hermesagent20-unsloth-qwen36-35b-mtp-q6-k-xl-vanilla-vulkan-draftkv16-hermes64k/summary.json'>20260702T155358Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q4_K_M' data-kind='aggregate'><td class='mono'>2026-06-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-64k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>20</td><td class='num score'>82.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260626T125548Z-hermesagent20-ornith35b-q4km-dunamis-llamacpp-64k/summary.json'>20260626T125548Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Q4_K_M' data-kind='aggregate'><td class='mono'>2026-06-26</td><td>hermesagent-20</td><td>official-20</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-64k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>1</td><td class='num score'>100.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260626T125536Z-hermesagent20-ornith35b-q4km-dunamis-llamacpp-64k/summary.json'>20260626T125536Z-hermesagent20-…</td></tr><tr data-family='evalplus' data-quant='Q4_K_M' data-kind='manifest_result'><td class='mono'>2026-06-26</td><td>evalplus</td><td>humaneval</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-32k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>—</td><td class='num score'>—</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260626T070243Z-full-coding-benchmark-large/run.json'>20260626T070243Z-full-coding-be…</td></tr><tr data-family='evalplus' data-quant='Q4_K_M' data-kind='manifest_result'><td class='mono'>2026-06-26</td><td>evalplus</td><td>mbpp</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-32k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>—</td><td class='num score'>—</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260626T070243Z-full-coding-benchmark-large/run.json'>20260626T070243Z-full-coding-be…</td></tr><tr data-family='bfcl' data-quant='Q4_K_M' data-kind='manifest_result'><td class='mono'>2026-06-26</td><td>bfcl</td><td>v4_non_live</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-32k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>—</td><td class='num score'>—</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260626T070243Z-full-coding-benchmark-large/run.json'>20260626T070243Z-full-coding-be…</td></tr><tr data-family='bigcodebench' data-quant='Q4_K_M' data-kind='manifest_result'><td class='mono'>2026-06-26</td><td>bigcodebench</td><td>hard_instruct</td><td><b>Ornith 1.0</b><small>ornith35b-q4km-dunamis-llamacpp-32k</small></td><td><span class='quant'>Q4_K_M</span></td><td class='num'>—</td><td class='num score'>—</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260626T070243Z-full-coding-benchmark-large/run.json'>20260626T070243Z-full-coding-be…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-25</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text256k-froggeric-template</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>79.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260625T100839Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text256k-froggeric-template/summary.json'>20260625T100839Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-24</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>83.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260624T174803Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template/summary.json'>20260624T174803Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-24</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260624T173747Z-hermesagent20-chadrockv2-qwen36-35b-ace-saber-rocmfp4-cap4-text32k-froggeric-template/summary.json'>20260624T173747Z-hermesagent20-…</td></tr><tr data-family='unknown' data-quant='ROCmFP4' data-kind='manifest_result'><td class='mono'>2026-06-20</td><td>unknown</td><td>result_1</td><td><b>Chadrock v2</b><small>Chadrock v2 Qwen3.6 35B A3B NSC ACE-SABER MTP ROCmFP4 STRIX_LEAN</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>—</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T215857Z-full-benchmark-small/run.json'>20260620T215857Z-full-benchmark…</td></tr><tr data-family='evalplus' data-quant='ROCmFP4' data-kind='manifest_result'><td class='mono'>2026-06-20</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock v2</b><small>chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>164</td><td class='num score'>89.02</td><td class='mono source' title='/run/media/crown/ssd-p3700ba/@data/data/llm-benchmarking-lab/runs/20260620T213114Z-quick-coding-test-small/raw/evalplus/chadrock-qwen36-35b-ace-saber-rocmfp4-vulkan-cap4-text32k/humaneval/main_openai_temp_0_eval_results.json'>20260620T213114Z-quick-coding-t…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-09</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>30.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T045446Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260609T045446Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-09</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>0.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T045322Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260609T045322Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-09</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>0.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260609T035738Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-09</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>30.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260609T024454Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-09</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>1</td><td class='num score'>0.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T023231Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260609T023231Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-ROCM-Q4FAST</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>79.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T061600Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-rocm-q4fast/summary.json'>20260605T061600Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>77.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T054601Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260605T054601Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>79.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T024454Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json'>20260609T024454Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>77.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260609T035738Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean-repaired-official20/summary.json'>20260609T035738Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Dynamic Strix</b><small>qwen3.6-35b-a3b-dynamic-strix</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>20</td><td class='num score'>78.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T053854Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix/summary.json'>20260605T053854Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>20</td><td class='num score'>70.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T053319Z-hermesagent20-qwen3-6-35b-a3b-crown-halo-mtp-dynamic/summary.json'>20260605T053319Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>qwen3.6-35b-a3b-ace-saber-rocmfp4-vulkan-d2</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>81.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T052812Z-hermesagent20-qwen3-6-35b-a3b-ace-saber-rocmfp4-vulkan-d2/summary.json'>20260605T052812Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Strix Lean mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>20</td><td class='num score'>73.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T044726Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-strix-lean/summary.json'>20260605T044726Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-ROCM-Q4FAST</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T044103Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-rocm-q4fast/summary.json'>20260605T044103Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>qwen3.6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T043925Z-hermesagent20-qwen3-6-35b-a3b-mtp-chadrock-rocmfp4-strix-lean/summary.json'>20260605T043925Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Dynamic Strix</b><small>qwen3.6-35b-a3b-dynamic-strix</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T043818Z-hermesagent20-qwen3-6-35b-a3b-dynamic-strix/summary.json'>20260605T043818Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Dynamic mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T043743Z-hermesagent20-qwen3-6-35b-a3b-crown-halo-mtp-dynamic/summary.json'>20260605T043743Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='ROCmFP4' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock v2</b><small>qwen3.6-35b-a3b-ace-saber-rocmfp4-vulkan-d2</small></td><td><span class='quant'>ROCmFP4</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T043704Z-hermesagent20-qwen3-6-35b-a3b-ace-saber-rocmfp4-vulkan-d2/summary.json'>20260605T043704Z-hermesagent20-…</td></tr><tr data-family='hermesagent-20' data-quant='Strix Lean mixed quant' data-kind='aggregate'><td class='mono'>2026-06-05</td><td>hermesagent-20</td><td>official-20</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>20</td><td class='num score'>16.00</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/.benchlocal-home/.benchlocal/runs/hermesagent-20/20260605T043425Z-hermesagent20-chadrock3-6-35b-uncensored-mtp-strix-lean/summary.json'>20260605T043425Z-hermesagent20-…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='manifest_result'><td class='mono'>2026-06-04</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>91.46</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/run.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='evalplus' data-quant='Strix Lean mixed quant' data-kind='manifest_result'><td class='mono'>2026-06-04</td><td>evalplus</td><td>humaneval</td><td><b>Chadrock</b><small>CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN</small></td><td><span class='quant'>Strix Lean mixed quant</span></td><td class='num'>164</td><td class='num score'>90.85</td><td class='mono source' title='/srv/ssd/p3700ba/data/llm-benchmarking-lab/runs/20260604T091356Z-chadrock36-35b-uncensored-mtp-humaneval/run.json'>20260604T091356Z-chadrock36-35b…</td></tr><tr data-family='bfcl' data-quant='Dynamic mixed quant' data-kind='manifest_result'><td class='mono'>2026-05-28</td><td>bfcl</td><td>bfcl-v4-all_scoring</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>5217</td><td class='num score'>16.86</td><td class='mono source' title='outputs/bfcl/score/data_overall.csv'>20260528T235413Z-full-benchmark…</td></tr><tr data-family='bfcl' data-quant='Dynamic mixed quant' data-kind='manifest_result'><td class='mono'>2026-05-28</td><td>bfcl</td><td>bfcl-v4-non_live</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>1390</td><td class='num score'>83.00</td><td class='mono source' title='outputs/bfcl/score/data_non_live.csv'>20260528T195347Z-full-benchmark…</td></tr><tr data-family='livecodebench' data-quant='Dynamic mixed quant' data-kind='manifest_result'><td class='mono'>2026-05-28</td><td>livecodebench</td><td>release_latest-codegeneration-2025-01-01</td><td><b>Crown Halo Dynamic</b><small>qwen3.6-35b-a3b-crown-halo-mtp-dynamic</small></td><td><span class='quant'>Dynamic mixed quant</span></td><td class='num'>182</td><td class='num score'>36.81</td><td class='mono source' title='outputs/livecodebench/Scenario.codegeneration_1_0.0_eval.json'>20260528T155225Z-standard-codin…</td></tr></tbody></table></div>
+    </section>
+
+    <section id="method">
+      <h2>Scope and provenance</h2>
+      <div class="method-grid">
+        <div class="method"><h3>Store integrity</h3><p><code>quality-results.sqlite3</code> was verified against 4,114 append-only ledger rows before extraction. The report contains 135 de-duplicated local 35B quality records including six qualified Escha observations.</p></div>
+        <div class="method"><h3>35B discovery</h3><p>Rows qualify when profile ID, model path, or canonical row JSON identifies a 35B artifact. Imports are de-duplicated by run, suite, result identity, and recorded score.</p></div>
+        <div class="method"><h3>Quant labels</h3><p>Explicit filename/profile markers win: ROCmFP4, Q4_K_M, Q5_K_M, Q6_K_XL, 7.07 BPW, DualView FPX7+Q8, and Escha config metadata. Unprovable labels stay “not recorded.”</p></div>
+        <div class="method"><h3>Escha source</h3><p>Watched Codex session <code>019fc722-ac86-7bd0-ab41-5d21f5f0cb85</code>, profile 74 on Dunamis, and preserved artifacts at <code>/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full</code>. No hidden reasoning or transcript dump is reproduced.</p></div>
+        <div class="method"><h3>Comparability</h3><p>Charts stay suite-specific and compare quality only. Escha ran on an RTX 5090 while many higher-quant rows ran on AMD UMA systems, so speed and wall time are deliberately excluded as unfair cross-machine metrics.</p></div>
+        <div class="method"><h3>Rebuild</h3><p>Generated with Python + pyecharts 2.0.8. The normalized <a href="results.json">results.json</a> snapshot beside this page contains every row used by the interactive report.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer">Ciru Inference Lab · local evidence, explicit protocols, reproducible artifacts · generated 2026-08-03T12:56:36+00:00</footer>
+  <script>
+    document.querySelectorAll('[data-tabs]').forEach(group=>{group.addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(!button)return;const section=group.parentElement;group.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el===button));section.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===button.dataset.tab));window.dispatchEvent(new Event('resize'));});});
+    function wireTable(searchId,selectId,tableId,countId,attribute){const search=document.getElementById(searchId),select=document.getElementById(selectId),rows=[...document.querySelectorAll(`#${tableId} tbody tr`)],count=document.getElementById(countId);function apply(){const q=search.value.trim().toLowerCase(),choice=select.value;let visible=0;rows.forEach(row=>{const okText=!q||row.textContent.toLowerCase().includes(q),okSelect=!choice||row.dataset[attribute]===choice;row.hidden=!(okText&&okSelect);if(!row.hidden)visible++;});count.textContent=`${visible} / ${rows.length} rows`;};search.addEventListener('input',apply);select.addEventListener('change',apply);apply();}
+    wireTable('quality-search','quality-family','quality-table','quality-count','family');
+  </script>
+</body></html>
