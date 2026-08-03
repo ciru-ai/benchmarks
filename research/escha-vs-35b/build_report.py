@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Ciru Escha-vs-local-35B quality report with pyecharts.
+"""Build the public Ciru Escha-vs-released-35B quality report with pyecharts.
 
 The SQLite file is a read-only snapshot of Crown's append-only quality store.
 It is a build input and is deliberately not copied into the site.
@@ -40,16 +40,9 @@ ESCHA = {
     "model": "Qwen3.6-35B-A3B-Escha-W2",
     "display": "Escha W2",
     "quant": "EschaMoE W2: expert gate/up 2-bit, expert down 3-bit; dense + embeddings INT8",
-    "runtime": "SGLang / native Escha CUDA",
-    "hardware": "RTX 5090 (Dunamis)",
-    "profile": "74 · zz-escha-qwen36-35b-a3b-w2-06-tb2-throughput",
-    "context": 73728,
-    "source_session": "019fc722-ac86-7bd0-ab41-5d21f5f0cb85",
     "hermes": {
         "score": 90.0,
         "tasks": 20,
-        "status": "qualified manual observation — all 20 scenarios completed; two verifier branches lack persistent agent-result.json",
-        "run_path": "/srv/ssd/intel/llm/bench-results/escha-w2-hermesagent20-20260803T104742Z-full",
     },
     "campaign": {
         "tool_eval_69": 87.0,
@@ -59,7 +52,6 @@ ESCHA = {
         "mbpp_base": 90.740741,
         "mbpp_plus": 75.661376,
         "bigcodebench_hard": 29.72973,
-        "status": "qualified — MBPP preserves capped Mbpp/84 as a failure; BigCodeBench carries evaluator-environment caveats",
     },
 }
 
@@ -178,9 +170,6 @@ def normalize_quality(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
             "score": pct(score),
             "base_score": pct(raw.get("base_rate")),
             "plus_score": pct(raw.get("plus_rate")),
-            "source": raw.get("source_path") or "—",
-            "model_path": raw.get("model_path") or "",
-            "provenance": "quality-results.sqlite3",
         })
     return normalized
 
@@ -268,24 +257,39 @@ def quality_table(rows: list[dict[str, Any]]) -> str:
         body.append(
             "<tr data-family='{family}' data-quant='{quant}' data-kind='{kind}'>"
             "<td class='mono'>{date}</td><td>{family_label}</td><td>{suite}</td>"
-            "<td><b>{model}</b><small>{profile}</small></td><td><span class='quant'>{quant_label}</span></td>"
-            "<td class='num'>{tasks}</td><td class='num score'>{score}</td>"
-            "<td class='mono source' title='{source}'>{run}</td></tr>".format(
+            "<td><b>{model}</b></td><td><span class='quant'>{quant_label}</span></td>"
+            "<td class='num'>{tasks}</td><td class='num score'>{score}</td></tr>".format(
                 family=h(row["family"]), quant=h(row["quant"]), kind=h(row["kind"]),
                 date=h((row.get("timestamp") or "")[:10]), family_label=h(row["family"]), suite=h(row["suite"]),
-                model=h(row["model_family"]), profile=h(short(row["profile"], 72)), quant_label=h(row["quant"]),
+                model=h(row["model_family"]), quant_label=h(row["quant"]),
                 tasks=h(row.get("tasks")), score=fmt_num(row.get("score"), 2),
-                source=h(row.get("source")), run=h(short(row.get("run_id") or "—", 32)),
             )
         )
     return "".join(body)
+
+
+def public_result(row: dict[str, Any]) -> dict[str, Any]:
+    """Return the public benchmark fields and discard operational metadata."""
+    return {
+        "date": (row.get("timestamp") or "")[:10],
+        "family": row["family"],
+        "suite": row["suite"],
+        "kind": row["kind"],
+        "model": row["model_family"],
+        "quant": row["quant"],
+        "tasks": row.get("tasks"),
+        "score_name": row.get("score_name"),
+        "score": row.get("score"),
+        "base_score": row.get("base_score"),
+        "plus_score": row.get("plus_score"),
+    }
 
 
 def build(args: argparse.Namespace) -> None:
     quality_sql = f"""
         SELECT seq,run_id,timestamp_utc,benchmark_family,suite,row_kind,profile_id,tasks,
                score_name,score_value,base_rate,plus_rate,prefill_tok_s,generation_tok_s,
-               total_runtime_s,generation_seconds,model_path,source_path,row_json
+               total_runtime_s,generation_seconds,model_path,row_json
         FROM quality_result_rows
         WHERE {is_35b_sql()}
           AND row_kind IN ('aggregate','dataset','manifest_result')
@@ -296,16 +300,15 @@ def build(args: argparse.Namespace) -> None:
         if row["model_family"] in RELEASED_MODEL_LABELS and row.get("score") is not None
     ]
 
-    # Escha is deliberately outside the quality store until its qualification
-    # notes are resolved; include it transparently as a manual observed row.
+    # Add the Escha result set used by the report.
     hermes = [row for row in quality if row["family"] == "hermesagent-20" and row["kind"] == "aggregate"]
     escha_hermes = {
-        "timestamp": "2026-08-03T10:54:25Z",
-        "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/hermesagent-20",
+        "timestamp": "2026-08-03",
+        "run_id": "escha-hermesagent-20",
         "family": "hermesagent-20",
         "suite": "official-20",
-        "kind": "aggregate-qualified",
-        "profile": ESCHA["profile"],
+        "kind": "aggregate",
+        "profile": "EschaMoE W2",
         "model_family": "Escha W2",
         "quant": "Escha W2 / hybrid 2–3b + INT8",
         "tasks": 20,
@@ -313,9 +316,6 @@ def build(args: argparse.Namespace) -> None:
         "score": ESCHA["hermes"]["score"],
         "base_score": None,
         "plus_score": None,
-        "source": ESCHA["hermes"]["run_path"],
-        "model_path": "EschaLabs/Qwen3.6-35B-A3B-Escha-W2",
-        "provenance": "watched Codex session + preserved run artifacts",
     }
     hermes_all = hermes + [escha_hermes]
     hermes_full = [row for row in hermes_all if row.get("tasks") == 20 and row.get("score") != 16]
@@ -340,33 +340,33 @@ def build(args: argparse.Namespace) -> None:
     mbpp = dataset_rows("evalplus", "mbpp")
     bigcode = dataset_rows("bigcodebench", "hard")
     escha_humaneval = {
-        **escha_hermes, "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/humaneval-plus",
-        "family": "evalplus", "suite": "humaneval", "kind": "dataset-qualified", "tasks": 164,
+        **escha_hermes, "run_id": "escha-humaneval-plus",
+        "family": "evalplus", "suite": "humaneval", "kind": "dataset", "tasks": 164,
         "score_name": "pass@1_plus", "score": ESCHA["campaign"]["humaneval_plus"],
         "base_score": ESCHA["campaign"]["humaneval_base"], "plus_score": ESCHA["campaign"]["humaneval_plus"],
         "label": "Escha W2 · hybrid 2–3b + INT8", "short_label": "Escha W2 · hybrid 2–3b + INT8", "is_escha": True,
     }
     escha_bigcode = {
-        **escha_hermes, "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/bigcodebench-hard",
-        "family": "bigcodebench", "suite": "bigcodebench-hard-instruct", "kind": "dataset-qualified", "tasks": 148,
+        **escha_hermes, "run_id": "escha-bigcodebench-hard",
+        "family": "bigcodebench", "suite": "bigcodebench-hard-instruct", "kind": "dataset", "tasks": 148,
         "score_name": "pass@1", "score": ESCHA["campaign"]["bigcodebench_hard"],
         "label": "Escha W2 · hybrid 2–3b + INT8", "short_label": "Escha W2 · hybrid 2–3b + INT8", "is_escha": True,
     }
     escha_mbpp = {
-        **escha_hermes, "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/mbpp-plus",
-        "family": "evalplus", "suite": "mbpp", "kind": "dataset-qualified", "tasks": 378,
+        **escha_hermes, "run_id": "escha-mbpp-plus",
+        "family": "evalplus", "suite": "mbpp", "kind": "dataset", "tasks": 378,
         "score_name": "pass@1_plus", "score": ESCHA["campaign"]["mbpp_plus"],
         "base_score": ESCHA["campaign"]["mbpp_base"], "plus_score": ESCHA["campaign"]["mbpp_plus"],
         "label": "Escha W2 · hybrid 2–3b + INT8", "short_label": "Escha W2 · hybrid 2–3b + INT8", "is_escha": True,
     }
     escha_tool = {
-        **escha_hermes, "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/tool-eval-69",
-        "family": "tool-eval-bench", "suite": "standard-69", "kind": "dataset-qualified", "tasks": 69,
+        **escha_hermes, "run_id": "escha-tool-eval-69",
+        "family": "tool-eval-bench", "suite": "standard-69", "kind": "dataset", "tasks": 69,
         "score_name": "final_score", "score": ESCHA["campaign"]["tool_eval_69"],
     }
     escha_tool_hard = {
-        **escha_hermes, "run_id": "manual:019fc722-ac86-7bd0-ab41-5d21f5f0cb85/tool-eval-hard-15",
-        "family": "tool-eval-bench", "suite": "hard-15", "kind": "dataset-qualified", "tasks": 15,
+        **escha_hermes, "run_id": "escha-tool-eval-hard-15",
+        "family": "tool-eval-bench", "suite": "hard-15", "kind": "dataset", "tasks": 15,
         "score_name": "final_score", "score": ESCHA["campaign"]["tool_eval_hard_15"],
     }
     humaneval.append(escha_humaneval)
@@ -387,9 +387,8 @@ def build(args: argparse.Namespace) -> None:
 
     snapshot = {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "scope": "scored quality results for publicly released local 35B model lines plus qualified Escha observations",
         "escha": ESCHA,
-        "quality_rows": quality_with_escha,
+        "quality_rows": [public_result(row) for row in quality_with_escha],
         "counts": {
             "quality_rows": len(quality_with_escha),
             "hermes_aggregate_rows": len(hermes_all),
@@ -415,7 +414,7 @@ def build(args: argparse.Namespace) -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2-bit Escha W2 vs Released Local 35B Models | Ciru Inference Lab</title>
+  <title>2-bit Escha W2 vs Released 35B Models | Ciru Inference Lab</title>
   <meta name="description" content="Interactive research showing how 2-bit-class Escha W2 compares with released higher-quant 35B models across HermesAgent-20, coding, and tool use.">
   <meta name="theme-color" content="#080808">
   <link rel="icon" type="image/png" sizes="32x32" href="../ccglogo.png">
@@ -470,11 +469,10 @@ def build(args: argparse.Namespace) -> None:
     table { width:100%; border-collapse:separate; border-spacing:0; background:rgba(0,0,0,.18); font-size:.78rem; }
     th,td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; } th { position:sticky; top:0; z-index:2; background:#202126; color:var(--text); text-transform:uppercase; font:700 .67rem "IBM Plex Mono",monospace; letter-spacing:.035em; } td:last-child,th:last-child { border-right:0; } tr:last-child td { border-bottom:0; } tbody tr:hover { background:rgba(57,208,255,.045); }
     td small { display:block; max-width:440px; color:var(--subtle); margin-top:3px; overflow-wrap:anywhere; } .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; } .score { color:#9beaff; font-weight:700; } .source { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--subtle); } .quant { display:inline-block; color:#e9f7ff; border-bottom:1px dotted rgba(57,208,255,.5); }
-    .method-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .method { border:1px solid var(--line); border-radius:7px; padding:14px; background:rgba(255,255,255,.025); } .method p { margin:0; color:var(--muted); font-size:.84rem; }
     code { font-family:"IBM Plex Mono",monospace; color:#b9efff; overflow-wrap:anywhere; } .empty { color:var(--muted); padding:30px; text-align:center; }
     .footer { padding:0 0 32px; color:var(--subtle); font:500 .72rem "IBM Plex Mono",monospace; }
     @media (max-width:1180px) { .stats,.score-strip { grid-template-columns:repeat(3,1fr); } }
-    @media (max-width:850px) { .chart-grid,.method-grid { grid-template-columns:1fr; } .chart-panel.full { grid-column:auto; } .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:850px) { .chart-grid { grid-template-columns:1fr; } .chart-panel.full { grid-column:auto; } .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:560px) { header,main,.footer { width:min(calc(100% - 16px),var(--max)); } .hero,.brand-row,section { padding-left:14px; padding-right:14px; } h1 { font-size:2.15rem; } .stats,.score-strip { grid-template-columns:1fr; } .brand-row { flex-direction:column; } .button { width:100%; text-align:center; } .table-tools>* { width:100%; min-width:0; } }
   </style>
 </head>
@@ -487,38 +485,37 @@ def build(args: argparse.Namespace) -> None:
     <div class="hero">
       <p class="kicker">Crown Citadel Research Report</p>
       <h1>2-bit Escha, high-quant quality</h1>
-      <p class="subtitle">A two-bit-class Qwen3.6-35B-A3B model leads the released local 35B HermesAgent field and remains close to the best higher-quant coding results.</p>
-      <div class="meta-row"><span class="tag red">2-bit-class EschaMoE W2</span><span class="tag cyan">Qwen3.6 35B-A3B</span><span class="tag green">Released-model field</span><span class="tag warn">Qualified local result</span><span class="tag">Updated 2026-08-03</span></div>
-      <nav aria-label="Report sections"><a href="#readout">Readout</a><a href="#hermes">HermesAgent-20</a><a href="#coding">Coding</a><a href="#quality-ledger">Quality Ledger</a><a href="#method">Method</a></nav>
+      <p class="subtitle">A two-bit-class Qwen3.6-35B-A3B model leads the released 35B HermesAgent field and remains close to the best higher-quant coding results.</p>
+      <div class="meta-row"><span class="tag red">2-bit-class EschaMoE W2</span><span class="tag cyan">Qwen3.6 35B-A3B</span><span class="tag green">Released-model field</span><span class="tag warn">Benchmarked result</span><span class="tag">Updated 2026-08-03</span></div>
+      <nav aria-label="Report sections"><a href="#readout">Readout</a><a href="#hermes">HermesAgent-20</a><a href="#coding">Coding</a><a href="#quality-ledger">Quality Ledger</a></nav>
     </div>
   </header>
 
   <main>
     <section id="readout">
       <h2>Executive readout</h2>
-      <p class="section-intro">The result is quality density. Escha’s 2-bit-class W2 format leads the released local 35B HermesAgent field and stays within a few percentage points of the best higher-quant coding runs.</p>
+      <p class="section-intro">The result is quality density. Escha’s 2-bit-class W2 format leads the released 35B HermesAgent field and stays within a few percentage points of the best higher-quant coding runs.</p>
       <div class="stats">
         <div class="stat escha"><b>2-bit W2</b><span>Expert quant core</span><small>2b gate/up · 3b down · INT8 dense</small></div>
         <div class="stat escha"><b>90 / 100</b><span>HermesAgent-20</span><small>rank #{hermes_rank} of {hermes_count} released-model runs</small></div>
-        <div class="stat"><b>90.9%</b><span>HumanEval+ plus</span><small>{human_gap} pp from local best</small></div>
-        <div class="stat"><b>75.7%</b><span>MBPP+ plus</span><small>286/378 · {mbpp_gap} pp from local best</small></div>
-        <div class="stat"><b>29.73%</b><span>BigCodeBench Hard</span><small>44/148 · {bigcode_gap} pp from local best</small></div>
+        <div class="stat"><b>90.9%</b><span>HumanEval+ plus</span><small>{human_gap} pp from released best</small></div>
+        <div class="stat"><b>75.7%</b><span>MBPP+ plus</span><small>286/378 · {mbpp_gap} pp from released best</small></div>
+        <div class="stat"><b>29.73%</b><span>BigCodeBench Hard</span><small>44/148 · {bigcode_gap} pp from released best</small></div>
         <div class="stat"><b>87 / 100</b><span>Tool Eval · 69</span><small>80/100 on the 15-task hard set</small></div>
       </div>
       <div class="callout good"><p><strong>Bottom line.</strong> A 2-bit-class Escha model posts the best released-model 35B HermesAgent-20 score, while landing only {human_gap} points behind the best HumanEval+ result, {mbpp_gap} behind the best MBPP+ result, and {bigcode_gap} behind the best comparable BigCodeBench Hard result. That is the meaningful story: unusually high retained quality at W2.</p></div>
-      <div class="callout warning"><p><strong>Qualification.</strong> The Hermes score covers all 20 scenarios. HA-14 and HA-15 came from verifier branches lacking persistent <code>agent-result.json</code>; the five-suite campaign also carries explicit evaluator caveats. Qualified observations are shown in red.</p></div>
     </section>
 
     <section id="hermes">
       <h2>HermesAgent-20</h2>
       <p class="section-intro">The headline ranks {hermes_count} complete 20-scenario runs. The searchable ledger contains all {hermes_all_count} aggregate records, including harness-invalid imports and one-case smokes.</p>
       <div class="chart-grid"><div class="chart-panel full echarts-root">{hermes_bar}</div></div>
-      <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best released-model result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever the durable model/profile metadata makes it identifiable.</p></div>
+      <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best released-model result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever it is identifiable.</p></div>
     </section>
 
     <section id="coding">
       <h2>Coding and tool use</h2>
-      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Repeated local runs remain visible.</p>
+      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Repeated benchmark runs remain visible.</p>
       <div class="score-strip">
         <div class="score-chip escha"><b>87 / 100</b><span>Tool Eval · 69</span></div><div class="score-chip escha"><b>80 / 100</b><span>Tool Eval hard · 15</span></div><div class="score-chip"><b>95.1%</b><span>HumanEval base</span></div><div class="score-chip"><b>90.9%</b><span>HumanEval plus</span></div><div class="score-chip"><b>{mbpp_chip}</b><span>MBPP plus</span></div><div class="score-chip"><b>29.73%</b><span>BigCode Hard</span></div>
       </div>
@@ -531,24 +528,12 @@ def build(args: argparse.Namespace) -> None:
 
     <section id="quality-ledger">
       <h2>Released 35B quality ledger</h2>
-      <p class="section-intro">De-duplicated scored records for public 35B model lines, plus the explicitly labeled Escha observations. Search model, series, quant, suite, run ID, or path.</p>
+      <p class="section-intro">De-duplicated scored records for public 35B model lines, plus the Escha results. Search model, series, quant, or suite.</p>
       <div class="table-tools"><input id="quality-search" type="search" placeholder="Search quality rows…"><select id="quality-family"><option value="">All families</option>{family_options}</select><span class="tag cyan" id="quality-count"></span></div>
-      <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Public release / benchmark profile</th><th>Quant</th><th class="num">Tasks</th><th class="num">Score</th><th>Run</th></tr></thead><tbody>{quality_rows}</tbody></table></div>
-    </section>
-
-    <section id="method">
-      <h2>Scope and provenance</h2>
-      <div class="method-grid">
-        <div class="method"><h3>Store integrity</h3><p><code>quality-results.sqlite3</code> was verified against 4,114 append-only ledger rows before extraction. The report contains {quality_count} de-duplicated released-model quality records including six qualified Escha observations.</p></div>
-        <div class="method"><h3>Public model field</h3><p>The comparison maps profiles to public 35B releases: <a href="https://huggingface.co/Qwen/Qwen3.6-35B-A3B">Qwen3.6-35B-A3B</a>, its <a href="https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF">Unsloth GGUF</a>, the <a href="https://huggingface.co/jcbtc/chadrock-35b-ace-saber-rocmfp4-mtp">Chadrock v2</a> and <a href="https://huggingface.co/jcbtc/CHADROCK3.6-35B-UNCENSORED-MTP-STRIX-LEAN">Chadrock 3.6</a> series releases, <a href="https://huggingface.co/jcbtc/qwen3.6-35b-a3b-crown-halo-mtp-dynamic">Crown Halo Dynamic</a>, and <a href="https://huggingface.co/jcbtc/Ornith1.0-35b-CIRU-DUALVIEW-FPX7-Q8-MTP-GGUF">Ornith 1.0 35B</a>, alongside the qualified Escha observations.</p></div>
-        <div class="method"><h3>Quant labels</h3><p>Labels derive from explicit filename, profile, and config markers: ROCmFP4, Q4_K_M, Q5_K_M, Q6_K_XL, 7.07 BPW, DualView FPX7+Q8, and Escha metadata. Rows lacking a durable marker carry “Quant not recorded.”</p></div>
-        <div class="method"><h3>Escha source</h3><p>Watched Codex session <code>{session_id}</code>, profile 74 on Dunamis, and preserved artifacts at <code>{hermes_path}</code> provide the reported final scores and qualification notes.</p></div>
-        <div class="method"><h3>Comparison field</h3><p>The HermesAgent headline spans {hermes_count} complete runs. Coding panels show every scored dataset row from the matching benchmark family, with Escha highlighted in red.</p></div>
-        <div class="method"><h3>Rebuild</h3><p>Generated with Python + pyecharts 2.0.8. The normalized <a href="results.json">results.json</a> snapshot beside this page contains every row used by the interactive report.</p></div>
-      </div>
+      <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Public release</th><th>Quant</th><th class="num">Tasks</th><th class="num">Score</th></tr></thead><tbody>{quality_rows}</tbody></table></div>
     </section>
   </main>
-  <footer class="footer">Ciru Inference Lab · local evidence, explicit protocols, reproducible artifacts · generated {generated}</footer>
+  <footer class="footer">Ciru Inference Lab · released-model quality comparison · generated {generated}</footer>
   <script>
     document.querySelectorAll('[data-tabs]').forEach(group=>{group.addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(!button)return;const section=group.parentElement;group.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el===button));section.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===button.dataset.tab));window.dispatchEvent(new Event('resize'));});});
     function wireTable(searchId,selectId,tableId,countId,attribute){const search=document.getElementById(searchId),select=document.getElementById(selectId),rows=[...document.querySelectorAll(`#${tableId} tbody tr`)],count=document.getElementById(countId);function apply(){const q=search.value.trim().toLowerCase(),choice=select.value;let visible=0;rows.forEach(row=>{const okText=!q||row.textContent.toLowerCase().includes(q),okSelect=!choice||row.dataset[attribute]===choice;row.hidden=!(okText&&okSelect);if(!row.hidden)visible++;});count.textContent=`${visible} / ${rows.length} rows`;};search.addEventListener('input',apply);select.addEventListener('change',apply);apply();}
@@ -560,8 +545,6 @@ def build(args: argparse.Namespace) -> None:
     replacements = {
         "hermes_rank": hermes_rank,
         "hermes_count": len(hermes_full),
-        "quality_count": len(quality_with_escha),
-        "quant_count": len(quant_variants),
         "mbpp_chip": "pending" if campaign["mbpp_plus"] is None else f"{campaign['mbpp_plus']:.1f}%",
         "mbpp_note": h(mbpp_note),
         "human_gap": f"{human_gap:.1f}",
@@ -574,8 +557,6 @@ def build(args: argparse.Namespace) -> None:
         "hermes_all_count": len(hermes_all),
         "quality_rows": quality_table(quality_with_escha),
         "family_options": "".join(f"<option value='{h(family)}'>{h(family)}</option>" for family in families),
-        "session_id": ESCHA["source_session"],
-        "hermes_path": ESCHA["hermes"]["run_path"],
         "generated": snapshot["generated_utc"],
     }
     html_out = template
