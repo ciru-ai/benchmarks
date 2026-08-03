@@ -465,6 +465,7 @@ def build(args: argparse.Namespace) -> None:
     header::before { content:""; position:absolute; inset:0; pointer-events:none; border-top:3px solid var(--amd); background:linear-gradient(90deg,rgba(237,28,36,.16),transparent 50%),repeating-linear-gradient(90deg,transparent 0 28px,rgba(255,255,255,.04) 28px 29px); }
     header>* { position:relative; z-index:1; }
     .brand-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px 0; }
+    .header-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
     .brand-lockup { display:inline-flex; align-items:center; gap:12px; color:var(--text); text-decoration:none; }
     .logo-plate { display:grid; place-items:center; width:42px; height:42px; border:1px solid rgba(237,28,36,.32); border-radius:8px; background:linear-gradient(135deg,rgba(237,28,36,.16),rgba(57,208,255,.06)),rgba(0,0,0,.26); overflow:hidden; }
     .logo-plate img { width:100%; height:100%; object-fit:contain; transform:scale(1.2); }
@@ -503,14 +504,14 @@ def build(args: argparse.Namespace) -> None:
     .footer { padding:0 0 32px; color:var(--subtle); font:500 .72rem "IBM Plex Mono",monospace; }
     @media (max-width:1180px) { .stats,.score-strip { grid-template-columns:repeat(3,1fr); } }
     @media (max-width:850px) { .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:560px) { header,main,.footer { width:min(calc(100% - 16px),var(--max)); } .hero,.brand-row,section { padding-left:14px; padding-right:14px; } h1 { font-size:2.15rem; } .stats,.score-strip { grid-template-columns:1fr; } .brand-row { flex-direction:column; } .button { width:100%; text-align:center; } .table-tools>* { width:100%; min-width:0; } }
+    @media (max-width:560px) { header,main,.footer { width:min(calc(100% - 16px),var(--max)); } .hero,.brand-row,section { padding-left:14px; padding-right:14px; } h1 { font-size:2.15rem; } .stats,.score-strip { grid-template-columns:1fr; } .brand-row { flex-direction:column; } .header-actions { width:100%; } .header-actions .button { flex:1; text-align:center; } .table-tools>* { width:100%; min-width:0; } }
   </style>
 </head>
 <body>
   <header>
     <div class="brand-row">
       <a class="brand-lockup" href="../"><span class="logo-plate"><img src="../ccglogo.png" alt="Crown Citadel Group"></span><span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span></a>
-      <a class="button" href="../">Research Index</a>
+      <div class="header-actions"><a class="button" href="https://huggingface.co/EschaLabs/Qwen3.6-35B-A3B-Escha-W2" target="_blank" rel="noopener">Model Card ↗</a><a class="button" href="../">Research Index</a></div>
     </div>
     <div class="hero">
       <p class="kicker">Crown Citadel Research Report</p>
