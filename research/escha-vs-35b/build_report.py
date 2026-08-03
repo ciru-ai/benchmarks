@@ -35,11 +35,25 @@ RELEASED_MODEL_LABELS = {
     "Qwen3.6-35B-A3B · Chadrock series",
 }
 
+WEIGHT_FOOTPRINT_GB = {
+    "Escha W2 / hybrid 2–3b + INT8": 12.3,
+    "ROCmFP4": 19.0,
+    "Strix Lean mixed quant": 19.0,
+    "Q4_K_M": 21.2,
+    "Dynamic mixed quant": 22.6,
+    "ROCmFPX MoEQuality 7.07 BPW": 31.4,
+    "Q6_K_XL": 32.6,
+    "Q7S8 hybrid": 32.6,
+    "DualView FPX7 + Q8 MTP": 33.5,
+    "Q8": 36.9,
+}
+
 
 ESCHA = {
     "model": "Qwen3.6-35B-A3B-Escha-W2",
     "display": "Escha W2",
     "quant": "EschaMoE W2: expert gate/up 2-bit, expert down 3-bit; dense + embeddings INT8",
+    "weight_gb": 12.3,
     "hermes": {
         "score": 90.0,
         "tasks": 20,
@@ -155,6 +169,8 @@ def normalize_quality(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         score = raw.get("score_value")
         if family == "evalplus" and raw.get("plus_rate") is not None:
             score = raw.get("plus_rate")
+        model_name = model_family(raw.get("profile_id"), raw.get("model_path"))
+        quant = infer_quant(raw.get("profile_id"), raw.get("model_path"))
         normalized.append({
             "seq": raw.get("seq"),
             "timestamp": raw.get("timestamp_utc"),
@@ -163,8 +179,9 @@ def normalize_quality(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
             "suite": raw.get("suite") or "—",
             "kind": raw.get("row_kind") or "—",
             "profile": raw.get("profile_id") or "—",
-            "model_family": model_family(raw.get("profile_id"), raw.get("model_path")),
-            "quant": infer_quant(raw.get("profile_id"), raw.get("model_path")),
+            "model_family": model_name,
+            "quant": quant,
+            "weight_gb": WEIGHT_FOOTPRINT_GB.get(quant),
             "tasks": raw.get("tasks"),
             "score_name": raw.get("score_name") or ("plus_rate" if raw.get("plus_rate") is not None else "—"),
             "score": pct(score),
@@ -218,6 +235,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
     rows = sorted(rows, key=lambda item: (item.get("score") or -1, item.get("timestamp") or ""))
     labels = [item["short_label"] for item in rows]
     values = [item.get("score") for item in rows]
+    weight_labels = [f"{item['weight_gb']:.1f} GB" if item.get("weight_gb") is not None else "" for item in rows]
     escha_indices = [index for index, item in enumerate(rows) if item.get("is_escha")]
     chart = Bar(init_opts=base_chart(chart_id, f"{max(430, 64 + len(rows) * 29)}px"))
     chart.add_xaxis(labels)
@@ -229,7 +247,12 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
             color=JsCode(f"function(p){{return {json.dumps(escha_indices)}.includes(p.dataIndex)?'{AMD}':'{CYAN}';}}"),
             border_radius=[0, 3, 3, 0],
         ),
-        label_opts=opts.LabelOpts(is_show=True, position="right", formatter="{c}"),
+        label_opts=opts.LabelOpts(
+            is_show=True,
+            position="insideRight",
+            color="#080808",
+            formatter=JsCode(f"function(p){{const w={json.dumps(weight_labels)}[p.dataIndex];return w?p.value+' · '+w:p.value;}}"),
+        ),
     )
     chart.reversal_axis()
     chart.set_global_opts(
@@ -238,7 +261,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
         tooltip_opts=opts.TooltipOpts(
             trigger="axis",
             axis_pointer_type="shadow",
-            formatter=JsCode("function(p){let d=p[0];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100';}"),
+            formatter=JsCode(f"function(p){{let d=p[0],w={json.dumps(weight_labels)}[d.dataIndex];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100'+(w?'<br>Model weights: '+w:'');}}"),
         ),
         xaxis_opts=opts.AxisOpts(
             min_=0,
@@ -275,10 +298,11 @@ def quality_table(rows: list[dict[str, Any]]) -> str:
             "<tr data-family='{family}' data-quant='{quant}' data-kind='{kind}'>"
             "<td class='mono'>{date}</td><td>{family_label}</td><td>{suite}</td>"
             "<td><b>{model}</b></td><td><span class='quant'>{quant_label}</span></td>"
-            "<td class='num'>{tasks}</td><td class='num score'>{score}</td></tr>".format(
+            "<td class='num'>{weight}</td><td class='num'>{tasks}</td><td class='num score'>{score}</td></tr>".format(
                 family=h(row["family"]), quant=h(row["quant"]), kind=h(row["kind"]),
                 date=h((row.get("timestamp") or "")[:10]), family_label=h(row["family"]), suite=h(row["suite"]),
                 model=h(row["model_family"]), quant_label=h(row["quant"]),
+                weight=f"{row['weight_gb']:.1f} GB" if row.get("weight_gb") is not None else "—",
                 tasks=h(row.get("tasks")), score=fmt_num(row.get("score"), 2),
             )
         )
@@ -294,6 +318,7 @@ def public_result(row: dict[str, Any]) -> dict[str, Any]:
         "kind": row["kind"],
         "model": row["model_family"],
         "quant": row["quant"],
+        "weight_gb": row.get("weight_gb"),
         "tasks": row.get("tasks"),
         "score_name": row.get("score_name"),
         "score": row.get("score"),
@@ -328,6 +353,7 @@ def build(args: argparse.Namespace) -> None:
         "profile": "EschaMoE W2",
         "model_family": "Escha W2",
         "quant": "Escha W2 / hybrid 2–3b + INT8",
+        "weight_gb": ESCHA["weight_gb"],
         "tasks": 20,
         "score_name": "avg_score",
         "score": ESCHA["hermes"]["score"],
@@ -517,7 +543,7 @@ def build(args: argparse.Namespace) -> None:
       <p class="kicker">Crown Citadel Research Report</p>
       <h1>2-bit Escha, high-quant quality</h1>
       <p class="subtitle">A two-bit-class Qwen3.6-35B-A3B model leads the released 35B HermesAgent field and remains close to the best higher-quant coding results.</p>
-      <div class="meta-row"><span class="tag red">2-bit-class EschaMoE W2</span><span class="tag cyan">Qwen3.6 35B-A3B</span><span class="tag green">Released-model field</span><span class="tag warn">Benchmarked result</span><span class="tag">Updated 2026-08-03</span></div>
+      <div class="meta-row"><span class="tag red">2-bit-class EschaMoE W2</span><span class="tag cyan">12.3 GB weights</span><span class="tag cyan">Qwen3.6 35B-A3B</span><span class="tag green">Released-model field</span><span class="tag warn">Benchmarked result</span><span class="tag">Updated 2026-08-03</span></div>
       <nav aria-label="Report sections"><a href="#readout">Readout</a><a href="#hermes">HermesAgent-20</a><a href="#coding">Coding</a><a href="#quality-ledger">Quality Ledger</a></nav>
     </div>
   </header>
@@ -527,26 +553,26 @@ def build(args: argparse.Namespace) -> None:
       <h2>Executive readout</h2>
       <p class="section-intro">The result is quality density. Escha’s 2-bit-class W2 format leads the released 35B HermesAgent field and stays within a few percentage points of the best higher-quant coding runs.</p>
       <div class="stats">
-        <div class="stat escha"><b>2-bit W2</b><span>Expert quant core</span><small>2b gate/up · 3b down · INT8 dense</small></div>
+        <div class="stat escha"><b>2-bit W2</b><span>12.3 GB model weights</span><small>2b gate/up · 3b down · INT8 dense</small></div>
         <div class="stat escha"><b>90 / 100</b><span>HermesAgent-20</span><small>rank #{hermes_rank} of {hermes_count} model/quant results</small></div>
         <div class="stat"><b>90.9%</b><span>HumanEval+ plus</span><small>{human_gap} pp from released best</small></div>
         <div class="stat"><b>75.7%</b><span>MBPP+ plus</span><small>286/378 · {mbpp_gap} pp from released best</small></div>
         <div class="stat"><b>29.73%</b><span>BigCodeBench Hard</span><small>44/148 · {bigcode_gap} pp from released best</small></div>
         <div class="stat"><b>87 / 100</b><span>Tool Eval · 69</span><small>80/100 on the 15-task hard set</small></div>
       </div>
-      <div class="callout good"><p><strong>Bottom line.</strong> A 2-bit-class Escha model posts the best released-model 35B HermesAgent-20 score, while landing only {human_gap} points behind the best HumanEval+ result, {mbpp_gap} behind the best MBPP+ result, and {bigcode_gap} behind the best comparable BigCodeBench Hard result. That is the meaningful story: unusually high retained quality at W2.</p></div>
+      <div class="callout good"><p><strong>Bottom line.</strong> At 12.3 GB of model weights, Escha is 35% smaller than the next-smallest 19.0 GB entry and about one-third the size of a 36.9 GB Q8 model. It posts the best released-model 35B HermesAgent-20 score while landing only {human_gap} points behind the best HumanEval+ result, {mbpp_gap} behind the best MBPP+ result, and {bigcode_gap} behind the best comparable BigCodeBench Hard result.</p></div>
     </section>
 
     <section id="hermes">
       <h2>HermesAgent-20</h2>
-      <p class="section-intro">The headline ranks {hermes_count} model-and-quant combinations using each combination’s highest complete 20-scenario score.</p>
+      <p class="section-intro">The headline ranks {hermes_count} model-and-quant combinations using each combination’s highest complete 20-scenario score. Bar labels pair quality score with model-weight footprint.</p>
       <div class="hermes-chart echarts-root">{hermes_bar}</div>
       <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best released-model result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever it is identifiable.</p></div>
     </section>
 
     <section id="coding">
       <h2>Coding and tool use</h2>
-      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Each chart keeps only the highest score for a model and quant.</p>
+      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Each chart keeps only the highest score for a model and quant; bar labels include model-weight footprint.</p>
       <div class="score-strip">
         <div class="score-chip escha"><b>87 / 100</b><span>Tool Eval · 69</span></div><div class="score-chip escha"><b>80 / 100</b><span>Tool Eval hard · 15</span></div><div class="score-chip"><b>95.1%</b><span>HumanEval base</span></div><div class="score-chip"><b>90.9%</b><span>HumanEval plus</span></div><div class="score-chip"><b>{mbpp_chip}</b><span>MBPP plus</span></div><div class="score-chip"><b>29.73%</b><span>BigCode Hard</span></div>
       </div>
@@ -559,9 +585,9 @@ def build(args: argparse.Namespace) -> None:
 
     <section id="quality-ledger">
       <h2>Released 35B quality ledger</h2>
-      <p class="section-intro">Highest scored result for each public 35B model, quant, and suite, plus the Escha results. Search model, series, quant, or suite.</p>
+      <p class="section-intro">Highest scored result for each public 35B model, quant, and suite, plus the Escha results. Weight footprint is the model-weight artifact size; runtime memory additionally includes context/KV cache and backend workspace.</p>
       <div class="table-tools"><input id="quality-search" type="search" placeholder="Search quality rows…"><select id="quality-family"><option value="">All families</option>{family_options}</select><span class="tag cyan" id="quality-count"></span></div>
-      <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Public release</th><th>Quant</th><th class="num">Tasks</th><th class="num">Score</th></tr></thead><tbody>{quality_rows}</tbody></table></div>
+      <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Public release</th><th>Quant</th><th class="num">Weights</th><th class="num">Tasks</th><th class="num">Score</th></tr></thead><tbody>{quality_rows}</tbody></table></div>
     </section>
   </main>
   <footer class="footer">Ciru Inference Lab · released-model quality comparison · generated {generated}</footer>
