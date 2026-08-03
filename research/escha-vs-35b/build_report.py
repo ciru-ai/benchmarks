@@ -214,7 +214,7 @@ def toolbox() -> opts.ToolboxOpts:
     )
 
 
-def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: str = "") -> str:
+def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: str = "", show_title: bool = True) -> str:
     rows = sorted(rows, key=lambda item: (item.get("score") or -1, item.get("timestamp") or ""))
     labels = [item["short_label"] for item in rows]
     values = [item.get("score") for item in rows]
@@ -233,7 +233,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
     )
     chart.reversal_axis()
     chart.set_global_opts(
-        title_opts=opts.TitleOpts(title=title, subtitle=subtitle, title_textstyle_opts=opts.TextStyleOpts(color="#f7f7f4"), subtitle_textstyle_opts=opts.TextStyleOpts(color=MUTED)),
+        title_opts=opts.TitleOpts(is_show=show_title, title=title, subtitle=subtitle, title_textstyle_opts=opts.TextStyleOpts(color="#f7f7f4"), subtitle_textstyle_opts=opts.TextStyleOpts(color=MUTED)),
         legend_opts=opts.LegendOpts(is_show=False),
         tooltip_opts=opts.TooltipOpts(
             trigger="axis",
@@ -249,7 +249,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
         yaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(color="#f7f7f4", font_size=10)),
         toolbox_opts=toolbox(),
     )
-    chart.options["grid"] = {"left": "25%", "right": "9%", "top": 88, "bottom": 46, "containLabel": False}
+    chart.options["grid"] = {"left": "25%", "right": "9%", "top": 42 if not show_title else 88, "bottom": 46, "containLabel": False}
     chart.set_series_opts(markline_opts=opts.MarkLineOpts(data=[opts.MarkLineItem(x=90, name="Escha")], linestyle_opts=opts.LineStyleOpts(color=AMD, type_="dashed")))
     return chart.render_embed()
 
@@ -434,7 +434,7 @@ def build(args: argparse.Namespace) -> None:
     mbpp_note = "The original 378 first samples are being scored; Mbpp/84 remains a preserved failure." if campaign["mbpp_plus"] is None else f"MBPP+: {campaign['mbpp_base']:.1f}% base / {campaign['mbpp_plus']:.1f}% plus. Mbpp/84 remains a preserved failure."
 
     charts = {
-        "hermes_bar": score_bar("hermes_score_chart", hermes_full, "HermesAgent-20 · released 35B field", f"{len(hermes_full)} model-and-quant results; highest complete score shown"),
+        "hermes_bar": score_bar("hermes_score_chart", hermes_full, "", "", show_title=False),
         "humaneval": score_bar("humaneval_chart", humaneval, "HumanEval+ · released 35B models", "Best EvalPlus plus pass@1 per model and quant"),
         "mbpp": score_bar("mbpp_chart", mbpp, "MBPP+ · released 35B models", "Best EvalPlus plus pass@1 per model and quant") if mbpp else "<p class='empty'>No scored 35B MBPP+ rows found.</p>",
         "bigcode": score_bar("bigcode_chart", bigcode, "BigCodeBench Hard Instruct · released 35B models", "Best pass@1 per model and quant"),
@@ -488,8 +488,7 @@ def build(args: argparse.Namespace) -> None:
     .stat { border:1px solid var(--line); border-radius:8px; background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018)),var(--panel2); padding:15px; min-height:118px; }
     .stat b { display:block; color:var(--cyan); font:700 clamp(1.35rem,2.3vw,2rem) "IBM Plex Mono",monospace; line-height:1.05; } .stat.escha b { color:#ff6f73; } .stat span { display:block; margin-top:8px; color:var(--muted); font-size:.82rem; } .stat small { display:block; margin-top:5px; color:var(--subtle); font:500 .66rem "IBM Plex Mono",monospace; }
     .callout { margin-top:16px; border:1px solid rgba(57,208,255,.24); border-left:5px solid var(--cyan); border-radius:8px; background:rgba(57,208,255,.08); padding:15px 18px; } .callout.warning { border-color:rgba(255,159,67,.25); border-left-color:var(--orange); background:rgba(255,159,67,.08); } .callout.good { border-color:rgba(32,209,162,.25); border-left-color:var(--green); background:rgba(32,209,162,.08); } .callout p { margin:0; }
-    .chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .chart-panel { min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.2); padding:10px; }
-    .chart-panel.full { grid-column:1/-1; }
+    .hermes-chart { min-width:0; overflow:hidden; }
     .echarts-root>div { max-width:100%; }
     .score-strip { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:9px; margin-bottom:14px; } .score-chip { border:1px solid var(--line); background:rgba(255,255,255,.035); border-radius:7px; padding:12px; } .score-chip b { display:block; font:700 1.25rem "IBM Plex Mono",monospace; color:var(--cyan); } .score-chip.escha b { color:#ff6f73; } .score-chip span { color:var(--muted); font-size:.76rem; }
     .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; } .tab { appearance:none; border:1px solid var(--line); border-radius:6px; padding:8px 10px; background:rgba(255,255,255,.04); color:var(--muted); font:700 .72rem "IBM Plex Mono",monospace; cursor:pointer; text-transform:uppercase; } .tab.active { border-color:rgba(57,208,255,.55); color:#fff; background:rgba(57,208,255,.12); }
@@ -503,7 +502,7 @@ def build(args: argparse.Namespace) -> None:
     code { font-family:"IBM Plex Mono",monospace; color:#b9efff; overflow-wrap:anywhere; } .empty { color:var(--muted); padding:30px; text-align:center; }
     .footer { padding:0 0 32px; color:var(--subtle); font:500 .72rem "IBM Plex Mono",monospace; }
     @media (max-width:1180px) { .stats,.score-strip { grid-template-columns:repeat(3,1fr); } }
-    @media (max-width:850px) { .chart-grid { grid-template-columns:1fr; } .chart-panel.full { grid-column:auto; } .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:850px) { .brand-row { align-items:flex-start; } .stats,.score-strip { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:560px) { header,main,.footer { width:min(calc(100% - 16px),var(--max)); } .hero,.brand-row,section { padding-left:14px; padding-right:14px; } h1 { font-size:2.15rem; } .stats,.score-strip { grid-template-columns:1fr; } .brand-row { flex-direction:column; } .button { width:100%; text-align:center; } .table-tools>* { width:100%; min-width:0; } }
   </style>
 </head>
@@ -540,7 +539,7 @@ def build(args: argparse.Namespace) -> None:
     <section id="hermes">
       <h2>HermesAgent-20</h2>
       <p class="section-intro">The headline ranks {hermes_count} model-and-quant combinations using each combination’s highest complete 20-scenario score.</p>
-      <div class="chart-grid"><div class="chart-panel full echarts-root">{hermes_bar}</div></div>
+      <div class="hermes-chart echarts-root">{hermes_bar}</div>
       <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best released-model result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever it is identifiable.</p></div>
     </section>
 
