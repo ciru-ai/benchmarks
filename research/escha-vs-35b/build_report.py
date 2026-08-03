@@ -235,7 +235,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
     rows = sorted(rows, key=lambda item: (item.get("score") or -1, item.get("timestamp") or ""))
     labels = [item["short_label"] for item in rows]
     values = [item.get("score") for item in rows]
-    weight_labels = [f"{item['weight_gb']:.1f} GB" if item.get("weight_gb") is not None else "" for item in rows]
+    weight_values = [item.get("weight_gb") for item in rows]
     escha_indices = [index for index, item in enumerate(rows) if item.get("is_escha")]
     chart = Bar(init_opts=base_chart(chart_id, f"{max(430, 64 + len(rows) * 29)}px"))
     chart.add_xaxis(labels)
@@ -251,7 +251,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
             is_show=True,
             position="insideRight",
             color="#080808",
-            formatter=JsCode(f"function(p){{const w={json.dumps(weight_labels)}[p.dataIndex];return w?p.value+' · '+w:p.value;}}"),
+            formatter=JsCode(f"function(p){{const w={json.dumps(weight_values)}[p.dataIndex];return w!=null?p.value+' · '+w.toFixed(1)+' GB':p.value;}}"),
         ),
     )
     chart.reversal_axis()
@@ -261,7 +261,7 @@ def score_bar(chart_id: str, rows: list[dict[str, Any]], title: str, subtitle: s
         tooltip_opts=opts.TooltipOpts(
             trigger="axis",
             axis_pointer_type="shadow",
-            formatter=JsCode(f"function(p){{let d=p[0],w={json.dumps(weight_labels)}[d.dataIndex];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100'+(w?'<br>Model weights: '+w:'');}}"),
+            formatter=JsCode(f"function(p){{let d=p[0],w={json.dumps(weight_values)}[d.dataIndex];return '<b>'+d.name+'</b><br>Score: '+d.value+'/100'+(w!=null?'<br>Model weights: '+w.toFixed(1)+' GB':'');}}"),
         ),
         xaxis_opts=opts.AxisOpts(
             min_=0,
