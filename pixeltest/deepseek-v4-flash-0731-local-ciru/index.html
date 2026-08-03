@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌸 Cherry-Blossom Pagoda Garden — Voxel Art</title>
+<style>
+  html, body { margin:0; height:100%; overflow:hidden; background:#bcd9e8; font-family:'Segoe UI',sans-serif; }
+  canvas { display:block; }
+  #hud {
+    position:fixed; left:0; top:0; padding:14px 20px; color:#fff; z-index:10;
+    background:linear-gradient(180deg, rgba(20,40,70,.55), rgba(20,40,70,0));
+    pointer-events:none; text-shadow:0 1px 2px rgba(0,0,0,.6);
+  }
+  #hud h1 { font-size:22px; margin:0; letter-spacing:.5px; }
+  #hud p  { margin:4px 0 0; font-size:13px; opacity:.95; }
+  #stats {
+    position:fixed; right:14px; top:12px; color:#dfe9ff; z-index:10; text-align:right;
+    font-size:12px; pointer-events:none; text-shadow:0 1px 2px rgba(0,0,0,.6);
+  }
+  #loader {
+    position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+    color:#2a4a6e; font-size:17px; background:#bcd9e8; letter-spacing:.3px;
+  }
+</style>
+</head>
+<body>
+<div id="loader">Building voxel garden… 🌸</div>
+<div id="hud">
+  <h1>🌸 Cherry-Blossom Pagoda Garden</h1>
+  <p>Drag to orbit &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Voxel art rendered with Three.js</p>
+</div>
+<div id="stats"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================ VOXEL ENGINE ============================ */
+
+// Palette: name -> hex color
+const C = {
+  grass:      '#6dc25a',
+  grassDark:  '#58a848',
+  grassLight: '#80d16c',
+  grassDry:   '#9fca72',
+  path:       '#9a8f86',
+  pathDark:   '#7f756c',
+  step:       '#b6a99e',
+  stone:      '#8f8f8f',
+  stoneDark:  '#7a7a7a',
+  stoneLight: '#a9a9a9',
+  wood:       '#8a5a33',
+  woodDark:   '#6e4526',
+  woodLight:  '#9d6b42',
+  roof:       '#a62c2c',
+  roofDark:   '#862020',
+  roofLight:  '#c43c3c',
+  gold:       '#ffd700',
+  goldDark:   '#d3a700',
+  trunk:      '#5a3a20',
+  branch:     '#4a2e18',
+  blossom:    '#ffa8c0',
+  blossomW:   '#fbe4e8',
+  blossomD:   '#ff7fa8',
+  leaf:       '#3d9e3d',
+  leafDark:   '#2f852f',
+  leafLight:  '#4cb14c',
+  maple:      '#d43a2a',
+  mapleD:     '#b02f1f',
+  water:      '#3f8fd0',
+  waterDeep:  '#2f6fb0',
+  lily:       '#4caf50',
+  red:        '#ff4455',
+  redDark:    '#d03440',
+  yellow:     '#ffd24a',
+  purple:     '#b06fdd',
+  fence:      '#7a4e2a',
+  light:      '#fff0c0',
+  cloud:      '#ffffff',
+};
+
+// Voxel storage: map key -> color name, plus per-color position arrays.
+const voxelMap = new Map();
+const groups   = new Map(); // color -> [x,y,z,...]
+let   voxelCount = 0;
+
+function addV(x, y, z, color) {
+  x |= 0; y |= 0; z |= 0;
+  const key = x + ',' + y + ',' + z;
+  const prev = voxelMap.get(key);
+  if (prev) {
+    if (prev === color) return;
+    removeFromGroup(prev, x, y, z);
+  }
+  voxelMap.set(key, color);
+  let arr = groups.get(color);
+  if (!arr) { arr = []; groups.set(color, arr); }
+  arr.push(x, y, z);
+  voxelCount++;
+}
+
+function removeFromGroup(color, x, y, z) {
+  const arr = groups.get(color);
+  if (!arr) return;
+  for (let i = 0; i < arr.length; i += 3) {
+    if (arr[i] === x && arr[i+1] === y && arr[i+2] === z) {
+      arr[i]   = arr[arr.length-3];
+      arr[i+1] = arr[arr.length-2];
+      arr[i+2] = arr[arr.length-1];
+      arr.length -= 3;
+      voxelCount--;
+      if (!arr.length) groups.delete(color);
+      return;
+    }
+  }
+}
+
+/* Deterministic hashes so the scene is stable across reloads */
+function hash2(x, z) {
+  let h = x * 374761393 + z * 668265263;
+  h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff;
+  h ^= h >> 16;
+  return (h >>> 0) / 4294967296;
+}
+function hash3(x, y, z) {
+  let h = x * 374761393 + y * 668265263 + z * 1274126177;
+  h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff;
+  h ^= h >> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+/* ============================ BUILD THE SCENE ============================ */
+
+function build() {
+
+  /* ---- Ground (grass) ---- */
+  const G = 46; // half-extent
+  for (let x = -G; x <= G; x++)
+    for (let z = -G; z <= G; z++) {
+      const r = hash2(x, z);
+      let c = 'grass';
+      if      (r < 0.16) c = 'grassDark';
+      else if (r < 0.28) c = 'grassLight';
+      else if (r < 0.34) c = 'grassDry';
+      addV(x, 0, z, c);
+    }
+
+  /* ---- Paths (stone) ---- */
+  const pathW = 1; // half-width
+  // Main path along +z toward pagoda
+  for (let z = -36; z <= -9; z++)
+    for (let x = -pathW; x <= pathW; x++)
+      addV(x, 0, z, hash2(x,z) < .4 ? 'pathDark' : 'path');
+  // Cross path along x
+  for (let x = -36; x <= 36; x++)
+    for (let z = -pathW; z <= pathW; z++)
+      if (Math.abs(x) > 10) addV(x, 0, z, hash2(x,z) < .4 ? 'pathDark' : 'path');
+  // Steps up onto the platform (south entrance)
+  for (let z = -8; z <= -6; z++)
+    for (let x = -1; x <= 1; x++)
+      addV(x, 1, z, 'step');
+  // Steps east/west onto platform
+  for (let x = -1; x <= 1; x++)
+    for (let z = -1; z <= 1; z++) {
+      addV(9, 1, z, 'step');
+      addV(-9, 1, z, 'step');
+    }
+  // Square garden ring path at radius 14
+  const R = 14, rw = 1;
+  for (let x = -R-rw; x <= R+rw; x++) {
+    addV(x, 0,  R+rw, 'pathDark'); addV(x, 0,  R, 'path'); addV(x, 0,  R-rw, 'pathDark');
+    addV(x, 0, -R-rw, 'pathDark'); addV(x, 0, -R, 'path'); addV(x, 0, -R-rw, 'pathDark');
+  }
+  for (let z = -R-rw; z <= R+rw; z++) {
+    addV( R+rw, 0, z, 'pathDark'); addV( R, 0, z, 'path'); addV( R-rw, 0, z, 'pathDark');
+    addV(-R-rw, 0, z, 'pathDark'); addV(-R, 0, z, 'path'); addV(-R-rw, 0, z, 'pathDark');
+  }
+
+  /* ---- Pagoda platform (stone) ---- */
+  for (let x = -9; x <= 9; x++)
+    for (let z = -9; z <= 9; z++) {
+      const r = hash2(x, z);
+      addV(x, 1, z, r < .35 ? 'stoneDark' : (r < .6 ? 'stone' : 'stoneLight'));
+      // decorative gold corners
+      if ((Math.abs(x) === 9 && Math.abs(z) === 9)) addV(x, 2, z, 'goldDark');
+    }
+
+  /* ---- 4-Tier Pagoda ---- */
+  // Tier 1: slab y=2 (s=3), columns, red walls, roof y=4..9 (E=10)
+  tier(1, 2, 3, 4, 10, true);
+  // Tier 2: slab y=10 (s=2), roof y=12..16 (E=8)
+  tier(2, 10, 2, 12, 8, false);
+  // Tier 3: slab y=17 (s=2), roof y=19..22 (E=6)
+  tier(3, 17, 2, 19, 6, false);
+  // Tier 4: slab y=23 (s=1), roof y=25..27 (E=4)
+  tier(4, 23, 1, 25, 4, false);
+
+  // Spire (gold) from y=28 to 38, with rings
+  for (let y = 28; y <= 36; y++) addV(0, y, 0, 'gold');
+  for (let y = 30; y <= 36; y += 2) {
+    addV( 1, y, 0, 'goldDark'); addV(-1, y, 0, 'goldDark');
+    addV( 0, y, 1, 'goldDark'); addV( 0, y,-1, 'goldDark');
+  }
+  // finial ball
+  addV(0, 37, 0, 'gold'); addV(0, 38, 0, 'gold'); addV(0, 38, 1, 'gold'); addV(1, 38, 0, 'gold'); addV(0, 38,-1, 'gold'); addV(-1,38,0,'gold');
+  addV(1,37,0,'goldDark'); addV(0,37,1,'goldDark'); addV(-1,37,0,'goldDark'); addV(0,37,-1,'goldDark');
+
+  /* ---- Torii gate at the garden entrance ---- */
+  torii(-30);
+
+  /* ---- Pond ---- */
+  pond(20, -20, 6);
+  bridgeOverPond();
+
+  /* ---- Clouds ---- */
+  cloud(-34, 46, -30, 2);
+  cloud( 30, 48,  28, 2);
+  cloud( -6, 52,  12, 2);
+  cloud( 14, 44, -44, 2);
+
+  /* ---- Trees ---- */
+  // Cherry blossom trees
+  cherryTree(-22,  8);
+  cherryTree( 16, -8);
+  cherryTree( 36,-20);
+  cherryTree(-8,  26);
+  cherryTree( 8, -34);
+  cherryTree(-28,-12);
+  cherryTree( 18, 30);
+  cherryTree( 44,-10);
+  cherryTree(-4, -28);
+  cherryTree( 6,  24);
+  // Green trees
+  greenTree( 8, 40);
+  greenTree(-32,  6);
+  greenTree(-30,-28);
+  greenTree( 4, -42);
+  // Red maple
+  mapleTree(14, -36);
+  mapleTree(-6,-32);
+  mapleTree(36, -8);
+
+  /* ---- Lanterns (stone garden lanterns) ---- */
+  lantern(14, 14); lantern(14,-14); lantern(-14,14); lantern(-14,-14);
+  // stone basin (tsukubai) by the pond
+  basin(16,-17);
+
+  /* ---- Rocks & flowers & petals ---- */
+  rocksAndFlowers();
+
+  /* ---- Garden fence ---- */
+  fence();
+
+}
+
+/* Pagoda tier: slab + corner columns + optional walls + stepped roof */
+function tier(n, ySlab, s, yRoof, E, walls) {
+  // floor slab
+  for (let x = -s; x <= s; x++)
+    for (let z = -s; z <= s; z++)
+      addV(x, ySlab, z, n === 1 ? 'stone' : 'woodDark');
+  // corner columns + walls
+  const cols = [
+    [ s, s], [ s,-s], [-s, s], [-s,-s]
+  ];
+  const colH = yRoof - ySlab; // columns rise to roof level
+  for (const [cx, cz] of cols) {
+    for (let y = ySlab; y < yRoof; y++)
+      addV(cx, y, cz, 'wood');
+    addV(cx, yRoof, cz, 'gold'); // gold cap
+  }
+  if (walls) {
+    for (let y = ySlab; y < yRoof; y++) {
+      for (let z = -s; z <= s; z++) {
+        addV( s, y, z, 'woodLight'); addV(-s, y, z, 'woodLight');
+      }
+      for (let x = -s; x <= s; x++) {
+        addV(x, y,  s, 'woodLight'); addV(x, y, -s, 'woodLight');
+      }
+    }
+  }
+  roof(yRoof, E);
+}
+
+/* Stepped pyramid roof with gold corner trim + gold tip */
+function roof(y0, E) {
+  let y = y0;
+  for (let e = E; e >= 0; e -= 2) {
+    if (e === 0) { addV(0, y, 0, 'gold'); break; }
+    for (let x = -e; x <= e; x++)
+      for (let z = -e; z <= e; z++) {
+        const r = hash3(x, y, z);
+        addV(x, y, z, r < .25 ? 'roofDark' : (r < .6 ? 'roof' : 'roofLight'));
+      }
+    addV( e, y,  e, 'goldDark'); addV(-e, y,  e, 'goldDark');
+    addV( e, y, -e, 'goldDark'); addV(-e, y, -e, 'goldDark');
+    y++;
+  }
+}
+
+/* Torii gate: two red pillars + lintel beams */
+function torii(z) {
+  for (let y = 1; y <= 7; y++) {
+    addV(-3, y, z, 'red'); addV(3, y, z, 'red');
+  }
+  for (let x = -3; x <= 3; x++) {
+    addV(x, 6, z, 'red');
+    addV(x, 7, z, 'redDark');
+  }
+  addV(-3, 8, z, 'red'); addV(3, 8, z, 'red');
+  addV(0, 8, z, 'red');
+}
+
+/* Small wooden bridge over the pond */
+function bridgeOverPond() {
+  const z = -20;
+  for (let x = 13; x <= 27; x++) addV(x, 1, z, 'woodDark');
+  for (let x = 14; x <= 26; x += 2) {
+    addV(x, 2, z, 'wood');
+    addV(x, 3, z, 'woodDark');
+  }
+  for (let x = 13; x <= 27; x++) addV(x, 3, z, 'woodLight');
+}
+
+/* White cloud cluster */
+function cloud(x, y, z, r) {
+  for (let dx = -r; dx <= r; dx++)
+    for (let dz = -r; dz <= r; dz++) {
+      if (Math.abs(dx) === r && Math.abs(dz) === r && hash3(x+dx,y,z+dz) < .5) continue;
+      addV(x+dx, y, z+dz, 'cloud');
+    }
+  addV(x, y+1, z, 'cloud'); addV(x, y+1, z+1, 'cloud');
+}
+
+/* Pond: water disc + stone rim + lily pads */
+function pond(cx, cz, r) {
+  for (let x = cx-r-2; x <= cx+r+2; x++)
+    for (let z = cz-r-2; z <= cz+r+2; z++) {
+      const d = Math.sqrt((x-cx)*(x-cx) + (z-cz)*(z-cz));
+      if (d <= r) {
+        const rd = hash2(x, z);
+        addV(x, 0, z, rd < .35 ? 'waterDeep' : 'water');
+        if (rd < 0.08) addV(x, 1, z, 'lily');
+      } else if (d <= r + 1.5) {
+        addV(x, 0, z, 'stoneDark');
+        if (hash2(x,z) < .4) addV(x, 1, z, 'stone');
+      }
+    }
+  // small stepping stones
+  const stones = [[cx-2,cz+1],[cx-1,cz-1],[cx+1,cz+2],[cx+2,cz]];
+  for (const [x,z] of stones) addV(x, 1, z, 'stoneLight');
+}
+
+/* Cherry blossom tree: trunk, branches, layered pink canopy, falling petals */
+function cherryTree(cx, cz) {
+  const h = 5 + Math.floor(hash2(cx,cz) * 3); // 5..7
+  // trunk (slightly tapering)
+  for (let y = 1; y <= h; y++)
+    addV(cx, y, cz, y < 2 ? 'trunk' : 'branch');
+  // branches
+  addV(cx+1, h, cz, 'branch'); addV(cx-1, h, cz, 'branch');
+  addV(cx, h, cz+1, 'branch'); addV(cx, h, cz-1, 'branch');
+  addV(cx+2, h-1, cz, 'branch'); addV(cx, h-1, cz+2, 'branch');
+  // layered canopy
+  const top = h + 1;
+  blob(cx, top,   cz, 3);
+  blob(cx, top+1, cz, 3);
+  blob(cx, top+2, cz, 2);
+  blob(cx, top+3, cz, 1);
+  // falling petals in the air around the tree
+  const n = 40 + Math.floor(hash2(cx,cz)*40);
+  for (let i = 0; i < n; i++) {
+    const dx = Math.floor((hash3(cx, i, 1) * 2 - 1) * 6);
+    const dz = Math.floor((hash3(cx, i, 2) * 2 - 1) * 6);
+    const dy = top + Math.floor(hash3(cx, i, 3) * 4) - 1;
+    if (dx === 0 && dz === 0) continue;
+    addV(cx+dx, dy, cz+dz, hash3(cx,i,4) < .5 ? 'blossom' : 'blossomW');
+  }
+  // scattered petals on the ground
+  for (let i = 0; i < 26; i++) {
+    const dx = Math.floor((hash3(cx, i, 5) * 2 - 1) * 4);
+    const dz = Math.floor((hash3(cx, i, 6) * 2 - 1) * 4);
+    addV(cx+dx, 1, cz+dz, hash3(cx,i,7) < .6 ? 'blossomD' : 'blossom');
+  }
+}
+
+function blob(x, y, z, r) {
+  for (let dx = -r; dx <= r; dx++)
+    for (let dz = -r; dz <= r; dz++) {
+      if (dx*dx + dz*dz > r*r) continue;
+      const h = hash3(x+dx, y, z+dz);
+      const c = h < .30 ? 'blossomW' : (h < .55 ? 'blossomD' : 'blossom');
+      addV(x+dx, y, z+dz, c);
+    }
+}
+
+/* Green rounded tree */
+function greenTree(cx, cz) {
+  const h = 5 + Math.floor(hash2(cx,cz) * 3);
+  for (let y = 1; y <= h; y++)
+    addV(cx, y, cz, y < 2 ? 'trunk' : 'branch');
+  const top = h;
+  greenBlob(cx, top,   cz, 3);
+  greenBlob(cx, top+1, cz, 3);
+  greenBlob(cx, top+2, cz, 2);
+  greenBlob(cx, top+3, cz, 1);
+}
+function greenBlob(x, y, z, r) {
+  for (let dx = -r; dx <= r; dx++)
+    for (let dz = -r; dz <= r; dz++) {
+      if (dx*dx + dz*dz > r*r) continue;
+      const h = hash3(x+dx, y, z+dz);
+      addV(x+dx, y, z+dz, h < .3 ? 'leafDark' : (h < .65 ? 'leaf' : 'leafLight'));
+    }
+}
+
+/* Red maple tree with drooping canopy */
+function mapleTree(cx, cz) {
+  const h = 4 + Math.floor(hash2(cx,cz) * 2);
+  for (let y = 1; y <= h; y++)
+    addV(cx, y, cz, y < 2 ? 'trunk' : 'branch');
+  const top = h;
+  for (let dy = 0; dy <= 3; dy++) {
+    const r = 3 - dy;
+    for (let dx = -r; dx <= r; dx++)
+      for (let dz = -r; dz <= r; dz++) {
+        if (dx*dx + dz*dz > r*r) continue;
+        const hh = hash3(cx+dx, top+dy, cz+dz);
+        addV(cx+dx, top+dy, cz+dz, hh < .4 ? 'mapleD' : 'maple');
+      }
+  }
+}
+
+/* Stone garden lantern */
+function lantern(x, z) {
+  // base
+  addV(x, 0, z, 'stoneDark'); addV(x+1,0,z,'stoneDark'); addV(x,0,z+1,'stoneDark');
+  addV(x+1,0,z+1,'stoneDark');
+  // post
+  addV(x,1,z,'stone'); addV(x+1,1,z,'stone'); addV(x,1,z+1,'stone'); addV(x+1,1,z+1,'stone');
+  addV(x,2,z,'stone'); addV(x+1,2,z,'stone'); addV(x,2,z+1,'stone'); addV(x+1,2,z+1,'stone');
+  // cap
+  for (let a=0;a<3;a++) for (let b=0;b<3;b++) addV(x-1+a, 3, z-1+b, 'stoneLight');
+  // glowing light
+  addV(x, 4, z, 'light'); addV(x+1,4,z,'light'); addV(x,4,z+1,'light'); addV(x+1,4,z+1,'light');
+}
+
+/* Stone water basin (tsukubai) */
+function basin(x, z) {
+  for (let a=0;a<3;a++) for (let b=0;b<3;b++) {
+    addV(x-1+a, 0, z-1+b, 'stoneDark');
+    addV(x-1+a, 1, z-1+b, 'stone');
+  }
+  addV(x, 2, z, 'water');
+  addV(x+1, 2, z, 'stone'); addV(x, 2, z+1, 'stone');
+}
+
+/* Scattered rocks and colorful flowers */
+function rocksAndFlowers() {
+  const rocks = [
+    [-35,-35], [38,-38], [40, 40], [-40, 35], [18,-38], [-38, 18], [30, -30], [-30, 30]
+  ];
+  for (const [x, z] of rocks) {
+    addV(x,0,z,'stone'); addV(x+1,0,z,'stoneDark');
+    addV(x,0,z+1,'stone'); addV(x+1,1,z,'stone');
+  }
+  // flowers: colorful single voxels on grass (avoid paths/pagoda/pond area)
+  let placed = 0;
+  for (let i = 0; placed < 220 && i < 4000; i++) {
+    const x = Math.floor((hash2(i,1)*2-1) * 44);
+    const z = Math.floor((hash2(i,2)*2-1) * 44);
+    const ax = Math.abs(x), az = Math.abs(z);
+    // skip paths (near axes inside garden, ring, pagoda platform, pond)
+    if (ax <= 10 && az <= 10) continue;
+    if (ax <= 3 && az <= 44) continue;   // cross path
+    if (az <= 3 && ax <= 44) continue;   // main path
+    if (ax >= 12 && ax <= 17 && az <= 17) continue; // ring
+    if (az >= 12 && az <= 17 && ax <= 17) continue;
+    // pond region
+    const d = Math.sqrt((x-20)*(x-20)+(z+20)*(z+20));
+    if (d < 10) continue;
+    const r = hash2(i,3);
+    const c = r < .25 ? 'red' : (r < .5 ? 'yellow' : (r < .75 ? 'purple' : 'blossomD'));
+    addV(x, 1, z, c);
+    placed++;
+  }
+}
+
+/* Wooden garden fence around the border */
+function fence() {
+  const B = 43;
+  for (let s = -B; s <= B; s += 3) {
+    post( s,  B); post( s, -B); post( B,  s); post(-B,  s);
+  }
+  // rails
+  for (let s = -B; s <= B; s += 3) {
+    rail( s,  B, 1); rail( s, -B, 1);
+    rail( B,  s, 1); rail(-B,  s, 1);
+  }
+  function post(x, z) {
+    addV(x, 0, z, 'fence'); addV(x, 1, z, 'wood'); addV(x, 2, z, 'wood'); addV(x, 3, z, 'woodLight');
+  }
+  function rail(x, z, n) {
+    addV(x, 1, z, 'wood');
+  }
+}
+
+/* ============================ THREE.JS RENDER ============================ */
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#a8d4ec');
+scene.fog = new THREE.Fog('#a8d4ec', 130, 260);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(44, 36, 50);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 18, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI / 2.05;
+controls.minDistance = 14;
+controls.maxDistance = 120;
+
+/* Lights */
+const sun = new THREE.DirectionalLight(0xfff6e8, 2.0);
+sun.position.set(40, 55, 52);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -80;
+sun.shadow.camera.right = 80;
+sun.shadow.camera.top = 80;
+sun.shadow.camera.bottom = -80;
+sun.shadow.bias = -0.5;
+scene.add(sun);
+scene.add(new THREE.AmbientLight(0x9fb8d8, 1.0));
+const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x7fae6e, 0.6);
+scene.add(hemi);
+const fill = new THREE.DirectionalLight(0x8fb8d8, 0.5);
+fill.position.set(-40, 20, -35);
+scene.add(fill);
+
+/* Build voxels */
+build();
+document.getElementById('loader').style.display = 'none';
+
+/* Turn voxel groups into InstancedMesh per color */
+const colorHex = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, parseInt(v.slice(1), 16)]));
+const meshes = [];
+const geo = new THREE.BoxGeometry(1, 1, 1);
+let total = 0;
+
+for (const [color, arr] of groups) {
+  const n = arr.length / 3;
+  total += n;
+  const mat = new THREE.MeshStandardMaterial({
+    color: colorHex[color],
+    roughness: 0.55,
+    metalness: (color === 'gold' || color === 'goldDark') ? 0.35 : 0.05,
+  });
+  if (color === 'light') {
+    mat.emissive = new THREE.Color(colorHex[color]);
+    mat.emissiveIntensity = 1.6;
+  }
+  const mesh = new THREE.InstancedMesh(geo, mat, n);
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < n; i++) {
+    dummy.position.set(arr[i*3], arr[i*3+1], arr[i*3+2]);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  meshes.push(mesh);
+}
+
+// Warm glow around pagoda lanterns (soft point lights)
+const glow = new THREE.PointLight(0xffb27a, 0.35, 40);
+glow.position.set(0, 8, 0);
+scene.add(glow);
+
+document.getElementById('stats').innerHTML =
+  'voxels: ' + total.toLocaleString() + ' · colors: ' + groups.size;
+
+/* Animate */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
