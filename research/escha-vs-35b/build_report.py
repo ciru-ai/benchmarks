@@ -174,6 +174,23 @@ def normalize_quality(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     return normalized
 
 
+def highest_scores(rows: Iterable[dict[str, Any]], key_fields: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Keep the highest-scoring observation for each public comparison key."""
+    best: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in rows:
+        key = tuple(row.get(field) for field in key_fields)
+        current = best.get(key)
+        row_rank = (row.get("score") if row.get("score") is not None else float("-inf"), row.get("timestamp") or "", row.get("seq") or -1)
+        current_rank = (
+            current.get("score") if current and current.get("score") is not None else float("-inf"),
+            current.get("timestamp") or "" if current else "",
+            current.get("seq") or -1 if current else -1,
+        )
+        if current is None or row_rank > current_rank:
+            best[key] = row
+    return list(best.values())
+
+
 def base_chart(chart_id: str, height: str = "480px") -> opts.InitOpts:
     return opts.InitOpts(
         chart_id=chart_id,
@@ -318,18 +335,24 @@ def build(args: argparse.Namespace) -> None:
         "plus_score": None,
     }
     hermes_all = hermes + [escha_hermes]
-    hermes_full = [row for row in hermes_all if row.get("tasks") == 20 and row.get("score") != 16]
+    hermes_full = highest_scores(
+        [row for row in hermes_all if row.get("tasks") == 20 and row.get("score") != 16],
+        ("model_family", "quant"),
+    )
     for row in hermes_full:
         row["label"] = f"{row['model_family']} · {row['quant']}"
         row["short_label"] = short(row["label"], 69)
         row["is_escha"] = row["model_family"] == "Escha W2"
 
-    # Latest scored dataset rows are presented without collapsing the ledger.
+    # Charts show only the highest score for each model and quant.
     def dataset_rows(family: str, suite_term: str) -> list[dict[str, Any]]:
-        candidates = [
-            row for row in quality
-            if row["family"] == family and row["kind"] == "dataset" and suite_term in row["suite"].lower() and row.get("score") is not None
-        ]
+        candidates = highest_scores(
+            [
+                row for row in quality
+                if row["family"] == family and row["kind"] == "dataset" and suite_term in row["suite"].lower() and row.get("score") is not None
+            ],
+            ("model_family", "quant"),
+        )
         for row in candidates:
             row["label"] = f"{row['model_family']} · {row['quant']}"
             row["short_label"] = short(row["label"], 68)
@@ -372,7 +395,15 @@ def build(args: argparse.Namespace) -> None:
     humaneval.append(escha_humaneval)
     bigcode.append(escha_bigcode)
     mbpp.append(escha_mbpp)
-    quality_with_escha = quality + [escha_hermes, escha_humaneval, escha_mbpp, escha_bigcode, escha_tool, escha_tool_hard]
+    public_quality = [
+        row for row in quality
+        if not (row["family"] == "hermesagent-20" and row.get("tasks") != 20)
+        and not (row["family"] == "evalplus" and row["suite"].lower() == "aggregate")
+    ]
+    quality_with_escha = highest_scores(
+        public_quality + [escha_hermes, escha_humaneval, escha_mbpp, escha_bigcode, escha_tool, escha_tool_hard],
+        ("family", "suite", "model_family", "quant", "tasks"),
+    )
 
     ranks = sorted((row["score"] for row in hermes_full if row.get("score") is not None), reverse=True)
     hermes_rank = 1 + sum(score > ESCHA["hermes"]["score"] for score in ranks)
@@ -391,22 +422,22 @@ def build(args: argparse.Namespace) -> None:
         "quality_rows": [public_result(row) for row in quality_with_escha],
         "counts": {
             "quality_rows": len(quality_with_escha),
-            "hermes_aggregate_rows": len(hermes_all),
+            "hermes_aggregate_rows": len(hermes_full),
             "hermes_full_comparison_rows": len(hermes_full),
             "quant_variants": len(quant_variants),
         },
     }
     args.data_out.parent.mkdir(parents=True, exist_ok=True)
-    args.data_out.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+    args.data_out.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     campaign = ESCHA["campaign"]
     mbpp_note = "The original 378 first samples are being scored; Mbpp/84 remains a preserved failure." if campaign["mbpp_plus"] is None else f"MBPP+: {campaign['mbpp_base']:.1f}% base / {campaign['mbpp_plus']:.1f}% plus. Mbpp/84 remains a preserved failure."
 
     charts = {
-        "hermes_bar": score_bar("hermes_score_chart", hermes_full, "HermesAgent-20 · released 35B field", f"{len(hermes_full)} complete 20-scenario runs; Escha highlighted in red"),
-        "humaneval": score_bar("humaneval_chart", humaneval, "HumanEval+ · released 35B runs", "EvalPlus plus pass@1; repeated runs remain visible"),
-        "mbpp": score_bar("mbpp_chart", mbpp, "MBPP+ · released 35B runs", "EvalPlus plus pass@1; Escha appears after preserved-first-sample scoring") if mbpp else "<p class='empty'>No scored 35B MBPP+ rows found.</p>",
-        "bigcode": score_bar("bigcode_chart", bigcode, "BigCodeBench Hard Instruct · released 35B runs", "Pass@1 across released-model Hard Instruct dataset runs"),
+        "hermes_bar": score_bar("hermes_score_chart", hermes_full, "HermesAgent-20 · released 35B field", f"{len(hermes_full)} model-and-quant results; highest complete score shown"),
+        "humaneval": score_bar("humaneval_chart", humaneval, "HumanEval+ · released 35B models", "Best EvalPlus plus pass@1 per model and quant"),
+        "mbpp": score_bar("mbpp_chart", mbpp, "MBPP+ · released 35B models", "Best EvalPlus plus pass@1 per model and quant") if mbpp else "<p class='empty'>No scored 35B MBPP+ rows found.</p>",
+        "bigcode": score_bar("bigcode_chart", bigcode, "BigCodeBench Hard Instruct · released 35B models", "Best pass@1 per model and quant"),
     }
 
     template = r'''<!doctype html>
@@ -497,7 +528,7 @@ def build(args: argparse.Namespace) -> None:
       <p class="section-intro">The result is quality density. Escha’s 2-bit-class W2 format leads the released 35B HermesAgent field and stays within a few percentage points of the best higher-quant coding runs.</p>
       <div class="stats">
         <div class="stat escha"><b>2-bit W2</b><span>Expert quant core</span><small>2b gate/up · 3b down · INT8 dense</small></div>
-        <div class="stat escha"><b>90 / 100</b><span>HermesAgent-20</span><small>rank #{hermes_rank} of {hermes_count} released-model runs</small></div>
+        <div class="stat escha"><b>90 / 100</b><span>HermesAgent-20</span><small>rank #{hermes_rank} of {hermes_count} model/quant results</small></div>
         <div class="stat"><b>90.9%</b><span>HumanEval+ plus</span><small>{human_gap} pp from released best</small></div>
         <div class="stat"><b>75.7%</b><span>MBPP+ plus</span><small>286/378 · {mbpp_gap} pp from released best</small></div>
         <div class="stat"><b>29.73%</b><span>BigCodeBench Hard</span><small>44/148 · {bigcode_gap} pp from released best</small></div>
@@ -508,14 +539,14 @@ def build(args: argparse.Namespace) -> None:
 
     <section id="hermes">
       <h2>HermesAgent-20</h2>
-      <p class="section-intro">The headline ranks {hermes_count} complete 20-scenario runs. The searchable ledger contains all {hermes_all_count} aggregate records, including harness-invalid imports and one-case smokes.</p>
+      <p class="section-intro">The headline ranks {hermes_count} model-and-quant combinations using each combination’s highest complete 20-scenario score.</p>
       <div class="chart-grid"><div class="chart-panel full echarts-root">{hermes_bar}</div></div>
       <div class="callout"><p><strong>What stands out:</strong> Escha’s 90/100 exceeds the next-best released-model result at 88 despite using the lowest-bit weight format in the comparison. Bars are labeled with the quant wherever it is identifiable.</p></div>
     </section>
 
     <section id="coding">
       <h2>Coding and tool use</h2>
-      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Repeated benchmark runs remain visible.</p>
+      <p class="section-intro">HumanEval+ and MBPP+ use EvalPlus plus pass@1, BigCodeBench uses pass@1, and Tool Eval reports its native 100-point score. Each chart keeps only the highest score for a model and quant.</p>
       <div class="score-strip">
         <div class="score-chip escha"><b>87 / 100</b><span>Tool Eval · 69</span></div><div class="score-chip escha"><b>80 / 100</b><span>Tool Eval hard · 15</span></div><div class="score-chip"><b>95.1%</b><span>HumanEval base</span></div><div class="score-chip"><b>90.9%</b><span>HumanEval plus</span></div><div class="score-chip"><b>{mbpp_chip}</b><span>MBPP plus</span></div><div class="score-chip"><b>29.73%</b><span>BigCode Hard</span></div>
       </div>
@@ -528,7 +559,7 @@ def build(args: argparse.Namespace) -> None:
 
     <section id="quality-ledger">
       <h2>Released 35B quality ledger</h2>
-      <p class="section-intro">De-duplicated scored records for public 35B model lines, plus the Escha results. Search model, series, quant, or suite.</p>
+      <p class="section-intro">Highest scored result for each public 35B model, quant, and suite, plus the Escha results. Search model, series, quant, or suite.</p>
       <div class="table-tools"><input id="quality-search" type="search" placeholder="Search quality rows…"><select id="quality-family"><option value="">All families</option>{family_options}</select><span class="tag cyan" id="quality-count"></span></div>
       <div class="table-wrap"><table id="quality-table"><thead><tr><th>Date</th><th>Family</th><th>Suite</th><th>Public release</th><th>Quant</th><th class="num">Tasks</th><th class="num">Score</th></tr></thead><tbody>{quality_rows}</tbody></table></div>
     </section>
@@ -554,7 +585,6 @@ def build(args: argparse.Namespace) -> None:
         "humaneval_chart": charts["humaneval"],
         "mbpp_chart": charts["mbpp"],
         "bigcode_chart": charts["bigcode"],
-        "hermes_all_count": len(hermes_all),
         "quality_rows": quality_table(quality_with_escha),
         "family_options": "".join(f"<option value='{h(family)}'>{h(family)}</option>" for family in families),
         "generated": snapshot["generated_utc"],
@@ -562,6 +592,7 @@ def build(args: argparse.Namespace) -> None:
     html_out = template
     for key, value in replacements.items():
         html_out = html_out.replace("{" + key + "}", str(value))
+    html_out = "\n".join(line.rstrip() for line in html_out.splitlines()) + "\n"
     args.html_out.parent.mkdir(parents=True, exist_ok=True)
     args.html_out.write_text(html_out, encoding="utf-8")
     print(json.dumps({"html": str(args.html_out), "data": str(args.data_out), "counts": snapshot["counts"], "hermes_rank": hermes_rank, "top_hermes": top_hermes}, indent=2))
