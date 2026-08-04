@@ -272,6 +272,34 @@
       padding: 0 40px 0 12px;
     }
 
+    select optgroup {
+      color: var(--cyan);
+      background: #111114;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    select option {
+      color: var(--text);
+      background: #111114;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      padding: 7px;
+    }
+
+    .indexed-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      margin-top: 14px;
+      border: 1px solid rgba(57, 208, 255, 0.34);
+      border-radius: 7px;
+      padding: 7px 10px;
+      color: var(--cyan);
+      background: rgba(57, 208, 255, 0.07);
+      font: 700 0.72rem "IBM Plex Mono", ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
     .summary-stat {
       min-height: 46px;
       display: grid;
@@ -690,13 +718,13 @@
         <a href="#compare">Compare</a>
         <a href="#sections">Sections</a>
         <a href="#standalone">Scoreboards</a>
-        <a href="#catalog">Pages</a>
+        <a href="#catalog">Results</a>
         <a href="../benchv2/">Bench Lab</a>
       </nav>
     </div>
     <div class="titlebar">
       <div>
-        <div class="eyebrow label">Tool-Eval Bench 2.0.7 / Preserved Reports</div>
+        <div class="eyebrow label">Tool-Eval Bench 2.0.7 / <span id="publishedCount">Published model index</span></div>
         <h1>Tool Eval Index</h1>
         <p class="lede">Pick any two published Tool-Eval runs to compare the full-suite score, pass profile, speed, weak sections, and per-section deltas side by side.</p>
       </div>
@@ -801,7 +829,7 @@
 
     <section id="catalog" aria-label="All tool eval webpages">
       <div class="chart-head">
-        <h2>All Tool Eval Webpages</h2>
+        <h2>All Tool Eval Results</h2>
         <span class="tag">Select any two above</span>
       </div>
       <div class="catalog" id="catalogGrid"></div>
@@ -814,6 +842,156 @@
 
   <script>
     const REPORTS = [
+          {
+                    "id": "escha-w2-qwen36-35b-a3b",
+                    "title": "Escha W2 Qwen3.6 35B A3B",
+                    "short": "Escha W2 35B",
+                    "url": null,
+                    "model": "EschaLabs/Qwen3.6-35B-A3B-Escha-W2",
+                    "api": "main (Dunamis profile 74)",
+                    "backend": "SGLang / NVIDIA CUDA",
+                    "runtime": "73,728 context, temperature 0, thinking off, one Tool-Eval lane",
+                    "score": 87,
+                    "points": 120,
+                    "possible": 138,
+                    "pass": null,
+                    "partial": null,
+                    "fail": null,
+                    "medianTurn": null,
+                    "decodeSpeed": null,
+                    "promptSpeed": null,
+                    "totalTokens": null,
+                    "promptTokens": null,
+                    "completionTokens": null,
+                    "wallTime": "03:18",
+                    "wallSeconds": 198,
+                    "wallCompletionTokS": null,
+                    "wallTotalTokS": null,
+                    "tokenEfficiency": 0.36,
+                    "deployability": null,
+                    "weakest": "Standard-suite breakdown archived",
+                    "safety": "n/a",
+                    "structured": "83%",
+                    "run": "20260803T112035Z-escha-w2-tool-coding-multisuite",
+                    "notes": "Canonical public Escha W2 result: 120/138 on the standard 69 scenarios. Its separate Hard Mode result was 80 (24/30). The five-suite campaign telemetry is intentionally not presented as Tool-Eval-only decode speed.",
+                    "sections": {
+                              "A Tool Selection": null,
+                              "B Parameter Precision": null,
+                              "C Multi-Step Chains": null,
+                              "D Restraint / Refusal": null,
+                              "E Error Recovery": null,
+                              "F Localization": null,
+                              "G Structured Reasoning": null,
+                              "H Instruction Following": null,
+                              "I Context / State": null,
+                              "J Code Patterns": null,
+                              "K Safety / Boundaries": 81,
+                              "L Toolset Scale": 75,
+                              "M Autonomous Planning": 67,
+                              "N Creative Composition": 100,
+                              "O Structured Output": 83
+                    }
+          },
+          {
+                    "id": "deepseek-v4-flash-production",
+                    "title": "DeepSeek V4 Flash — Production API",
+                    "short": "DeepSeek V4 Flash",
+                    "url": null,
+                    "model": "deepseek-v4-flash",
+                    "api": "Ciru production API proxy",
+                    "backend": "vLLM / production endpoint",
+                    "runtime": "Temperature 0, thinking off; standard score extracted from the complete 84-scenario campaign",
+                    "score": 88,
+                    "points": 121,
+                    "possible": 138,
+                    "pass": 56,
+                    "partial": 9,
+                    "fail": 4,
+                    "medianTurn": null,
+                    "decodeSpeed": null,
+                    "promptSpeed": null,
+                    "totalTokens": null,
+                    "promptTokens": null,
+                    "completionTokens": null,
+                    "wallTime": null,
+                    "wallSeconds": null,
+                    "wallCompletionTokS": null,
+                    "wallTotalTokS": null,
+                    "tokenEfficiency": null,
+                    "deployability": 80,
+                    "weakest": "Safety / Boundaries",
+                    "safety": "73%",
+                    "structured": "83%",
+                    "run": "20260731T171036Z-full-benchmark-large",
+                    "notes": "Public production endpoint. The comparison score and outcomes use the standard 69-scenario subset; the same campaign also scored 70 on the separate 15-scenario Hard Mode extension.",
+                    "sections": {
+                              "A Tool Selection": 100,
+                              "B Parameter Precision": 100,
+                              "C Multi-Step Chains": 75,
+                              "D Restraint / Refusal": 83,
+                              "E Error Recovery": 100,
+                              "F Localization": 100,
+                              "G Structured Reasoning": 100,
+                              "H Instruction Following": 100,
+                              "I Context / State": 85,
+                              "J Code Patterns": 100,
+                              "K Safety / Boundaries": 73,
+                              "L Toolset Scale": 88,
+                              "M Autonomous Planning": 100,
+                              "N Creative Composition": 83,
+                              "O Structured Output": 83
+                    }
+          },
+          {
+                    "id": "laguna-s21",
+                    "title": "Laguna S2.1",
+                    "short": "Laguna S2.1",
+                    "url": null,
+                    "model": "poolside/Laguna-S-2.1",
+                    "api": "laguna-s21-ciru-cq6-ku6-balanced-nothink",
+                    "backend": "llama.cpp / ROCm",
+                    "runtime": "Canonical public-model representative; temperature 1.0, thinking off, one lane",
+                    "score": 83,
+                    "points": 115,
+                    "possible": 138,
+                    "pass": 53,
+                    "partial": 9,
+                    "fail": 7,
+                    "medianTurn": 5.23,
+                    "decodeSpeed": null,
+                    "promptSpeed": null,
+                    "totalTokens": 263365,
+                    "promptTokens": null,
+                    "completionTokens": null,
+                    "wallTime": null,
+                    "wallSeconds": null,
+                    "wallCompletionTokS": null,
+                    "wallTotalTokS": null,
+                    "tokenEfficiency": 0.44,
+                    "deployability": 67,
+                    "weakest": "Safety / Boundaries",
+                    "safety": "58%",
+                    "structured": "92%",
+                    "run": "20260722T233827Z-laguna-s21-v4-full-quality-nothink",
+                    "notes": "One canonical Laguna S2.1 entry replaces repeated runtime and quantization trials. The standard 69-scenario result is 115/138 with no request errors.",
+                    "sections": {
+                              "A Tool Selection": 100,
+                              "B Parameter Precision": 100,
+                              "C Multi-Step Chains": 75,
+                              "D Restraint / Refusal": 100,
+                              "E Error Recovery": 100,
+                              "F Localization": 83,
+                              "G Structured Reasoning": 67,
+                              "H Instruction Following": 100,
+                              "I Context / State": 75,
+                              "J Code Patterns": 100,
+                              "K Safety / Boundaries": 58,
+                              "L Toolset Scale": 88,
+                              "M Autonomous Planning": 100,
+                              "N Creative Composition": 100,
+                              "O Structured Output": 92
+                    }
+          },
           {
                     "id": "ornith10-35b-ciru-dualview-fpx7-q8-mtp",
                     "title": "Ornith 1.0 35B CIRU DualView",
@@ -1429,6 +1607,7 @@
     const scoreDelta = document.getElementById("scoreDelta");
     const leftHead = document.getElementById("leftHead");
     const rightHead = document.getElementById("rightHead");
+    const publishedCount = document.getElementById("publishedCount");
 
     function formatValue(value, suffix = "") {
       return value === null || value === undefined ? "n/a" : `${value}${suffix}`;
@@ -1444,19 +1623,44 @@
       return report.url.startsWith("/") ? report.url : `/tooleval/${report.url}`;
     }
 
+    function reportGroup(report) {
+      const text = `${report.title} ${report.model}`.toLowerCase();
+      if (text.includes("qwen3.6") && text.includes("35b")) return "Qwen3.6 35B";
+      if (text.includes("qwen3.6") && text.includes("27b")) return "Qwen3.6 27B";
+      if (text.includes("step 3.7") || text.includes("step-3.7")) return "Step 3.7";
+      if (text.includes("hy3")) return "Hy3";
+      return "Other public models";
+    }
+
+    function reportLink(report, label) {
+      if (!report.url) return `<span class="indexed-badge" aria-label="Result indexed on this page">Indexed result</span>`;
+      return `<a class="open-link" href="${reportHref(report)}">${label}</a>`;
+    }
+
     function reportById(id) {
       return REPORTS.find((report) => report.id === id) || REPORTS[0];
     }
 
     function populateSelects() {
-      REPORTS.forEach((report) => {
-        const leftOption = new Option(report.title, report.id);
-        const rightOption = new Option(report.title, report.id);
-        leftSelect.add(leftOption);
-        rightSelect.add(rightOption);
+      const groups = [...new Set(REPORTS.map(reportGroup))];
+      groups.forEach((group) => {
+        const leftGroup = document.createElement("optgroup");
+        const rightGroup = document.createElement("optgroup");
+        leftGroup.label = group;
+        rightGroup.label = group;
+        REPORTS.filter((report) => reportGroup(report) === group)
+          .sort((a, b) => b.score - a.score || a.short.localeCompare(b.short))
+          .forEach((report) => {
+            const label = `${report.short} · ${report.score}`;
+            leftGroup.append(new Option(label, report.id));
+            rightGroup.append(new Option(label, report.id));
+          });
+        leftSelect.append(leftGroup);
+        rightSelect.append(rightGroup);
       });
       leftSelect.value = REPORTS[0].id;
       rightSelect.value = REPORTS[1].id;
+      publishedCount.textContent = `${REPORTS.length} unique public models`;
     }
 
     function scoreColor(score) {
@@ -1473,7 +1677,7 @@
           <div class="score-line">
             <div class="score-dial" style="--score: ${report.score}; --score-color: ${scoreColor(report.score)}"><b>${report.score}</b></div>
             <div class="score-meta">
-              <p><b class="mono">${report.points} / ${report.possible}</b> points. ${report.pass} pass, ${report.partial} partial, ${report.fail} fail.</p>
+              <p><b class="mono">${report.points} / ${report.possible}</b> points. ${report.pass == null ? "Outcome counts retained in the source artifact." : `${report.pass} pass, ${report.partial} partial, ${report.fail} fail.`}</p>
               <div class="tag-row">
                 <span class="tag">${report.backend}</span>
                 <span class="tag">Weakest: ${report.weakest}</span>
@@ -1488,29 +1692,30 @@
             ${report.wallTime == null ? "" : `<div class="metric"><b>${report.wallTime}</b><span>Tool-Eval wall</span></div>`}
             ${report.wallCompletionTokS == null ? "" : `<div class="metric"><b>${formatValue(report.wallCompletionTokS)}</b><span>Wall output tok/s</span></div>`}
             <div class="metric"><b>${report.structured}</b><span>Structured output</span></div>
-            <div class="metric"><b>${report.deployability}</b><span>Deployability</span></div>
+            ${report.deployability == null ? "" : `<div class="metric"><b>${report.deployability}</b><span>Deployability</span></div>`}
           </div>
           <p class="mono" style="color: var(--subtle); font-size: 0.74rem; margin: 13px 0 0;">${report.api}</p>
           <p style="color: var(--muted); margin: 9px 0 0;">${report.notes}</p>
-          <a class="open-link" href="${reportHref(report)}">Open Full Report</a>
+          ${reportLink(report, "Open Full Report")}
         </article>
       `).join("");
     }
 
     function renderSectionBars(left, right) {
       sectionBars.innerHTML = SECTIONS.map((section) => {
-        const leftScore = left.sections[section] || 0;
-        const rightScore = right.sections[section] || 0;
-        const delta = rightScore - leftScore;
+        const leftScore = left.sections[section];
+        const rightScore = right.sections[section];
+        const comparable = Number.isFinite(leftScore) && Number.isFinite(rightScore);
+        const delta = comparable ? rightScore - leftScore : null;
         const deltaClass = delta > 0 ? "good" : delta < 0 ? "bad" : "";
         return `
           <div class="section-row">
             <div class="section-name">${section}<span>${left.short} vs ${right.short}</span></div>
             <div class="bar-pair">
-              <div class="bar"><span style="--pct: ${leftScore}%; --color: var(--cyan)"></span></div>
-              <div class="bar"><span style="--pct: ${rightScore}%; --color: var(--amd)"></span></div>
+              <div class="bar"><span style="--pct: ${Number.isFinite(leftScore) ? leftScore : 0}%; --color: var(--cyan)"></span></div>
+              <div class="bar"><span style="--pct: ${Number.isFinite(rightScore) ? rightScore : 0}%; --color: var(--amd)"></span></div>
             </div>
-            <div class="score-num">${leftScore}% / ${rightScore}%<span class="diff ${deltaClass}">${delta > 0 ? "+" : ""}${delta} pts</span></div>
+            <div class="score-num">${Number.isFinite(leftScore) ? `${leftScore}%` : "n/a"} / ${Number.isFinite(rightScore) ? `${rightScore}%` : "n/a"}<span class="diff ${deltaClass}">${comparable ? `${delta > 0 ? "+" : ""}${delta} pts` : "not archived"}</span></div>
           </div>
         `;
       }).join("");
@@ -1561,14 +1766,14 @@
           <p>${report.model}</p>
           <div>
             <div class="tag-row">
-              <span class="tag">${report.pass}/${report.partial}/${report.fail}</span>
+              ${report.pass == null ? "" : `<span class="tag">${report.pass}/${report.partial}/${report.fail}</span>`}
               <span class="tag">${formatValue(report.decodeSpeed)} tok/s</span>
               ${report.wallCompletionTokS == null ? "" : `<span class="tag">${formatValue(report.wallCompletionTokS)} wall output tok/s</span>`}
               ${report.totalTokens == null ? "" : `<span class="tag">${formatTokenCount(report.totalTokens)} tokens</span>`}
               ${report.tokenEfficiency == null ? "" : `<span class="tag">${formatValue(report.tokenEfficiency)} eff</span>`}
               <span class="tag">${report.weakest}</span>
             </div>
-            <a class="open-link" href="${reportHref(report)}">Open Report</a>
+            ${reportLink(report, "Open Report")}
           </div>
         </article>
       `).join("");
@@ -1605,10 +1810,12 @@
       metrics.forEach((metric, i) => {
         const y = topPad + i * rowHeight + 15;
         const barWidth = width - leftPad - rightPad;
-        const lVal = metric.left === null ? 0 : metric.left;
-        const rVal = metric.right === null ? 0 : metric.right;
-        const leftPct = metric.invert ? (1 - lVal / metric.max) : lVal / metric.max;
-        const rightPct = metric.invert ? (1 - rVal / metric.max) : rVal / metric.max;
+        const leftKnown = Number.isFinite(metric.left);
+        const rightKnown = Number.isFinite(metric.right);
+        const lVal = leftKnown ? metric.left : 0;
+        const rVal = rightKnown ? metric.right : 0;
+        const leftPct = leftKnown ? (metric.invert ? (1 - lVal / metric.max) : lVal / metric.max) : 0;
+        const rightPct = rightKnown ? (metric.invert ? (1 - rVal / metric.max) : rVal / metric.max) : 0;
         ctx.fillStyle = "rgba(255,255,255,0.32)";
         ctx.fillText(metric.label, 8, y + 10);
         ctx.fillStyle = "rgba(255,255,255,0.08)";
@@ -1636,21 +1843,27 @@
       ctx.font = "12px IBM Plex Mono";
       rows.forEach((report, i) => {
         const y = 58 + i * 78;
+        const known = Number.isFinite(report.pass) && Number.isFinite(report.partial) && Number.isFinite(report.fail);
         const total = report.pass + report.partial + report.fail;
         let x = leftPad;
         ctx.fillStyle = "rgba(255,255,255,0.78)";
         ctx.fillText(report.short, 8, y + 15);
-        ["pass", "partial", "fail"].forEach((key) => {
-          const segment = report[key] / total * barWidth;
-          ctx.fillStyle = colors[key];
-          ctx.fillRect(x, y, segment, 26);
-          x += segment;
-        });
+        if (known) {
+          ["pass", "partial", "fail"].forEach((key) => {
+            const segment = report[key] / total * barWidth;
+            ctx.fillStyle = colors[key];
+            ctx.fillRect(x, y, segment, 26);
+            x += segment;
+          });
+        } else {
+          ctx.fillStyle = "rgba(57,208,255,0.08)";
+          ctx.fillRect(leftPad, y, barWidth, 26);
+        }
         ctx.strokeStyle = "rgba(255,255,255,0.18)";
         ctx.strokeRect(leftPad, y, barWidth, 26);
         ctx.fillStyle = "rgba(247,247,244,0.88)";
         ctx.textAlign = "right";
-        ctx.fillText(`${report.pass}/${report.partial}/${report.fail}`, width - 20, y + 47);
+        ctx.fillText(known ? `${report.pass}/${report.partial}/${report.fail}` : "source artifact", width - 20, y + 47);
         ctx.textAlign = "left";
       });
     }
