@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qwen Agent Bot — LLM Embodiment</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif;color:#fff}
+canvas{display:block}
+#ui{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:10}
+#ui button{background:rgba(100,60,180,.25);border:1px solid rgba(140,100,255,.4);color:#c8b0ff;
+  padding:8px 22px;border-radius:6px;font-size:13px;cursor:pointer;backdrop-filter:blur(6px);
+  transition:all .2s;letter-spacing:.5px}
+#ui button:hover{background:rgba(140,100,255,.35);border-color:rgba(180,140,255,.7);color:#fff}
+#title{position:fixed;top:20px;left:50%;transform:translateX(-50%);font-size:15px;
+  letter-spacing:3px;text-transform:uppercase;color:rgba(180,160,255,.7);z-index:10;
+  text-shadow:0 0 20px rgba(120,80,255,.5)}
+#status{position:fixed;top:50px;left:50%;transform:translateX(-50%);font-size:11px;
+  letter-spacing:2px;color:rgba(140,200,255,.5);z-index:10}
+</style>
+</head>
+<body>
+<div id="title">QWEN AGENT BOT</div>
+<div id="status">SYSTEM ACTIVE — MOE ROUTING ENGAGED</div>
+<div id="ui">
+  <button id="btnPause">⏸ Pause</button>
+  <button id="btnReset">⟲ Reset Camera</button>
+</div>
+
+<script type="importmap">
+{
+  "imports":{
+    "three":"https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+    "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+/* ─── globals ─── */
+let scene, camera, renderer, controls, clock;
+let robot = {};
+let paused = false;
+let idleTimer = 0;
+let mouseMoving = false;
+
+/* ─── materials ─── */
+const matGraphite = new THREE.MeshStandardMaterial({color:0x1a1a2e,metalness:.85,roughness:.35});
+const matCeramic = new THREE.MeshStandardMaterial({color:0xd0d0e0,metalness:.3,roughness:.2});
+const matDarkMetal = new THREE.MeshStandardMaterial({color:0x0d0d1a,metalness:.9,roughness:.2});
+const matGlowViolet = new THREE.MeshStandardMaterial({color:0x8844ff,emissive:0x8844ff,emissiveIntensity:2,metalness:.5,roughness:.1});
+const matGlowCyan = new THREE.MeshStandardMaterial({color:0x00eeff,emissive:0x00eeff,emissiveIntensity:2,metalness:.5,roughness:.1});
+const matGlowBlue = new THREE.MeshStandardMaterial({color:0x3366ff,emissive:0x3366ff,emissiveIntensity:1.8,metalness:.5,roughness:.1});
+const matCore = new THREE.MeshStandardMaterial({color:0x6633ff,emissive:0x6633ff,emissiveIntensity:3,metalness:.3,roughness:.05,transparent:true,opacity:.85});
+const matVisor = new THREE.MeshStandardMaterial({color:0x00ddff,emissive:0x00ddff,emissiveIntensity:3,metalness:.2,roughness:.05,transparent:true,opacity:.9});
+const matHolo = new THREE.MeshStandardMaterial({color:0x4488ff,emissive:0x4488ff,emissiveIntensity:1.5,transparent:true,opacity:.35,metalness:.1,roughness:.1,side:THREE.DoubleSide});
+const matHoloBright = new THREE.MeshStandardMaterial({color:0x88ddff,emissive:0x88ddff,emissiveIntensity:2,transparent:true,opacity:.6,metalness:.1,roughness:.1,side:THREE.DoubleSide});
+const matExpertOn = new THREE.MeshStandardMaterial({color:0xaa44ff,emissive:0xaa44ff,emissiveIntensity:3,metalness:.5,roughness:.1});
+const matExpertOff = new THREE.MeshStandardMaterial({color:0x221144,emissive:0x331166,emissiveIntensity:.4,metalness:.6,roughness:.3});
+const matCable = new THREE.MeshStandardMaterial({color:0x3322aa,metalness:.7,roughness:.4});
+const matVent = new THREE.MeshStandardMaterial({color:0x111122,metalness:.8,roughness:.5});
+
+/* ─── init ─── */
+function init(){
+  clock = new THREE.Clock();
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050510);
+  scene.fog = new THREE.FogExp2(0x050510, .018);
+
+  camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, .1, 200);
+  camera.position.set(0, 2.5, 9);
+
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.body.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.8, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = .06;
+  controls.minDistance = 3;
+  controls.maxDistance = 25;
+  controls.maxPolarAngle = Math.PI * .85;
+  controls.update();
+
+  // lighting
+  const amb = new THREE.AmbientLight(0x111133, .6);
+  scene.add(amb);
+
+  const keyLight = new THREE.DirectionalLight(0x8888ff, 1.5);
+  keyLight.position.set(5, 8, 5);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048,2048);
+  keyLight.shadow.camera.near = .5;
+  keyLight.shadow.camera.far = 30;
+  keyLight.shadow.camera.left = -8;
+  keyLight.shadow.camera.right = 8;
+  keyLight.shadow.camera.top = 8;
+  keyLight.shadow.camera.bottom = -8;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x4466ff, .6);
+  fillLight.position.set(-4, 3, -3);
+  scene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0x8844ff, 1.2);
+  rimLight.position.set(0, 5, -6);
+  scene.add(rimLight);
+
+  // spot lights for glow
+  const spot1 = new THREE.SpotLight(0x8844ff, 4, 20, .4, .6);
+  spot1.position.set(0, 4, 3);
+  scene.add(spot1);
+
+  const spot2 = new THREE.PointLight(0x00eeff, 2, 8);
+  spot2.position.set(0, 2.5, 1.5);
+  scene.add(spot2);
+
+  buildPlatform();
+  buildRobot();
+  buildParticles();
+  buildHologram();
+
+  window.addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  controls.addEventListener('start', ()=>{ idleTimer=0; mouseMoving=true; });
+  controls.addEventListener('end', ()=>{ mouseMoving=false; });
+
+  document.getElementById('btnPause').addEventListener('click', togglePause);
+  document.getElementById('btnReset').addEventListener('click', resetCamera);
+
+  animate();
+}
+
+/* ─── platform ─── */
+function buildPlatform(){
+  const platGeo = new THREE.CylinderGeometry(3.5, 3.8, .15, 64);
+  const platMat = new THREE.MeshStandardMaterial({color:0x0a0a1a,metalness:.95,roughness:.15});
+  const plat = new THREE.Mesh(platGeo, platMat);
+  plat.position.y = -.075;
+  plat.receiveShadow = true;
+  scene.add(plat);
+
+  // ring glow
+  const ringGeo = new THREE.TorusGeometry(3.6, .02, 8, 64);
+  const ringMat = new THREE.MeshStandardMaterial({color:0x6633ff,emissive:0x6633ff,emissiveIntensity:2});
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI/2;
+  ring.position.y = .01;
+  scene.add(ring);
+
+  // inner ring
+  const ring2Geo = new THREE.TorusGeometry(2.8, .015, 8, 64);
+  const ring2Mat = new THREE.MeshStandardMaterial({color:0x00eeff,emissive:0x00eeff,emissiveIntensity:1.5});
+  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+  ring2.rotation.x = -Math.PI/2;
+  ring2.position.y = .01;
+  scene.add(ring2);
+
+  // grid lines on platform
+  const gridGeo = new THREE.RingGeometry(.5, 3.5, 64, 1);
+  const gridMat = new THREE.MeshStandardMaterial({color:0x222244,emissive:0x111133,emissiveIntensity:.3,transparent:true,opacity:.4,side:THREE.DoubleSide});
+  const grid = new THREE.Mesh(gridGeo, gridMat);
+  grid.rotation.x = -Math.PI/2;
+  grid.position.y = .005;
+  scene.add(grid);
+}
+
+/* ─── robot builder ─── */
+function buildRobot(){
+  const bot = new THREE.Group();
+
+  // ── legs ──
+  const legL = buildLeg(); legL.position.set(-.45, 0, 0);
+  const legR = buildLeg(); legR.position.set(.45, 0, 0);
+  bot.add(legL, legR);
+
+  // ── torso ──
+  const torso = buildTorso();
+  torso.position.y = 2.2;
+  bot.add(torso);
+
+  // ── shoulders & arms ──
+  const shoulderL = buildShoulder(); shoulderL.position.set(-.85, 3.1, 0);
+  const shoulderR = buildShoulder(); shoulderR.position.set(.85, 3.1, 0);
+  bot.add(shoulderL, shoulderR);
+
+  const armL = buildArm(true); armL.position.set(-.9, 2.9, 0);
+  const armR = buildArm(false); armR.position.set(.9, 2.9, 0);
+  bot.add(armL, armR);
+
+  // ── head ──
+  const head = buildHead();
+  head.position.y = 3.65;
+  bot.add(head);
+
+  // ── neck ──
+  const neck = buildNeck();
+  neck.position.y = 3.35;
+  bot.add(neck);
+
+  // ── chest core ──
+  const core = buildChestCore();
+  core.position.set(0, 2.35, .25);
+  bot.add(core);
+
+  // ── expert modules ──
+  const experts = buildExpertModules();
+  bot.add(experts);
+
+  // ── cables ──
+  const cables = buildCables();
+  bot.add(cables);
+
+  // ── data lights ──
+  const dataLights = buildDataLights(bot);
+  bot.add(dataLights);
+
+  bot.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; }});
+  scene.add(bot);
+  robot.group = bot;
+  robot.core = core;
+  robot.head = head;
+  robot.armL = armL;
+  robot.armR = armR;
+  robot.experts = experts;
+  robot.dataLights = dataLights;
+  robot.legL = legL;
+  robot.legR = legR;
+}
+
+function buildLeg(){
+  const g = new THREE.Group();
+  // upper leg
+  const upper = new THREE.Mesh(new THREE.BoxGeometry(.28,.7,.3), matGraphite);
+  upper.position.y = .35;
+  g.add(upper);
+  // knee joint
+  const knee = new THREE.Mesh(new THREE.SphereGeometry(.15,16,12), matDarkMetal);
+  knee.position.y = .02;
+  g.add(knee);
+  const kneeGlow = new THREE.Mesh(new THREE.SphereGeometry(.06,12,8), matGlowCyan);
+  kneeGlow.position.y = .02;
+  g.add(kneeGlow);
+  // lower leg
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(.24,.65,.26), matGraphite);
+  lower.position.y = -.35;
+  g.add(lower);
+  // foot
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.45), matDarkMetal);
+  foot.position.set(0,-.72,.06);
+  g.add(foot);
+  // ankle glow
+  const ankleGlow = new THREE.Mesh(new THREE.BoxGeometry(.26,.02,.38), matGlowViolet);
+  ankleGlow.position.set(0,-.68,.06);
+  g.add(ankleGlow);
+  // vent strips
+  for(let i=0;i<3;i++){
+    const v = new THREE.Mesh(new THREE.BoxGeometry(.18,.015,.01), matVent);
+    v.position.set(0,.15-i*.06,.16);
+    g.add(v);
+  }
+  return g;
+}
+
+function buildTorso(){
+  const g = new THREE.Group();
+  // main body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.85,1.2,.5), matGraphite);
+  body.position.y = 0;
+  g.add(body);
+  // ceramic armor plates
+  const plateL = new THREE.Mesh(new THREE.BoxGeometry(.38,.9,.06), matCeramic);
+  plateL.position.set(-.25,.05,.27);
+  g.add(plateL);
+  const plateR = new THREE.Mesh(new THREE.BoxGeometry(.38,.9,.06), matCeramic);
+  plateR.position.set(.25,.05,.27);
+  g.add(plateR);
+  // chest plate top
+  const chestPlate = new THREE.Mesh(new THREE.BoxGeometry(.7,.25,.06), matCeramic);
+  chestPlate.position.set(0,.45,.27);
+  g.add(chestPlate);
+  // lower armor
+  const lowerPlate = new THREE.Mesh(new THREE.BoxGeometry(.75,.3,.05), matCeramic);
+  lowerPlate.position.set(0,-.35,.27);
+  g.add(lowerPlate);
+  // back plate
+  const backPlate = new THREE.Mesh(new THREE.BoxGeometry(.7,.9,.04), matDarkMetal);
+  backPlate.position.set(0,0,-.27);
+  g.add(backPlate);
+  // vent lines on torso
+  for(let i=0;i<5;i++){
+    const v = new THREE.Mesh(new THREE.BoxGeometry(.01,.5,.01), matVent);
+    v.position.set(-.35+i*.175,-.1,.27);
+    g.add(v);
+  }
+  // side details
+  const sideL = new THREE.Mesh(new THREE.BoxGeometry(.04,.7,.4), matDarkMetal);
+  sideL.position.set(-.44,0,0);
+  g.add(sideL);
+  const sideR = new THREE.Mesh(new THREE.BoxGeometry(.04,.7,.4), matDarkMetal);
+  sideR.position.set(.44,0,0);
+  g.add(sideR);
+  return g;
+}
+
+function buildHead(){
+  const g = new THREE.Group();
+  // main head shape - angular
+  const headGeo = new THREE.BoxGeometry(.55,.5,.5);
+  // chamfered look using a group
+  const headMain = new THREE.Mesh(headGeo, matGraphite);
+  headMain.position.y = 0;
+  g.add(headMain);
+  // forehead plate
+  const forehead = new THREE.Mesh(new THREE.BoxGeometry(.5,.15,.08), matCeramic);
+  forehead.position.set(0,.2,.25);
+  g.add(forehead);
+  // cheek plates
+  const cheekL = new THREE.Mesh(new THREE.BoxGeometry(.08,.25,.06), matCeramic);
+  cheekL.position.set(-.28,0,.25);
+  g.add(cheekL);
+  const cheekR = new THREE.Mesh(new THREE.BoxGeometry(.08,.25,.06), matCeramic);
+  cheekR.position.set(.28,0,.25);
+  g.add(cheekR);
+  // back of head
+  const backH = new THREE.Mesh(new THREE.BoxGeometry(.4,.4,.06), matDarkMetal);
+  backH.position.set(0,0,-.27);
+  g.add(backH);
+  // visor
+  const visorGeo = new THREE.BoxGeometry(.42,.1,.04);
+  const visor = new THREE.Mesh(visorGeo, matVisor);
+  visor.position.set(0,.02,.28);
+  g.add(visor);
+  // visor glow strip
+  const visorStrip = new THREE.Mesh(new THREE.BoxGeometry(.38,.02,.01), matGlowCyan);
+  visorStrip.position.set(0,.02,.3);
+  g.add(visorStrip);
+  // antenna
+  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.2,8), matDarkMetal);
+  antenna.position.set(.15,.38,0);
+  g.add(antenna);
+  const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(.025,8,8), matGlowViolet);
+  antennaTip.position.set(.15,.49,0);
+  g.add(antennaTip);
+  // ear pieces
+  const earL = new THREE.Mesh(new THREE.BoxGeometry(.06,.15,.08), matDarkMetal);
+  earL.position.set(-.31,0,0);
+  g.add(earL);
+  const earR = new THREE.Mesh(new THREE.BoxGeometry(.06,.15,.08), matDarkMetal);
+  earR.position.set(.31,0,0);
+  g.add(earR);
+  // jaw line glow
+  const jawGlow = new THREE.Mesh(new THREE.BoxGeometry(.35,.015,.01), matGlowBlue);
+  jawGlow.position.set(0,-.18,.26);
+  g.add(jawGlow);
+  robot.headGroup = g;
+  return g;
+}
+
+function buildNeck(){
+  const g = new THREE.Group();
+  const neckMain = new THREE.Mesh(new THREE.CylinderGeometry(.12,.15,.3,12), matGraphite);
+  g.add(neckMain);
+  const neckRing = new THREE.Mesh(new THREE.TorusGeometry(.14,.02,8,16), matGlowViolet);
+  neckRing.rotation.x = Math.PI/2;
+  neckRing.position.y = .1;
+  g.add(neckRing);
+  return g;
+}
+
+function buildShoulder(){
+  const g = new THREE.Group();
+  const shoulder = new THREE.Mesh(new THREE.SphereGeometry(.2,16,12), matGraphite);
+  g.add(shoulder);
+  const shoulderPlate = new THREE.Mesh(new THREE.BoxGeometry(.25,.12,.2), matCeramic);
+  shoulderPlate.position.set(0,.08,.02);
+  g.add(shoulderPlate);
+  const shoulderGlow = new THREE.Mesh(new THREE.TorusGeometry(.18,.015,8,16), matGlowCyan);
+  shoulderGlow.rotation.x = Math.PI/2;
+  g.add(shoulderGlow);
+  return g;
+}
+
+function buildArm(isLeft){
+  const g = new THREE.Group();
+  const sign = isLeft ? -1 : 1;
+  // upper arm
+  const upper = new THREE.Mesh(new THREE.BoxGeometry(.18,.55,.18), matGraphite);
+  upper.position.y = -.3;
+  g.add(upper);
+  // elbow
+  const elbow = new THREE.Mesh(new THREE.SphereGeometry(.1,12,8), matDarkMetal);
+  elbow.position.y = -.58;
+  g.add(elbow);
+  const elbowGlow = new THREE.Mesh(new THREE.SphereGeometry(.04,8,8), matGlowViolet);
+  elbowGlow.position.y = -.58;
+  g.add(elbowGlow);
+  // forearm
+  const forearm = new THREE.Mesh(new THREE.BoxGeometry(.15,.5,.15), matGraphite);
+  forearm.position.y = -.9;
+  g.add(forearm);
+  // hand
+  const hand = new THREE.Mesh(new THREE.BoxGeometry(.14,.16,.12), matCeramic);
+  hand.position.y = -1.2;
+  g.add(hand);
+  // fingers
+  for(let i=0;i<4;i++){
+    const finger = new THREE.Mesh(new THREE.BoxGeometry(.025,.1,.025), matDarkMetal);
+    finger.position.set(-.04+i*.03, -1.32, 0);
+    g.add(finger);
+  }
+  // thumb
+  const thumb = new THREE.Mesh(new THREE.BoxGeometry(.03,.08,.03), matDarkMetal);
+  thumb.position.set(sign*.09, -1.22, 0);
+  g.add(thumb);
+  // wrist glow
+  const wristGlow = new THREE.Mesh(new THREE.BoxGeometry(.13,.015,.11), matGlowBlue);
+  wristGlow.position.y = -1.15;
+  g.add(wristGlow);
+
+  if(isLeft){
+    g.rotation.z = .3;
+    g.rotation.x = -.2;
+    g.position.x = -.3;
+  } else {
+    // right arm reaches toward hologram
+    g.rotation.z = -.5;
+    g.rotation.x = -.8;
+    g.position.set(.3, -.2, .5);
+  }
+  return g;
+}
+
+function buildChestCore(){
+  const g = new THREE.Group();
+  // outer housing
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.15,24), matDarkMetal);
+  g.add(housing);
+  // glass dome
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.2,24,12,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshStandardMaterial({color:0x4422aa,transparent:true,opacity:.3,metalness:.2,roughness:.1}));
+  dome.position.y = .075;
+  g.add(dome);
+  // core sphere
+  const core = new THREE.Mesh(new THREE.SphereGeometry(.12,24,24), matCore);
+  core.position.y = .05;
+  g.add(core);
+  // inner rings
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(.18,.012,8,32), matGlowCyan);
+  ring1.rotation.x = Math.PI/2;
+  ring1.position.y = .05;
+  g.add(ring1);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(.15,.01,8,32), matGlowViolet);
+  ring2.rotation.x = Math.PI/3;
+  ring2.rotation.z = Math.PI/4;
+  ring2.position.y = .05;
+  g.add(ring2);
+  const ring3 = new THREE.Mesh(new THREE.TorusGeometry(.2,.008,8,32), matGlowBlue);
+  ring3.rotation.y = Math.PI/4;
+  ring3.position.y = .05;
+  g.add(ring3);
+  // core light
+  const coreLight = new THREE.PointLight(0x8844ff, 3, 4);
+  coreLight.position.y = .05;
+  g.add(coreLight);
+  robot.coreGroup = g;
+  robot.coreRings = [ring1, ring2, ring3];
+  robot.coreLight = coreLight;
+  return g;
+}
+
+function buildExpertModules(){
+  const g = new THREE.Group();
+  const positions = [
+    {pos:[-.55,3.0,.2], rot:[0,0,0], on:true},
+    {pos:[.55,3.0,.2], rot:[0,0,0], on:true},
+    {pos:[-.6,2.6,.15], rot:[0,.3,0], on:true},
+    {pos:[.6,2.6,.15], rot:[0,-.3,0], on:false},
+    {pos:[0,3.0,-.25], rot:[0,0,0], on:true},
+    {pos:[-.35,3.1,-.22], rot:[0,.5,0], on:false},
+    {pos:[.35,3.1,-.22], rot:[0,-.5,0], on:true},
+    {pos:[0,2.55,-.28], rot:[0,0,0], on:false},
+  ];
+  positions.forEach((p,i)=>{
+    const mod = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.06), p.on ? matExpertOn : matExpertOff);
+    mod.add(body);
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(.08,.005,.04), p.on ? matGlowCyan : matGlowBlue);
+    glow.position.y = .045;
+    mod.add(glow);
+    mod.position.set(...p.pos);
+    mod.rotation.set(...p.rot);
+    mod.userData = {on:p.on, index:i};
+    g.add(mod);
+  });
+  return g;
+}
+
+function buildCables(){
+  const g = new THREE.Group();
+  // cable from core to left shoulder
+  const pts1 = [new THREE.Vector3(0,2.35,.25), new THREE.Vector3(-.3,2.6,.15), new THREE.Vector3(-.7,2.9,.05)];
+  const curve1 = new THREE.CatmullRomCurve3(pts1);
+  const tube1 = new THREE.Mesh(new THREE.TubeGeometry(curve1,20,.015,8,false), matCable);
+  g.add(tube1);
+  // cable from core to right shoulder
+  const pts2 = [new THREE.Vector3(0,2.35,.25), new THREE.Vector3(.3,2.6,.15), new THREE.Vector3(.7,2.9,.05)];
+  const curve2 = new THREE.CatmullRomCurve3(pts2);
+  const tube2 = new THREE.Mesh(new THREE.TubeGeometry(curve2,20,.015,8,false), matCable);
+  g.add(tube2);
+  // cable from core to head
+  const pts3 = [new THREE.Vector3(0,2.35,.2), new THREE.Vector3(0,2.8,.18), new THREE.Vector3(0,3.3,.15)];
+  const curve3 = new THREE.CatmullRomCurve3(pts3);
+  const tube3 = new THREE.Mesh(new THREE.TubeGeometry(curve3,20,.012,8,false), matCable);
+  g.add(tube3);
+  return g;
+}
+
+function buildDataLights(parentBot){
+  const g = new THREE.Group();
+  const lights = [];
+  const routes = [
+    {start:[0,2.35,.25], end:[-.55,3.0,.2]},
+    {start:[0,2.35,.25], end:[.55,3.0,.2]},
+    {start:[0,2.35,.25], end:[0,3.65,.15]},
+    {start:[0,2.35,.25], end:[-.9,2.9,.0]},
+    {start:[0,2.35,.25], end:[.9,2.9,.5]},
+    {start:[0,2.35,.25], end:[0,3.0,-.25]},
+  ];
+  routes.forEach((r,i)=>{
+    const d = new THREE.Vector3(...r.end).sub(new THREE.Vector3(...r.start));
+    const len = d.length();
+    const light = new THREE.Mesh(
+      new THREE.SphereGeometry(.025,8,8),
+      new THREE.MeshStandardMaterial({color:0x8844ff,emissive:0x8844ff,emissiveIntensity:4})
+    );
+    light.userData = {start:r.start, end:r.end, speed:1.5+Math.random()*.8, offset:i/routes.length};
+    g.add(light);
+    lights.push(light);
+  });
+  g.userData.lights = lights;
+  return g;
+}
+
+/* ─── holographic interface ─── */
+let holoGroup;
+function buildHologram(){
+  holoGroup = new THREE.Group();
+  holoGroup.position.set(2.2, 2.8, 1.2);
+
+  // main panel
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.2), matHolo);
+  holoGroup.add(panel);
+
+  // frame
+  const frameMat = new THREE.MeshStandardMaterial({color:0x4488ff,emissive:0x4488ff,emissiveIntensity:1.5,transparent:true,opacity:.5});
+  const frameGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.62,1.22));
+  const frame = new THREE.LineSegments(frameGeo, frameMat);
+  holoGroup.add(frame);
+
+  // token stream lines
+  for(let i=0;i<8;i++){
+    const y = .4 - i*.1;
+    const w = .3 + Math.random()*.8;
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(w,.015), matHoloBright);
+    line.position.set(-.3+Math.random()*.3, y, .01);
+    line.userData = {speed:.5+Math.random(), phase:Math.random()*Math.PI*2};
+    holoGroup.add(line);
+  }
+
+  // bar chart
+  for(let i=0;i<6;i++){
+    const h = .05 + Math.random()*.35;
+    const bar = new THREE.Mesh(new THREE.PlaneGeometry(.08,h), matHolo);
+    bar.position.set(-.3+i*.12, -.3+h/2, .01);
+    bar.userData = {baseH:h, phase:Math.random()*Math.PI*2};
+    holoGroup.add(bar);
+  }
+
+  // circular indicator
+  const circGeo = new THREE.RingGeometry(.1,.12,24);
+  const circ = new THREE.Mesh(circGeo, matHoloBright);
+  circ.position.set(.5,.3,.01);
+  holoGroup.add(circ);
+
+  // small circles
+  for(let i=0;i<5;i++){
+    const c = new THREE.Mesh(new THREE.CircleGeometry(.03,12), matHoloBright);
+    c.position.set(.35+i*.08, -.1, .01);
+    holoGroup.add(c);
+  }
+
+  // text-like lines (abstract)
+  for(let i=0;i<4;i++){
+    const lw = .2+Math.random()*.4;
+    const l = new THREE.Mesh(new THREE.PlaneGeometry(lw,.008), matHoloBright);
+    l.position.set(-.4, .15+i*.08, .01);
+    holoGroup.add(l);
+  }
+
+  // floating particles around hologram
+  const holoParticles = new THREE.BufferGeometry();
+  const holoPos = new Float32Array(60*3);
+  for(let i=0;i<60;i++){
+    holoPos[i*3] = (Math.random()-.5)*2;
+    holoPos[i*3+1] = (Math.random()-.5)*1.5;
+    holoPos[i*3+2] = (Math.random()-.5)*.3;
+  }
+  holoParticles.setAttribute('position', new THREE.BufferAttribute(holoPos,3));
+  const holoPMat = new THREE.PointsMaterial({color:0x4488ff,size:.02,transparent:true,opacity:.5});
+  const holoPts = new THREE.Points(holoParticles, holoPMat);
+  holoGroup.add(holoPts);
+
+  scene.add(holoGroup);
+}
+
+/* ─── particles ─── */
+let particles;
+function buildParticles(){
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(500*3);
+  for(let i=0;i<500;i++){
+    pos[i*3] = (Math.random()-.5)*30;
+    pos[i*3+1] = Math.random()*15;
+    pos[i*3+2] = (Math.random()-.5)*30;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const mat = new THREE.PointsMaterial({color:0x4444aa,size:.03,transparent:true,opacity:.4});
+  particles = new THREE.Points(geo, mat);
+  scene.add(particles);
+}
+
+/* ─── animation ─── */
+function animate(){
+  requestAnimationFrame(animate);
+  if(paused) return;
+
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // idle camera rotation
+  if(!mouseMoving){
+    idleTimer += .003;
+    camera.position.x = Math.sin(idleTimer)*9;
+    camera.position.z = Math.cos(idleTimer)*9;
+    camera.position.y = 2.5 + Math.sin(idleTimer*.5)*.5;
+    camera.lookAt(0, 1.8, 0);
+  } else {
+    controls.update();
+  }
+
+  // head subtle movement
+  if(robot.headGroup){
+    robot.headGroup.rotation.y = Math.sin(t*.8)*.15;
+    robot.headGroup.rotation.x = Math.sin(t*.5)*.05;
+    robot.headGroup.position.y = 3.65 + Math.sin(t*1.2)*.01;
+  }
+
+  // core rings rotation
+  if(robot.coreRings){
+    robot.coreRings[0].rotation.z = t*1.5;
+    robot.coreRings[1].rotation.x = Math.PI/3 + t*1.2;
+    robot.coreRings[1].rotation.z = Math.PI/4 + t*.8;
+    robot.coreRings[2].rotation.y = Math.PI/4 + t*.6;
+    robot.coreRings[2].rotation.x = t*.4;
+  }
+
+  // core pulse
+  if(robot.coreLight){
+    robot.coreLight.intensity = 2.5 + Math.sin(t*3)*1.5;
+  }
+
+  // core scale pulse
+  if(robot.coreGroup){
+    const pulse = 1 + Math.sin(t*2.5)*.08;
+    robot.coreGroup.children[2].scale.setScalar(pulse); // core sphere
+  }
+
+  // expert modules pulse
+  if(robot.experts){
+    robot.experts.children.forEach((mod,i)=>{
+      const phase = t*2 + i*.7;
+      const intensity = .3 + Math.sin(phase)*.35;
+      const body = mod.children[0];
+      const glow = mod.children[1];
+      if(mod.userData.on){
+        body.material.emissiveIntensity = 1.5 + Math.sin(phase)*2;
+        glow.material.emissiveIntensity = 2 + Math.sin(phase)*2;
+      } else {
+        body.material.emissiveIntensity = .2 + Math.sin(phase)*.2;
+        glow.material.emissiveIntensity = .3 + Math.sin(phase)*.3;
+      }
+      // occasional on/off toggle
+      if(Math.sin(t*.3 + i*1.5) > .7){
+        mod.userData.on = true;
+      }
+    });
+  }
+
+  // data lights travel
+  if(robot.dataLights && robot.dataLights.userData.lights){
+    robot.dataLights.userData.lights.forEach(light=>{
+      const d = light.userData;
+      const progress = ((t * d.speed * .3 + d.offset) % 1);
+      const start = new THREE.Vector3(...d.start);
+      const end = new THREE.Vector3(...d.end);
+      light.position.lerpVectors(start, end, progress);
+      const fade = Math.sin(progress * Math.PI);
+      light.material.emissiveIntensity = fade * 4;
+      light.scale.setScalar(.5 + fade*.5);
+    });
+  }
+
+  // arm subtle motion
+  if(robot.armR){
+    robot.armR.rotation.x = -.8 + Math.sin(t*.6)*.08;
+    robot.armR.rotation.z = -.5 + Math.sin(t*.4)*.05;
+  }
+  if(robot.armL){
+    robot.armL.rotation.z = .3 + Math.sin(t*.5)*.03;
+  }
+
+  // idle body sway
+  if(robot.group){
+    robot.group.position.y = Math.sin(t*.8)*.008;
+    robot.group.rotation.y = Math.sin(t*.3)*.02;
+  }
+
+  // hologram animation
+  if(holoGroup){
+    holoGroup.children.forEach(child=>{
+      if(child.userData && child.userData.speed){
+        // token stream lines
+        child.scale.x = .5 + Math.sin(t*child.userData.speed + child.userData.phase)*.5;
+      }
+      if(child.userData && child.userData.baseH){
+        // bars
+        const newH = child.userData.baseH * (.5 + Math.sin(t*1.5 + child.userData.phase)*.5);
+        child.scale.y = newH / child.userData.baseH;
+        child.position.y = -.3 + newH/2;
+      }
+    });
+    holoGroup.position.y = 2.8 + Math.sin(t*.7)*.05;
+    holoGroup.rotation.y = Math.sin(t*.3)*.1;
+  }
+
+  // particles drift
+  if(particles){
+    const pos = particles.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      pos.array[i*3+1] += Math.sin(t+i)*.001;
+    }
+    pos.needsUpdate = true;
+  }
+
+  renderer.render(scene, camera);
+}
+
+/* ─── UI ─── */
+function togglePause(){
+  paused = !paused;
+  document.getElementById('btnPause').textContent = paused ? '▶ Resume' : '⏸ Pause';
+  document.getElementById('status').textContent = paused ? 'SYSTEM PAUSED' : 'SYSTEM ACTIVE — MOE ROUTING ENGAGED';
+  if(!paused) clock.getDelta(); // reset delta
+}
+
+function resetCamera(){
+  camera.position.set(0, 2.5, 9);
+  controls.target.set(0, 1.8, 0);
+  controls.update();
+  idleTimer = 0;
+}
+
+init();
+</script>
+</body>
+</html>
