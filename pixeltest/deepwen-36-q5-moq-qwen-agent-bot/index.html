@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qwen Agent Bot</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif;color:#fff}
+canvas{display:block}
+#ui{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:10}
+#ui button{padding:10px 20px;background:rgba(0,0,0,0.6);border:1px solid rgba(0,200,255,0.4);color:#0cf;font-size:13px;cursor:pointer;border-radius:6px;transition:all .3s;backdrop-filter:blur(10px);text-transform:uppercase;letter-spacing:1px}
+#ui button:hover{background:rgba(0,200,255,0.2);border-color:rgba(0,200,255,0.8);box-shadow:0 0 20px rgba(0,200,255,0.3)}
+#info{position:fixed;top:20px;left:20px;z-index:10;pointer-events:none}
+#info h1{font-size:24px;font-weight:300;letter-spacing:3px;text-shadow:0 0 20px rgba(0,200,255,0.5)}
+#info p{font-size:12px;opacity:0.6;margin-top:5px;letter-spacing:1px}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;z-index:100;transition:opacity .5s}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading span{font-size:16px;letter-spacing:4px;color:#0cf;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="loading"><span>INITIALIZING QWEN AGENT...</span></div>
+<div id="info">
+<h1>QWEN AGENT</h1>
+<p>Real-time LLM Monitoring Interface v2.0</p>
+</div>
+<div id="ui">
+<button id="btnPause">⏸ Pause</button>
+<button id="btnReset">⟳ Reset Camera</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+
+// ── Globals ──
+let scene,camera,renderer,controls,clock;
+let animationActive=true;
+let time=0;
+const robotParts={};
+const dataLights=[];
+const expertModules=[];
+const holographicUI={};
+const particles=[];
+
+// ── Materials ──
+const mat={
+  darkMetal:new THREE.MeshStandardMaterial({color:0x1a1a2e,metalness:0.9,roughness:0.3}),
+  darkerMetal:new THREE.MeshStandardMaterial({color:0x0d0d1a,metalness:0.95,roughness:0.2}),
+  ceramic:new THREE.MeshStandardMaterial({color:0xe8e8f0,metalness:0.3,roughness:0.4,transparent:true,opacity:0.85}),
+  ceramicDark:new THREE.MeshStandardMaterial({color:0x2a2a3e,metalness:0.5,roughness:0.3}),
+  visor:new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:1.5,metalness:0.8,roughness:0.1,transparent:true,opacity:0.7}),
+  chestCore:new THREE.MeshStandardMaterial({color:0x70f,emissive:0x70f,emissiveIntensity:2,transparent:true,opacity:0.8}),
+  coreRing:new THREE.MeshStandardMaterial({color:0x0ff,emissive:0x0ff,emissiveIntensity:2.5,metalness:0.5,roughness:0.2}),
+  coreChamber:new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:0.3,transparent:true,opacity:0.2}),
+  expertGlow:new THREE.MeshStandardMaterial({color:0x90f,emissive:0x90f,emissiveIntensity:1.5,transparent:true,opacity:0.9}),
+  dataLight:new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:3}),
+  platform:new THREE.MeshStandardMaterial({color:0x111122,metalness:0.95,roughness:0.15}),
+  holographic:new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:0.8,transparent:true,opacity:0.3}),
+  cable:new THREE.MeshStandardMaterial({color:0x0d0d15,metalness:0.7,roughness:0.5}),
+  accent:new THREE.MeshStandardMaterial({color:0xff6000,emissive:0xff4000,emissiveIntensity:1}),
+  whiteAccent:new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.5})
+};
+
+// ── Init ──
+function init(){
+  clock=new THREE.Clock();
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x050510);
+  scene.fog=new THREE.FogExp2(0x050510,0.025);
+
+  camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.1,100);
+  camera.position.set(4,3,6);
+
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.2;
+  document.body.appendChild(renderer.domElement);
+
+  controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;
+  controls.dampingFactor=0.05;
+  controls.autoRotate=false;
+  controls.autoRotateSpeed=0.5;
+  controls.target.set(0,1.8,0);
+  controls.minDistance=3;
+  controls.maxDistance=15;
+  controls.maxPolarAngle=Math.PI*0.85;
+  controls.update();
+
+  setupLights();
+  createPlatform();
+  createParticles();
+  createRobot();
+  createHolographicUI();
+  createDataLights();
+  createExpertModules();
+
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+  },1500);
+
+  animate();
+}
+
+// ── Lights ──
+function setupLights(){
+  const ambient=new THREE.AmbientLight(0x111122,0.4);
+  scene.add(ambient);
+
+  const keyLight=new THREE.DirectionalLight(0x4466aa,1.0);
+  keyLight.position.set(5,8,3);
+  keyLight.castShadow=true;
+  keyLight.shadow.mapSize.set(2048,2048);
+  keyLight.shadow.camera.near=0.1;
+  keyLight.shadow.camera.far=20;
+  keyLight.shadow.camera.left=-5;
+  keyLight.shadow.camera.right=5;
+  keyLight.shadow.camera.top=5;
+  keyLight.shadow.camera.bottom=-5;
+  keyLight.shadow.bias=-0.001;
+  scene.add(keyLight);
+
+  const fillLight=new THREE.DirectionalLight(0x2244aa,0.5);
+  fillLight.position.set(-4,5,-3);
+  scene.add(fillLight);
+
+  const rimLight=new THREE.PointLight(0x7700ff,2,10);
+  rimLight.position.set(-3,4,-2);
+  scene.add(rimLight);
+
+  const chestLight=new THREE.PointLight(0x7700ff,3,5);
+  chestLight.position.set(0,1.7,0.5);
+  chestLight.name='chestLight';
+  scene.add(chestLight);
+
+  const visorLight=new THREE.PointLight(0x00ccff,1.5,4);
+  visorLight.position.set(0,2.4,0.3);
+  visorLight.name='visorLight';
+  scene.add(visorLight);
+
+  const floorLight=new THREE.PointLight(0x0088ff,1,8);
+  floorLight.position.set(0,0.5,2);
+  scene.add(floorLight);
+}
+
+// ── Platform ──
+function createPlatform(){
+  const group=new THREE.Group();
+
+  // Main platform disc
+  const geo=new THREE.CylinderGeometry(3.5,3.8,0.15,64);
+  const mesh=new THREE.Mesh(geo,mat.platform);
+  mesh.position.y=0;
+  mesh.receiveShadow=true;
+  group.add(mesh);
+
+  // Inner ring
+  const innerGeo=new THREE.TorusGeometry(2.5,0.03,8,64);
+  const inner=new THREE.Mesh(innerGeo,mat.coreRing);
+  inner.rotation.x=-Math.PI/2;
+  inner.position.y=0.08;
+  group.add(inner);
+
+  // Outer ring
+  const outerGeo=new THREE.TorusGeometry(3.2,0.02,8,64);
+  const outer=new THREE.Mesh(outerGeo,mat.coreRing);
+  outer.rotation.x=-Math.PI/2;
+  outer.position.y=0.08;
+  group.add(outer);
+
+  // Grid lines
+  for(let i=-3;i<=3;i+=0.5){
+    const lineGeo=new THREE.PlaneGeometry(0.008,6);
+    const lineMat=new THREE.MeshStandardMaterial({color:0x0a0a2a,emissive:0x0a0a2a,emissiveIntensity:0.3,transparent:true,opacity:0.3});
+    const line1=new THREE.Mesh(lineGeo,lineMat);
+    line1.rotation.x=-Math.PI/2;
+    line1.position.set(i,0.081,0);
+    group.add(line1);
+
+    const line2=new THREE.Mesh(new THREE.PlaneGeometry(6,0.008),lineMat);
+    line2.rotation.x=-Math.PI/2;
+    line2.position.set(0,0.081,i);
+    group.add(line2);
+  }
+
+  // Glowing edge
+  const edgeGeo=new THREE.TorusGeometry(3.5,0.015,8,64);
+  const edgeMat=new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:1.5,transparent:true,opacity:0.6});
+  const edge=new THREE.Mesh(edgeGeo,edgeMat);
+  edge.rotation.x=-Math.PI/2;
+  edge.position.y=0.08;
+  group.add(edge);
+
+  scene.add(group);
+}
+
+// ── Particles ──
+function createParticles(){
+  const count=500;
+  const geo=new THREE.BufferGeometry();
+  const positions=new Float32Array(count*3);
+  const sizes=new Float32Array(count);
+
+  for(let i=0;i<count;i++){
+    positions[i*3]=(Math.random()-0.5)*20;
+    positions[i*3+1]=Math.random()*10;
+    positions[i*3+2]=(Math.random()-0.5)*20;
+    sizes[i]=Math.random()*2+0.5;
+  }
+
+  geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('size',new THREE.BufferAttribute(sizes,1));
+
+  const particleMat=new THREE.PointsMaterial({color:0x0cf,size:0.03,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+  const particleSystem=new THREE.Points(geo,particleMat);
+  scene.add(particleSystem);
+  particles.push(particleSystem);
+}
+
+// ── Helper: Create box with beveled look ──
+function makeBox(w,h,d,material){
+  const geo=new THREE.BoxGeometry(w,h,d);
+  const mesh=new THREE.Mesh(geo,material);
+  mesh.castShadow=true;
+  mesh.receiveShadow=true;
+  return mesh;
+}
+
+function makeCylinder(rt,rb,h,segs,material){
+  const geo=new THREE.CylinderGeometry(rt,rb,h,segs);
+  const mesh=new THREE.Mesh(geo,material);
+  mesh.castShadow=true;
+  return mesh;
+}
+
+// ── Robot ──
+function createRobot(){
+  const body=new THREE.Group();
+  body.position.y=0.1;
+
+  createFeet(body);
+  createLegs(body);
+  createTorso(body);
+  createArms(body);
+  createHead(body);
+  createCables(body);
+  createVents(body);
+
+  scene.add(body);
+}
+
+// ── Feet ──
+function createFeet(body){
+  // Left foot
+  const leftFoot=new THREE.Group();
+  const footGeo=new THREE.BoxGeometry(0.5,0.15,0.7);
+  const foot=new THREE.Mesh(footGeo,mat.darkerMetal);
+  foot.position.set(0,0.075,0);
+  leftFoot.add(foot);
+
+  // Sole plate
+  const soleGeo=new THREE.BoxGeometry(0.45,0.05,0.65);
+  const sole=new THREE.Mesh(soleGeo,mat.platform);
+  sole.position.set(0,0.025,0);
+  leftFoot.add(sole);
+
+  // Glowing strip on foot
+  const stripGeo=new THREE.BoxGeometry(0.48,0.02,0.02);
+  const stripMat=new THREE.MeshStandardMaterial({color:0x0cf,emissive:0x0cf,emissiveIntensity:2,transparent:true,opacity:0.8});
+  const strip=new THREE.Mesh(stripGeo,stripMat);
+  strip.position.set(0,0.16,0.32);
+  leftFoot.add(strip);
+
+  leftFoot.position.set(-0.3,0,0);
+  body.add(leftFoot);
+
+  // Right foot
+  const rightFoot=leftFoot.clone();
+  rightFoot.position.set(0.3,0,0);
+  body.add(rightFoot);
+
+  robotParts.feet={left:leftFoot,right:rightFoot};
+}
+
+// ── Legs ──
+function createLegs(body){
+  const leftLeg=new THREE.Group();
+  const rightLeg=new THREE.Group();
+
+  // Hip joint
+  const hipGeo=new THREE.SphereGeometry(0.15,16,16);
+
+  // Upper leg
+  function createUpperLeg(){
+    const g=new THREE.Group();
+    const upper=new THREE.Mesh(makeCylinder(0.12,0.1,0.8,16),mat.darkMetal);
+    upper.position.y=0.4;
+    g.add(upper);
+
+    // Knee joint
+    const kneeGeo=new THREE.SphereGeometry(0.12,16,16);
+    const knee=new THREE.Mesh(kneeGeo,mat.darkerMetal);
+    knee.position.y=0.05;
+    g.add(knee);
+
+    // Lower leg
+    const lower=new THREE.Mesh(makeCylinder(0.1,0.08,0.7,16),mat.darkMetal);
+    lower.position.y=-0.35;
+    g.add(lower);
+
+    // Thigh armor
+    const thighArmor=new THREE.Mesh(makeBox(0.15,0.6,0.18),mat.ceramic);
+    thighArmor.position.set(0,0.4,0.06);
+    g.add(thighArmor);
+
+    return g;
+  }
+
+  const leftUpper=createUpperLeg();
+  leftLeg.add(leftUpper);
+
+  const rightUpper=createUpperLeg();
+  rightLeg.add(rightUpper);
+
+  leftLeg.position.set(-0.3,1.0,0);
+  rightLeg.position.set(0.3,1.0,0);
+  body.add(leftLeg);
+  body.add(rightLeg);
+
+  robotParts.legs={left:leftLeg,right:rightLeg};
+}
+
+// ── Torso ──
+function createTorso(body){
+  const torso=new THREE.Group();
+
+  // Neck
+  const neck=new THREE.Mesh(makeCylinder(0.1,0.12,0.2,16),mat.darkerMetal);
+  neck.position.y=2.3;
+  torso.add(neck);
+
+  // Neck joint ring
+  const neckRing=new THREE.Mesh(new THREE.TorusGeometry(0.11,0.02,8,16),mat.accent);
+  neckRing.rotation.x=Math.PI/2;
+  neckRing.position.y=2.22;
+  torso.add(neckRing);
+
+  // Lower torso
+  const lowerTorso=new THREE.Mesh(makeBox(0.8,0.5,0.35),mat.darkMetal);
+  lowerTorso.position.y=1.8;
+  torso.add(lowerTorso);
+
+  // Lower torso ceramic panels
+  const ltFront=new THREE.Mesh(makeBox(0.78,0.48,0.02),mat.ceramicDark);
+  ltFront.position.set(0,1.8,0.18);
+  torso.add(ltFront);
+
+  // Chest area
+  const chest=new THREE.Mesh(makeBox(0.85,0.6,0.4),mat.darkMetal);
+  chest.position.y=1.4;
+  torso.add(chest);
+
+  // Chest ceramic panels - left and right
+  const chestLeft=new THREE.Mesh(makeBox(0.35,0.55,0.03),mat.ceramic);
+  chestLeft.position.set(-0.25,1.4,0.2);
+  torso.add(chestLeft);
+
+  const chestRight=new THREE.Mesh(makeBox(0.35,0.55,0.03),mat.ceramic);
+  chestRight.position.set(0.25,1.4,0.2);
+  torso.add(chestRight);
+
+  // Center chest frame
+  const centerFrame=new THREE.Mesh(makeBox(0.2,0.55,0.02),mat.darkerMetal);
+  centerFrame.position.set(0,1.4,0.2);
+  torso.add(centerFrame);
+
+  // AI Core chamber (transparent)
+  const coreChamber=new THREE.Mesh(makeBox(0.18,0.4,0.15),mat.coreChamber);
+  coreChamber.position.set(0,1.4,0.15);
+  torso.add(coreChamber);
+
+  // AI Core (rotating rings)
+  createCore(torso);
+
+  // Waist
+  const waist=new THREE.Mesh(makeCylinder(0.35,0.4,0.15,16),mat.darkMetal);
+  waist.position.y=1.05;
+  torso.add(waist);
+
+  // Shoulder joints
+  const leftShoulder=buildShoulderJoint();
+  leftShoulder.position.set(-0.5,2.0,0);
+  torso.add(leftShoulder);
+  robotParts.leftShoulder=leftShoulder;
+
+  const rightShoulder=buildShoulderJoint();
+  rightShoulder.position.set(0.5,2.0,0);
+  torso.add(rightShoulder);
+  robotParts.rightShoulder=rightShoulder;
+
+  body.add(torso);
+  robotParts.torso=torso;
+}
+
+function buildShoulderJoint(){
+  const group=new THREE.Group();
+
+  // Shoulder sphere
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16),mat.darkerMetal);
+  group.add(sphere);
+
+  // Shoulder ring
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.14,0.015,8,16),mat.coreRing);
+  ring.rotation.x=Math.PI/2;
+  group.add(ring);
+
+  // Upper arm connector
+  const connector=new THREE.Mesh(makeCylinder(0.08,0.1,0.3,12),mat.darkMetal);
+  connector.position.y=-0.15;
+  group.add(connector);
+
+  return group;
+}
+
+// ── Core ──
+function createCore(group){
+  const coreGroup=new THREE.Group();
+  coreGroup.position.set(0,1.4,0.16);
+
+  // Core sphere
+  const coreSphere=new THREE.Mesh(new THREE.SphereGeometry(0.08,32,32),mat.chestCore);
+  coreGroup.add(coreSphere);
+  robotParts.chestCore=coreSphere;
+
+  // Core glow
+  const glowGeo=new THREE.SphereGeometry(0.12,32,32);
+  const glowMat=new THREE.MeshStandardMaterial({color:0x70f,emissive:0x70f,emissiveIntensity:1,transparent:true,opacity:0.3});
+  const glow=new THREE.Mesh(glowGeo,glowMat);
+  coreGroup.add(glow);
+  robotParts.coreGlow=glow;
+
+  // Ring 1
+  const ring1Geo=new THREE.TorusGeometry(0.15,0.01,8,32);
+  const ring1=new THREE.Mesh(ring1Geo,mat.coreRing);
+  ring1.name='coreRing1';
+  coreGroup.add(ring1);
+  robotParts.ring1=ring1;
+
+  // Ring 2
+  const ring2Geo=new THREE.TorusGeometry(0.18,0.008,8,32);
+  const ring2=new THREE.Mesh(ring2Geo,mat.visor);
+  ring2.rotation.x=Math.PI/3;
+  ring2.name='coreRing2';
+  coreGroup.add(ring2);
+  robotParts.ring2=ring2;
+
+  // Ring 3
+  const ring3Geo=new THREE.TorusGeometry(0.21,0.006,8,32);
+  const ring3=new THREE.Mesh(ring3Geo,mat.coreRing);
+  ring3.rotation.y=Math.PI/4;
+  ring3.name='coreRing3';
+  coreGroup.add(ring3);
+  robotParts.ring3=ring3;
+
+  group.add(coreGroup);
+  robotParts.coreGroup=coreGroup;
+}
+
+// ── Arms ──
+function createArms(body){
+  // Left arm (resting)
+  const leftArm=new THREE.Group();
+  leftArm.position.set(-0.5,1.95,0);
+
+  const leftUpperArm=new THREE.Group();
+
+  // Upper arm
+  const upper=new THREE.Mesh(makeCylinder(0.08,0.07,0.5,12),mat.darkMetal);
+  upper.position.y=-0.25;
+  leftUpperArm.add(upper);
+
+  // Elbow
+  const elbow=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),mat.darkerMetal);
+  elbow.position.y=-0.5;
+  leftUpperArm.add(elbow);
+
+  // Lower arm
+  const lower=new THREE.Mesh(makeCylinder(0.07,0.05,0.45,12),mat.darkMetal);
+  lower.position.y=-0.73;
+  leftUpperArm.add(lower);
+
+  // Forearm armor
+  const forearmArmor=new THREE.Mesh(makeBox(0.1,0.35,0.12),mat.ceramic);
+  forearmArmor.position.set(0,-0.6,0.05);
+  leftUpperArm.add(forearmArmor);
+
+  // Wrist
+  const wrist=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.08,12),mat.darkerMetal);
+  wrist.position.y=-0.95;
+  leftUpperArm.add(wrist);
+
+  // Hand
+  const hand=buildHand();
+  hand.position.y=-1.02;
+  leftUpperArm.add(hand);
+
+  leftUpperArm.rotation.z=0.1;
+  leftUpperArm.rotation.x=-0.1;
+  leftArm.add(leftUpperArm);
+  robotParts.leftArm=leftUpperArm;
+  body.add(leftArm);
+
+  // Right arm (reaching for holographic UI)
+  const rightArm=new THREE.Group();
+  rightArm.position.set(0.5,1.95,0);
+
+  const rightUpperArm=new THREE.Group();
+
+  const rUpper=new THREE.Mesh(makeCylinder(0.08,0.07,0.5,12),mat.darkMetal);
+  rUpper.position.y=-0.25;
+  rightUpperArm.add(rUpper);
+
+  const rElbow=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),mat.darkerMetal);
+  rElbow.position.y=-0.5;
+  rightUpperArm.add(rElbow);
+
+  const rLower=new THREE.Mesh(makeCylinder(0.07,0.05,0.45,12),mat.darkMetal);
+  rLower.position.y=-0.73;
+  rightUpperArm.add(rLower);
+
+  const rForearmArmor=new THREE.Mesh(makeBox(0.1,0.35,0.12),mat.ceramic);
+  rForearmArmor.position.set(0,-0.6,0.05);
+  rightUpperArm.add(rForearmArmor);
+
+  const rWrist=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.08,12),mat.darkerMetal);
+  rWrist.position.y=-0.95;
+  rightUpperArm.add(rWrist);
+
+  const rHand=buildHand();
+  rHand.position.y=-1.02;
+  rHand.rotation.x=0.3;
+  rightUpperArm.add(rHand);
+
+  // Pose right arm to interact with holographic UI
+  rightUpperArm.rotation.z=-0.4;
+  rightUpperArm.rotation.x=-0.8;
+  rightUpperArm.rotation.y=-0.2;
+  rightArm.add(rightUpperArm);
+  robotParts.rightArm=rightUpperArm;
+  body.add(rightArm);
+
+  robotParts.arms={left:leftUpperArm,right:rightUpperArm};
+}
+
+function buildHand(){
+  const group=new THREE.Group();
+
+  // Palm
+  const palm=new THREE.Mesh(makeBox(0.1,0.12,0.04),mat.darkMetal);
+  group.add(palm);
+
+  // Fingers
+  const fingerMat=mat.ceramicDark;
+  for(let i=0;i<4;i++){
+    const finger=new THREE.Mesh(makeBox(0.02,0.08,0.02),fingerMat);
+    finger.position.set(-0.035+i*0.023,-0.1,0.01);
+    group.add(finger);
+  }
+
+  // Thumb
+  const thumb=new THREE.Mesh(makeBox(0.02,0.06,0.02),fingerMat);
+  thumb.position.set(-0.05,-0.04,0.02);
+  thumb.rotation.z=0.5;
+  group.add(thumb);
+
+  // Fingertip glows
+  for(let i=0;i<4;i++){
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(0.008,8,8),mat.dataLight);
+    tip.position.set(-0.035+i*0.023,-0.14,0.01);
+    group.add(tip);
+  }
+
+  return group;
+}
+
+// ── Head ──
+function createHead(body){
+  const headGroup=new THREE.Group();
+  headGroup.position.set(0,2.5,0);
+
+  // Head shape - angular
+  // Main head box (slightly tapered)
+  const headMain=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.5,0.45),mat.darkMetal);
+  headMain.position.y=0;
+  headGroup.add(headMain);
+
+  // Top dome
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.27,16,16,0,Math.PI*2,0,Math.PI/2),mat.darkMetal);
+  dome.position.y=0.25;
+  headGroup.add(dome);
+
+  // Face plate
+  const facePlate=new THREE.Mesh(makeBox(0.52,0.45,0.05),mat.ceramic);
+  facePlate.position.set(0,-0.02,0.23);
+  headGroup.add(facePlate);
+
+  // Visor
+  const visor=new THREE.Mesh(makeBox(0.45,0.12,0.08),mat.visor);
+  visor.position.set(0,0.05,0.25);
+  headGroup.add(visor);
+
+  // Visor frame
+  const visorFrame=new THREE.Mesh(makeBox(0.47,0.14,0.02),mat.darkerMetal);
+  visorFrame.position.set(0,0.05,0.24);
+  headGroup.add(visorFrame);
+
+  // Side panels
+  const leftPanel=new THREE.Mesh(makeBox(0.05,0.3,0.4),mat.ceramicDark);
+  leftPanel.position.set(-0.28,0,0);
+  headGroup.add(leftPanel);
+
+  const rightPanel=new THREE.Mesh(makeBox(0.05,0.3,0.4),mat.ceramicDark);
+  rightPanel.position.set(0.28,0,0);
+  headGroup.add(rightPanel);
+
+  // Ear pieces
+  const leftEar=new THREE.Mesh(makeCylinder(0.08,0.1,0.15,12),mat.darkerMetal);
+  leftEar.position.set(-0.31,0,0);
+  headGroup.add(leftEar);
+
+  const rightEar=leftEar.clone();
+  rightEar.position.set(0.31,0,0);
+  headGroup.add(rightEar);
+
+  // Ear lights
+  const leftEarLight=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),mat.expertGlow);
+  leftEarLight.position.set(-0.33,0.05,0);
+  headGroup.add(leftEarLight);
+
+  const rightEarLight=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),mat.expertGlow);
+  rightEarLight.position.set(0.33,0.05,0);
+  headGroup.add(rightEarLight);
+
+  // Chin
+  const chin=new THREE.Mesh(makeBox(0.2,0.08,0.15),mat.darkMetal);
+  chin.position.set(0,-0.27,0.1);
+  headGroup.add(chin);
+
+  // Jaw line
+  const jaw=new THREE.Mesh(makeBox(0.3,0.05,0.2),mat.darkerMetal);
+  jaw.position.set(0,-0.2,0.12);
+  headGroup.add(jaw);
+
+  // Antenna
+  const antenna=new THREE.Mesh(makeCylinder(0.01,0.01,0.2,8),mat.cable);
+  antenna.position.set(0,0.45,0);
+  headGroup.add(antenna);
+
+  const antennaTip=new THREE.Mesh(new THREE.SphereGeometry(0.025,8,8),mat.accent);
+  antennaTip.position.set(0,0.55,0);
+  headGroup.add(antennaTip);
+
+  body.add(headGroup);
+  robotParts.head=headGroup;
+  robotParts.visor=visor;
+}
+
+// ── Cables ──
+function createCables(body){
+  // Cables running down the back
+  for(let i=0;i<3;i++){
+    const points=[];
+    for(let j=0;j<10;j++){
+      const t=j/9;
+      points.push(new THREE.Vector3(
+        (Math.random()-0.5)*0.05+i*0.02-0.02,
+        2.5-t*2.0,
+        -0.18+i*0.01
+      ));
+    }
+    const curve=new THREE.CatmullRomCurve3(points);
+    const tubeGeo=new THREE.TubeGeometry(curve,20,0.008,6,false);
+    const tube=new THREE.Mesh(tubeGeo,mat.cable);
+    body.add(tube);
+  }
+
+  // Cables on sides
+  for(let side of[-1,1]){
+    const points=[];
+    for(let j=0;j<8;j++){
+      const t=j/7;
+      points.push(new THREE.Vector3(
+        side*(0.35+t*0.1),
+        2.2-t*1.5,
+        0.15
+      ));
+    }
+    const curve=new THREE.CatmullRomCurve3(points);
+    const tubeGeo=new THREE.TubeGeometry(curve,16,0.006,6,false);
+    const tube=new THREE.Mesh(tubeGeo,mat.cable);
+    body.add(tube);
+  }
+}
+
+// ── Vents ──
+function createVents(body){
+  // Side vents on torso
+  for(let side of[-1,1]){
+    for(let i=0;i<5;i++){
+      const vent=new THREE.Mesh(makeBox(0.02,0.03,0.25),mat.darkerMetal);
+      vent.position.set(side*0.42,1.1+i*0.1,0.05);
+      body.add(vent);
+    }
+  }
+
+  // Back vents
+  for(let i=0;i<4;i++){
+    const vent=new THREE.Mesh(makeBox(0.3,0.02,0.03),mat.darkerMetal);
+    vent.position.set(0,1.0+i*0.12,-0.2);
+    body.add(vent);
+  }
+}
+
+// ── Expert Modules ──
+function createExpertModules(){
+  // Modules on chest area
+  const moduleConfigs=[
+    {pos:[-0.35,1.3,0.18],scale:1,glowColor:0x90f,glowIntensity:1.5,name:'MoE-Alpha'},
+    {pos:[0.35,1.3,0.18],scale:1,glowColor:0x0ff,glowIntensity:0.8,name:'MoE-Beta'},
+    {pos:[-0.15,1.6,0.2],scale:0.8,glowColor:0x70f,glowIntensity:2,name:'MoE-Gamma'},
+    {pos:[0.15,1.6,0.2],scale:0.8,glowColor:0x0ff,glowIntensity:0.6,name:'MoE-Delta'},
+    {pos:[-0.4,1.8,0.1],scale:0.7,glowColor:0x90f,glowIntensity:1,name:'MoE-Epsilon'},
+    {pos:[0.4,1.8,0.1],scale:0.7,glowColor:0x70f,glowIntensity:1.2,name:'MoE-Zeta'}
+  ];
+
+  moduleConfigs.forEach((cfg,i)=>{
+    const group=new THREE.Group();
+    group.position.set(...cfg.pos);
+
+    // Module body
+    const modBody=new THREE.Mesh(makeBox(0.08,0.08,0.04),mat.darkerMetal);
+    group.add(modBody);
+
+    // Module light
+    const modLight=new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8),new THREE.MeshStandardMaterial({
+      color:cfg.glowColor,emissive:cfg.glowColor,emissiveIntensity:cfg.glowIntensity,
+      transparent:true,opacity:0.8
+    }));
+    group.add(modLight);
+
+    // Module frame
+    const frame=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.005,8,16),new THREE.MeshStandardMaterial({
+      color:cfg.glowColor,emissive:cfg.glowColor,emissiveIntensity:0.5,
+      transparent:true,opacity:0.6
+    }));
+    group.add(frame);
+
+    // Point light for each module
+    const pLight=new THREE.PointLight(cfg.glowColor,0.5,1);
+    pLight.position.z=0.05;
+    group.add(pLight);
+
+    group.userData={
+      baseIntensity:cfg.glowIntensity,
+      phase:Math.random()*Math.PI*2,
+      speed:0.5+Math.random()*1.5,
+      name:cfg.name
+    };
+
+    robotParts.torso.add(group);
+    expertModules.push(group);
+  });
+}
+
+// ── Holographic UI ──
+function createHolographicUI(){
+  const uiGroup=new THREE.Group();
+  uiGroup.position.set(0.8,1.6,0.8);
+  uiGroup.rotation.y=-0.5;
+
+  // Main panel
+  const mainPanel=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.8),mat.holographic);
+  mainPanel.name='mainPanel';
+  uiGroup.add(mainPanel);
+
+  // Panel border
+  const borderGeo=new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.2,0.8));
+  const borderMat=new THREE.LineBasicMaterial({color:0x0cf,transparent:true,opacity:0.5});
+  const border=new THREE.LineSegments(borderGeo,borderMat);
+  border.name='border';
+  uiGroup.add(border);
+
+  // Data bars
+  for(let i=0;i<8;i++){
+    const bar=new THREE.Mesh(new THREE.PlaneGeometry(0.08,0.02),new THREE.MeshStandardMaterial({
+      color:0x0cf,emissive:0x0cf,emissiveIntensity:1,transparent:true,opacity:0.6
+    }));
+    bar.position.set(-0.45+i*0.12,-0.3+i*0.05,0.01);
+    bar.name='bar'+i;
+    uiGroup.add(bar);
+  }
+
+  // Activity lines
+  for(let i=0;i<5;i++){
+    const lineGeo=new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-0.5,0.2-i*0.1,0.01),
+      new THREE.Vector3(0.5,0.2-i*0.1,0.01)
+    ]);
+    const lineMat=new THREE.LineBasicMaterial({color:0x0cf,transparent:true,opacity:0.2});
+    const line=new THREE.Line(lineGeo,lineMat);
+    line.name='hline'+i;
+    uiGroup.add(line);
+  }
+
+  // Token stream dots
+  for(let i=0;i<20;i++){
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(0.008,6,6),new THREE.MeshStandardMaterial({
+      color:0x70f,emissive:0x70f,emissiveIntensity:2,transparent:true,opacity:0.7
+    }));
+    dot.position.set(
+      (Math.random()-0.5)*1.0,
+      (Math.random()-0.5)*0.6,
+      0.02
+    );
+    dot.name='dot'+i;
+    uiGroup.add(dot);
+    robotParts['uiDot'+i]=dot;
+  }
+
+  // Status text simulation - small rectangles as text blocks
+  for(let i=0;i<3;i++){
+    const textBlock=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.06),new THREE.MeshStandardMaterial({
+      color:0x0cf,emissive:0x0cf,emissiveIntensity:0.5,transparent:true,opacity:0.4
+    }));
+    textBlock.position.set(0.2,-0.3+i*0.08,0.01);
+    textBlock.name='text'+i;
+    uiGroup.add(textBlock);
+  }
+
+  // Circular gauge
+  const gaugeGeo=new THREE.TorusGeometry(0.15,0.008,8,32);
+  const gauge=new THREE.Mesh(gaugeGeo,new THREE.MeshStandardMaterial({
+    color:0x70f,emissive:0x70f,emissiveIntensity:1.5,transparent:true,opacity:0.6
+  }));
+  gauge.position.set(-0.4,0.25,0.01);
+  gauge.name='gauge';
+  uiGroup.add(gauge);
+
+  // Inner gauge arc
+  const arcPoints=[];
+  for(let i=0;i<=32;i++){
+    const angle=(i/32)*Math.PI*1.5-Math.PI*0.25;
+    arcPoints.push(new THREE.Vector3(Math.cos(angle)*0.13,Math.sin(angle)*0.13,0.02));
+  }
+  const arcGeo=new THREE.BufferGeometry().setFromPoints(arcPoints);
+  const arcMat=new THREE.LineBasicMaterial({color:0x0ff,transparent:true,opacity:0.8});
+  const arc=new THREE.LineSegments(arcGeo,arcMat);
+  arc.position.set(-0.4,0.25,0);
+  arc.name='gaugeArc';
+  uiGroup.add(arc);
+
+  scene.add(uiGroup);
+  holographicUI.group=uiGroup;
+  holographicUI.mainPanel=mainPanel;
+}
+
+// ── Data Lights ──
+function createDataLights(){
+  // Create a few light orbs that travel between different parts
+  const paths=[
+    {start:new THREE.Vector3(0,2.5,0),end:new THREE.Vector3(0,1.4,0.16),name:'headToCore'},
+    {start:new THREE.Vector3(0,1.4,0.16),end:new THREE.Vector3(0.5,1.95,0),name:'coreToRightArm'},
+    {start:new THREE.Vector3(0,1.4,0.16),end:new THREE.Vector3(-0.5,1.95,0),name:'coreToLeftArm'},
+    {start:new THREE.Vector3(-0.35,1.3,0.18),end:new THREE.Vector3(0.35,1.3,0.18),name:'leftRightModule'},
+    {start:new THREE.Vector3(0,2.5,0),end:new THREE.Vector3(0.8,1.6,0.8),name:'headToUI'},
+  ];
+
+  paths.forEach((path,i)=>{
+    const light=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),mat.dataLight);
+    light.userData={
+      path:path.name,
+      progress:Math.random(),
+      speed:0.15+Math.random()*0.1,
+      start:path.start.clone(),
+      end:path.end.clone()
+    };
+    scene.add(light);
+    dataLights.push(light);
+  });
+}
+
+// ── Animation ──
+function animate(){
+  requestAnimationFrame(animate);
+  const delta=clock.getDelta();
+  if(animationActive) time+=delta;
+
+  // Idle camera rotation
+  if(!controls.autoRotate){
+    const elapsed=time;
+    // Gentle auto-rotation after 5 seconds
+    if(elapsed>5){
+      controls.autoRotate=true;
+      controls.autoRotateSpeed=0.3;
+    }
+  }
+  controls.update();
+
+  // Head movement
+  if(robotParts.head){
+    const h=robotParts.head;
+    h.rotation.y=Math.sin(time*0.3)*0.15;
+    h.rotation.x=Math.sin(time*0.2)*0.05;
+    h.rotation.z=Math.sin(time*0.25)*0.02;
+  }
+
+  // Chest core animation
+  if(robotParts.coreGroup){
+    const cg=robotParts.coreGroup;
+    cg.children.forEach((child,i)=>{
+      if(i>=1&&i<=3){ // rings
+        const speed=0.5+i*0.3;
+        child.rotation.z=time*speed;
+        child.rotation.x=Math.sin(time*speed*0.5)*0.3;
+        child.rotation.y=time*speed*0.7;
+      }
+    });
+  }
+
+  // Core pulse
+  if(robotParts.chestCore){
+    const pulse=1+Math.sin(time*2)*0.15;
+    robotParts.chestCore.scale.setScalar(pulse);
+  }
+
+  // Core glow
+  if(robotParts.coreGlow){
+    const pulse=0.3+Math.sin(time*2)*0.15;
+    robotParts.coreGlow.material.opacity=pulse;
+    const pulseLight=0.5+Math.sin(time*2)*0.3;
+    robotParts.coreGlow.material.emissiveIntensity=pulseLight;
+  }
+
+  // Expert module pulsing
+  expertModules.forEach((mod,i)=>{
+    const d=mod.userData;
+    const pulse=0.5+0.5*Math.sin(time*d.speed+d.phase);
+    mod.children.forEach((child,j)=>{
+      if(j===1){ // light sphere
+        const baseIntensity=d.baseIntensity;
+        child.material.emissiveIntensity=baseIntensity*pulse;
+        child.scale.setScalar(0.8+pulse*0.3);
+      }
+    });
+  });
+
+  // Data lights travel
+  dataLights.forEach(light=>{
+    const d=light.userData;
+    d.progress+=d.speed*delta;
+    if(d.progress>1) d.progress-=1;
+    const t=d.progress;
+    light.position.lerpVectors(d.start,d.end,t);
+    const pulse=0.5+0.5*Math.sin(time*3+t*Math.PI*2);
+    light.material.emissiveIntensity=1+pulse*2;
+  });
+
+  // Holographic UI animation
+  if(holographicUI.group){
+    const ui=holographicUI.group;
+    ui.position.y=1.6+Math.sin(time*0.5)*0.05;
+    ui.rotation.y=-0.5+Math.sin(time*0.2)*0.1;
+
+    // Animate data bars
+    for(let i=0;i<8;i++){
+      const bar=ui.children.find(c=>c.name==='bar'+i);
+      if(bar){
+        bar.scale.y=0.3+0.7*Math.abs(Math.sin(time*1.5+i*0.5));
+        bar.material.opacity=0.3+0.4*Math.abs(Math.sin(time*1.5+i*0.5));
+      }
+    }
+
+    // Animate dots
+    for(let i=0;i<20;i++){
+      const dot=robotParts['uiDot'+i];
+      if(dot){
+        dot.position.y+=Math.sin(time*2+i)*0.001;
+        dot.material.opacity=0.3+0.5*Math.abs(Math.sin(time*1.5+i*0.3));
+      }
+    }
+
+    // Gauge rotation
+    const gauge=ui.children.find(c=>c.name==='gauge');
+    if(gauge){
+      gauge.rotation.z=time*0.5;
+    }
+
+    const gaugeArc=ui.children.find(c=>c.name==='gaugeArc');
+    if(gaugeArc){
+      gaugeArc.rotation.z=time*0.3;
+      const rotation=time*0.3;
+      const arcPoints2=[];
+      for(let i=0;i<=32;i++){
+        const angle=(i/32)*Math.PI*1.5-Math.PI*0.25+rotation;
+        arcPoints2.push(new THREE.Vector3(Math.cos(angle)*0.13,Math.sin(angle)*0.13,0.02));
+      }
+      gaugeArc.geometry.setFromPoints(arcPoints2);
+    }
+
+    // Main panel flicker
+    if(holographicUI.mainPanel){
+      holographicUI.mainPanel.material.opacity=0.15+0.05*Math.sin(time*3);
+    }
+    const border=ui.children.find(c=>c.name==='border');
+    if(border){
+      border.material.opacity=0.3+0.2*Math.sin(time*2);
+    }
+  }
+
+  // Platform ring rotation
+  scene.children.forEach(child=>{
+    child.children.forEach(gc=>{
+      if(gc.geometry&&gc.geometry.type==='TorusGeometry'&&!gc.userData.name){
+        if(gc.position.y<0.2){
+          gc.rotation.z=time*0.1;
+        }
+      }
+    });
+  });
+
+  // Particles
+  particles.forEach(ps=>{
+    const positions=ps.geometry.attributes.position.array;
+    for(let i=0;i<positions.length;i+=3){
+      positions[i+1]+=delta*0.05;
+      if(positions[i+1]>10) positions[i+1]=0;
+    }
+    ps.geometry.attributes.position.needsUpdate=true;
+  });
+
+  // Chest light pulse
+  const chestLight=scene.getObjectByName('chestLight');
+  if(chestLight){
+    chestLight.intensity=2+Math.sin(time*2)*1;
+  }
+
+  // Visor light pulse
+  const visorLight=scene.getObjectByName('visorLight');
+  if(visorLight){
+    visorLight.intensity=1+Math.sin(time*1.5)*0.5;
+  }
+
+  renderer.render(scene,camera);
+}
+
+// ── UI ──
+document.getElementById('btnPause').addEventListener('click',function(){
+  animationActive=!animationActive;
+  this.textContent=animationActive?'⏸ Pause':'▶ Resume';
+});
+
+document.getElementById('btnReset').addEventListener('click',function(){
+  camera.position.set(4,3,6);
+  controls.target.set(0,1.8,0);
+  controls.update();
+  time=0;
+});
+
+// ── Resize ──
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// ── Start ──
+init();
+})();
+</script>
+</body>
+</function>
+</html>
