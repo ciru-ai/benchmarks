@@ -905,14 +905,11 @@ function animate(){
   }
 
   // ── Core glow pulse ──
-  const chestCore = scene.children.find(c => {
-    if(!c.children) return false;
-    for(const child of c.children){
-      if(child.material && child.material.emissive && child.material.emissive.getHex() === 0x00ffff && child.geometry.type === 'SphereGeometry'){
-        return true;
-      }
+  let chestCore = null;
+  scene.traverse(child => {
+    if(!chestCore && child.isMesh && child.material && child.material.emissive && child.material.color && child.material.color.getHex() === 0x00ffff && child.geometry.type === 'SphereGeometry'){
+      chestCore = child;
     }
-    return false;
   });
   if(chestCore){
     chestCore.material.emissiveIntensity = 2.5 + Math.sin(t*2)*0.8;
@@ -940,14 +937,11 @@ function animate(){
   }
 
   // ── Visor pulse ──
-  const visor = scene.children.find(c => {
-    if(!c.children) return false;
-    for(const child of c.children){
-      if(child.material && child.material.emissive && child.material.emissive.getHex() === 0x8800ff && child.geometry.type === 'BoxGeometry'){
-        return true;
-      }
+  let visor = null;
+  scene.traverse(child => {
+    if(!visor && child.isMesh && child.material && child.material.emissive && child.material.color && child.material.color.getHex() === 0x8800ff && child.geometry.type === 'BoxGeometry'){
+      visor = child;
     }
-    return false;
   });
   if(visor){
     visor.material.emissiveIntensity = 1.5 + Math.sin(t*1.8)*0.5;
