@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#02040a" />
+  <title>QWEN // Agentic Machine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #54e8ff;
+      --blue: #4c82ff;
+      --violet: #9b62ff;
+      --ink: #03060d;
+      --panel: rgba(7, 14, 27, 0.68);
+      --line: rgba(113, 222, 255, 0.2);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: #e9f7ff;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    button { font: inherit; }
+
+    #app,
+    #viewport {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
+      touch-action: none;
+    }
+
+    #app::before,
+    #app::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    #app::before {
+      background:
+        radial-gradient(circle at 50% 43%, transparent 34%, rgba(0, 0, 0, 0.16) 63%, rgba(0, 0, 0, 0.72) 115%),
+        linear-gradient(180deg, rgba(4, 11, 25, 0.08), rgba(0, 0, 0, 0.22));
+    }
+
+    #app::after {
+      opacity: 0.14;
+      background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(120, 220, 255, 0.035) 4px);
+      mix-blend-mode: screen;
+    }
+
+    .hud {
+      position: fixed;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    .brand {
+      top: max(24px, env(safe-area-inset-top));
+      left: max(26px, env(safe-area-inset-left));
+      display: grid;
+      grid-template-columns: 3px auto;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .brand-rail {
+      width: 3px;
+      min-height: 72px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--cyan), var(--blue) 52%, var(--violet));
+      box-shadow: 0 0 18px rgba(67, 218, 255, 0.72);
+    }
+
+    .eyebrow,
+    .telemetry-label,
+    .hint,
+    .status-label {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 1px 0 8px;
+      color: rgba(187, 230, 255, 0.6);
+      font-size: 9px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 27px);
+      font-weight: 570;
+      line-height: 1;
+      letter-spacing: 0.06em;
+    }
+
+    .brand h1 span {
+      display: block;
+      margin-top: 8px;
+      color: rgba(220, 240, 255, 0.47);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      width: max-content;
+      margin-top: 13px;
+      padding: 6px 9px 6px 7px;
+      border: 1px solid rgba(89, 225, 255, 0.19);
+      border-radius: 999px;
+      background: rgba(5, 16, 28, 0.5);
+      box-shadow: inset 0 0 16px rgba(42, 190, 255, 0.04);
+      backdrop-filter: blur(10px);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 9px var(--cyan);
+      animation: statusPulse 1.7s ease-in-out infinite;
+    }
+
+    .status-label {
+      color: rgba(210, 245, 255, 0.74);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+    }
+
+    .status-chip[data-state="paused"] .status-dot {
+      background: #8c91a7;
+      box-shadow: none;
+      animation: none;
+    }
+
+    .controls {
+      top: max(24px, env(safe-area-inset-top));
+      right: max(24px, env(safe-area-inset-right));
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .control-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid rgba(147, 218, 255, 0.18);
+      border-radius: 8px;
+      outline: none;
+      color: rgba(228, 247, 255, 0.77);
+      background: linear-gradient(180deg, rgba(19, 32, 50, 0.72), rgba(5, 11, 21, 0.66));
+      box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 8px 28px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      transition: border-color 160ms ease, color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .control-btn:hover {
+      color: #fff;
+      border-color: rgba(93, 226, 255, 0.48);
+      background: linear-gradient(180deg, rgba(25, 48, 69, 0.8), rgba(6, 17, 29, 0.75));
+      transform: translateY(-1px);
+    }
+
+    .control-btn:focus-visible {
+      box-shadow: 0 0 0 2px rgba(3, 7, 14, 0.9), 0 0 0 4px rgba(84, 232, 255, 0.65);
+    }
+
+    .control-icon {
+      display: grid;
+      width: 14px;
+      place-items: center;
+      color: var(--cyan);
+      font-family: Consolas, monospace;
+      font-size: 14px;
+      text-shadow: 0 0 10px rgba(84, 232, 255, 0.65);
+    }
+
+    .control-text {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 8px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .telemetry {
+      bottom: max(25px, env(safe-area-inset-bottom));
+      left: max(26px, env(safe-area-inset-left));
+      width: min(280px, calc(100vw - 52px));
+      padding: 12px 14px;
+      border-left: 1px solid rgba(96, 222, 255, 0.3);
+      background: linear-gradient(90deg, rgba(2, 10, 20, 0.66), rgba(4, 11, 22, 0));
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .telemetry-label {
+      display: block;
+      margin-bottom: 5px;
+      color: rgba(149, 201, 225, 0.47);
+      font-size: 7px;
+      letter-spacing: 0.14em;
+    }
+
+    .telemetry-value {
+      display: block;
+      color: rgba(224, 249, 255, 0.86);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .telemetry-value em {
+      color: var(--cyan);
+      font-size: 8px;
+      font-style: normal;
+    }
+
+    .loadbar {
+      position: relative;
+      height: 2px;
+      margin-top: 11px;
+      overflow: hidden;
+      background: rgba(123, 206, 255, 0.09);
+    }
+
+    .loadbar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 42%;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: routeBar 2.2s linear infinite;
+    }
+
+    .hint {
+      left: 50%;
+      bottom: max(27px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      color: rgba(183, 220, 240, 0.34);
+      font-size: 7px;
+      white-space: nowrap;
+    }
+
+    #loading,
+    #fatal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at center, #07111f, #02040a 68%);
+      transition: opacity 600ms ease, visibility 600ms ease;
+    }
+
+    #loading.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-mark {
+      display: grid;
+      justify-items: center;
+      gap: 20px;
+    }
+
+    .loader-core {
+      position: relative;
+      width: 62px;
+      height: 62px;
+      border: 1px solid rgba(83, 226, 255, 0.36);
+      border-radius: 50%;
+      box-shadow: inset 0 0 24px rgba(70, 203, 255, 0.12), 0 0 32px rgba(92, 80, 255, 0.12);
+      animation: loaderSpin 3s linear infinite;
+    }
+
+    .loader-core::before,
+    .loader-core::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .loader-core::before {
+      inset: 10px;
+      border: 1px dashed rgba(162, 96, 255, 0.7);
+      animation: loaderSpin 1.8s linear reverse infinite;
+    }
+
+    .loader-core::after {
+      inset: 22px;
+      background: #69eaff;
+      box-shadow: 0 0 18px #69eaff, 0 0 34px #805cff;
+    }
+
+    .loader-copy {
+      color: rgba(197, 237, 255, 0.64);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+
+    #fatal[hidden] { display: none; }
+
+    .fatal-card {
+      width: min(440px, calc(100vw - 40px));
+      padding: 28px;
+      border: 1px solid rgba(94, 218, 255, 0.22);
+      border-radius: 14px;
+      background: rgba(5, 12, 24, 0.86);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45), inset 0 1px rgba(255, 255, 255, 0.04);
+      text-align: center;
+    }
+
+    .fatal-card strong {
+      display: block;
+      margin-bottom: 10px;
+      color: #e5f8ff;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .fatal-card p {
+      margin: 0;
+      color: rgba(200, 225, 239, 0.6);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    @keyframes loaderSpin { to { transform: rotate(360deg); } }
+    @keyframes routeBar { from { transform: translateX(-120%); } to { transform: translateX(340%); } }
+    @keyframes statusPulse { 50% { opacity: 0.45; transform: scale(0.72); } }
+
+    @media (max-width: 640px) {
+      .brand { top: max(16px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left)); }
+      .controls { top: max(16px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+      .control-btn { width: 38px; padding: 0; justify-content: center; }
+      .control-text { display: none; }
+      .telemetry { bottom: max(15px, env(safe-area-inset-bottom)); left: max(16px, env(safe-area-inset-left)); width: 225px; padding: 10px 12px; }
+      .telemetry-grid { gap: 8px; }
+      .hint { display: none; }
+      .brand h1 { font-size: 17px; }
+      .brand h1 span { font-size: 7px; }
+    }
+
+    @media (max-height: 560px) {
+      .status-chip, .loadbar, .hint { display: none; }
+      .telemetry { bottom: 12px; }
+      .brand { top: 12px; }
+      .controls { top: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+      .control-btn { transition: none; }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="app">
+    <div id="viewport" aria-label="Interactive three-dimensional Qwen Agent robot"></div>
+
+    <header class="hud brand" aria-label="Experience title">
+      <div class="brand-rail"></div>
+      <div>
+        <p class="eyebrow">System // Qwen-Agent</p>
+        <h1>AGENTIC MACHINE <span>Mixture-of-Experts Embodiment</span></h1>
+        <div class="status-chip" id="status-chip" data-state="active">
+          <span class="status-dot"></span>
+          <span class="status-label" id="status-label">Reasoning core active</span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="hud controls" aria-label="Scene controls">
+      <button class="control-btn" id="pause-btn" type="button" aria-label="Pause machine animation" aria-pressed="false">
+        <span class="control-icon" id="pause-icon">Ⅱ</span>
+        <span class="control-text" id="pause-text">Pause</span>
+      </button>
+      <button class="control-btn" id="reset-btn" type="button" aria-label="Reset camera view">
+        <span class="control-icon">↺</span>
+        <span class="control-text">Reset view</span>
+      </button>
+    </nav>
+
+    <section class="hud telemetry" aria-label="Live agent telemetry">
+      <div class="telemetry-grid">
+        <div>
+          <span class="telemetry-label">Tokens</span>
+          <span class="telemetry-value" id="token-rate">184 <em>/s</em></span>
+        </div>
+        <div>
+          <span class="telemetry-label">Experts</span>
+          <span class="telemetry-value" id="expert-count">02 <em>/08</em></span>
+        </div>
+        <div>
+          <span class="telemetry-label">Core</span>
+          <span class="telemetry-value" id="core-load">87 <em>%</em></span>
+        </div>
+      </div>
+      <div class="loadbar" aria-hidden="true"></div>
+    </section>
+
+    <div class="hud hint">Drag to orbit &nbsp;•&nbsp; Scroll to zoom &nbsp;•&nbsp; Idle camera enabled</div>
+
+    <div id="loading" role="status" aria-live="polite">
+      <div class="loader-mark">
+        <div class="loader-core" aria-hidden="true"></div>
+        <div class="loader-copy">Assembling agent</div>
+      </div>
+    </div>
+
+    <div id="fatal" hidden role="alert">
+      <div class="fatal-card">
+        <strong>Unable to initialize the agent</strong>
+        <p id="fatal-message">A WebGL-capable browser and an internet connection are required to load the Three.js runtime.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    window.__qwenReady = false;
+    window.__qwenFatal = function (message) {
+      if (window.__qwenReady) return;
+      var loading = document.getElementById('loading');
+      var fatal = document.getElementById('fatal');
+      var copy = document.getElementById('fatal-message');
+      if (loading) loading.classList.add('is-hidden');
+      if (copy && message) copy.textContent = message;
+      if (fatal) fatal.hidden = false;
+    };
+    window.addEventListener('error', function (event) {
+      if (!window.__qwenReady && event && event.message) window.__qwenFatal('The 3D runtime could not be loaded. Check your connection, then refresh this page.');
+    });
+    setTimeout(function () {
+      if (!window.__qwenReady) window.__qwenFatal('The 3D runtime is taking too long to load. Check your connection, then refresh this page.');
+    }, 15000);
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    try {
+      const viewport = document.getElementById('viewport');
+      const loading = document.getElementById('loading');
+      const pauseBtn = document.getElementById('pause-btn');
+      const pauseIcon = document.getElementById('pause-icon');
+      const pauseText = document.getElementById('pause-text');
+      const resetBtn = document.getElementById('reset-btn');
+      const statusChip = document.getElementById('status-chip');
+      const statusLabel = document.getElementById('status-label');
+      const tokenRate = document.getElementById('token-rate');
+      const expertCount = document.getElementById('expert-count');
+      const coreLoad = document.getElementById('core-load');
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const isCompact = Math.min(window.innerWidth, window.innerHeight) < 700;
+      const UP = new THREE.Vector3(0, 1, 0);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x02040a);
+      scene.fog = new THREE.FogExp2(0x040814, 0.035);
+
+      const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.08, 60);
+      scene.add(camera);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, isCompact ? 1.35 : 1.75);
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      viewport.appendChild(renderer.domElement);
+
+      renderer.domElement.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault();
+        window.__qwenReady = false;
+        window.__qwenFatal('The graphics context was lost. Refresh the page to restart the agent.');
+      });
+
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const room = new RoomEnvironment(renderer);
+      const environment = pmrem.fromScene(room, 0.045).texture;
+      scene.environment = environment;
+      scene.environmentIntensity = 0.42;
+      pmrem.dispose();
+
+      const composer = new EffectComposer(renderer);
+      composer.setPixelRatio(pixelRatio);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        isCompact ? 0.72 : 0.9,
+        0.72,
+        0.42
+      );
+      composer.addPass(bloomPass);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.055;
+      controls.enablePan = false;
+      controls.minDistance = 5.7;
+      controls.maxDistance = 18;
+      controls.minPolarAngle = 0.56;
+      controls.maxPolarAngle = 1.62;
+      controls.autoRotateSpeed = 0.38;
+
+      const homePosition = new THREE.Vector3();
+      const homeTarget = new THREE.Vector3(0, 3.55, 0.05);
+
+      function updateHome() {
+        const aspect = window.innerWidth / window.innerHeight;
+        if (aspect < 0.78) homePosition.set(9.8, 6.1, 14.7);
+        else if (aspect < 1.2) homePosition.set(9.1, 5.85, 12.4);
+        else homePosition.set(8.25, 5.6, 10.7);
+      }
+
+      updateHome();
+      camera.position.copy(homePosition);
+      controls.target.copy(homeTarget);
+      controls.update();
+
+      const materials = {
+        graphite: new THREE.MeshStandardMaterial({ color: 0x090d14, metalness: 0.93, roughness: 0.24 }),
+        graphiteSoft: new THREE.MeshStandardMaterial({ color: 0x111824, metalness: 0.84, roughness: 0.34 }),
+        gunmetal: new THREE.MeshStandardMaterial({ color: 0x263140, metalness: 0.82, roughness: 0.3 }),
+        ceramic: new THREE.MeshPhysicalMaterial({
+          color: 0xdde7f0,
+          metalness: 0.2,
+          roughness: 0.18,
+          clearcoat: 1,
+          clearcoatRoughness: 0.12,
+          envMapIntensity: 1.25
+        }),
+        ceramicDark: new THREE.MeshPhysicalMaterial({
+          color: 0x8390a0,
+          metalness: 0.5,
+          roughness: 0.2,
+          clearcoat: 0.7,
+          clearcoatRoughness: 0.2
+        }),
+        rubber: new THREE.MeshStandardMaterial({ color: 0x030508, metalness: 0.12, roughness: 0.72 }),
+        platform: new THREE.MeshPhysicalMaterial({
+          color: 0x111925,
+          metalness: 0.96,
+          roughness: 0.16,
+          clearcoat: 0.92,
+          clearcoatRoughness: 0.09,
+          envMapIntensity: 1.55
+        }),
+        glass: new THREE.MeshPhysicalMaterial({
+          color: 0x68dfff,
+          metalness: 0.16,
+          roughness: 0.06,
+          transmission: 0.38,
+          transparent: true,
+          opacity: 0.17,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          envMapIntensity: 1.1
+        }),
+        cableCyan: new THREE.MeshStandardMaterial({ color: 0x07141c, metalness: 0.65, roughness: 0.34, emissive: 0x063e50, emissiveIntensity: 1.15 }),
+        cableViolet: new THREE.MeshStandardMaterial({ color: 0x11091c, metalness: 0.65, roughness: 0.34, emissive: 0x38136c, emissiveIntensity: 1.3 })
+      };
+
+      function glowBasic(hex, intensity = 2.2, opacity = 1) {
+        const mat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(hex).multiplyScalar(intensity),
+          transparent: opacity < 1,
+          opacity,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false,
+          side: THREE.DoubleSide
+        });
+        return mat;
+      }
+
+      const glow = {
+        cyan: glowBasic(0x32ddff, 2.7),
+        cyanSoft: glowBasic(0x21cfff, 1.9, 0.36),
+        blue: glowBasic(0x386dff, 2.5),
+        violet: glowBasic(0x9a46ff, 2.65),
+        violetSoft: glowBasic(0x7a35ff, 1.8, 0.32),
+        white: glowBasic(0xc9f8ff, 2.1)
+      };
+
+      const shared = {
+        bolt: new THREE.SphereGeometry(0.032, 8, 6),
+        token: new THREE.SphereGeometry(0.042, 10, 8),
+        finger: new THREE.CapsuleGeometry(0.035, 0.13, 4, 8)
+      };
+
+      function shadow(mesh, cast = true, receive = true) {
+        mesh.castShadow = cast;
+        mesh.receiveShadow = receive;
+        return mesh;
+      }
+
+      function roundedBox(w, h, d, radius, material, cast = true, receive = true) {
+        const safeRadius = Math.min(radius, w * 0.48, h * 0.48, d * 0.48);
+        return shadow(new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, safeRadius), material), cast, receive);
+      }
+
+      function centeredExtrude(points, depth, bevel = 0.04) {
+        const shape = new THREE.Shape();
+        points.forEach((point, index) => {
+          if (index === 0) shape.moveTo(point[0], point[1]);
+          else shape.lineTo(point[0], point[1]);
+        });
+        shape.closePath();
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+          depth,
+          bevelEnabled: true,
+          bevelSegments: 1,
+          steps: 1,
+          bevelSize: bevel,
+          bevelThickness: bevel
+        });
+        geometry.translate(0, 0, -depth * 0.5);
+        geometry.computeVertexNormals();
+        return geometry;
+      }
+
+      function cylinderBetween(parent, start, end, radius, material, radialSegments = 10, radiusEnd = radius) {
+        const a = start.clone();
+        const b = end.clone();
+        const direction = b.clone().sub(a);
+        const length = direction.length();
+        const mesh = shadow(new THREE.Mesh(
+          new THREE.CylinderGeometry(radiusEnd, radius, length, radialSegments, 1, false),
+          material
+        ));
+        mesh.position.copy(a).add(b).multiplyScalar(0.5);
+        mesh.quaternion.setFromUnitVectors(UP, direction.normalize());
+        parent.add(mesh);
+        return mesh;
+      }
+
+      function tubeCable(parent, points, radius, material, tubularSegments = 34) {
+        const curve = new THREE.CatmullRomCurve3(points);
+        const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, tubularSegments, radius, 6, false), material);
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+        parent.add(mesh);
+        return mesh;
+      }
+
+      function addBolt(parent, x, y, z, material = materials.gunmetal) {
+        const bolt = new THREE.Mesh(shared.bolt, material);
+        bolt.position.set(x, y, z);
+        parent.add(bolt);
+      }
+
+      function addJoint(parent, position, radius, ringColor = glow.cyan) {
+        const group = new THREE.Group();
+        group.position.copy(position);
+        const ball = shadow(new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), materials.graphiteSoft));
+        const axle = shadow(new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.72, radius * 0.72, radius * 1.72, 12), materials.gunmetal));
+        axle.rotation.z = Math.PI / 2;
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.82, radius * 0.07, 6, 24), ringColor);
+        ring.position.z = radius * 0.68;
+        group.add(ball, axle, ring);
+        parent.add(group);
+        return group;
+      }
+
+      function addLayeredSegment(parent, start, end, coreRadius, armorWidth, armorDepth, armorRatio, armorOffsetZ = 0.12) {
+        const a = start.clone();
+        const b = end.clone();
+        const direction = b.clone().sub(a);
+        const length = direction.length();
+        const group = new THREE.Group();
+        group.position.copy(a).add(b).multiplyScalar(0.5);
+        group.quaternion.setFromUnitVectors(UP, direction.clone().normalize());
+
+        const core = shadow(new THREE.Mesh(
+          new THREE.CylinderGeometry(coreRadius * 0.84, coreRadius, length, 10),
+          materials.gunmetal
+        ));
+        group.add(core);
+
+        const inner = shadow(new THREE.Mesh(
+          new THREE.CylinderGeometry(coreRadius * 0.46, coreRadius * 0.46, length * 1.04, 8),
+          materials.graphite
+        ));
+        group.add(inner);
+
+        const plate = roundedBox(armorWidth, length * armorRatio, armorDepth, 0.08, materials.ceramic);
+        plate.position.set(0, length * 0.035, armorOffsetZ);
+        group.add(plate);
+
+        const seam = new THREE.Mesh(
+          new THREE.BoxGeometry(armorWidth * 0.5, length * armorRatio * 0.82, 0.018),
+          glow.cyanSoft
+        );
+        seam.position.set(0, length * 0.035, armorOffsetZ + armorDepth * 0.53);
+        group.add(seam);
+
+        const railLeft = roundedBox(coreRadius * 0.2, length * 0.78, coreRadius * 0.22, 0.015, materials.graphite, false, false);
+        const railRight = railLeft.clone();
+        railLeft.position.x = -armorWidth * 0.53;
+        railRight.position.x = armorWidth * 0.53;
+        group.add(railLeft, railRight);
+
+        parent.add(group);
+        return group;
+      }
+
+      // Environment and platform
+      const environmentGroup = new THREE.Group();
+      scene.add(environmentGroup);
+
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(45, 45),
+        new THREE.MeshStandardMaterial({ color: 0x03070d, metalness: 0.52, roughness: 0.76 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -0.015;
+      floor.receiveShadow = true;
+      environmentGroup.add(floor);
+
+      const grid = new THREE.GridHelper(34, 68, 0x143248, 0x0a1724);
+      grid.position.y = 0.006;
+      grid.material.opacity = 0.22;
+      grid.material.transparent = true;
+      environmentGroup.add(grid);
+
+      const platformGroup = new THREE.Group();
+      environmentGroup.add(platformGroup);
+
+      const platformBase = shadow(new THREE.Mesh(new THREE.CylinderGeometry(3.78, 4.02, 0.3, 64), materials.graphiteSoft), true, true);
+      platformBase.position.y = 0.15;
+      platformGroup.add(platformBase);
+
+      const platformTop = shadow(new THREE.Mesh(new THREE.CylinderGeometry(3.62, 3.72, 0.065, 64), materials.platform), true, true);
+      platformTop.position.y = 0.328;
+      platformGroup.add(platformTop);
+
+      const innerDisk = new THREE.Mesh(
+        new THREE.CircleGeometry(2.72, 64),
+        new THREE.MeshPhysicalMaterial({
+          color: 0x111b27,
+          metalness: 0.98,
+          roughness: 0.09,
+          clearcoat: 1,
+          clearcoatRoughness: 0.08,
+          transparent: true,
+          opacity: 0.94
+        })
+      );
+      innerDisk.rotation.x = -Math.PI / 2;
+      innerDisk.position.y = 0.365;
+      innerDisk.receiveShadow = true;
+      platformGroup.add(innerDisk);
+
+      const platformRingA = new THREE.Mesh(new THREE.TorusGeometry(2.73, 0.022, 8, 96), glow.cyanSoft);
+      const platformRingB = new THREE.Mesh(new THREE.TorusGeometry(3.3, 0.026, 8, 96), glow.violetSoft);
+      const platformRingC = new THREE.Mesh(new THREE.TorusGeometry(3.88, 0.035, 8, 96), glow.blue);
+      [platformRingA, platformRingB, platformRingC].forEach((ring, index) => {
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = index === 2 ? 0.2 : 0.375;
+        platformGroup.add(ring);
+      });
+
+      const dashGeometry = new THREE.BoxGeometry(0.055, 0.016, 0.3);
+      const platformDashes = new THREE.InstancedMesh(dashGeometry, glow.cyanSoft, 32);
+      const dashDummy = new THREE.Object3D();
+      for (let i = 0; i < 32; i++) {
+        const angle = (i / 32) * Math.PI * 2;
+        const radius = i % 2 ? 3.05 : 2.98;
+        dashDummy.position.set(Math.sin(angle) * radius, 0.378, Math.cos(angle) * radius);
+        dashDummy.rotation.y = angle;
+        dashDummy.scale.z = i % 4 === 0 ? 1.45 : 0.65;
+        dashDummy.updateMatrix();
+        platformDashes.setMatrixAt(i, dashDummy.matrix);
+      }
+      platformGroup.add(platformDashes);
+
+      const monolithMaterial = new THREE.MeshStandardMaterial({ color: 0x07101b, metalness: 0.75, roughness: 0.4 });
+      [-7.2, -4.8, -2.9, 3.4, 5.4, 7.8].forEach((x, index) => {
+        const height = 3.2 + (index % 3) * 1.25;
+        const monolith = roundedBox(0.65 + (index % 2) * 0.32, height, 0.75, 0.12, monolithMaterial, false, false);
+        monolith.position.set(x, height * 0.5 - 0.1, -6.2 - (index % 2) * 1.4);
+        monolith.rotation.y = (index - 2.5) * 0.045;
+        environmentGroup.add(monolith);
+        const slit = new THREE.Mesh(new THREE.BoxGeometry(0.018, height * 0.68, 0.022), index % 2 ? glow.violetSoft : glow.cyanSoft);
+        slit.position.set(x, height * 0.52, monolith.position.z + 0.39);
+        environmentGroup.add(slit);
+      });
+
+      const particleCount = isCompact ? 360 : 620;
+      const particlePositions = new Float32Array(particleCount * 3);
+      const particleColors = new Float32Array(particleCount * 3);
+      const cyanColor = new THREE.Color(0x4cdfff);
+      const violetColor = new THREE.Color(0x8e54ff);
+      for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 5.2 + Math.random() * 12;
+        particlePositions[i * 3] = Math.cos(angle) * radius;
+        particlePositions[i * 3 + 1] = 0.4 + Math.random() * 10.5;
+        particlePositions[i * 3 + 2] = Math.sin(angle) * radius - 2.8;
+        const color = Math.random() > 0.72 ? violetColor : cyanColor;
+        const strength = 0.25 + Math.random() * 0.65;
+        particleColors[i * 3] = color.r * strength;
+        particleColors[i * 3 + 1] = color.g * strength;
+        particleColors[i * 3 + 2] = color.b * strength;
+      }
+      const particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+      const particles = new THREE.Points(
+        particleGeometry,
+        new THREE.PointsMaterial({
+          size: isCompact ? 0.032 : 0.045,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.64,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          sizeAttenuation: true
+        })
+      );
+      environmentGroup.add(particles);
+
+      // Lighting
+      const hemisphere = new THREE.HemisphereLight(0x8ec8ff, 0x07040e, 0.72);
+      scene.add(hemisphere);
+
+      const keyLight = new THREE.DirectionalLight(0xe4f4ff, 3.35);
+      keyLight.position.set(4.7, 10.2, 6.3);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(isCompact ? 1024 : 2048, isCompact ? 1024 : 2048);
+      keyLight.shadow.camera.left = -5.5;
+      keyLight.shadow.camera.right = 5.5;
+      keyLight.shadow.camera.top = 8.5;
+      keyLight.shadow.camera.bottom = -1.5;
+      keyLight.shadow.camera.near = 0.5;
+      keyLight.shadow.camera.far = 23;
+      keyLight.shadow.bias = -0.00025;
+      scene.add(keyLight);
+
+      const cyanRim = new THREE.SpotLight(0x24ceff, 78, 24, 0.62, 0.9, 1.7);
+      cyanRim.position.set(6.5, 5.2, 3.4);
+      cyanRim.target.position.set(0.7, 3.7, 0);
+      scene.add(cyanRim, cyanRim.target);
+
+      const violetRim = new THREE.SpotLight(0x8a3dff, 105, 26, 0.68, 0.95, 1.8);
+      violetRim.position.set(-5.7, 6.4, -4.5);
+      violetRim.target.position.set(-0.6, 4.2, 0);
+      scene.add(violetRim, violetRim.target);
+
+      const underLight = new THREE.PointLight(0x196cff, 19, 8, 2);
+      underLight.position.set(0, 0.15, -1.8);
+      scene.add(underLight);
+
+      // Robot root and pelvis
+      const robotRoot = new THREE.Group();
+      robotRoot.name = 'Qwen Agent Bot';
+      scene.add(robotRoot);
+
+      const pelvisGroup = new THREE.Group();
+      pelvisGroup.position.set(0, 3.08, 0);
+      robotRoot.add(pelvisGroup);
+
+      const pelvisCore = roundedBox(1.5, 0.52, 0.7, 0.12, materials.graphiteSoft);
+      pelvisGroup.add(pelvisCore);
+      const pelvisCenter = roundedBox(0.46, 0.58, 0.76, 0.1, materials.gunmetal);
+      pelvisCenter.position.z = 0.02;
+      pelvisGroup.add(pelvisCenter);
+
+      [-0.55, 0.55].forEach((x, index) => {
+        const plate = roundedBox(0.58, 0.36, 0.28, 0.07, materials.ceramic);
+        plate.position.set(x, 0.12, 0.35);
+        plate.rotation.z = index === 0 ? 0.1 : -0.1;
+        pelvisGroup.add(plate);
+        const inset = roundedBox(0.32, 0.08, 0.025, 0.015, materials.graphite, false, false);
+        inset.position.set(x, 0.12, 0.5);
+        pelvisGroup.add(inset);
+      });
+
+      const waistGroup = new THREE.Group();
+      pelvisGroup.add(waistGroup);
+      for (let i = 0; i < 3; i++) {
+        const waistRing = shadow(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.46 - i * 0.055, 0.5 - i * 0.055, 0.13, 12),
+          i === 1 ? materials.gunmetal : materials.graphite
+        ));
+        waistRing.position.y = 0.38 + i * 0.13;
+        waistGroup.add(waistRing);
+      }
+      const waistGlow = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.018, 6, 32), glow.violetSoft);
+      waistGlow.rotation.x = Math.PI / 2;
+      waistGlow.position.y = 0.53;
+      waistGroup.add(waistGlow);
+
+      // Legs
+      const legRefs = [];
+      function buildLeg(side) {
+        const leg = new THREE.Group();
+        robotRoot.add(leg);
+        const hip = new THREE.Vector3(side * 0.63, 3.01, 0);
+        const knee = new THREE.Vector3(side * 0.72, 1.82, 0.09);
+        const ankle = new THREE.Vector3(side * 0.8, 0.69, 0.06);
+        addJoint(leg, hip, 0.3, side < 0 ? glow.violet : glow.cyan);
+        addLayeredSegment(leg, hip, knee, 0.22, 0.54, 0.29, 0.66, 0.15);
+        const kneeJoint = addJoint(leg, knee, 0.25, side < 0 ? glow.violet : glow.cyan);
+        addLayeredSegment(leg, knee, ankle, 0.19, 0.49, 0.27, 0.73, 0.16);
+
+        const kneeShield = roundedBox(0.48, 0.34, 0.31, 0.07, materials.ceramic);
+        kneeShield.position.copy(knee).add(new THREE.Vector3(0, 0.03, 0.22));
+        kneeShield.rotation.x = -0.1;
+        leg.add(kneeShield);
+
+        cylinderBetween(
+          leg,
+          hip.clone().add(new THREE.Vector3(side * 0.21, -0.08, -0.04)),
+          knee.clone().add(new THREE.Vector3(side * 0.2, 0.1, -0.03)),
+          0.037,
+          materials.graphiteSoft,
+          8,
+          0.05
+        );
+        const piston = cylinderBetween(
+          leg,
+          knee.clone().add(new THREE.Vector3(-side * 0.18, -0.02, -0.03)),
+          ankle.clone().add(new THREE.Vector3(-side * 0.16, 0.12, -0.02)),
+          0.032,
+          materials.ceramicDark,
+          8,
+          0.045
+        );
+
+        const ankleJoint = addJoint(leg, ankle, 0.17, glow.blue);
+        ankleJoint.scale.set(0.9, 0.9, 0.9);
+
+        const footGroup = new THREE.Group();
+        footGroup.position.set(side * 0.82, 0.49, 0.2 + (side > 0 ? 0.04 : -0.02));
+        leg.add(footGroup);
+        const heel = roundedBox(0.65, 0.32, 1.08, 0.1, materials.graphiteSoft);
+        footGroup.add(heel);
+        const instep = roundedBox(0.58, 0.2, 0.73, 0.08, materials.ceramic);
+        instep.position.set(0, 0.16, 0.1);
+        instep.rotation.x = -0.08;
+        footGroup.add(instep);
+        [-0.16, 0.16].forEach((toeX) => {
+          const toe = roundedBox(0.25, 0.16, 0.45, 0.06, materials.ceramicDark);
+          toe.position.set(toeX, 0.04, 0.48);
+          footGroup.add(toe);
+        });
+        const soleGlow = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.018, 0.56), side < 0 ? glow.violetSoft : glow.cyanSoft);
+        soleGlow.position.set(0, -0.157, 0.22);
+        footGroup.add(soleGlow);
+
+        for (let i = 0; i < 3; i++) {
+          const vent = roundedBox(0.055, 0.25, 0.14, 0.015, materials.graphite, false, false);
+          vent.position.set(side * 1.03, 1.1 + i * 0.15, -0.02);
+          vent.rotation.z = side * 0.12;
+          leg.add(vent);
+        }
+        legRefs.push({ leg, kneeJoint, piston, restScale: piston.scale.clone() });
+      }
+      buildLeg(-1);
+      buildLeg(1);
+
+      // Abdomen and exposed spine
+      const abdomenGroup = new THREE.Group();
+      robotRoot.add(abdomenGroup);
+      const spineRail = roundedBox(0.28, 1.05, 0.28, 0.07, materials.graphiteSoft);
+      spineRail.position.set(0, 3.72, -0.18);
+      abdomenGroup.add(spineRail);
+      for (let i = 0; i < 5; i++) {
+        const spineNode = roundedBox(0.48 - i * 0.018, 0.13, 0.4, 0.035, i % 2 ? materials.gunmetal : materials.graphite);
+        spineNode.position.set(0, 3.42 + i * 0.19, 0.02);
+        abdomenGroup.add(spineNode);
+        if (i < 4) {
+          const gapLight = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.018, 0.035), i % 2 ? glow.cyanSoft : glow.violetSoft);
+          gapLight.position.set(0, 3.515 + i * 0.19, 0.23);
+          abdomenGroup.add(gapLight);
+        }
+      }
+      [-1, 1].forEach((side) => {
+        const abdomenPlate = roundedBox(0.42, 0.76, 0.22, 0.07, materials.ceramic);
+        abdomenPlate.position.set(side * 0.48, 3.72, 0.17);
+        abdomenPlate.rotation.z = side * -0.08;
+        abdomenGroup.add(abdomenPlate);
+      });
+
+      tubeCable(abdomenGroup, [
+        new THREE.Vector3(-0.25, 3.25, -0.12),
+        new THREE.Vector3(-0.42, 3.55, 0.16),
+        new THREE.Vector3(-0.28, 3.98, 0.31)
+      ], 0.035, materials.cableViolet);
+      tubeCable(abdomenGroup, [
+        new THREE.Vector3(0.25, 3.25, -0.12),
+        new THREE.Vector3(0.42, 3.55, 0.16),
+        new THREE.Vector3(0.28, 3.98, 0.31)
+      ], 0.035, materials.cableCyan);
+
+      // Torso, open AI core, armor, vents, and expert modules
+      const torsoGroup = new THREE.Group();
+      torsoGroup.position.set(0, 4.38, 0);
+      torsoGroup.userData.restY = torsoGroup.position.y;
+      robotRoot.add(torsoGroup);
+
+      const chestPoints = [
+        [-0.78, -0.78], [0.78, -0.78], [1.18, -0.23], [1.12, 0.48],
+        [0.72, 0.76], [-0.72, 0.76], [-1.12, 0.48], [-1.18, -0.23]
+      ];
+      const chestFrame = shadow(new THREE.Mesh(centeredExtrude(chestPoints, 0.72, 0.065), materials.graphiteSoft));
+      torsoGroup.add(chestFrame);
+
+      const chestInset = new THREE.Mesh(centeredExtrude([
+        [-0.56, -0.51], [0.56, -0.51], [0.76, -0.18], [0.7, 0.45],
+        [0.45, 0.58], [-0.45, 0.58], [-0.7, 0.45], [-0.76, -0.18]
+      ], 0.11, 0.035), materials.glass);
+      chestInset.position.z = 0.45;
+      chestInset.renderOrder = 5;
+      torsoGroup.add(chestInset);
+      const chestEdges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(chestInset.geometry, 18),
+        new THREE.LineBasicMaterial({ color: 0x49dbff, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      chestEdges.position.copy(chestInset.position);
+      chestEdges.renderOrder = 6;
+      torsoGroup.add(chestEdges);
+
+      [-1, 1].forEach((side) => {
+        const pectoral = roundedBox(0.86, 0.52, 0.25, 0.1, materials.ceramic);
+        pectoral.position.set(side * 0.67, 0.34, 0.43);
+        pectoral.rotation.z = side * -0.075;
+        pectoral.rotation.y = side * -0.105;
+        torsoGroup.add(pectoral);
+        addBolt(pectoral, side * -0.29, 0.13, 0.14);
+        addBolt(pectoral, side * 0.29, -0.13, 0.14);
+
+        const lowerRib = roundedBox(0.68, 0.26, 0.23, 0.07, materials.ceramicDark);
+        lowerRib.position.set(side * 0.68, -0.48, 0.37);
+        lowerRib.rotation.z = side * 0.11;
+        torsoGroup.add(lowerRib);
+
+        const clavicle = roundedBox(1.12, 0.22, 0.42, 0.07, materials.ceramic);
+        clavicle.position.set(side * 0.62, 0.68, 0.11);
+        clavicle.rotation.z = side * -0.08;
+        torsoGroup.add(clavicle);
+      });
+
+      const sternumTop = roundedBox(0.26, 0.38, 0.28, 0.055, materials.gunmetal);
+      sternumTop.position.set(0, 0.57, 0.38);
+      torsoGroup.add(sternumTop);
+      const sternumGlow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.23, 0.025), glow.violet);
+      sternumGlow.position.set(0, 0.57, 0.535);
+      torsoGroup.add(sternumGlow);
+
+      const coreGroup = new THREE.Group();
+      coreGroup.position.set(0, 0, 0.62);
+      torsoGroup.add(coreGroup);
+
+      const coreMaterial = new THREE.MeshStandardMaterial({
+        color: 0x88f3ff,
+        metalness: 0.18,
+        roughness: 0.16,
+        emissive: 0x23d8ff,
+        emissiveIntensity: 5.2
+      });
+      const coreMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.29, 2), coreMaterial);
+      coreGroup.add(coreMesh);
+      const coreHalo = new THREE.Mesh(new THREE.SphereGeometry(0.41, 24, 18), glow.cyanSoft.clone());
+      coreHalo.material.opacity = 0.16;
+      coreGroup.add(coreHalo);
+      const coreShell = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 18), materials.glass.clone());
+      coreShell.material.opacity = 0.1;
+      coreGroup.add(coreShell);
+
+      const coreRings = [];
+      [
+        { radius: 0.48, tube: 0.028, mat: glow.cyan, rot: [0, 0, 0] },
+        { radius: 0.56, tube: 0.022, mat: glow.violet, rot: [Math.PI / 2, 0, 0] },
+        { radius: 0.64, tube: 0.018, mat: glow.blue, rot: [0, Math.PI / 2, 0] }
+      ].forEach((config) => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(config.radius, config.tube, 8, 56), config.mat);
+        ring.rotation.set(...config.rot);
+        ring.userData.baseRotation = ring.rotation.clone();
+        coreGroup.add(ring);
+        coreRings.push(ring);
+      });
+
+      const coreLight = new THREE.PointLight(0x26dfff, 10, 4.2, 2);
+      coreGroup.add(coreLight);
+
+      const experts = [];
+      function addExpertPod(parent, x, y, z, side, index, scale = 1) {
+        const pod = new THREE.Group();
+        pod.position.set(x, y, z);
+        pod.rotation.y = side * -0.16;
+        pod.scale.setScalar(scale);
+        parent.add(pod);
+
+        const housing = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.205, 0.17, 6), materials.gunmetal));
+        housing.rotation.x = Math.PI / 2;
+        pod.add(housing);
+        const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.028, 6), materials.graphite);
+        collar.rotation.x = Math.PI / 2;
+        collar.position.z = 0.097;
+        pod.add(collar);
+
+        const hue = index % 3 === 0 ? 0x9a48ff : index % 3 === 1 ? 0x3b78ff : 0x35e4ff;
+        const faceMaterial = new THREE.MeshStandardMaterial({
+          color: hue,
+          metalness: 0.25,
+          roughness: 0.18,
+          emissive: hue,
+          emissiveIntensity: 0.55
+        });
+        const face = new THREE.Mesh(new THREE.CylinderGeometry(0.132, 0.132, 0.024, 6), faceMaterial);
+        face.rotation.x = Math.PI / 2;
+        face.position.z = 0.124;
+        pod.add(face);
+        const node = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), glow.white);
+        node.position.z = 0.146;
+        pod.add(node);
+
+        const cap = roundedBox(0.24, 0.065, 0.12, 0.018, materials.ceramicDark);
+        cap.position.set(0, 0.205, -0.01);
+        pod.add(cap);
+        experts.push({ pod, face, material: faceMaterial, phase: index * 0.91, index });
+      }
+
+      const expertCoordinates = [
+        [-1.11, 0.48, 0.12], [-1.22, 0.08, 0.18], [-1.1, -0.34, 0.18],
+        [1.11, 0.48, 0.12], [1.22, 0.08, 0.18], [1.1, -0.34, 0.18]
+      ];
+      expertCoordinates.forEach((position, index) => addExpertPod(
+        torsoGroup,
+        position[0], position[1], position[2], Math.sign(position[0]), index
+      ));
+
+      [-1, 1].forEach((side, index) => {
+        const shoulderModule = new THREE.Group();
+        shoulderModule.position.set(side * 1.43, 0.62, -0.12);
+        shoulderModule.rotation.z = side * -0.18;
+        torsoGroup.add(shoulderModule);
+        addExpertPod(shoulderModule, 0, 0, 0, side, 6 + index, 1.08);
+      });
+
+      // Cooling banks and back hardware
+      [-1, 1].forEach((side) => {
+        const ventFrame = roundedBox(0.42, 0.9, 0.16, 0.05, materials.graphite, false, false);
+        ventFrame.position.set(side * 0.79, 0.03, -0.47);
+        torsoGroup.add(ventFrame);
+        for (let i = 0; i < 5; i++) {
+          const fin = roundedBox(0.31, 0.055, 0.11, 0.015, materials.ceramicDark, false, false);
+          fin.position.set(side * 0.79, -0.29 + i * 0.145, -0.58);
+          torsoGroup.add(fin);
+        }
+      });
+      tubeCable(torsoGroup, [
+        new THREE.Vector3(-0.93, 0.56, -0.34),
+        new THREE.Vector3(-1.17, 0.8, -0.42),
+        new THREE.Vector3(-1.46, 0.66, -0.2)
+      ], 0.038, materials.cableViolet);
+      tubeCable(torsoGroup, [
+        new THREE.Vector3(0.93, 0.56, -0.34),
+        new THREE.Vector3(1.17, 0.8, -0.42),
+        new THREE.Vector3(1.46, 0.66, -0.2)
+      ], 0.038, materials.cableCyan);
+
+      // Neck and head
+      const neckGroup = new THREE.Group();
+      neckGroup.position.set(0, 5.53, 0);
+      neckGroup.userData.restY = neckGroup.position.y;
+      robotRoot.add(neckGroup);
+      [
+        [0, 0, 0.23, 0.14, materials.graphite],
+        [0, 0.14, 0.19, 0.12, materials.gunmetal],
+        [0, 0.27, 0.22, 0.13, materials.graphiteSoft]
+      ].forEach((entry) => {
+        const segment = shadow(new THREE.Mesh(new THREE.CylinderGeometry(entry[2], entry[2] * 0.92, entry[3], 10), entry[4]));
+        segment.position.y = entry[1];
+        neckGroup.add(segment);
+      });
+      [0.065, 0.245].forEach((y, index) => {
+        const collar = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.018, 6, 30), index ? glow.cyan : glow.violet);
+        collar.rotation.x = Math.PI / 2;
+        collar.position.y = y;
+        neckGroup.add(collar);
+      });
+
+      tubeCable(robotRoot, [
+        new THREE.Vector3(-0.16, 5.73, -0.14),
+        new THREE.Vector3(-0.32, 5.44, -0.33),
+        new THREE.Vector3(-0.45, 5.04, -0.31)
+      ], 0.032, materials.cableViolet);
+      tubeCable(robotRoot, [
+        new THREE.Vector3(0.16, 5.73, -0.14),
+        new THREE.Vector3(0.32, 5.44, -0.33),
+        new THREE.Vector3(0.45, 5.04, -0.31)
+      ], 0.032, materials.cableCyan);
+
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 6.02, 0.02);
+      headGroup.userData.restY = headGroup.position.y;
+      headGroup.userData.restRotation = headGroup.rotation.clone();
+      robotRoot.add(headGroup);
+
+      const cranium = roundedBox(1.17, 0.65, 0.78, 0.16, materials.graphiteSoft);
+      headGroup.add(cranium);
+      const hood = roundedBox(1.27, 0.29, 0.82, 0.12, materials.ceramic);
+      hood.position.set(0, 0.27, -0.025);
+      hood.rotation.x = -0.025;
+      headGroup.add(hood);
+      [-1, 1].forEach((side) => {
+        const temple = roundedBox(0.22, 0.5, 0.7, 0.08, materials.ceramic);
+        temple.position.set(side * 0.55, 0.01, -0.02);
+        temple.rotation.z = side * -0.05;
+        headGroup.add(temple);
+
+        const ear = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.11, 10), materials.gunmetal));
+        ear.rotation.z = Math.PI / 2;
+        ear.position.set(side * 0.67, 0.04, -0.04);
+        headGroup.add(ear);
+
+        for (let i = 0; i < 3; i++) {
+          const vent = roundedBox(0.035, 0.16, 0.28, 0.01, materials.graphite, false, false);
+          vent.position.set(side * 0.675, -0.18 + i * 0.105, -0.08);
+          headGroup.add(vent);
+        }
+      });
+
+      const visorShape = [
+        [-0.52, -0.11], [0.52, -0.11], [0.59, 0.03], [0.48, 0.16],
+        [-0.48, 0.16], [-0.59, 0.03]
+      ];
+      const visorFrame = new THREE.Mesh(centeredExtrude(visorShape, 0.085, 0.025), materials.graphite);
+      visorFrame.position.set(0, 0.03, 0.405);
+      headGroup.add(visorFrame);
+      const visorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x07192a,
+        metalness: 0.64,
+        roughness: 0.16,
+        emissive: 0x196dff,
+        emissiveIntensity: 3.2
+      });
+      const visor = new THREE.Mesh(centeredExtrude(visorShape.map(([x, y]) => [x * 0.9, y * 0.72]), 0.025, 0.012), visorMaterial);
+      visor.position.set(0, 0.03, 0.456);
+      headGroup.add(visor);
+      const visorScanMaterial = glow.cyan.clone();
+      visorScanMaterial.transparent = true;
+      const visorScan = roundedBox(0.13, 0.13, 0.018, 0.025, visorScanMaterial, false, false);
+      visorScan.position.set(-0.37, 0.04, 0.475);
+      headGroup.add(visorScan);
+      const visorLowerStrip = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.016, 0.016), glow.violet);
+      visorLowerStrip.position.set(0, -0.055, 0.48);
+      headGroup.add(visorLowerStrip);
+
+      const jaw = roundedBox(0.76, 0.18, 0.44, 0.06, materials.graphite);
+      jaw.position.set(0, -0.35, 0.15);
+      headGroup.add(jaw);
+      const jawPlate = roundedBox(0.48, 0.09, 0.22, 0.035, materials.ceramicDark);
+      jawPlate.position.set(0, -0.38, 0.34);
+      headGroup.add(jawPlate);
+      addBolt(headGroup, -0.34, -0.24, 0.42);
+      addBolt(headGroup, 0.34, -0.24, 0.42);
+
+      // Arms and hands
+      const armRefs = {};
+      function addFinger(parent, x, y, z, rotZ = 0, lengthScale = 1) {
+        const finger = shadow(new THREE.Mesh(shared.finger, materials.graphiteSoft), true, false);
+        finger.position.set(x, y, z);
+        finger.rotation.z = rotZ;
+        finger.scale.y = lengthScale;
+        parent.add(finger);
+        return finger;
+      }
+
+      function buildPassiveArm() {
+        const arm = new THREE.Group();
+        arm.position.set(-1.55, 5.02, 0);
+        arm.userData.restRotation = arm.rotation.clone();
+        robotRoot.add(arm);
+
+        const shoulder = new THREE.Vector3(0, 0, 0);
+        const elbow = new THREE.Vector3(-0.25, -0.9, 0.1);
+        const wrist = new THREE.Vector3(-0.16, -1.72, 0.23);
+        addJoint(arm, shoulder, 0.32, glow.violet);
+        addLayeredSegment(arm, shoulder, elbow, 0.2, 0.47, 0.28, 0.62, 0.14);
+        addJoint(arm, elbow, 0.23, glow.violet);
+        addLayeredSegment(arm, elbow, wrist, 0.17, 0.42, 0.25, 0.7, 0.14);
+        addJoint(arm, wrist, 0.15, glow.blue);
+
+        const shoulderShell = roundedBox(0.7, 0.43, 0.67, 0.13, materials.ceramic);
+        shoulderShell.position.set(-0.15, 0.03, 0.01);
+        shoulderShell.rotation.z = -0.1;
+        arm.add(shoulderShell);
+
+        const palm = roundedBox(0.35, 0.39, 0.22, 0.065, materials.graphiteSoft);
+        palm.position.set(-0.16, -1.98, 0.28);
+        arm.add(palm);
+        const dorsal = roundedBox(0.28, 0.28, 0.07, 0.04, materials.ceramicDark);
+        dorsal.position.set(-0.16, -1.98, 0.41);
+        arm.add(dorsal);
+        for (let i = 0; i < 4; i++) addFinger(arm, -0.29 + i * 0.085, -2.25, 0.28, (i - 1.5) * 0.035, 0.86 + i * 0.035);
+        tubeCable(arm, [
+          new THREE.Vector3(-0.12, -0.28, -0.14),
+          new THREE.Vector3(-0.46, -0.88, -0.1),
+          new THREE.Vector3(-0.3, -1.46, 0.02)
+        ], 0.03, materials.cableViolet);
+        armRefs.left = { arm, wrist, restRotation: arm.rotation.clone() };
+      }
+
+      function buildInteractiveArm() {
+        const arm = new THREE.Group();
+        arm.position.set(1.55, 5.02, 0);
+        arm.userData.restRotation = arm.rotation.clone();
+        robotRoot.add(arm);
+
+        const shoulder = new THREE.Vector3(0, 0, 0);
+        const elbow = new THREE.Vector3(0.48, -0.75, 0.19);
+        const wrist = new THREE.Vector3(0.66, -0.29, 0.76);
+        const palmPosition = new THREE.Vector3(0.69, -0.06, 0.94);
+        addJoint(arm, shoulder, 0.32, glow.cyan);
+        addLayeredSegment(arm, shoulder, elbow, 0.2, 0.47, 0.28, 0.62, 0.14);
+        addJoint(arm, elbow, 0.23, glow.cyan);
+        const forearm = addLayeredSegment(arm, elbow, wrist, 0.18, 0.44, 0.26, 0.71, 0.14);
+        forearm.userData.restRotation = forearm.rotation.clone();
+        addJoint(arm, wrist, 0.15, glow.blue);
+
+        const shoulderShell = roundedBox(0.7, 0.43, 0.67, 0.13, materials.ceramic);
+        shoulderShell.position.set(0.15, 0.03, 0.01);
+        shoulderShell.rotation.z = 0.1;
+        arm.add(shoulderShell);
+
+        const palmGroup = new THREE.Group();
+        palmGroup.position.copy(palmPosition);
+        palmGroup.rotation.x = -0.28;
+        palmGroup.userData.restRotation = palmGroup.rotation.clone();
+        arm.add(palmGroup);
+        const palm = roundedBox(0.37, 0.34, 0.22, 0.065, materials.graphiteSoft);
+        palmGroup.add(palm);
+        const dorsal = roundedBox(0.3, 0.25, 0.07, 0.04, materials.ceramic);
+        dorsal.position.z = 0.135;
+        palmGroup.add(dorsal);
+        for (let i = 0; i < 3; i++) addFinger(palmGroup, -0.11 + i * 0.095, 0.22, 0.015, (i - 1) * -0.12, 0.8 + i * 0.08);
+
+        const indexBase = new THREE.Vector3(0.13, 0.12, 0.02);
+        const indexJoint = new THREE.Vector3(0.16, 0.34, 0.06);
+        const indexTip = new THREE.Vector3(0.2, 0.55, 0.1);
+        cylinderBetween(palmGroup, indexBase, indexJoint, 0.035, materials.graphiteSoft, 8);
+        cylinderBetween(palmGroup, indexJoint, indexTip, 0.029, materials.ceramicDark, 8);
+        const fingertip = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), glow.cyan);
+        fingertip.position.copy(indexTip);
+        palmGroup.add(fingertip);
+        tubeCable(arm, [
+          new THREE.Vector3(0.13, -0.25, -0.12),
+          new THREE.Vector3(0.61, -0.75, -0.02),
+          new THREE.Vector3(0.55, -0.31, 0.64)
+        ], 0.03, materials.cableCyan);
+        armRefs.right = { arm, forearm, palmGroup, fingertip, restRotation: arm.rotation.clone() };
+      }
+      buildPassiveArm();
+      buildInteractiveArm();
+
+      // Token-routing tubes and traveling packets
+      const routes = [];
+      function addRoute(points, color, speed, count, phase = 0, radius = 0.012) {
+        const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.5);
+        const routeColor = new THREE.Color(color);
+        const tube = new THREE.Mesh(
+          new THREE.TubeGeometry(curve, 46, radius, 5, false),
+          new THREE.MeshBasicMaterial({
+            color: routeColor.clone().multiplyScalar(1.4),
+            transparent: true,
+            opacity: 0.25,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            toneMapped: false
+          })
+        );
+        robotRoot.add(tube);
+
+        const tokens = [];
+        for (let i = 0; i < count; i++) {
+          const tokenMaterial = new THREE.MeshBasicMaterial({
+            color: routeColor.clone().multiplyScalar(3.2),
+            transparent: true,
+            opacity: 0.95,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            toneMapped: false
+          });
+          const token = new THREE.Mesh(shared.token, tokenMaterial);
+          robotRoot.add(token);
+          tokens.push(token);
+        }
+        routes.push({ curve, tokens, speed, phase });
+      }
+
+      addRoute([
+        new THREE.Vector3(0, 6.0, 0.49),
+        new THREE.Vector3(0.08, 5.57, 0.34),
+        new THREE.Vector3(-0.12, 4.92, 0.37),
+        new THREE.Vector3(0, 4.38, 0.67)
+      ], 0x44e6ff, 0.17, 4, 0.1);
+      addRoute([
+        new THREE.Vector3(0, 4.38, 0.72),
+        new THREE.Vector3(-0.57, 4.63, 0.52),
+        new THREE.Vector3(-1.08, 4.86, 0.36),
+        new THREE.Vector3(-1.19, 4.45, 0.4)
+      ], 0x9b4cff, 0.2, 3, 0.28);
+      addRoute([
+        new THREE.Vector3(0, 4.38, 0.72),
+        new THREE.Vector3(0.62, 4.66, 0.52),
+        new THREE.Vector3(1.08, 4.86, 0.36),
+        new THREE.Vector3(1.2, 4.45, 0.4)
+      ], 0x387dff, 0.22, 3, 0.53);
+      addRoute([
+        new THREE.Vector3(0.2, 4.4, 0.72),
+        new THREE.Vector3(0.92, 4.72, 0.4),
+        new THREE.Vector3(1.55, 5.02, 0.18),
+        new THREE.Vector3(2.03, 4.27, 0.3),
+        new THREE.Vector3(2.22, 4.73, 0.84),
+        new THREE.Vector3(2.4, 5.5, 1.06)
+      ], 0x42e7ff, 0.145, 5, 0.05, 0.014);
+      addRoute([
+        new THREE.Vector3(-0.18, 4.36, 0.7),
+        new THREE.Vector3(-0.86, 4.67, 0.4),
+        new THREE.Vector3(-1.55, 5.02, 0.16),
+        new THREE.Vector3(-1.8, 4.12, 0.23),
+        new THREE.Vector3(-1.71, 3.38, 0.34)
+      ], 0x8750ff, 0.13, 3, 0.62, 0.012);
+      addRoute([
+        new THREE.Vector3(-1.16, 4.73, 0.38),
+        new THREE.Vector3(-0.85, 5.26, 0.22),
+        new THREE.Vector3(-0.42, 5.7, 0.34),
+        new THREE.Vector3(0, 6.02, 0.48)
+      ], 0x9e4dff, -0.16, 3, 0.37);
+
+      // Floating holographic interface
+      const holoGroup = new THREE.Group();
+      holoGroup.position.set(3.02, 5.62, 1.18);
+      holoGroup.rotation.set(-0.035, 0.26, -0.025);
+      holoGroup.userData.restY = holoGroup.position.y;
+      robotRoot.add(holoGroup);
+
+      function createHoloTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 680;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(4, 18, 32, 0.2)';
+        ctx.fillRect(22, 22, 980, 636);
+        ctx.strokeStyle = 'rgba(83, 225, 255, 0.68)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(22, 22, 980, 636);
+        ctx.strokeStyle = 'rgba(83, 225, 255, 0.19)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(22, 126); ctx.lineTo(1002, 126);
+        ctx.moveTo(650, 126); ctx.lineTo(650, 658);
+        ctx.moveTo(650, 408); ctx.lineTo(1002, 408);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(184, 244, 255, 0.9)';
+        ctx.font = '600 27px Consolas, monospace';
+        ctx.fillText('QWEN // AGENT ACTIVITY', 58, 82);
+        ctx.fillStyle = 'rgba(116, 210, 238, 0.52)';
+        ctx.font = '17px Consolas, monospace';
+        ctx.fillText('LIVE REASONING GRAPH', 58, 111);
+        ctx.fillText('EXPERT ACTIVATION', 690, 172);
+        ctx.fillText('TOKEN STREAM', 58, 468);
+        ctx.fillText('SYSTEM STATUS', 690, 454);
+
+        ctx.fillStyle = 'rgba(77, 232, 255, 0.78)';
+        ctx.fillRect(689, 496, 236, 5);
+        ctx.fillStyle = 'rgba(151, 83, 255, 0.72)';
+        ctx.fillRect(689, 532, 182, 5);
+        ctx.fillStyle = 'rgba(77, 140, 255, 0.66)';
+        ctx.fillRect(689, 568, 216, 5);
+        ctx.fillStyle = 'rgba(185, 235, 248, 0.44)';
+        ctx.font = '15px Consolas, monospace';
+        ctx.fillText('ROUTER      NOMINAL', 689, 620);
+
+        ctx.strokeStyle = 'rgba(75, 221, 255, 0.18)';
+        ctx.lineWidth = 2;
+        for (let y = 500; y < 620; y += 40) {
+          ctx.beginPath(); ctx.moveTo(58, y); ctx.lineTo(602, y); ctx.stroke();
+        }
+        for (let x = 58; x < 603; x += 68) {
+          ctx.beginPath(); ctx.moveTo(x, 488); ctx.lineTo(x, 620); ctx.stroke();
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        return texture;
+      }
+
+      const holoPanel = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.72, 1.14),
+        new THREE.MeshBasicMaterial({
+          map: createHoloTexture(),
+          transparent: true,
+          opacity: 0.82,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          toneMapped: false
+        })
+      );
+      holoPanel.renderOrder = 12;
+      holoGroup.add(holoPanel);
+
+      const holoBorder = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.76, 1.18)),
+        new THREE.LineBasicMaterial({ color: 0x60e5ff, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      holoBorder.position.z = 0.008;
+      holoBorder.renderOrder = 13;
+      holoGroup.add(holoBorder);
+
+      const holoRings = [];
+      [
+        [0.3, 0x3cddff, 0.52],
+        [0.22, 0x984dff, 0.62],
+        [0.13, 0x4c82ff, 0.78]
+      ].forEach((config, index) => {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(config[0] - 0.012, config[0], 6 + index * 6, 1),
+          new THREE.MeshBasicMaterial({
+            color: config[1],
+            transparent: true,
+            opacity: config[2],
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            toneMapped: false
+          })
+        );
+        ring.position.set(-0.24, 0.09, 0.025 + index * 0.004);
+        ring.rotation.z = index * 0.42;
+        ring.renderOrder = 14;
+        holoGroup.add(ring);
+        holoRings.push(ring);
+      });
+      const holoHub = new THREE.Mesh(new THREE.CircleGeometry(0.05, 6), glow.cyan);
+      holoHub.position.set(-0.24, 0.09, 0.04);
+      holoGroup.add(holoHub);
+
+      const holoBars = [];
+      for (let i = 0; i < 6; i++) {
+        const bar = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.045, 0.3),
+          i % 3 === 0 ? glow.violet.clone() : i % 2 ? glow.blue.clone() : glow.cyan.clone()
+        );
+        bar.position.set(0.33 + i * 0.095, 0.06, 0.035);
+        bar.userData.bottom = -0.11;
+        bar.userData.phase = i * 1.14;
+        holoGroup.add(bar);
+        holoBars.push(bar);
+      }
+
+      const holoScan = new THREE.Mesh(new THREE.PlaneGeometry(1.58, 0.018), glow.cyanSoft.clone());
+      holoScan.position.z = 0.045;
+      holoScan.material.opacity = 0.54;
+      holoGroup.add(holoScan);
+
+      const holoDots = [];
+      for (let i = 0; i < 14; i++) {
+        const dotMaterial = (i % 4 === 0 ? glow.violet : glow.cyan).clone();
+        dotMaterial.transparent = true;
+        const dot = new THREE.Mesh(new THREE.CircleGeometry(i % 4 === 0 ? 0.025 : 0.015, 8), dotMaterial);
+        dot.position.set(-0.72, -0.27 - (i % 3) * 0.066, 0.05);
+        dot.userData.phase = i / 14;
+        dot.userData.lane = i % 3;
+        holoGroup.add(dot);
+        holoDots.push(dot);
+      }
+
+      const palmGlyph = new THREE.Group();
+      palmGlyph.position.set(-0.66, -0.62, 0.04);
+      holoGroup.add(palmGlyph);
+      [0.11, 0.17].forEach((radius, index) => {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(radius - 0.008, radius, 24), index ? glow.violetSoft : glow.cyanSoft);
+        ring.material = ring.material.clone();
+        ring.material.opacity = 0.55;
+        palmGlyph.add(ring);
+      });
+
+      const holoLight = new THREE.PointLight(0x28dfff, 7.5, 3.4, 2);
+      holoLight.position.set(0, 0, -0.25);
+      holoGroup.add(holoLight);
+
+      // Animation and interaction state
+      let running = true;
+      let simTime = 0;
+      let lastFrame = performance.now();
+      let lastInput = performance.now();
+      let lastTelemetry = 0;
+      let pointerActive = false;
+      let activeExperts = [0, 4];
+      const resetState = {
+        active: false,
+        start: 0,
+        duration: 900,
+        fromPosition: new THREE.Vector3(),
+        fromTarget: new THREE.Vector3()
+      };
+
+      const fract = (value) => value - Math.floor(value);
+      const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
+      const markInput = () => {
+        lastInput = performance.now();
+        resetState.active = false;
+      };
+
+      renderer.domElement.addEventListener('pointerdown', () => {
+        pointerActive = true;
+        markInput();
+      });
+      window.addEventListener('pointerup', () => {
+        pointerActive = false;
+        markInput();
+      });
+      renderer.domElement.addEventListener('wheel', markInput, { passive: true });
+      controls.addEventListener('start', markInput);
+      controls.addEventListener('end', markInput);
+      document.addEventListener('visibilitychange', () => { lastFrame = performance.now(); });
+
+      pauseBtn.addEventListener('click', () => {
+        running = !running;
+        pauseBtn.setAttribute('aria-pressed', String(!running));
+        pauseBtn.setAttribute('aria-label', running ? 'Pause machine animation' : 'Resume machine animation');
+        pauseIcon.textContent = running ? 'Ⅱ' : '▶';
+        pauseText.textContent = running ? 'Pause' : 'Resume';
+        statusChip.dataset.state = running ? 'active' : 'paused';
+        statusLabel.textContent = running ? 'Reasoning core active' : 'Reasoning core suspended';
+        lastFrame = performance.now();
+        lastInput = performance.now();
+      });
+
+      resetBtn.addEventListener('click', () => {
+        updateHome();
+        resetState.active = true;
+        resetState.start = performance.now();
+        resetState.fromPosition.copy(camera.position);
+        resetState.fromTarget.copy(controls.target);
+        lastInput = performance.now();
+      });
+
+      function updateSimulation(t) {
+        const motion = prefersReducedMotion ? 0.26 : 1;
+        const idle = t * motion;
+        const torsoLift = Math.sin(idle * 0.82) * 0.014 * motion;
+        torsoGroup.position.y = torsoGroup.userData.restY + torsoLift;
+        torsoGroup.rotation.z = Math.sin(idle * 0.57) * 0.005 * motion;
+        pelvisGroup.rotation.z = Math.sin(idle * 0.48 + 0.8) * 0.0025 * motion;
+        neckGroup.position.y = neckGroup.userData.restY + torsoLift * 0.82;
+        headGroup.position.y = headGroup.userData.restY + torsoLift * 0.9;
+        headGroup.rotation.y = headGroup.userData.restRotation.y + Math.sin(idle * 0.45) * 0.055 * motion + 0.02;
+        headGroup.rotation.x = headGroup.userData.restRotation.x + Math.sin(idle * 0.67 + 1.1) * 0.017 * motion;
+        headGroup.rotation.z = Math.sin(idle * 0.35 + 2.2) * 0.008 * motion;
+
+        armRefs.left.arm.position.y = 5.02 + torsoLift * 0.55;
+        armRefs.right.arm.position.y = 5.02 + torsoLift * 0.55;
+        armRefs.left.arm.rotation.z = armRefs.left.restRotation.z + Math.sin(idle * 0.72) * 0.011 * motion;
+        armRefs.right.arm.rotation.z = armRefs.right.restRotation.z - Math.sin(idle * 0.72) * 0.008 * motion;
+        armRefs.right.palmGroup.rotation.z = Math.sin(idle * 0.58) * 0.024 * motion;
+        armRefs.right.palmGroup.rotation.x = armRefs.right.palmGroup.userData.restRotation.x + Math.sin(idle * 0.81 + 1.8) * 0.012 * motion;
+
+        legRefs.forEach((ref, index) => {
+          const pistonPulse = 1 + Math.sin(idle * 0.66 + index * 1.3) * 0.012 * motion;
+          ref.piston.scale.set(ref.restScale.x, ref.restScale.y * pistonPulse, ref.restScale.z);
+          ref.kneeJoint.rotation.z = Math.sin(idle * 0.4 + index) * 0.004 * motion;
+        });
+
+        const beat = prefersReducedMotion ? 0.28 : Math.pow(0.5 + 0.5 * Math.sin(t * 2.2), 6);
+        const coreScale = 1 + beat * 0.055;
+        coreMesh.scale.setScalar(coreScale);
+        coreHalo.scale.setScalar(1.03 + beat * 0.12);
+        coreHalo.material.opacity = 0.1 + beat * 0.15;
+        coreMaterial.emissiveIntensity = 4.3 + beat * 3.7;
+        coreLight.intensity = 8.5 + beat * 12;
+        coreRings[0].rotation.z = coreRings[0].userData.baseRotation.z + t * 1.12 * motion;
+        coreRings[1].rotation.y = coreRings[1].userData.baseRotation.y - t * 0.78 * motion;
+        coreRings[2].rotation.x = coreRings[2].userData.baseRotation.x + t * 0.54 * motion;
+        coreGroup.rotation.z = Math.sin(idle * 0.38) * 0.08 * motion;
+
+        const cycle = Math.floor(t / 2.25);
+        activeExperts = [cycle % experts.length, (cycle * 3 + 4) % experts.length];
+        experts.forEach((expert, index) => {
+          const localPulse = prefersReducedMotion ? 0.22 : Math.pow(Math.max(0, Math.sin(t * 2.45 + expert.phase)), 8);
+          const active = activeExperts.includes(index);
+          const intensity = 0.35 + (active ? 2.6 + localPulse * 4.5 : 0.12 + localPulse * 0.38);
+          expert.material.emissiveIntensity = intensity;
+          const scale = 1 + (active ? localPulse * 0.07 : localPulse * 0.012);
+          expert.face.scale.setScalar(scale);
+          expert.pod.rotation.z = Math.sin(idle * 0.6 + index) * 0.015 * motion;
+        });
+
+        routes.forEach((route) => {
+          route.tokens.forEach((token, index) => {
+            const u = fract(t * route.speed * motion + route.phase + index / route.tokens.length);
+            route.curve.getPointAt(u, token.position);
+            const swell = 0.72 + Math.sin(Math.PI * u) * 0.75;
+            token.scale.setScalar(swell);
+            token.material.opacity = 0.34 + Math.sin(Math.PI * u) * 0.66;
+          });
+        });
+
+        visorScan.position.x = -0.38 + fract(t * 0.21 * motion) * 0.76;
+        visorScan.material.opacity = 0.52 + Math.sin(t * 4.2) * 0.16;
+        visorMaterial.emissiveIntensity = 2.8 + beat * 1.8;
+
+        holoGroup.position.y = holoGroup.userData.restY + Math.sin(idle * 1.05) * 0.02 * motion;
+        holoGroup.rotation.z = -0.025 + Math.sin(idle * 0.43) * 0.015 * motion;
+        holoRings[0].rotation.z = t * 0.5 * motion;
+        holoRings[1].rotation.z = -t * 0.73 * motion;
+        holoRings[2].rotation.z = t * 0.95 * motion;
+        palmGlyph.rotation.z = -t * 0.9 * motion;
+        const scanPhase = fract(t * 0.19 * motion);
+        holoScan.position.y = 0.5 - scanPhase * 1.0;
+        holoScan.material.opacity = 0.15 + Math.sin(Math.PI * scanPhase) * 0.48;
+        holoBars.forEach((bar, index) => {
+          const value = 0.24 + (0.5 + 0.5 * Math.sin(t * (1.2 + index * 0.08) * motion + bar.userData.phase)) * 0.76;
+          bar.scale.y = value;
+          bar.position.y = bar.userData.bottom + 0.15 * value;
+        });
+        holoDots.forEach((dot, index) => {
+          const progress = fract(t * (0.14 + index * 0.0018) * motion + dot.userData.phase);
+          dot.position.x = -0.7 + progress * 1.18;
+          dot.material.opacity = 0.3 + Math.sin(Math.PI * progress) * 0.7;
+        });
+
+        platformRingA.rotation.z = t * 0.025 * motion;
+        platformRingB.rotation.z = -t * 0.018 * motion;
+        particles.rotation.y = t * 0.006 * motion;
+        particles.position.y = Math.sin(idle * 0.18) * 0.08 * motion;
+      }
+
+      function updateTelemetry(now) {
+        if (now - lastTelemetry < 180) return;
+        lastTelemetry = now;
+        if (!running) {
+          tokenRate.innerHTML = '000 <em>/s</em>';
+          expertCount.innerHTML = '00 <em>/08</em>';
+          coreLoad.innerHTML = '00 <em>%</em>';
+          return;
+        }
+        const rate = Math.round(176 + Math.sin(simTime * 1.15) * 21 + Math.sin(simTime * 0.37) * 9);
+        const load = Math.round(82 + Math.sin(simTime * 0.78 + 0.6) * 8);
+        tokenRate.innerHTML = `${String(rate).padStart(3, '0')} <em>/s</em>`;
+        expertCount.innerHTML = `${String(new Set(activeExperts).size).padStart(2, '0')} <em>/08</em>`;
+        coreLoad.innerHTML = `${String(load).padStart(2, '0')} <em>%</em>`;
+      }
+
+      function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        const compact = Math.min(window.innerWidth, window.innerHeight) < 700;
+        const nextRatio = Math.min(window.devicePixelRatio || 1, compact ? 1.35 : 1.75);
+        renderer.setPixelRatio(nextRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setPixelRatio(nextRatio);
+        composer.setSize(window.innerWidth, window.innerHeight);
+        updateHome();
+      }
+      window.addEventListener('resize', onResize, { passive: true });
+
+      function frame(now) {
+        const delta = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
+        lastFrame = now;
+        if (running) {
+          simTime += delta;
+          updateSimulation(simTime);
+        }
+
+        if (resetState.active) {
+          const progress = Math.min(1, (now - resetState.start) / resetState.duration);
+          const eased = easeOutCubic(progress);
+          camera.position.lerpVectors(resetState.fromPosition, homePosition, eased);
+          controls.target.lerpVectors(resetState.fromTarget, homeTarget, eased);
+          if (progress >= 1) resetState.active = false;
+        }
+
+        controls.autoRotate = !prefersReducedMotion && running && !pointerActive && !resetState.active && now - lastInput > 4000;
+        controls.update(delta);
+        updateTelemetry(now);
+        composer.render();
+      }
+
+      updateSimulation(0);
+      window.__qwenReady = true;
+      requestAnimationFrame(() => requestAnimationFrame(() => loading.classList.add('is-hidden')));
+      renderer.setAnimationLoop(frame);
+    } catch (error) {
+      console.error(error);
+      window.__qwenReady = false;
+      window.__qwenFatal('The agent encountered a graphics initialization error. Try a current version of Chrome, Edge, Firefox, or Safari.');
+    }
+  </script>
+</body>
+</html>
