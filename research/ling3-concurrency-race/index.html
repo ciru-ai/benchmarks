@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080808">
+  <title>Five Requests Enter · Ling 3 Concurrency Race · Ciru Inference Lab</title>
+  <meta name="description" content="An animated wall-clock replay of native vLLM and AtomicChat llama.cpp serving Ling 3.0 Flash concurrently on the same AMD Strix Halo APU.">
+  <meta property="og:title" content="Five Requests Enter. vLLM Leaves 46.60 Seconds Early.">
+  <meta property="og:description" content="Watch two measured Ling 3.0 Flash serving stacks race through five simultaneous 2K+256 jobs on Strix Halo.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://llm.ciru.ai/research/ling3-concurrency-race/">
+  <link rel="icon" type="image/png" href="/ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080808;
+      --bg-2: #111114;
+      --panel: rgba(15, 16, 19, 0.94);
+      --panel-2: rgba(23, 24, 29, 0.96);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-strong: rgba(255, 255, 255, 0.26);
+      --text: #f7f7f4;
+      --muted: #a8adb7;
+      --subtle: #767d8a;
+      --amd: #ed1c24;
+      --red: #ff4e5f;
+      --orange: #ff9f43;
+      --green: #20d1a2;
+      --cyan: #39d0ff;
+      --blue: #78a8ff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+      --radius: 8px;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --sans: "Space Grotesk", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.20), transparent 29%),
+        linear-gradient(300deg, rgba(57, 208, 255, 0.11), transparent 32%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.034) 0 1px, transparent 1px 20px),
+        linear-gradient(180deg, #090809 0%, #111115 45%, #080808 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(237, 28, 36, 0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: 0.34;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.76), transparent 84%);
+      z-index: -1;
+    }
+    a { color: var(--cyan); }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+    .skip-link { position: fixed; left: 12px; top: -60px; z-index: 30; padding: 10px 14px; background: var(--text); color: #000; }
+    .skip-link:focus { top: 12px; }
+
+    .topbar, header, main, footer { width: min(calc(100% - 28px), 1240px); margin-left: auto; margin-right: auto; }
+    .topbar {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 2px;
+    }
+    .brand-lockup { display: inline-flex; align-items: center; gap: 11px; color: var(--text); text-decoration: none; }
+    .logo-plate { width: 42px; height: 42px; display: grid; place-items: center; background: #000; border: 1px solid var(--line-strong); border-radius: 7px; }
+    .logo-plate img { width: 34px; height: 34px; object-fit: contain; }
+    .brand-title, .brand-subtitle { display: block; }
+    .brand-title { font-weight: 700; letter-spacing: .02em; }
+    .brand-subtitle { color: var(--muted); font: 500 .72rem/1.3 var(--mono); text-transform: uppercase; }
+    .topnav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .topnav a, .chip-link {
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: rgba(0,0,0,.25);
+      text-decoration: none;
+      font: 500 .78rem var(--mono);
+    }
+    .topnav a:hover, .chip-link:hover { border-color: var(--cyan); color: var(--text); }
+
+    header {
+      padding: 28px 30px 30px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, 0.25), transparent 38%),
+        linear-gradient(180deg, rgba(28, 28, 31, 0.97), rgba(9, 9, 10, 0.95));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-top: 3px solid var(--amd); background: repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.035) 28px 29px); }
+    .kicker { margin: 0 0 10px; color: var(--cyan); font: 700 .78rem var(--mono); letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 920px; margin: 0; font-size: clamp(2.15rem, 6.4vw, 5.4rem); line-height: .98; letter-spacing: -.055em; }
+    h1 em { color: var(--cyan); font-style: normal; text-shadow: 0 0 24px rgba(57,208,255,.26); }
+    .deck { max-width: 880px; margin: 20px 0 0; color: #d4d6db; font-size: clamp(1rem, 2vw, 1.23rem); line-height: 1.55; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .hero-meta span { border: 1px solid var(--line); border-radius: 5px; padding: 7px 9px; color: var(--muted); background: rgba(0,0,0,.28); font: 500 .73rem var(--mono); }
+    .hero-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+    .hero-stat { min-height: 118px; padding: 15px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)), rgba(9,10,12,.84); }
+    .hero-stat b { display: block; color: var(--cyan); font: 700 clamp(1.55rem, 3.8vw, 2.45rem)/1 var(--mono); letter-spacing: -.04em; }
+    .hero-stat.atomic b { color: var(--orange); }
+    .hero-stat span { display: block; margin-top: 9px; color: var(--muted); font-size: .84rem; line-height: 1.35; }
+
+    main { margin-top: 16px; }
+    section { margin: 16px 0; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .eyebrow { margin: 0 0 5px; color: var(--cyan); font: 700 .72rem var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2.35rem); letter-spacing: -.035em; }
+    h3 { margin: 0; font-size: 1.08rem; }
+    .section-copy { max-width: 780px; margin: 8px 0 0; color: var(--muted); line-height: 1.55; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .race-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .race-controls button {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      color: var(--text);
+      background: #17181c;
+      font: 700 .75rem var(--mono);
+      cursor: pointer;
+    }
+    .race-controls button:hover, .race-controls button.active { border-color: var(--cyan); color: var(--cyan); background: rgba(57,208,255,.08); }
+    #replayButton { border-color: rgba(237,28,36,.7); background: rgba(237,28,36,.14); }
+    #replayButton:hover { color: #fff; border-color: var(--red); background: rgba(237,28,36,.25); }
+    .race-clock { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin: 12px 0 16px; padding: 11px 13px; border: 1px solid var(--line); background: rgba(0,0,0,.30); border-radius: 6px; }
+    .clock-readout { font: 700 clamp(1.3rem, 3vw, 2rem) var(--mono); color: var(--text); }
+    .clock-readout span { color: var(--cyan); }
+    .clock-caption { color: var(--muted); font: 500 .74rem var(--mono); text-align: right; }
+    .race-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .stack-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: rgba(5,6,7,.58); }
+    .stack-card.ciru { border-top: 3px solid var(--cyan); }
+    .stack-card.atomic { border-top: 3px solid var(--orange); }
+    .stack-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 15px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.025); }
+    .stack-name small { display: block; color: var(--muted); font: .7rem var(--mono); margin-top: 4px; }
+    .stack-total { font: 700 1.1rem var(--mono); color: var(--cyan); white-space: nowrap; }
+    .atomic .stack-total { color: var(--orange); }
+    .lanes { padding: 10px 12px 13px; }
+    .lane { display: grid; grid-template-columns: 34px 1fr 78px; gap: 8px; align-items: center; min-height: 44px; border-bottom: 1px solid rgba(255,255,255,.065); }
+    .lane:last-child { border-bottom: 0; }
+    .lane-id { color: var(--subtle); font: 700 .7rem var(--mono); }
+    .track { position: relative; height: 9px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .track::after { content: ""; position: absolute; right: 0; top: -3px; width: 2px; height: 15px; background: rgba(255,255,255,.35); }
+    .fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, var(--amd), var(--cyan)); box-shadow: 0 0 14px rgba(57,208,255,.34); }
+    .atomic .fill { background: linear-gradient(90deg, #7b411d, var(--orange)); box-shadow: 0 0 14px rgba(255,159,67,.30); }
+    .lane-state { text-align: right; font: 700 .64rem/1.2 var(--mono); color: var(--subtle); }
+    .lane-state strong { display: block; color: var(--text); font-size: .72rem; }
+    .lane.decoding .lane-state { color: var(--cyan); }
+    .atomic .lane.decoding .lane-state { color: var(--orange); }
+    .lane.done .lane-state { color: var(--green); }
+    .lane.done .fill { background: var(--green); }
+    .race-gap { min-height: 58px; display: grid; place-items: center; margin: 12px 0; border: 1px solid var(--line); border-left: 5px solid var(--cyan); border-radius: 6px; background: rgba(57,208,255,.06); text-align: center; color: var(--muted); padding: 10px; }
+    .race-gap strong { color: var(--cyan); font: 700 1rem var(--mono); }
+    .race-gap.live { animation: pulseBorder 1s ease-in-out infinite alternate; }
+    @keyframes pulseBorder { to { background: rgba(57,208,255,.13); box-shadow: inset 0 0 28px rgba(57,208,255,.08); } }
+    .race-chart { height: 330px; margin-top: 10px; }
+    .replay-note { margin: 10px 0 0; color: var(--subtle); font: .72rem/1.5 var(--mono); }
+
+    .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .chart-card { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(0,0,0,.22); }
+    .chart-card p { color: var(--muted); margin: 6px 0 0; font-size: .84rem; line-height: 1.45; }
+    .chart { height: 340px; margin-top: 8px; }
+
+    .takeaway-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+    .takeaway { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); }
+    .takeaway b { display: block; color: var(--cyan); font: 700 1.55rem var(--mono); }
+    .takeaway span { display: block; margin-top: 7px; color: var(--muted); line-height: 1.45; }
+    .callout { margin-top: 12px; border: 1px solid rgba(57,208,255,.24); border-left: 5px solid var(--cyan); border-radius: var(--radius); background: rgba(57,208,255,.08); padding: 16px 18px; color: #d9dce1; line-height: 1.55; }
+    .callout.warning { border-color: rgba(255,159,67,.25); border-left-color: var(--orange); background: rgba(255,159,67,.08); }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+    table { width: 100%; min-width: 780px; border-collapse: collapse; background: rgba(0,0,0,.18); font-size: .86rem; }
+    th, td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; }
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: rgba(255,255,255,.06); color: var(--text); font-size: .75rem; }
+    td.num, th.num { text-align: right; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    td.v { color: var(--cyan); }
+    td.a { color: var(--orange); }
+    .method-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .method { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(0,0,0,.2); }
+    .method h3 { color: var(--text); }
+    .method ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.55; }
+    .method li + li { margin-top: 5px; }
+    .source-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+    footer { padding: 12px 0 34px; color: var(--subtle); font: .74rem/1.6 var(--mono); }
+    footer a { text-decoration: none; }
+
+    @media (max-width: 900px) {
+      .hero-stats, .takeaway-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .race-grid, .chart-grid, .method-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .topbar { align-items: flex-start; }
+      .topnav { max-width: 150px; }
+      header, section { padding: 18px; }
+      .hero-stats { grid-template-columns: 1fr 1fr; }
+      .hero-stat { min-height: 105px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .race-clock { grid-template-columns: 1fr; }
+      .clock-caption { text-align: left; }
+      .lane { grid-template-columns: 28px 1fr 68px; }
+      .chart { height: 300px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to report</a>
+  <div class="topbar">
+    <a class="brand-lockup" href="/">
+      <span class="logo-plate"><img src="/ccglogo.png" alt="Crown Citadel Group"></span>
+      <span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span>
+    </a>
+    <nav class="topnav" aria-label="Report navigation">
+      <a href="#race">Race</a><a href="#charts">Charts</a><a href="#method">Method</a><a href="/research/">Research</a>
+    </nav>
+  </div>
+
+  <header>
+    <p class="kicker">Crown Citadel Research Report · August 2026</p>
+    <h1>Five requests enter.<br><em>vLLM leaves 46.60 seconds early.</em></h1>
+    <p class="deck">Same Strix Halo APU. Same Ling 3.0 Flash family. Five simultaneous 2K-prompt, 256-output jobs. This is the measured wall-clock replay of what concurrency looks like when the complete serving stack changes.</p>
+    <div class="hero-meta"><span>Ryzen AI MAX+ 395</span><span>Radeon 8060S</span><span>128 GB unified memory</span><span>Temp 0 benchmark control</span><span>Exact 256-token outputs</span></div>
+    <div class="hero-stats" aria-label="C5 comparison summary">
+      <div class="hero-stat"><b>39.67s</b><span>CIRU native vLLM C5 median wall time.</span></div>
+      <div class="hero-stat atomic"><b>86.28s</b><span>AtomicChat llama.cpp C5 measured wall time.</span></div>
+      <div class="hero-stat"><b>2.85×</b><span>Aggregate decode throughput at C5: 60.55 vs 21.21 tok/s.</span></div>
+      <div class="hero-stat"><b>54.0%</b><span>Less wall time for the five-request burst.</span></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="race">
+      <div class="section-head">
+        <div><p class="eyebrow">Interactive wall-clock replay</p><h2>The fifth-request test</h2><p class="section-copy">Each lane is one real request. A lane waits through its measured time-to-first-token, then its display advances to the measured completion time. Choose 1× to watch all 86.28 seconds unfold, or use the default 8× replay.</p></div>
+        <div class="race-controls" aria-label="Race controls">
+          <button id="replayButton" type="button">▶ Replay</button>
+          <button class="speed" type="button" data-speed="1">1×</button>
+          <button class="speed" type="button" data-speed="4">4×</button>
+          <button class="speed active" type="button" data-speed="8">8×</button>
+        </div>
+      </div>
+      <div class="race-clock" aria-live="polite">
+        <div class="clock-readout">T+ <span id="raceTime">0.00</span>s</div>
+        <div class="clock-caption"><span id="raceSpeed">8× replay</span><br>measured timeline ends at 86.28s</div>
+      </div>
+      <div class="race-grid">
+        <article class="stack-card ciru">
+          <div class="stack-head"><div class="stack-name"><h3>CIRU native vLLM</h3><small>Official packed INT4 · ROCm · native K1 MTP</small></div><div class="stack-total">39.67s</div></div>
+          <div class="lanes" id="ciruLanes" aria-label="CIRU vLLM request lanes"></div>
+        </article>
+        <article class="stack-card atomic">
+          <div class="stack-head"><div class="stack-name"><h3>AtomicChat llama.cpp</h3><small>AD-IQ4_XXS GGUF · Atomic TurboQuant · Vulkan</small></div><div class="stack-total">86.28s</div></div>
+          <div class="lanes" id="atomicLanes" aria-label="AtomicChat llama.cpp request lanes"></div>
+        </article>
+      </div>
+      <div class="race-gap" id="raceGap"><span>Press replay. First tokens arrive after the prefill phase.</span></div>
+      <div class="race-chart" id="raceChart" role="img" aria-label="Animated cumulative generated tokens over measured wall time"></div>
+      <p class="replay-note">Visualization note: TTFT and completion points are exact retained client timings. The smooth token counter between those points is interpolated; it is not a claim of per-token timestamp capture. All five requests in both stacks produced exactly 256 output tokens.</p>
+    </section>
+
+    <section id="charts">
+      <div class="section-head"><div><p class="eyebrow">Scaling, not a one-number stunt</p><h2>What concurrency does to the queue</h2><p class="section-copy">Direct ratios use the shared measured range, C2–C5. vLLM-only C1 and C6 points are shown as extensions; AtomicChat has no retained measured C1 or C6 row in this campaign.</p></div></div>
+      <div class="chart-grid">
+        <article class="chart-card"><h3>Aggregate decode throughput</h3><p>vLLM keeps gaining as requests are added; AtomicChat peaks at C4 and is flat at C5.</p><div class="chart" id="tgChart" role="img" aria-label="Aggregate decode throughput by concurrency"></div></article>
+        <article class="chart-card"><h3>Whole-burst wall time</h3><p>Lower is better. The separation grows from 30.53 seconds at C2 to 46.60 seconds at C5.</p><div class="chart" id="wallChart" role="img" aria-label="Request burst wall time by concurrency"></div></article>
+        <article class="chart-card"><h3>Prompt processing</h3><p>Nominal 2,048-token prompt bodies divided by the launch-to-last-first-token window.</p><div class="chart" id="ppChart" role="img" aria-label="Prompt processing throughput by concurrency"></div></article>
+        <article class="chart-card"><h3>Observed stack multiplier</h3><p>vLLM divided by Atomic for PP/TG; Atomic wall divided by vLLM wall for completed-burst throughput.</p><div class="chart" id="ratioChart" role="img" aria-label="Observed serving stack multipliers"></div></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><div><p class="eyebrow">The C5 result</p><h2>Concurrency turns the scheduler into the product</h2></div></div>
+      <div class="takeaway-grid">
+        <div class="takeaway"><b>+185.5%</b><span>More aggregate decode throughput: 60.55 vs 21.21 tok/s.</span></div>
+        <div class="takeaway"><b>2.18×</b><span>Nominal prompt throughput: 510.72 vs 234.40 tok/s.</span></div>
+        <div class="takeaway"><b>46.60s</b><span>Measured time returned to the user before the Atomic C5 burst finishes.</span></div>
+      </div>
+      <div class="callout">The visual point is simple: single-stream TG does not tell you how a serving system feels when several agents, users, or tools arrive together. At C5, the native vLLM stack is already finished while the AtomicChat llama.cpp stack has more than half of its measured wall-clock run still ahead at the moment vLLM crosses the line.</div>
+      <div class="callout warning"><strong>Scope:</strong> this is a same-host, matched-shape comparison of two complete deployable stacks—not a controlled runtime-only A/B. The formats, endpoints, MTP path, context envelopes, and scheduler implementations differ. That is exactly what a user chooses when choosing a stack, but it prevents attributing the entire delta to one library in isolation.</div>
+    </section>
+
+    <section id="data">
+      <div class="section-head"><div><p class="eyebrow">Measured results</p><h2>The full shared sweep</h2><p class="section-copy">AtomicChat used one measured repetition per C2–C5 level after an excluded C5 warmup. Native vLLM values are three-repetition medians. Every measured request completed with the required output length.</p></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th rowspan="2">C</th><th colspan="3">CIRU native vLLM</th><th colspan="3">AtomicChat llama.cpp</th><th rowspan="2" class="num">Wall saved</th></tr><tr><th class="num">PP</th><th class="num">TG</th><th class="num">Wall</th><th class="num">PP</th><th class="num">TG</th><th class="num">Wall</th></tr></thead>
+          <tbody>
+            <tr><td class="num">2</td><td class="num v">520.98</td><td class="num v">38.23</td><td class="num v">20.86s</td><td class="num a">266.61</td><td class="num a">14.06</td><td class="num a">51.39s</td><td class="num">30.53s</td></tr>
+            <tr><td class="num">3</td><td class="num v">514.93</td><td class="num v">46.17</td><td class="num v">28.08s</td><td class="num a">241.96</td><td class="num a">19.39</td><td class="num a">62.98s</td><td class="num">34.90s</td></tr>
+            <tr><td class="num">4</td><td class="num v">523.95</td><td class="num v">57.12</td><td class="num v">32.91s</td><td class="num a">240.19</td><td class="num a">21.28</td><td class="num a">73.46s</td><td class="num">40.55s</td></tr>
+            <tr><td class="num">5</td><td class="num v">510.72</td><td class="num v">60.55</td><td class="num v">39.67s</td><td class="num a">234.40</td><td class="num a">21.21</td><td class="num a">86.28s</td><td class="num">46.60s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="method">
+      <div class="section-head"><div><p class="eyebrow">Method and limits</p><h2>Enough detail to audit the hype</h2></div></div>
+      <div class="method-grid">
+        <article class="method"><h3>CIRU native vLLM stack</h3><ul><li>Official InclusionAI packed INT4 checkpoint; weights unchanged.</li><li>ROCm native vLLM, TRITON_MLA, K1 native MTP.</li><li>256K model context, six active sequences, memory fraction 0.72.</li><li><code>max_num_batched_tokens=8192</code>; completion endpoint.</li><li>Three measured repetitions C1–C6; medians reported.</li></ul></article>
+        <article class="method"><h3>AtomicChat llama.cpp stack</h3><ul><li>AtomicChat AD-IQ4_XXS GGUF, Atomic TurboQuant build.</li><li>Vulkan on RADV STRIX_HALO; flash attention and repacking on.</li><li>64K total context, five slots, f16/f16 KV.</li><li>Chat endpoint; template adds 21 framing tokens per request.</li><li>One measured repetition C2–C5; excluded C5 warmup.</li></ul></article>
+      </div>
+      <div class="callout warning">Shared workload controls: simultaneous burst, nominal 2,048-token prompt body per request, exactly 256 forced output tokens, temperature 0, EOS ignored, distinct random fixtures, and no reusable prompt cache. Temperature 0 is a benchmark control, not InclusionAI's recommended live sampling preset.</div>
+      <div class="source-row">
+        <a class="chip-link" href="results.json">Download normalized results.json</a>
+        <a class="chip-link" href="https://huggingface.co/jcbtc/Ling-3.0-Flash-CIRU-int4-Strix-native">CIRU native release</a>
+        <a class="chip-link" href="https://huggingface.co/AtomicChat/Ling-3.0-flash-GGUF">AtomicChat model page</a>
+        <a class="chip-link" href="/research/ling3-rocm-report/">Full Ling optimization report</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2026 Crown Citadel Group · Ciru Inference Lab · Measurements are local to one AMD Strix Halo system and should be reproduced on other hosts before generalizing.</footer>
+
+  <script src="../../assets/echarts.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+      const C = { ciru: "#39d0ff", atomic: "#ff9f43", red: "#ed1c24", green: "#20d1a2", text: "#f7f7f4", muted: "#a8adb7", line: "rgba(255,255,255,.13)" };
+      const ciru = { wall: 39.67443581, ttft: [18.616322,20.003188,20.067281,20.002610,20.002453], finish: [39.481301,39.349806,39.481518,39.194337,39.673965] };
+      const atomic = { wall: 86.277416943, ttft: [43.422578,42.044598,26.166007,43.686311,35.789683], finish: [86.242931,86.078725,85.794534,86.276895,85.950706] };
+      const maxTime = atomic.wall;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let replaySpeed = 8, startedAt = 0, raf = 0, running = false, lastChartTick = -1;
+
+      const laneHtml = i => `<div class="lane" data-lane="${i}"><span class="lane-id">R${i+1}</span><span class="track"><span class="fill"></span></span><span class="lane-state">PREFILL<strong>0 / 256</strong></span></div>`;
+      document.getElementById("ciruLanes").innerHTML = ciru.ttft.map((_,i)=>laneHtml(i)).join("");
+      document.getElementById("atomicLanes").innerHTML = atomic.ttft.map((_,i)=>laneHtml(i)).join("");
+
+      const chartBase = {
+        backgroundColor: "transparent",
+        textStyle: { fontFamily: "IBM Plex Mono", color: C.muted },
+        animationDuration: 850,
+        animationEasing: "cubicOut",
+        tooltip: { trigger: "axis", backgroundColor: "rgba(8,8,8,.96)", borderColor: C.line, textStyle: { color: C.text, fontFamily: "IBM Plex Mono" } },
+        legend: { top: 4, textStyle: { color: C.muted, fontFamily: "IBM Plex Mono", fontSize: 11 } },
+        grid: { left: 58, right: 22, top: 48, bottom: 46 },
+        xAxis: { axisLine: { lineStyle: { color: C.line } }, axisTick: { show: false }, axisLabel: { color: C.muted, fontFamily: "IBM Plex Mono" }, splitLine: { show: false } },
+        yAxis: { axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: C.muted, fontFamily: "IBM Plex Mono" }, splitLine: { lineStyle: { color: "rgba(255,255,255,.07)" } } }
+      };
+      const merge = (...items) => Object.assign({}, ...items);
+      const charts = [];
+      const init = id => { const chart = echarts.init(document.getElementById(id), null, { renderer: "canvas" }); charts.push(chart); return chart; };
+      const raceChart = init("raceChart");
+      const cumulative = (stack, t) => stack.ttft.reduce((sum, first, i) => {
+        if (t < first) return sum;
+        if (t >= stack.finish[i]) return sum + 256;
+        return sum + 1 + 255 * (t-first)/(stack.finish[i]-first);
+      }, 0);
+      const timeline = Array.from({length: Math.ceil(maxTime*2)+1},(_,i)=>Math.min(i/2,maxTime));
+      const fullRace = { ciru: timeline.map(t=>[t,+cumulative(ciru,t).toFixed(1)]), atomic: timeline.map(t=>[t,+cumulative(atomic,t).toFixed(1)]) };
+      const raceOption = (t=0) => merge(chartBase, {
+        legend: { top: 4, textStyle: { color: C.muted, fontFamily: "IBM Plex Mono", fontSize: 11 } },
+        grid: { left: 62, right: 22, top: 46, bottom: 46 },
+        xAxis: merge(chartBase.xAxis, { type: "value", min: 0, max: 90, name: "measured seconds", nameLocation: "middle", nameGap: 30 }),
+        yAxis: merge(chartBase.yAxis, { type: "value", min: 0, max: 1280, name: "generated tokens", nameGap: 45 }),
+        series: [
+          { name: "CIRU native vLLM", type: "line", showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.ciru }, areaStyle: { color: "rgba(57,208,255,.10)" }, data: fullRace.ciru.filter(p=>p[0]<=t) },
+          { name: "AtomicChat llama.cpp", type: "line", showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.atomic }, areaStyle: { color: "rgba(255,159,67,.08)" }, data: fullRace.atomic.filter(p=>p[0]<=t) }
+        ]
+      });
+      raceChart.setOption(raceOption(0));
+
+      const setLane = (root, stack, i, t) => {
+        const lane = root.children[i], state = lane.querySelector(".lane-state"), fill = lane.querySelector(".fill");
+        let tokens = 0, label = "PREFILL";
+        lane.className = "lane";
+        if (t >= stack.finish[i]) { tokens = 256; label = "DONE"; lane.classList.add("done"); }
+        else if (t >= stack.ttft[i]) { tokens = Math.max(1, Math.floor(1 + 255*(t-stack.ttft[i])/(stack.finish[i]-stack.ttft[i]))); label = "DECODE"; lane.classList.add("decoding"); }
+        fill.style.transform = `scaleX(${tokens/256})`;
+        state.innerHTML = `${label}<strong>${tokens} / 256</strong>`;
+      };
+      const renderRace = t => {
+        t = Math.max(0, Math.min(maxTime,t));
+        document.getElementById("raceTime").textContent = t.toFixed(2);
+        for (let i=0;i<5;i++) { setLane(document.getElementById("ciruLanes"),ciru,i,t); setLane(document.getElementById("atomicLanes"),atomic,i,t); }
+        const gap = document.getElementById("raceGap");
+        if (t < ciru.wall) { gap.className="race-gap"; gap.innerHTML = `<span>Both stacks are working. CIRU finish line in <strong>${(ciru.wall-t).toFixed(2)}s</strong>.</span>`; }
+        else if (t < maxTime) { gap.className="race-gap live"; gap.innerHTML = `<span><strong>CIRU IS DONE.</strong> AtomicChat has ${(maxTime-t).toFixed(2)} measured seconds remaining.</span>`; }
+        else { gap.className="race-gap"; gap.innerHTML = `<span><strong>46.60 SECONDS EARLIER.</strong> 39.67s vs 86.28s for the same nominal C5 request shape.</span>`; }
+        const tick = Math.floor(t*4);
+        if (tick !== lastChartTick || t === maxTime) { lastChartTick=tick; raceChart.setOption(raceOption(t), { notMerge: true, lazyUpdate: true }); }
+      };
+      const frame = now => {
+        const t = (now-startedAt)/1000*replaySpeed;
+        renderRace(t);
+        if (t < maxTime) raf=requestAnimationFrame(frame); else { running=false; document.getElementById("replayButton").textContent="↻ Replay"; }
+      };
+      const startRace = () => {
+        cancelAnimationFrame(raf); lastChartTick=-1; running=true; startedAt=performance.now();
+        document.getElementById("replayButton").textContent="↻ Restart";
+        renderRace(0); raf=requestAnimationFrame(frame);
+      };
+      document.getElementById("replayButton").addEventListener("click",startRace);
+      document.querySelectorAll(".speed").forEach(button=>button.addEventListener("click",()=>{
+        replaySpeed=+button.dataset.speed; document.querySelectorAll(".speed").forEach(b=>b.classList.toggle("active",b===button));
+        document.getElementById("raceSpeed").textContent=`${replaySpeed}× replay`; startRace();
+      }));
+
+      const concAll=[1,2,3,4,5,6], concShared=[2,3,4,5];
+      const vTG=[26.79,38.23,46.17,57.12,60.55,63.51], aTG=[null,14.06,19.39,21.28,21.21,null];
+      const vWall=[13.45,20.86,28.08,32.91,39.67,42.60], aWall=[null,51.39,62.98,73.46,86.28,null];
+      const vPP=[523.62,520.98,514.93,523.95,510.72,520.49], aPP=[null,266.61,241.96,240.19,234.40,null];
+      const lineOption=(series,yName)=>merge(chartBase,{
+        xAxis: merge(chartBase.xAxis,{type:"category",data:concAll.map(x=>`C${x}`)}),
+        yAxis: merge(chartBase.yAxis,{type:"value",name:yName,nameGap:45}),
+        series: series.map((s,i)=>({name:s.name,type:"line",connectNulls:false,symbolSize:8,lineStyle:{width:4,color:s.color,type:s.dashed?"dashed":"solid"},itemStyle:{color:s.color},areaStyle:i===0?{color:"rgba(57,208,255,.07)"}:undefined,data:s.data}))
+      });
+      init("tgChart").setOption(lineOption([{name:"CIRU native vLLM",color:C.ciru,data:vTG},{name:"AtomicChat llama.cpp",color:C.atomic,data:aTG}],"tok/s"));
+      init("ppChart").setOption(lineOption([{name:"CIRU native vLLM",color:C.ciru,data:vPP},{name:"AtomicChat llama.cpp",color:C.atomic,data:aPP}],"tok/s"));
+      init("wallChart").setOption(merge(chartBase,{
+        xAxis:merge(chartBase.xAxis,{type:"category",data:concAll.map(x=>`C${x}`)}), yAxis:merge(chartBase.yAxis,{type:"value",name:"seconds",nameGap:43}),
+        series:[{name:"CIRU native vLLM",type:"bar",barMaxWidth:28,itemStyle:{color:C.ciru,borderRadius:[3,3,0,0]},data:vWall},{name:"AtomicChat llama.cpp",type:"bar",barMaxWidth:28,itemStyle:{color:C.atomic,borderRadius:[3,3,0,0]},data:aWall}]
+      }));
+      init("ratioChart").setOption(merge(chartBase,{
+        xAxis:merge(chartBase.xAxis,{type:"category",data:concShared.map(x=>`C${x}`)}), yAxis:merge(chartBase.yAxis,{type:"value",min:0,max:3.2,name:"multiplier",nameGap:48,axisLabel:{color:C.muted,formatter:"{value}×"}}),
+        series:[
+          {name:"TG multiplier",type:"bar",itemStyle:{color:C.ciru,borderRadius:[3,3,0,0]},data:[2.72,2.38,2.68,2.85]},
+          {name:"PP multiplier",type:"bar",itemStyle:{color:C.red,borderRadius:[3,3,0,0]},data:[1.95,2.13,2.18,2.18]},
+          {name:"Burst throughput",type:"line",symbolSize:8,lineStyle:{width:3,color:C.green},itemStyle:{color:C.green},data:[2.46,2.24,2.23,2.17]}
+        ]
+      }));
+      window.addEventListener("resize",()=>charts.forEach(c=>c.resize()));
+      if (reduced) { renderRace(maxTime); document.getElementById("raceSpeed").textContent="reduced-motion final state"; }
+      else setTimeout(startRace,700);
+    })();
+  </script>
+</body>
+</html>

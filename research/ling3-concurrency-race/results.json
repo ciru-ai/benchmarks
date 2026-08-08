@@ -1,0 +1,55 @@
+{
+  "title": "Ling 3.0 Flash concurrency serving-stack comparison",
+  "measured_on": "2026-08-08",
+  "hardware": "AMD Ryzen AI MAX+ 395 / Radeon 8060S, 128 GB unified memory",
+  "workload": {
+    "nominal_prompt_tokens_per_request": 2048,
+    "forced_output_tokens_per_request": 256,
+    "temperature": 0,
+    "ignore_eos": true,
+    "request_rate": "infinite simultaneous burst"
+  },
+  "atomicchat_llamacpp": {
+    "stack": "AtomicChat Ling 3.0 Flash AD-IQ4_XXS GGUF / Atomic TurboQuant llama.cpp / Vulkan",
+    "context_tokens": 65536,
+    "configured_slots": 5,
+    "chat_template_framing_tokens_per_request": 21,
+    "repetitions_per_concurrency": 1,
+    "rows": [
+      {"concurrency": 2, "pp_tokens_per_second": 266.6112398907, "aggregate_tg_tokens_per_second": 14.0576417413, "wall_seconds": 51.3943043910},
+      {"concurrency": 3, "pp_tokens_per_second": 241.9604752328, "aggregate_tg_tokens_per_second": 19.3895126565, "wall_seconds": 62.9843101150},
+      {"concurrency": 4, "pp_tokens_per_second": 240.1898459813, "aggregate_tg_tokens_per_second": 21.2823683212, "wall_seconds": 73.4611111710},
+      {"concurrency": 5, "pp_tokens_per_second": 234.3956242560, "aggregate_tg_tokens_per_second": 21.2109524825, "wall_seconds": 86.2774169430}
+    ]
+  },
+  "ciru_native_vllm": {
+    "stack": "Official InclusionAI packed INT4 / CIRU vLLM ROCm / native K1 MTP",
+    "context_tokens": 262144,
+    "configured_slots": 6,
+    "max_num_batched_tokens": 8192,
+    "repetitions_per_concurrency": 3,
+    "aggregation": "median at each concurrency",
+    "rows": [
+      {"concurrency": 1, "pp_tokens_per_second": 523.6180414171, "aggregate_tg_tokens_per_second": 26.7890805193, "wall_seconds": 13.4503343740},
+      {"concurrency": 2, "pp_tokens_per_second": 520.9830110156, "aggregate_tg_tokens_per_second": 38.2326379483, "wall_seconds": 20.8637043810},
+      {"concurrency": 3, "pp_tokens_per_second": 514.9267056070, "aggregate_tg_tokens_per_second": 46.1737614585, "wall_seconds": 28.0833732820},
+      {"concurrency": 4, "pp_tokens_per_second": 523.9451157309, "aggregate_tg_tokens_per_second": 57.1183462491, "wall_seconds": 32.9084990210},
+      {"concurrency": 5, "pp_tokens_per_second": 510.7171721544, "aggregate_tg_tokens_per_second": 60.5480853747, "wall_seconds": 39.6744358100},
+      {"concurrency": 6, "pp_tokens_per_second": 520.4904487434, "aggregate_tg_tokens_per_second": 63.5124835085, "wall_seconds": 42.6008649780}
+    ]
+  },
+  "c5_replay": {
+    "note": "Smooth playback uses measured per-request first-token and completion times; token progress between those points is interpolated for display.",
+    "atomicchat_llamacpp": {
+      "wall_seconds": 86.2774169430,
+      "ttft_seconds": [43.422578, 42.044598, 26.166007, 43.686311, 35.789683],
+      "finish_seconds": [86.242931, 86.078725, 85.794534, 86.276895, 85.950706]
+    },
+    "ciru_native_vllm": {
+      "wall_seconds": 39.6744358100,
+      "ttft_seconds": [18.616322, 20.003188, 20.067281, 20.002610, 20.002453],
+      "finish_seconds": [39.481301, 39.349806, 39.481518, 39.194337, 39.673965]
+    }
+  },
+  "comparison_scope": "Measured complete serving stacks on the same host and nominal request shape; not a controlled runtime-only A/B. AtomicChat used a third-party GGUF and chat endpoint with 21 framing tokens, while vLLM used the official packed checkpoint, completion endpoint, and native MTP."
+}
