@@ -156,25 +156,36 @@
     .stack-name small { display: block; color: var(--muted); font: .7rem var(--mono); margin-top: 4px; }
     .stack-total { font: 700 1.1rem var(--mono); color: var(--cyan); white-space: nowrap; }
     .atomic .stack-total { color: var(--orange); }
+    .phase-key { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: -4px 0 13px; color: var(--muted); font: 700 .68rem var(--mono); }
+    .phase-key span { display: inline-flex; align-items: center; gap: 7px; }
+    .phase-key i { width: 24px; height: 7px; border-radius: 2px; background: repeating-linear-gradient(120deg, rgba(237,28,36,.95) 0 5px, rgba(57,208,255,.78) 5px 10px); }
+    .phase-key .decode-key i { background: var(--cyan); }
+    .phase-key .finish-key i { background: var(--green); }
     .lanes { padding: 10px 12px 13px; }
-    .lane { display: grid; grid-template-columns: 34px 1fr 78px; gap: 8px; align-items: center; min-height: 44px; border-bottom: 1px solid rgba(255,255,255,.065); }
+    .lane { display: grid; grid-template-columns: 34px 1fr 96px; gap: 8px; align-items: center; min-height: 44px; border-bottom: 1px solid rgba(255,255,255,.065); }
     .lane:last-child { border-bottom: 0; }
     .lane-id { color: var(--subtle); font: 700 .7rem var(--mono); }
-    .track { position: relative; height: 9px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
-    .track::after { content: ""; position: absolute; right: 0; top: -3px; width: 2px; height: 15px; background: rgba(255,255,255,.35); }
-    .fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, var(--amd), var(--cyan)); box-shadow: 0 0 14px rgba(57,208,255,.34); }
-    .atomic .fill { background: linear-gradient(90deg, #7b411d, var(--orange)); box-shadow: 0 0 14px rgba(255,159,67,.30); }
+    .track { display: grid; grid-template-columns: 42% 58%; gap: 4px; height: 10px; }
+    .phase-track { position: relative; border-radius: 2px; background: rgba(255,255,255,.075); overflow: hidden; }
+    .phase-track::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.22); }
+    .phase-fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left; }
+    .prefill-fill { background: repeating-linear-gradient(120deg, rgba(237,28,36,.95) 0 6px, rgba(57,208,255,.78) 6px 12px); box-shadow: 0 0 14px rgba(57,208,255,.28); }
+    .decode-fill { background: var(--cyan); box-shadow: 0 0 14px rgba(57,208,255,.38); }
+    .atomic .prefill-fill { background: repeating-linear-gradient(120deg, #7b411d 0 6px, var(--orange) 6px 12px); box-shadow: 0 0 14px rgba(255,159,67,.24); }
+    .atomic .decode-fill { background: var(--orange); box-shadow: 0 0 14px rgba(255,159,67,.30); }
     .lane-state { text-align: right; font: 700 .64rem/1.2 var(--mono); color: var(--subtle); }
     .lane-state strong { display: block; color: var(--text); font-size: .72rem; }
+    .lane.prefilling .lane-state { color: var(--red); }
+    .atomic .lane.prefilling .lane-state { color: var(--orange); }
     .lane.decoding .lane-state { color: var(--cyan); }
     .atomic .lane.decoding .lane-state { color: var(--orange); }
     .lane.done .lane-state { color: var(--green); }
-    .lane.done .fill { background: var(--green); }
+    .lane.done .phase-fill { background: var(--green); box-shadow: 0 0 12px rgba(32,209,162,.28); }
     .race-gap { min-height: 58px; display: grid; place-items: center; margin: 12px 0; border: 1px solid var(--line); border-left: 5px solid var(--cyan); border-radius: 6px; background: rgba(57,208,255,.06); text-align: center; color: var(--muted); padding: 10px; }
     .race-gap strong { color: var(--cyan); font: 700 1rem var(--mono); }
     .race-gap.live { animation: pulseBorder 1s ease-in-out infinite alternate; }
     @keyframes pulseBorder { to { background: rgba(57,208,255,.13); box-shadow: inset 0 0 28px rgba(57,208,255,.08); } }
-    .race-chart { height: 330px; margin-top: 10px; }
+    .race-chart { height: 500px; margin-top: 10px; }
     .replay-note { margin: 10px 0 0; color: var(--subtle); font: .72rem/1.5 var(--mono); }
 
     .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
@@ -221,7 +232,7 @@
       .section-head { align-items: flex-start; flex-direction: column; }
       .race-clock { grid-template-columns: 1fr; }
       .clock-caption { text-align: left; }
-      .lane { grid-template-columns: 28px 1fr 68px; }
+      .lane { grid-template-columns: 28px 1fr 84px; }
       .chart { height: 300px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -258,7 +269,7 @@
   <main id="main">
     <section id="race">
       <div class="section-head">
-        <div><p class="eyebrow">Interactive wall-clock replay</p><h2>The fifth-request test</h2><p class="section-copy">Each lane is one real request. A lane waits through its measured time-to-first-token, then its display advances to the measured completion time. Choose 1× to watch all 86.28 seconds unfold, or use the default 8× replay.</p></div>
+        <div><p class="eyebrow">Interactive wall-clock replay</p><h2>The entire request, not just generation</h2><p class="section-copy">Every lane launches together at T+0, processes its 2,048-token prompt, crosses its exact measured first-token boundary, then generates 256 output tokens. Choose 1× to watch all 86.28 seconds unfold, or use the default 8× replay.</p></div>
         <div class="race-controls" aria-label="Race controls">
           <button id="replayButton" type="button">▶ Replay</button>
           <button class="speed" type="button" data-speed="1">1×</button>
@@ -270,6 +281,11 @@
         <div class="clock-readout">T+ <span id="raceTime">0.00</span>s</div>
         <div class="clock-caption"><span id="raceSpeed">8× replay</span><br>measured timeline ends at 86.28s</div>
       </div>
+      <div class="phase-key" aria-label="Request phase legend">
+        <span><i></i>PREFILL · 2,048 prompt tokens</span>
+        <span class="decode-key"><i></i>DECODE · 256 output tokens</span>
+        <span class="finish-key"><i></i>DONE</span>
+      </div>
       <div class="race-grid">
         <article class="stack-card ciru">
           <div class="stack-head"><div class="stack-name"><h3>CIRU native vLLM</h3><small>Official packed INT4 · ROCm · native K1 MTP</small></div><div class="stack-total">39.67s</div></div>
@@ -280,9 +296,9 @@
           <div class="lanes" id="atomicLanes" aria-label="AtomicChat llama.cpp request lanes"></div>
         </article>
       </div>
-      <div class="race-gap" id="raceGap"><span>Press replay. First tokens arrive after the prefill phase.</span></div>
-      <div class="race-chart" id="raceChart" role="img" aria-label="Animated cumulative generated tokens over measured wall time"></div>
-      <p class="replay-note">Visualization note: TTFT and completion points are exact retained client timings. The smooth token counter between those points is interpolated; it is not a claim of per-token timestamp capture. All five requests in both stacks produced exactly 256 output tokens.</p>
+      <div class="race-gap" id="raceGap"><span><strong>BOTH STACKS LAUNCH AT T+0.</strong> Prompt processing begins on the same clock.</span></div>
+      <div class="race-chart" id="raceChart" role="img" aria-label="Animated prompt processing and output generation over measured wall time"></div>
+      <p class="replay-note">Visualization note: every request starts at T+0. TTFT and completion points are exact retained client timings. Prompt and output counters between those boundaries are interpolated for display; they are not a claim of per-token timestamp capture. Prompt counters show the nominal 2,048-token body; AtomicChat also processed 21 chat-template framing tokens per request.</p>
     </section>
 
     <section id="charts">
@@ -350,7 +366,7 @@
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       let replaySpeed = 8, startedAt = 0, raf = 0, running = false, lastChartTick = -1;
 
-      const laneHtml = i => `<div class="lane" data-lane="${i}"><span class="lane-id">R${i+1}</span><span class="track"><span class="fill"></span></span><span class="lane-state">PREFILL<strong>0 / 256</strong></span></div>`;
+      const laneHtml = i => `<div class="lane prefilling" data-lane="${i}"><span class="lane-id">R${i+1}</span><span class="track"><span class="phase-track"><span class="phase-fill prefill-fill"></span></span><span class="phase-track"><span class="phase-fill decode-fill"></span></span></span><span class="lane-state">PREFILL<strong>0 / 2,048</strong></span></div>`;
       document.getElementById("ciruLanes").innerHTML = ciru.ttft.map((_,i)=>laneHtml(i)).join("");
       document.getElementById("atomicLanes").innerHTML = atomic.ttft.map((_,i)=>laneHtml(i)).join("");
 
@@ -369,40 +385,63 @@
       const charts = [];
       const init = id => { const chart = echarts.init(document.getElementById(id), null, { renderer: "canvas" }); charts.push(chart); return chart; };
       const raceChart = init("raceChart");
-      const cumulative = (stack, t) => stack.ttft.reduce((sum, first, i) => {
+      const cumulativePrompt = (stack, t) => stack.ttft.reduce((sum, first) => sum + 2048*Math.min(1,Math.max(0,t/first)), 0);
+      const cumulativeOutput = (stack, t) => stack.ttft.reduce((sum, first, i) => {
         if (t < first) return sum;
         if (t >= stack.finish[i]) return sum + 256;
         return sum + 1 + 255 * (t-first)/(stack.finish[i]-first);
       }, 0);
       const timeline = Array.from({length: Math.ceil(maxTime*2)+1},(_,i)=>Math.min(i/2,maxTime));
-      const fullRace = { ciru: timeline.map(t=>[t,+cumulative(ciru,t).toFixed(1)]), atomic: timeline.map(t=>[t,+cumulative(atomic,t).toFixed(1)]) };
+      const fullRace = {
+        ciruPrompt: timeline.map(t=>[t,+cumulativePrompt(ciru,t).toFixed(1)]),
+        atomicPrompt: timeline.map(t=>[t,+cumulativePrompt(atomic,t).toFixed(1)]),
+        ciruOutput: timeline.map(t=>[t,+cumulativeOutput(ciru,t).toFixed(1)]),
+        atomicOutput: timeline.map(t=>[t,+cumulativeOutput(atomic,t).toFixed(1)])
+      };
       const raceOption = (t=0) => merge(chartBase, {
-        legend: { top: 4, textStyle: { color: C.muted, fontFamily: "IBM Plex Mono", fontSize: 11 } },
-        grid: { left: 62, right: 22, top: 46, bottom: 46 },
-        xAxis: merge(chartBase.xAxis, { type: "value", min: 0, max: 90, name: "measured seconds", nameLocation: "middle", nameGap: 30 }),
-        yAxis: merge(chartBase.yAxis, { type: "value", min: 0, max: 1280, name: "generated tokens", nameGap: 45 }),
+        legend: { top: 2, formatter: name => innerWidth < 600 ? name.replace(" · prompt"," PP").replace(" · output"," TG") : name, textStyle: { color: C.muted, fontFamily: "IBM Plex Mono", fontSize: 10 } },
+        grid: [
+          { left: 72, right: 22, top: 62, height: "31%" },
+          { left: 72, right: 22, top: "58%", bottom: 48 }
+        ],
+        xAxis: [
+          merge(chartBase.xAxis, { gridIndex: 0, type: "value", min: 0, max: 90, axisLabel: { show: false } }),
+          merge(chartBase.xAxis, { gridIndex: 1, type: "value", min: 0, max: 90, name: "shared measured seconds", nameLocation: "middle", nameGap: 30 })
+        ],
+        yAxis: [
+          merge(chartBase.yAxis, { gridIndex: 0, type: "value", min: 0, max: 10240, interval: 2048, name: "prompt tokens", nameGap: 52, axisLabel: { color: C.muted, formatter: value => value ? `${value/1024}K` : "0" } }),
+          merge(chartBase.yAxis, { gridIndex: 1, type: "value", min: 0, max: 1280, name: "output tokens", nameGap: 48 })
+        ],
         series: [
-          { name: "CIRU native vLLM", type: "line", showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.ciru }, areaStyle: { color: "rgba(57,208,255,.10)" }, data: fullRace.ciru.filter(p=>p[0]<=t) },
-          { name: "AtomicChat llama.cpp", type: "line", showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.atomic }, areaStyle: { color: "rgba(255,159,67,.08)" }, data: fullRace.atomic.filter(p=>p[0]<=t) }
+          { name: "vLLM · prompt", type: "line", xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: .16, lineStyle: { width: 4, color: C.ciru }, itemStyle: { color: C.ciru }, areaStyle: { color: "rgba(57,208,255,.10)" }, data: fullRace.ciruPrompt.filter(p=>p[0]<=t) },
+          { name: "Atomic · prompt", type: "line", xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: .16, lineStyle: { width: 4, color: C.atomic }, itemStyle: { color: C.atomic }, areaStyle: { color: "rgba(255,159,67,.08)" }, data: fullRace.atomicPrompt.filter(p=>p[0]<=t) },
+          { name: "vLLM · output", type: "line", xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.ciru }, itemStyle: { color: C.ciru }, areaStyle: { color: "rgba(57,208,255,.10)" }, data: fullRace.ciruOutput.filter(p=>p[0]<=t) },
+          { name: "Atomic · output", type: "line", xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, smooth: .22, lineStyle: { width: 4, color: C.atomic }, itemStyle: { color: C.atomic }, areaStyle: { color: "rgba(255,159,67,.08)" }, data: fullRace.atomicOutput.filter(p=>p[0]<=t) }
         ]
       });
       raceChart.setOption(raceOption(0));
 
       const setLane = (root, stack, i, t) => {
-        const lane = root.children[i], state = lane.querySelector(".lane-state"), fill = lane.querySelector(".fill");
-        let tokens = 0, label = "PREFILL";
-        lane.className = "lane";
-        if (t >= stack.finish[i]) { tokens = 256; label = "DONE"; lane.classList.add("done"); }
-        else if (t >= stack.ttft[i]) { tokens = Math.max(1, Math.floor(1 + 255*(t-stack.ttft[i])/(stack.finish[i]-stack.ttft[i]))); label = "DECODE"; lane.classList.add("decoding"); }
-        fill.style.transform = `scaleX(${tokens/256})`;
-        state.innerHTML = `${label}<strong>${tokens} / 256</strong>`;
+        const lane = root.children[i], state = lane.querySelector(".lane-state"), prefill = lane.querySelector(".prefill-fill"), decode = lane.querySelector(".decode-fill");
+        const promptTokens = Math.min(2048,Math.floor(2048*t/stack.ttft[i]));
+        let outputTokens = 0;
+        lane.className = "lane prefilling";
+        if (t >= stack.finish[i]) { outputTokens = 256; lane.className = "lane done"; state.innerHTML = `DONE<strong>2,048 + 256</strong>`; }
+        else if (t >= stack.ttft[i]) {
+          outputTokens = Math.max(1,Math.floor(1 + 255*(t-stack.ttft[i])/(stack.finish[i]-stack.ttft[i])));
+          lane.className = "lane decoding"; state.innerHTML = `DECODE<strong>${outputTokens} / 256</strong>`;
+        } else state.innerHTML = `PREFILL<strong>${promptTokens.toLocaleString()} / 2,048</strong>`;
+        prefill.style.transform = `scaleX(${Math.min(1,t/stack.ttft[i])})`;
+        decode.style.transform = `scaleX(${outputTokens/256})`;
       };
       const renderRace = t => {
         t = Math.max(0, Math.min(maxTime,t));
         document.getElementById("raceTime").textContent = t.toFixed(2);
         for (let i=0;i<5;i++) { setLane(document.getElementById("ciruLanes"),ciru,i,t); setLane(document.getElementById("atomicLanes"),atomic,i,t); }
         const gap = document.getElementById("raceGap");
-        if (t < ciru.wall) { gap.className="race-gap"; gap.innerHTML = `<span>Both stacks are working. CIRU finish line in <strong>${(ciru.wall-t).toFixed(2)}s</strong>.</span>`; }
+        const firstToken = Math.min(...ciru.ttft,...atomic.ttft);
+        if (t < firstToken) { gap.className="race-gap"; gap.innerHTML = `<span><strong>BOTH LAUNCHED AT T+0.</strong> All ten requests are processing their prompts on the same clock.</span>`; }
+        else if (t < ciru.wall) { gap.className="race-gap"; gap.innerHTML = `<span>Measured phase boundaries are crossing now. CIRU finish line in <strong>${(ciru.wall-t).toFixed(2)}s</strong>.</span>`; }
         else if (t < maxTime) { gap.className="race-gap live"; gap.innerHTML = `<span><strong>CIRU IS DONE.</strong> AtomicChat has ${(maxTime-t).toFixed(2)} measured seconds remaining.</span>`; }
         else { gap.className="race-gap"; gap.innerHTML = `<span><strong>46.60 SECONDS EARLIER.</strong> 39.67s vs 86.28s for the same nominal C5 request shape.</span>`; }
         const tick = Math.floor(t*4);
