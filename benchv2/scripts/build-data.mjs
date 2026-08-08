@@ -1100,6 +1100,7 @@ CODING_LAB_ROOT = os.environ.get("BENCHV2_CODING_LAB_ROOT") or os.path.join(LAB_
 QUALITY_DB = os.environ.get("BENCHV2_QUALITY_DB") or os.path.join(LAB_ROOT, "quality-results.sqlite3")
 
 PROFILE_LABELS = {
+    "110": "Ling 3.0 Flash · CIRU INT4 Strix Native",
     "hy3-openrouter-novita-free": "Hy3 API — Novita (OpenRouter)",
     "hy3-chadrock-speed-v1-mtp-n2-clean-eval": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP",
     "hy3-chadrock-speed-v1-imatrix-mtp-n2-ssd-cache-final": "Hy3 Local Chadrock ROCmFPX-iFP2 MTP (SSD cache)",
@@ -1179,16 +1180,19 @@ SUITE_LABELS = {
 }
 
 RUN_LABELS = {
+    "20260808T081814Z-ling3-humaneval-bigcodebench": "Ling 3.0 Flash · CIRU INT4 Strix Native",
     "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
     "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
 }
 
 RUN_IDS = {
+    "20260808T081814Z-ling3-humaneval-bigcodebench": "ling-3.0-flash-ciru-int4-strix-native-code-eval-20260808",
     "20260629T211845Z-qwopus-q4-frogger-temp06": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-eval-20260629",
     "qwopus-q4-frogger-temp06-hermes20-20260629T213806Z": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF-hermes20-20260629",
 }
 
 PROFILE_IDS = {
+    "110": "ling-3.0-flash-ciru-int4-strix-native",
     "qwopus36-q4-eval-frogger-256k": "Qwopus3.6-35B-A3B-Coder-MTP-GGUF",
     "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-full-templatefix": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
     "step37-rocmfpx-q3-qualityplus-mtp-64k-tool-eval-new-template": "step3.7-flash-rocmfpx-q3-qualityplus-mtp-64k",
