@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080808">
-  <title>Five Requests Enter · Ling 3 Concurrency Race · Ciru Inference Lab</title>
-  <meta name="description" content="An animated wall-clock replay of native vLLM and AtomicChat llama.cpp serving Ling 3.0 Flash concurrently on the same AMD Strix Halo APU.">
-  <meta property="og:title" content="Five Requests Enter. vLLM Leaves 46.60 Seconds Early.">
-  <meta property="og:description" content="Watch two measured Ling 3.0 Flash serving stacks race through five simultaneous 2K+256 jobs on Strix Halo.">
+  <title>vLLM Dominates llama.cpp Under Concurrency · Ciru Inference Lab</title>
+  <meta name="description" content="Native vLLM clears five concurrent Ling 3.0 Flash requests in 39.67 seconds; AtomicChat llama.cpp takes 86.28 seconds on the same Strix Halo APU.">
+  <meta property="og:title" content="vLLM Dominates llama.cpp Under Concurrency">
+  <meta property="og:description" content="2.85× aggregate decode throughput and a 46.60-second faster five-request batch in this measured Ling 3.0 Flash Strix Halo sweep.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://llm.ciru.ai/research/ling3-concurrency-race/">
   <link rel="icon" type="image/png" href="/ccglogo.png">
@@ -255,8 +255,8 @@
 
   <header>
     <p class="kicker">Crown Citadel Research Report · August 2026</p>
-    <h1>Five requests enter.<br><em>vLLM leaves 46.60 seconds early.</em></h1>
-    <p class="deck">Same Strix Halo APU. Same Ling 3.0 Flash family. Five simultaneous 2K-prompt, 256-output jobs. This is the measured wall-clock replay of what concurrency looks like when the complete serving stack changes.</p>
+    <h1>vLLM dominates llama.cpp<br><em>under concurrency.</em></h1>
+    <p class="deck">In this Ling 3.0 Flash Strix Halo sweep, native vLLM finishes five simultaneous requests in 39.67 seconds. AtomicChat llama.cpp takes 86.28 seconds. That is 2.85× aggregate decode throughput and a 46.60-second faster batch completion.</p>
     <div class="hero-meta"><span>Ryzen AI MAX+ 395</span><span>Radeon 8060S</span><span>128 GB unified memory</span><span>Temp 0 benchmark control</span><span>Exact 256-token outputs</span></div>
     <div class="hero-stats" aria-label="C5 comparison summary">
       <div class="hero-stat"><b>39.67s</b><span>CIRU native vLLM C5 median wall time.</span></div>
@@ -269,7 +269,7 @@
   <main id="main">
     <section id="race">
       <div class="section-head">
-        <div><p class="eyebrow">Interactive wall-clock replay</p><h2>The entire request, not just generation</h2><p class="section-copy">Every lane launches together at T+0, processes its 2,048-token prompt, crosses its exact measured first-token boundary, then generates 256 output tokens. Choose 1× to watch all 86.28 seconds unfold, or use the default 8× replay.</p></div>
+        <div><p class="eyebrow">C5 · five simultaneous requests</p><h2>vLLM is finished while llama.cpp still has 46.60 seconds left.</h2><p class="section-copy">Native vLLM clears the complete burst at 39.67 seconds. AtomicChat llama.cpp does not finish until 86.28 seconds. The lead begins during prompt processing and persists through generation.</p></div>
         <div class="race-controls" aria-label="Race controls">
           <button id="replayButton" type="button">▶ Replay</button>
           <button class="speed" type="button" data-speed="1">1×</button>
