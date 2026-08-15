@@ -133,7 +133,7 @@
 
   // x, z: centered on 0 ; y: bottom of the voxel at `y` (so voxel occupies [y, y+1))
   function V(x, y, z, color, sx = 1, sy = 1, sz = 1, ry = 0) {
-    const c = (typeof color === 'string') ? new THREE.Color(color) : color.clone();
+    const c = color && color.isColor ? color.clone() : new THREE.Color(color);
     _p.set(x + 0.5, y + sy / 2, z + 0.5);
     _s.set(sx, sy, sz);
     _e.set(0, ry, 0); _q.setFromEuler(_e);
