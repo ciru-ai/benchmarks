@@ -1,0 +1,1822 @@
+{
+  "ciru": {
+    "protocol": {
+      "classification": "local-custom HumanEval0-9 non-thinking MTP speed workload",
+      "arm": "ciru",
+      "host": "ciru",
+      "command": [
+        "/srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/run.sh",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/slots"
+      ],
+      "runtime": {
+        "schema": "ciru.locked-runtime.v1",
+        "candidate": "qwen38-ciru-rocm10-20260905-rc2",
+        "locked_at": "2026-09-05T14:11:42.419157+00:00",
+        "status": "LOCKED development candidate; Sozo ROCm10/gfx1151 qualified in stated scope; no production release or selector change",
+        "base_commit": "baba5e0617ac40aa88b9ba96f4b90e584caec64e",
+        "ancestry": [
+          "unified-next-20260904",
+          "draft-shortlist",
+          "retained-boundaries",
+          "fixed6-graph-boundaries"
+        ],
+        "lane_checkpoints": [
+          {
+            "id": "01a06e13-d2d8-7e83-82f3-8e8d1eb99868",
+            "title": "sozo quality lane",
+            "updated_at": "2026-09-05T07:15:56Z"
+          },
+          {
+            "id": "01a06e23-872a-7f52-8dbe-96b856f617e3",
+            "title": "ciru speed lane",
+            "updated_at": "2026-09-05T07:24:55Z"
+          }
+        ],
+        "all_retained_lane_fixes_included": true,
+        "missing_retained_fixes": [],
+        "inclusions": [
+          {
+            "fix": "H109C attention descriptor stride repair",
+            "origin": "sozo quality lane",
+            "included": "Inherited unified Next",
+            "source": [
+              "ggml/src/ggml-cuda/fattn-tile.cuh"
+            ],
+            "evidence": "Six-source unified build identity; all 14 attention-header dependent objects verified in current HIP link"
+          },
+          {
+            "fix": "Long QSA TOP_K GPU admission",
+            "origin": "sozo quality lane",
+            "included": "Inherited and enabled: GGML_QSA_LONG_TOPK=1",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu",
+              "ggml/src/ggml-cuda/top-k.cu"
+            ],
+            "evidence": "Qualified 35 selector cases / 17,920 rows; retained TOP_K recompiled unchanged during graph integration"
+          },
+          {
+            "fix": "Canonical restored-KV fast-path admission",
+            "origin": "sozo quality lane",
+            "included": "Inherited and enabled: GGML_QSA_RESTORE_FAST=1",
+            "source": [
+              "src/llama-memory-hybrid-idx.cpp"
+            ],
+            "evidence": "Verified unified object in current libllama link; served recovery activation itself remains unproven"
+          },
+          {
+            "fix": "Benchmark PLE and context argument plumbing",
+            "origin": "sozo quality lane",
+            "included": "Inherited unified benchmark binary",
+            "source": [
+              "tools/llama-bench/llama-bench.cpp"
+            ],
+            "evidence": "Same benchmark binary as retained shared ancestor"
+          },
+          {
+            "fix": "Seven-column Q5_K weight reuse",
+            "origin": "ciru speed lane",
+            "included": "Inherited unified HIP implementation",
+            "source": [
+              "ggml/src/ggml-cuda/mmvq.cu"
+            ],
+            "evidence": "Source matches tested e0a39ef3...; verified unified mmvq object; historical 9/9 byte-identical GPU cases"
+          },
+          {
+            "fix": "GPU MTP top-10 selector and support-probe repair",
+            "origin": "ciru speed lane",
+            "included": "Inherited top10-v2, enabled: CIRU_MTP_TOPK10=1",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu",
+              "ggml/src/ggml-cuda/top-k.cu",
+              "ggml/src/ggml-cuda/top-k.cuh"
+            ],
+            "evidence": "189 direct cases / 1,323 rows and real sampler support/execution qualified; exact retained source preserved"
+          },
+          {
+            "fix": "Dynamic 32,768-row MTP output shortlist",
+            "origin": "ciru speed lane",
+            "included": "Inherited draft-shortlist, enabled: CIRU_MTP_SHORTLIST=32768",
+            "source": [
+              "common/speculative.cpp",
+              "src/ciru-mtp-shortlist.h",
+              "src/models/qwen4exp.cpp"
+            ],
+            "evidence": "Original libllama-common unchanged; same source and retained model object. Target verification preserved"
+          },
+          {
+            "fix": "Decode-entry and internal-microbatch fences",
+            "origin": "sozo quality lane; integrated and qualified by Profile Sozo tools",
+            "included": "Added to direct shared shortlist ancestor",
+            "source": [
+              "src/llama-context.cpp"
+            ],
+            "evidence": "22 production-shape numerical captures plus actual MTP and balanced 520-token serving; final tokens match; review proposals improve"
+          },
+          {
+            "fix": "Fresh HIP graph recapture and no redundant first update",
+            "origin": "Profile Sozo tools",
+            "included": "Added, fresh instantiation default; legacy update option cleared by launcher",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu"
+            ],
+            "evidence": "Same-policy MTP outputs/counters match; graph-only balanced serving; causal correlated profile. Retained for runtime-work reduction with modest TG"
+          },
+          {
+            "fix": "Set launcher working directory to its bundle",
+            "origin": "Profile Sozo tools consolidation",
+            "included": "Packaging fix in RC2",
+            "source": [
+              "run.sh"
+            ],
+            "evidence": "Ciru version startup blocked on home/cirudata stat; same binary passed immediately with bundle cwd. Launcher now selects that cwd before exec."
+          }
+        ],
+        "exclusions": [
+          {
+            "candidate": "Adaptive confidence/draft-depth policy",
+            "reason": "Corrected comparison is parity; fixed-six remains retained"
+          },
+          {
+            "candidate": "Broad Q4_1 expert reuse, route sorting and gate/up fusion",
+            "reason": "No retained in-model win; broad reuse increases actual GPU execution despite isolated capture gains"
+          },
+          {
+            "candidate": "Q4_1 unroll, IQ4_NL expert representation, lookup/head replacements, depth eight",
+            "reason": "No qualified retained upgrade in Ciru speed lane"
+          },
+          {
+            "candidate": "F32 alpha/beta quality experiment",
+            "reason": "Failed its gate; no weight upgrade retained by Sozo quality lane"
+          },
+          {
+            "candidate": "DFlash/DFlash2 and feature-width prototype",
+            "reason": "No compatible trained drafter or qualified speed gain; parked under same-day scope"
+          },
+          {
+            "candidate": "Cooperative expert-weight sharing across parallel token warps",
+            "reason": "Future candidate only at latest Ciru checkpoint; no completed implementation to include"
+          },
+          {
+            "candidate": "Competitor factory tests and profiler installations",
+            "reason": "Measurement/tooling work, not fixes to the retained model"
+          }
+        ],
+        "launch": {
+          "argv": [
+            "<bundle>/bin/llama-server",
+            "--model",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+            "--alias",
+            "qwen38-mtp-probe",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "18186",
+            "--jinja",
+            "--ple-sidecar",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple",
+            "--ple-cache-mib",
+            "4096",
+            "-ngl",
+            "all",
+            "-sm",
+            "none",
+            "--fit",
+            "off",
+            "-c",
+            "16384",
+            "-b",
+            "2048",
+            "-ub",
+            "512",
+            "--parallel",
+            "1",
+            "-t",
+            "8",
+            "-tb",
+            "8",
+            "-ctk",
+            "f16",
+            "-ctv",
+            "f16",
+            "-fa",
+            "on",
+            "--cont-batching",
+            "--cache-prompt",
+            "--cache-ram",
+            "8192",
+            "--cache-idle-slots",
+            "--ctx-checkpoints",
+            "32",
+            "--checkpoint-min-step",
+            "8192",
+            "--metrics",
+            "--slots",
+            "--spec-type",
+            "draft-mtp",
+            "--spec-draft-model",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+            "--spec-draft-ngl",
+            "all",
+            "--spec-draft-device",
+            "ROCm0",
+            "--spec-draft-type-k",
+            "q8_0",
+            "--spec-draft-type-v",
+            "q8_0",
+            "--spec-draft-threads",
+            "8",
+            "--spec-draft-threads-batch",
+            "8",
+            "--spec-draft-n-max",
+            "6",
+            "--spec-draft-n-min",
+            "0",
+            "--spec-draft-p-min",
+            "0",
+            "--spec-draft-p-split",
+            "0.10"
+          ],
+          "env": {
+            "GGML_CUDA_Q41_MOE_FORCE_J": "32",
+            "GGML_QWEN4EXP_PLE_WORKERS": "16",
+            "GGML_QWEN4EXP_PLE_STRICT_SHA": "0",
+            "ROCBLAS_USE_HIPBLASLT": "1",
+            "GGML_QSA_LONG_TOPK": "1",
+            "GGML_QSA_RESTORE_FAST": "1",
+            "CIRU_MTP_TOPK10": "1",
+            "CIRU_MTP_SHORTLIST": "32768"
+          },
+          "unset": [
+            "GGML_HIP_GRAPH_EXEC_UPDATE",
+            "CIRU_MTP_GPU_CONFIDENCE",
+            "CIRU_MTP_GPU_ADAPTIVE",
+            "CIRU_MTP_GPU_CONF_MIN",
+            "CIRU_MOE_EXPERT_REUSE",
+            "CIRU_MTP_TRACE",
+            "CIRU_MTP_CONF_TRACE",
+            "LD_PRELOAD"
+          ],
+          "library_path": "<bundle>/bin plus installed ROCm10 libraries",
+          "cwd": "<bundle>"
+        },
+        "models": "models.json; full current hashes verified at lock creation, no weight change",
+        "runtime_hashes": {
+          "bin/libgcc_s.so.1": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+          "bin/libggml-base.so.0.22.0": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+          "bin/libggml-cpu.so.0.22.0": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+          "bin/libggml-hip.so.0.22.0": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+          "bin/libggml.so.0.22.0": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+          "bin/libgomp.so.1": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+          "bin/libllama-bench-impl.so": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+          "bin/libllama-cli-impl.so": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+          "bin/libllama-common.so.0.3.0": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+          "bin/libllama-server-impl.so": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+          "bin/libllama.so.0.3.0": "c29bec577633c8c0c0f0b08a2103b69135aff035aedd49eb70799310aef9576b",
+          "bin/libmtmd.so.0.3.0": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+          "bin/libstdc++.so.6": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+          "bin/llama-bench": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+          "bin/llama-cli": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+          "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+        },
+        "source_manifest": "evidence/inclusion-audit.json",
+        "full_patch": "full.patch",
+        "full_patch_sha256": "e4dd31d385dbe6e640be47cd185877d89cd3696272e80e2e38a58d6364377b3a",
+        "incremental_patch": "evidence/retained-runtime.patch",
+        "incremental_patch_sha256": "fad32d45623248c878bdeb7f470d8ab21839f44eabdd2a04694a318d697292df",
+        "tested_performance": {
+          "code_tg": [
+            42.280053297306495,
+            42.314176153996854
+          ],
+          "review_tg": [
+            31.42178300879495,
+            31.314892421578826
+          ],
+          "evidence": "evidence/CONTINUATION-RESULT.json",
+          "milestone_50_plus_met": false
+        },
+        "correctness": "22 full-vector production-shape captures plus same-policy MTP128 and balanced520 final-output equality. Graph-only acceptance counters equal; boundary correction improves review drafting.",
+        "limits": [
+          "50+ TG remains unproven",
+          "4K/8K prefixes within16K context and two fixed served prompts; not a full quality/long-session/multi-device release qualification",
+          "Shared system RAM measured; separate VRAM counters unavailable",
+          "Graph-only change +1.56% code/-0.34% review; do not advertise a large fixed6 speedup",
+          "No new weight quantization or training in this lane"
+        ],
+        "lock_policy": "Read-only snapshot. Fork/copy for future changes; changed source, binary, environment or CLI settings must receive a new candidate/variant identity. No automatic updates from lane working trees.",
+        "packaging_parent": "qwen38-ciru-rocm10-20260905-rc1",
+        "launcher_sha256": "6178acd86bb5f9d1dc4300619f4dc798d2d71d3649c9f0e2232e4542c777eec5",
+        "runtime_binary_delta_from_rc1": []
+      },
+      "artifacts": {
+        "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf": {
+          "resolved": "/home/halo/llm-models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+          "bytes": 79397818720,
+          "link": "/home/halo/llm-models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+          "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0",
+          "mtime_ns": 1788008884377941688,
+          "device": 66307,
+          "inode": 17838408
+        },
+        "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf": {
+          "resolved": "/home/halo/llm-models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+          "bytes": 4135893248,
+          "link": "/home/halo/llm-models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+          "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642",
+          "mtime_ns": 1788008885971892625,
+          "device": 66307,
+          "inode": 17838409
+        },
+        "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.manifest.json": {
+          "resolved": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.manifest.json",
+          "bytes": 115213,
+          "link": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.manifest.json",
+          "sha256": "eb7404ce5ef056729452df10ee888e0c300cd0459121444be3313c51788cc171",
+          "mtime_ns": 1787766334187770443,
+          "device": 66308,
+          "inode": 87687205
+        },
+        "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.payload.bin": {
+          "resolved": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.payload.bin",
+          "bytes": 52429053952,
+          "link": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.payload.bin",
+          "sha256": "687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2",
+          "mtime_ns": 1787766534066307056,
+          "device": 66308,
+          "inode": 87687204
+        },
+        "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.scale.bf16": {
+          "resolved": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.scale.bf16",
+          "bytes": 2,
+          "link": "/srv/llm/models/Qwen3.8-Flash-Next-FP8-CIRUPLE1-bcd9f01/ple.scale.bf16",
+          "sha256": "c7c58bd6007672362da2106fdbfaf9f50629e4bdf8598169c598027394ef9791",
+          "mtime_ns": 1787764234000000000,
+          "device": 66308,
+          "inode": 87687203
+        }
+      },
+      "verified_binary_hashes": {
+        "bin/libgcc_s.so.1": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+        "bin/libggml-base.so.0.22.0": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+        "bin/libggml-cpu.so.0.22.0": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+        "bin/libggml-hip.so.0.22.0": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+        "bin/libggml.so.0.22.0": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+        "bin/libgomp.so.1": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+        "bin/libllama-bench-impl.so": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+        "bin/libllama-cli-impl.so": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+        "bin/libllama-common.so.0.3.0": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+        "bin/libllama-server-impl.so": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+        "bin/libllama.so.0.3.0": "c29bec577633c8c0c0f0b08a2103b69135aff035aedd49eb70799310aef9576b",
+        "bin/libmtmd.so.0.3.0": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+        "bin/libstdc++.so.6": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+        "bin/llama-bench": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+        "bin/llama-cli": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+        "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+      },
+      "dataset_sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
+      "driver_sha256": "b0baed6c9f74603ef749cc86f7807abd46647f3e1b215d4f02b77eeaa91833ed",
+      "sampler": {
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 1,
+        "min_p": 0,
+        "repeat_penalty": 1,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "seed": 123
+      },
+      "reasoning": false,
+      "task_protocol": "Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.",
+      "output_policy": "Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.",
+      "aggregate_policy": "TG=sum generated tokens / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.",
+      "settings_basis": "CIRU locked retained d6 ROCm10 recipe at16K; Laurent publisher adaptive2\u20134 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.",
+      "governors": {
+        "/sys/devices/system/cpu/cpu21/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu11/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu9/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu7/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu28/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu18/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu5/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu26/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu16/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu24/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu14/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu22/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu12/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu30/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu20/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu10/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu8/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu29/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu19/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu6/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu27/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu17/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu25/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu15/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu23/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu13/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu31/cpufreq/scaling_governor": "performance"
+      },
+      "rendered_sha256": "2cc4c7910b4ad2e7f96e9f5f6ffda94e14ea458f110d302b2ff7a44358e92f2e",
+      "template_sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+    },
+    "identity": {
+      "arm": "ciru",
+      "host": "ciru",
+      "protocol_lock": "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/protocol.lock.json",
+      "command": [
+        "/srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/run.sh",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/slots"
+      ],
+      "maps": [
+        "787921400000-7879246cb000 r--p 00000000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7879246cb000-7879251bc000 r-xp 032ca000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7879251bc000-7879251cc000 r--p 03dba000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7879251cc000-7879251d0000 rw-p 03dc9000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "78792523a000-78792524d000 r--p 00000000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "78792524d000-787925358000 r-xp 00013000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "787925358000-787925378000 r--p 0011e000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "787925378000-78792537a000 r--p 0013d000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "78792537a000-78792537b000 rw-p 0013f000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "787925400000-7879254b4000 r--p 00000000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7879254b4000-787925762000 r-xp 000b4000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "787925762000-7879257e9000 r--p 00362000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7879257e9000-7879257f7000 r--p 003e8000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7879257f7000-7879257fc000 rw-p 003f6000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "787925800000-7879258a8000 r--p 00000000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7879258a8000-787925b89000 r-xp 000a8000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "787925b89000-787925c26000 r--p 00389000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "787925c26000-787925c2e000 r--p 00425000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "787925c2e000-787925c33000 rw-p 0042d000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "787925e00000-787925e7b000 r--p 00000000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "787925e7b000-787926075000 r-xp 0007b000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "787926075000-7879263c3000 r--p 00275000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7879263c3000-7879263c8000 r--p 005c3000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7879263c8000-7879263cc000 rw-p 005c8000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7879263fa000-78792640f000 r--p 00000000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "78792640f000-7879264a8000 r-xp 00015000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7879264a8000-7879264c8000 r--p 000ae000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7879264c8000-7879264ca000 r--p 000ce000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7879264ca000-7879264cc000 rw-p 000d0000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7879264cc000-7879264d4000 rw-p 000e3000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0"
+      ],
+      "pid": 3024002,
+      "slots": [
+        {
+          "id": 0,
+          "n_ctx": 16384,
+          "speculative": true,
+          "is_processing": false
+        }
+      ],
+      "props": {
+        "default_generation_settings": {
+          "params": {
+            "seed": 4294967295,
+            "temperature": 0.0,
+            "dynatemp_range": 0.0,
+            "dynatemp_exponent": 1.0,
+            "top_k": 1,
+            "top_p": 1.0,
+            "min_p": 0.0,
+            "top_n_sigma": -1.0,
+            "xtc_probability": 0.0,
+            "xtc_threshold": 0.10000000149011612,
+            "typical_p": 1.0,
+            "repeat_last_n": 64,
+            "repeat_penalty": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "dry_multiplier": 0.0,
+            "dry_base": 1.75,
+            "dry_allowed_length": 2,
+            "dry_penalty_last_n": 64,
+            "mirostat": 0,
+            "mirostat_tau": 5.0,
+            "mirostat_eta": 0.10000000149011612,
+            "adaptive_target": -1.0,
+            "adaptive_decay": 0.8999999761581421,
+            "max_tokens": -1,
+            "n_predict": -1,
+            "n_keep": 0,
+            "n_discard": 0,
+            "ignore_eos": false,
+            "stream": false,
+            "n_probs": 0,
+            "min_keep": 0,
+            "chat_format": "Content-only",
+            "reasoning_format": "none",
+            "reasoning_in_content": false,
+            "generation_prompt": "",
+            "samplers": [
+              "penalties",
+              "dry",
+              "top_n_sigma",
+              "top_k",
+              "typ_p",
+              "top_p",
+              "min_p",
+              "xtc",
+              "temperature"
+            ],
+            "speculative.types": "none",
+            "timings_per_token": false,
+            "post_sampling_probs": false,
+            "backend_sampling": false,
+            "lora": []
+          },
+          "n_ctx": 16384
+        },
+        "total_slots": 1,
+        "model_alias": "qwen38-mtp-probe",
+        "model_ftype": "Q5_K - Medium",
+        "model_path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+        "modalities": {
+          "vision": false,
+          "video": false,
+          "audio": false
+        },
+        "media_marker": "<__media_SvEPL4iTDhpMhA3yKQfFgF5SZnJ6RbX9__>",
+        "endpoint_slots": true,
+        "endpoint_props": false,
+        "endpoint_metrics": true,
+        "ui": true,
+        "ui_settings": {},
+        "chat_template": "{%- set image_count = namespace(value=0) %}\n{%- set video_count = namespace(value=0) %}\n{%- macro render_content(content, do_vision_count, is_system_content=false) %}\n    {%- if content is string %}\n        {{- content }}\n    {%- elif content is iterable and content is not mapping %}\n        {%- for item in content %}\n            {%- if 'image' in item or 'image_url' in item or item.type == 'image' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain images.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set image_count.value = image_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Picture ' ~ image_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|image_pad|><|vision_end|>' }}\n            {%- elif 'video' in item or item.type == 'video' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain videos.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set video_count.value = video_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Video ' ~ video_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|video_pad|><|vision_end|>' }}\n            {%- elif 'text' in item %}\n                {{- item.text }}\n            {%- else %}\n                {{- raise_exception('Unexpected item type in content.') }}\n            {%- endif %}\n        {%- endfor %}\n    {%- elif content is none or content is undefined %}\n        {{- '' }}\n    {%- else %}\n        {{- raise_exception('Unexpected content type.') }}\n    {%- endif %}\n{%- endmacro %}\n{%- if not messages %}\n    {{- raise_exception('No messages provided.') }}\n{%- endif %}\n{%- set reasoning_instructions = '' %}\n{%- if enable_thinking is undefined or enable_thinking is true %}\n    {%- set resolved_reasoning_effort = reasoning_effort|default('xhigh') %}\n    {%- if resolved_reasoning_effort not in ('xhigh', 'medium', 'low') %}\n        {{- raise_exception('Unexpected reasoning effort ' ~ reasoning_effort ~ '. Supported types are xhigh (default), medium, and low.') }}\n    {%- endif %}\n    {%- if resolved_reasoning_effort == 'xhigh' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to xhigh. Please think carefully through the task, validate key assumptions, consider plausible alternatives, and prioritize correctness, consistency, and clarity in the final answer.' %}\n    {%- elif resolved_reasoning_effort == 'low' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to low. Keep your thinking brief and focused, moving directly to the conclusion without unnecessary elaboration.' %}\n    {%- endif %}\n{%- endif %}\n{%- if tools and tools is iterable and tools is not mapping %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if reasoning_instructions %}\n        {{- reasoning_instructions + '\\n\\n' }}\n    {%- endif %}\n    {{- \"# Tools\\n\\nYou have access to the following functions:\\n\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\" }}\n    {{- '\\n\\nIf you choose to call a function ONLY reply in the following format with NO suffix:\\n\\n<tool_call>\\n<function=example_function_name>\\n<parameter=example_parameter_1>\\nvalue_1\\n</parameter>\\n<parameter=example_parameter_2>\\nThis is the value for the second parameter\\nthat can span\\nmultiple lines\\n</parameter>\\n</function>\\n</tool_call>\\n\\n<IMPORTANT>\\nReminder:\\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\\n- Required parameters MUST be specified\\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\\n</IMPORTANT>' }}\n    {%- if messages[0].role == 'system' %}\n        {%- set content = render_content(messages[0].content, false, true)|trim %}\n        {%- if content %}\n            {{- '\\n\\n' + content }}\n        {%- endif %}\n    {%- endif %}\n    {{- '<|im_end|>\\n' }}\n{%- else %}\n    {%- if messages[0].role == 'system' %}\n        {%- set content = render_content(messages[0].content, false, true)|trim %}\n        {%- if content %}\n            {{- '<|im_start|>system\\n' + (reasoning_instructions + '\\n\\n' if reasoning_instructions else '')  + content + '<|im_end|>\\n' }}\n        {%- elif reasoning_instructions %}\n            {{- '<|im_start|>system\\n' + reasoning_instructions + '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- elif reasoning_instructions %}\n        {{- '<|im_start|>system\\n' + reasoning_instructions + '<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- set ns = namespace(multi_step_tool=true, last_query_index=messages|length - 1) %}\n{%- for message in messages[::-1] %}\n    {%- set index = (messages|length - 1) - loop.index0 %}\n    {%- if ns.multi_step_tool and message.role == \"user\" %}\n        {%- set content = render_content(message.content, false)|trim %}\n        {%- if not(content.startswith('<tool_response>') and content.endswith('</tool_response>')) %}\n            {%- set ns.multi_step_tool = false %}\n            {%- set ns.last_query_index = index %}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if ns.multi_step_tool %}\n    {{- raise_exception('No user query found in messages.') }}\n{%- endif %}\n{%- for message in messages %}\n    {%- set content = render_content(message.content, true)|trim %}\n    {%- if message.role == \"system\" %}\n        {%- if not loop.first %}\n            {{- raise_exception('System message must be at the beginning.') }}\n        {%- endif %}\n    {%- elif message.role == \"user\" %}\n        {{- '<|im_start|>' + message.role + '\\n' + content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {%- set reasoning_content = '' %}\n        {%- if message.reasoning_content is string %}\n            {%- set reasoning_content = message.reasoning_content %}\n        {%- endif %}\n        {%- set reasoning_content = reasoning_content|trim %}\n        {%- if preserve_thinking is undefined or preserve_thinking is true or loop.index0 > ns.last_query_index %}\n            {{- '<|im_start|>' + message.role + '\\n<think>\\n' + reasoning_content + '\\n</think>\\n\\n' + content }}\n        {%- else %}\n            {{- '<|im_start|>' + message.role + '\\n' + content }}\n        {%- endif %}\n        {%- if message.tool_calls and message.tool_calls is iterable and message.tool_calls is not mapping %}\n            {%- for tool_call in message.tool_calls %}\n                {%- if tool_call.function is defined %}\n                    {%- set tool_call = tool_call.function %}\n                {%- endif %}\n                {%- if loop.first %}\n                    {%- if content|trim %}\n                        {{- '\\n\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- else %}\n                        {{- '<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- endif %}\n                {%- else %}\n                    {{- '\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                {%- endif %}\n                {%- if tool_call.arguments is defined and tool_call.arguments != '' %}\n                    {%- for args_name, args_value in tool_call.arguments|items %}\n                        {{- '<parameter=' + args_name + '>\\n' }}\n                        {%- set args_value = args_value | string if args_value is string else args_value | tojson | safe %}\n                        {{- args_value }}\n                        {{- '\\n</parameter>\\n' }}\n                    {%- endfor %}\n                {%- endif %}\n                {{- '</function>\\n</tool_call>' }}\n            {%- endfor %}\n        {%- endif %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if loop.previtem and loop.previtem.role != \"tool\" %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- content }}\n        {{- '\\n</tool_response>' }}\n        {%- if not loop.last and loop.nextitem.role != \"tool\" %}\n            {{- '<|im_end|>\\n' }}\n        {%- elif loop.last %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- else %}\n        {{- raise_exception('Unexpected message role.') }}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n    {%- if enable_thinking is defined and enable_thinking is false %}\n        {{- '<think>\\n\\n</think>\\n\\n' }}\n    {%- else %}\n        {{- '<think>\\n' }}\n    {%- endif %}\n{%- endif %}",
+        "chat_template_caps": {
+          "supports_object_arguments": true,
+          "supports_parallel_tool_calls": true,
+          "supports_preserve_reasoning": true,
+          "supports_reasoning_effort": true,
+          "supports_string_content": true,
+          "supports_system_role": true,
+          "supports_tool_calls": true,
+          "supports_tools": true,
+          "supports_typed_content": false
+        },
+        "bos_token": "<|endoftext|>",
+        "eos_token": "<|im_end|>",
+        "build_info": "b1-baba5e0",
+        "is_sleeping": false,
+        "cors_proxy_enabled": false
+      },
+      "runtime": {
+        "schema": "ciru.locked-runtime.v1",
+        "candidate": "qwen38-ciru-rocm10-20260905-rc2",
+        "locked_at": "2026-09-05T14:11:42.419157+00:00",
+        "status": "LOCKED development candidate; Sozo ROCm10/gfx1151 qualified in stated scope; no production release or selector change",
+        "base_commit": "baba5e0617ac40aa88b9ba96f4b90e584caec64e",
+        "ancestry": [
+          "unified-next-20260904",
+          "draft-shortlist",
+          "retained-boundaries",
+          "fixed6-graph-boundaries"
+        ],
+        "lane_checkpoints": [
+          {
+            "id": "01a06e13-d2d8-7e83-82f3-8e8d1eb99868",
+            "title": "sozo quality lane",
+            "updated_at": "2026-09-05T07:15:56Z"
+          },
+          {
+            "id": "01a06e23-872a-7f52-8dbe-96b856f617e3",
+            "title": "ciru speed lane",
+            "updated_at": "2026-09-05T07:24:55Z"
+          }
+        ],
+        "all_retained_lane_fixes_included": true,
+        "missing_retained_fixes": [],
+        "inclusions": [
+          {
+            "fix": "H109C attention descriptor stride repair",
+            "origin": "sozo quality lane",
+            "included": "Inherited unified Next",
+            "source": [
+              "ggml/src/ggml-cuda/fattn-tile.cuh"
+            ],
+            "evidence": "Six-source unified build identity; all 14 attention-header dependent objects verified in current HIP link"
+          },
+          {
+            "fix": "Long QSA TOP_K GPU admission",
+            "origin": "sozo quality lane",
+            "included": "Inherited and enabled: GGML_QSA_LONG_TOPK=1",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu",
+              "ggml/src/ggml-cuda/top-k.cu"
+            ],
+            "evidence": "Qualified 35 selector cases / 17,920 rows; retained TOP_K recompiled unchanged during graph integration"
+          },
+          {
+            "fix": "Canonical restored-KV fast-path admission",
+            "origin": "sozo quality lane",
+            "included": "Inherited and enabled: GGML_QSA_RESTORE_FAST=1",
+            "source": [
+              "src/llama-memory-hybrid-idx.cpp"
+            ],
+            "evidence": "Verified unified object in current libllama link; served recovery activation itself remains unproven"
+          },
+          {
+            "fix": "Benchmark PLE and context argument plumbing",
+            "origin": "sozo quality lane",
+            "included": "Inherited unified benchmark binary",
+            "source": [
+              "tools/llama-bench/llama-bench.cpp"
+            ],
+            "evidence": "Same benchmark binary as retained shared ancestor"
+          },
+          {
+            "fix": "Seven-column Q5_K weight reuse",
+            "origin": "ciru speed lane",
+            "included": "Inherited unified HIP implementation",
+            "source": [
+              "ggml/src/ggml-cuda/mmvq.cu"
+            ],
+            "evidence": "Source matches tested e0a39ef3...; verified unified mmvq object; historical 9/9 byte-identical GPU cases"
+          },
+          {
+            "fix": "GPU MTP top-10 selector and support-probe repair",
+            "origin": "ciru speed lane",
+            "included": "Inherited top10-v2, enabled: CIRU_MTP_TOPK10=1",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu",
+              "ggml/src/ggml-cuda/top-k.cu",
+              "ggml/src/ggml-cuda/top-k.cuh"
+            ],
+            "evidence": "189 direct cases / 1,323 rows and real sampler support/execution qualified; exact retained source preserved"
+          },
+          {
+            "fix": "Dynamic 32,768-row MTP output shortlist",
+            "origin": "ciru speed lane",
+            "included": "Inherited draft-shortlist, enabled: CIRU_MTP_SHORTLIST=32768",
+            "source": [
+              "common/speculative.cpp",
+              "src/ciru-mtp-shortlist.h",
+              "src/models/qwen4exp.cpp"
+            ],
+            "evidence": "Original libllama-common unchanged; same source and retained model object. Target verification preserved"
+          },
+          {
+            "fix": "Decode-entry and internal-microbatch fences",
+            "origin": "sozo quality lane; integrated and qualified by Profile Sozo tools",
+            "included": "Added to direct shared shortlist ancestor",
+            "source": [
+              "src/llama-context.cpp"
+            ],
+            "evidence": "22 production-shape numerical captures plus actual MTP and balanced 520-token serving; final tokens match; review proposals improve"
+          },
+          {
+            "fix": "Fresh HIP graph recapture and no redundant first update",
+            "origin": "Profile Sozo tools",
+            "included": "Added, fresh instantiation default; legacy update option cleared by launcher",
+            "source": [
+              "ggml/src/ggml-cuda/ggml-cuda.cu"
+            ],
+            "evidence": "Same-policy MTP outputs/counters match; graph-only balanced serving; causal correlated profile. Retained for runtime-work reduction with modest TG"
+          },
+          {
+            "fix": "Set launcher working directory to its bundle",
+            "origin": "Profile Sozo tools consolidation",
+            "included": "Packaging fix in RC2",
+            "source": [
+              "run.sh"
+            ],
+            "evidence": "Ciru version startup blocked on home/cirudata stat; same binary passed immediately with bundle cwd. Launcher now selects that cwd before exec."
+          }
+        ],
+        "exclusions": [
+          {
+            "candidate": "Adaptive confidence/draft-depth policy",
+            "reason": "Corrected comparison is parity; fixed-six remains retained"
+          },
+          {
+            "candidate": "Broad Q4_1 expert reuse, route sorting and gate/up fusion",
+            "reason": "No retained in-model win; broad reuse increases actual GPU execution despite isolated capture gains"
+          },
+          {
+            "candidate": "Q4_1 unroll, IQ4_NL expert representation, lookup/head replacements, depth eight",
+            "reason": "No qualified retained upgrade in Ciru speed lane"
+          },
+          {
+            "candidate": "F32 alpha/beta quality experiment",
+            "reason": "Failed its gate; no weight upgrade retained by Sozo quality lane"
+          },
+          {
+            "candidate": "DFlash/DFlash2 and feature-width prototype",
+            "reason": "No compatible trained drafter or qualified speed gain; parked under same-day scope"
+          },
+          {
+            "candidate": "Cooperative expert-weight sharing across parallel token warps",
+            "reason": "Future candidate only at latest Ciru checkpoint; no completed implementation to include"
+          },
+          {
+            "candidate": "Competitor factory tests and profiler installations",
+            "reason": "Measurement/tooling work, not fixes to the retained model"
+          }
+        ],
+        "launch": {
+          "argv": [
+            "<bundle>/bin/llama-server",
+            "--model",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+            "--alias",
+            "qwen38-mtp-probe",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "18186",
+            "--jinja",
+            "--ple-sidecar",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple",
+            "--ple-cache-mib",
+            "4096",
+            "-ngl",
+            "all",
+            "-sm",
+            "none",
+            "--fit",
+            "off",
+            "-c",
+            "16384",
+            "-b",
+            "2048",
+            "-ub",
+            "512",
+            "--parallel",
+            "1",
+            "-t",
+            "8",
+            "-tb",
+            "8",
+            "-ctk",
+            "f16",
+            "-ctv",
+            "f16",
+            "-fa",
+            "on",
+            "--cont-batching",
+            "--cache-prompt",
+            "--cache-ram",
+            "8192",
+            "--cache-idle-slots",
+            "--ctx-checkpoints",
+            "32",
+            "--checkpoint-min-step",
+            "8192",
+            "--metrics",
+            "--slots",
+            "--spec-type",
+            "draft-mtp",
+            "--spec-draft-model",
+            "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+            "--spec-draft-ngl",
+            "all",
+            "--spec-draft-device",
+            "ROCm0",
+            "--spec-draft-type-k",
+            "q8_0",
+            "--spec-draft-type-v",
+            "q8_0",
+            "--spec-draft-threads",
+            "8",
+            "--spec-draft-threads-batch",
+            "8",
+            "--spec-draft-n-max",
+            "6",
+            "--spec-draft-n-min",
+            "0",
+            "--spec-draft-p-min",
+            "0",
+            "--spec-draft-p-split",
+            "0.10"
+          ],
+          "env": {
+            "GGML_CUDA_Q41_MOE_FORCE_J": "32",
+            "GGML_QWEN4EXP_PLE_WORKERS": "16",
+            "GGML_QWEN4EXP_PLE_STRICT_SHA": "0",
+            "ROCBLAS_USE_HIPBLASLT": "1",
+            "GGML_QSA_LONG_TOPK": "1",
+            "GGML_QSA_RESTORE_FAST": "1",
+            "CIRU_MTP_TOPK10": "1",
+            "CIRU_MTP_SHORTLIST": "32768"
+          },
+          "unset": [
+            "GGML_HIP_GRAPH_EXEC_UPDATE",
+            "CIRU_MTP_GPU_CONFIDENCE",
+            "CIRU_MTP_GPU_ADAPTIVE",
+            "CIRU_MTP_GPU_CONF_MIN",
+            "CIRU_MOE_EXPERT_REUSE",
+            "CIRU_MTP_TRACE",
+            "CIRU_MTP_CONF_TRACE",
+            "LD_PRELOAD"
+          ],
+          "library_path": "<bundle>/bin plus installed ROCm10 libraries",
+          "cwd": "<bundle>"
+        },
+        "models": "models.json; full current hashes verified at lock creation, no weight change",
+        "runtime_hashes": {
+          "bin/libgcc_s.so.1": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+          "bin/libggml-base.so.0.22.0": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+          "bin/libggml-cpu.so.0.22.0": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+          "bin/libggml-hip.so.0.22.0": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+          "bin/libggml.so.0.22.0": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+          "bin/libgomp.so.1": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+          "bin/libllama-bench-impl.so": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+          "bin/libllama-cli-impl.so": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+          "bin/libllama-common.so.0.3.0": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+          "bin/libllama-server-impl.so": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+          "bin/libllama.so.0.3.0": "c29bec577633c8c0c0f0b08a2103b69135aff035aedd49eb70799310aef9576b",
+          "bin/libmtmd.so.0.3.0": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+          "bin/libstdc++.so.6": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+          "bin/llama-bench": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+          "bin/llama-cli": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+          "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+        },
+        "source_manifest": "evidence/inclusion-audit.json",
+        "full_patch": "full.patch",
+        "full_patch_sha256": "e4dd31d385dbe6e640be47cd185877d89cd3696272e80e2e38a58d6364377b3a",
+        "incremental_patch": "evidence/retained-runtime.patch",
+        "incremental_patch_sha256": "fad32d45623248c878bdeb7f470d8ab21839f44eabdd2a04694a318d697292df",
+        "tested_performance": {
+          "code_tg": [
+            42.280053297306495,
+            42.314176153996854
+          ],
+          "review_tg": [
+            31.42178300879495,
+            31.314892421578826
+          ],
+          "evidence": "evidence/CONTINUATION-RESULT.json",
+          "milestone_50_plus_met": false
+        },
+        "correctness": "22 full-vector production-shape captures plus same-policy MTP128 and balanced520 final-output equality. Graph-only acceptance counters equal; boundary correction improves review drafting.",
+        "limits": [
+          "50+ TG remains unproven",
+          "4K/8K prefixes within16K context and two fixed served prompts; not a full quality/long-session/multi-device release qualification",
+          "Shared system RAM measured; separate VRAM counters unavailable",
+          "Graph-only change +1.56% code/-0.34% review; do not advertise a large fixed6 speedup",
+          "No new weight quantization or training in this lane"
+        ],
+        "lock_policy": "Read-only snapshot. Fork/copy for future changes; changed source, binary, environment or CLI settings must receive a new candidate/variant identity. No automatic updates from lane working trees.",
+        "packaging_parent": "qwen38-ciru-rocm10-20260905-rc1",
+        "launcher_sha256": "6178acd86bb5f9d1dc4300619f4dc798d2d71d3649c9f0e2232e4542c777eec5",
+        "runtime_binary_delta_from_rc1": []
+      }
+    }
+  },
+  "laurent": {
+    "protocol": {
+      "classification": "local-custom HumanEval0-9 non-thinking MTP speed workload",
+      "arm": "laurent",
+      "host": "sozo",
+      "command": [
+        "/srv/llm/work/agention-baseline-20260904/bin-native/llama-server",
+        "-m",
+        "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-ROCmFP4-FAST-ad4c5717254a/Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+        "-md",
+        "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST-5a2cf56c3e0f/Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST.gguf",
+        "--spec-type",
+        "draft-mtp",
+        "--spec-draft-adaptive",
+        "--spec-draft-n-min",
+        "2",
+        "--spec-draft-n-max",
+        "4",
+        "-ngl",
+        "99",
+        "--n-gpu-layers-draft",
+        "99",
+        "-ctk",
+        "q8_0",
+        "-ctv",
+        "q8_0",
+        "-fa",
+        "on",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/laurent/slots"
+      ],
+      "runtime": {
+        "source": "https://github.com/LaurentZuijdwijk/llama.cpp",
+        "branch": "vulkan/qwen4exp-rocmfpx",
+        "commit": "5e085d123eead2e89b5c19f824fccb05727da6a2",
+        "source_modified": false,
+        "build": "Release; GGML_VULKAN=ON; GGML_NATIVE=ON; -march=native on identical Ryzen AI MAX+395; GCC15.2; glslc2026.1",
+        "bin": "/srv/llm/work/agention-baseline-20260904/bin-native",
+        "binary_sha256": {
+          "agention-logit-capture": "e5e8fd13e0e30dd282c7e31c163a168ee5409779b95e57b2ffef3eb5d82db015",
+          "libggml.so.0.22.0": "2bbc5d9d724471ce8ba2bd718f42540683937a516cbfd6e7a2db892142cae6c9",
+          "libllama-bench-impl.so": "dd076a83339e15dd882511c4a572ea437769a1fbb9e0eac1431e1b79204ed375",
+          "libggml-cpu.so.0.22.0": "3ef48c8227e760b0eef31a5cf8a9e304ba0e54da4c7bd25e1e85b8100170a287",
+          "llama-perplexity": "18795d1a52d38afcbd98d9246e023a41254adaabb7bafa1432b9199c4e213f27",
+          "libllama-common.so.0.3.0": "0ea75f4fbeddfb4f32df9551d351d2bd0070c3965386c41860de54abc803ce9c",
+          "libllama.so.0.3.0": "ea96f618251bf27e91bbd01f6d88ec7c617b05bdb590696b33a19aed2fc039e4",
+          "llama-server": "ee03ebdbfabd73ab96f4db975f64ee4c514ade22d7c91b5119a4c7298543cc23",
+          "libllama-server-impl.so": "eaaf255d36c54f1792cceb9fc076139f3c7af082170dc464eb80b39585026e6a",
+          "llama-bench": "0f86842c7c7d19be46715f92fd738b39457640d4a73f8564bb9e6e0bdf10db9f",
+          "libggml-vulkan.so.0.22.0": "35027a5e4d4a16abbf03fb766179779801376d2706978f2802d5289b50302c5a",
+          "libggml-base.so.0.22.0": "7c38040b141b7d992e5038fc41a0672a59e08f6da5100087d38f819db76efdaa",
+          "libllama-perplexity-impl.so": "b4f4034405ea24ac288638dbd49958b250db9ad380243ae824ee399cc64c559d",
+          "libmtmd.so.0.3.0": "77f181821ccb697b842e20ea17cbe373fe7a129c84a49c9bd24ed85230e94564"
+        },
+        "model_receipt": {
+          "state": "COMPLETE",
+          "repo": "agentionai/Qwen3.8-Flash-Next-ROCmFP4-FAST-imatrix-GGUF",
+          "revision": "ad4c5717254a630ee0c5a8db5208eb1f8476e56c",
+          "files": [
+            {
+              "file": ".gitattributes",
+              "bytes": 3056,
+              "sha256": "13abf0cb3eaf629e3431d353759d39dc05f6ee93be4e0be3659b998f3e83cd5f",
+              "verified_utc": "2026-09-05T01:14:03.991766+00:00"
+            },
+            {
+              "file": "README.md",
+              "bytes": 9020,
+              "sha256": "2aa99e13ea2f3e4329692282ea6aed56f2e73e62364627d8c8209b0ca06d8bbf",
+              "verified_utc": "2026-09-05T01:14:04.302070+00:00"
+            },
+            {
+              "file": "assets/throughput-vs-depth.png",
+              "bytes": 185136,
+              "sha256": "757755421061f21730f8251240e429e1ed2e1f683e277f81083c81146484c582",
+              "verified_utc": "2026-09-05T01:14:04.930333+00:00"
+            },
+            {
+              "file": "mmproj/mmproj-Qwen3.8-Flash-Next-f16.gguf",
+              "bytes": 904004128,
+              "sha256": "f456cd796fdbdef0cadb22710b54e0071b6cdf22c07963365baa898267aec517",
+              "verified_utc": "2026-09-05T01:14:12.918470+00:00"
+            },
+            {
+              "file": "Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+              "bytes": 93484237760,
+              "sha256": "552a7a162f6a620c3aa0850d070086bc2b95094e0a4e8b860694c7f212cb59d8",
+              "verified_utc": "2026-09-05T01:23:03.986191+00:00"
+            }
+          ],
+          "completed_utc": "2026-09-05T01:23:03.986271+00:00"
+        },
+        "draft_receipt": {
+          "state": "COMPLETE",
+          "repo": "agentionai/Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST-GGUF",
+          "revision": "5a2cf56c3e0f8bc8d395d53bec649ec8e358a993",
+          "files": [
+            {
+              "file": ".gitattributes",
+              "bytes": 1596,
+              "sha256": "2c8de7fbce4de3b2a94d3215ba4e3e33ebeb107c634b429d3b18e2713252d669",
+              "verified_utc": "2026-09-05T03:33:09.932944+00:00"
+            },
+            {
+              "file": "README.md",
+              "bytes": 2939,
+              "sha256": "fa6de4146c9b31e3f96c2969d6a8c958681f36a92b28033f98f36c24bc908a18",
+              "verified_utc": "2026-09-05T03:33:10.160120+00:00"
+            },
+            {
+              "file": "LICENSE",
+              "bytes": 3235,
+              "sha256": "a0dc422560841fd68e06d974907f8b4c709bca44a67daad2b528437bdf676c08",
+              "verified_utc": "2026-09-05T03:33:10.377404+00:00"
+            },
+            {
+              "file": "Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST.gguf",
+              "bytes": 2444519296,
+              "sha256": "5046d69571bb35c699e19c7a00b36633c2fdfdd06d70482551744ec523a6b590",
+              "verified_utc": "2026-09-05T03:34:21.425457+00:00"
+            }
+          ],
+          "completed_utc": "2026-09-05T03:34:21.425537+00:00"
+        },
+        "environment": {
+          "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+          "LD_LIBRARY_PATH": "/srv/llm/work/agention-baseline-20260904/bin-native:/nix/store/zs7y2aadk71bawprdcn000az9y05s8nf-vulkan-loader-1.4.341.0/lib"
+        }
+      },
+      "artifacts": {
+        "state": "COMPLETE",
+        "repo": "agentionai/Qwen3.8-Flash-Next-ROCmFP4-FAST-imatrix-GGUF",
+        "revision": "ad4c5717254a630ee0c5a8db5208eb1f8476e56c",
+        "files": [
+          {
+            "file": ".gitattributes",
+            "bytes": 3056,
+            "sha256": "13abf0cb3eaf629e3431d353759d39dc05f6ee93be4e0be3659b998f3e83cd5f",
+            "verified_utc": "2026-09-05T01:14:03.991766+00:00"
+          },
+          {
+            "file": "README.md",
+            "bytes": 9020,
+            "sha256": "2aa99e13ea2f3e4329692282ea6aed56f2e73e62364627d8c8209b0ca06d8bbf",
+            "verified_utc": "2026-09-05T01:14:04.302070+00:00"
+          },
+          {
+            "file": "assets/throughput-vs-depth.png",
+            "bytes": 185136,
+            "sha256": "757755421061f21730f8251240e429e1ed2e1f683e277f81083c81146484c582",
+            "verified_utc": "2026-09-05T01:14:04.930333+00:00"
+          },
+          {
+            "file": "mmproj/mmproj-Qwen3.8-Flash-Next-f16.gguf",
+            "bytes": 904004128,
+            "sha256": "f456cd796fdbdef0cadb22710b54e0071b6cdf22c07963365baa898267aec517",
+            "verified_utc": "2026-09-05T01:14:12.918470+00:00"
+          },
+          {
+            "file": "Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+            "bytes": 93484237760,
+            "sha256": "552a7a162f6a620c3aa0850d070086bc2b95094e0a4e8b860694c7f212cb59d8",
+            "verified_utc": "2026-09-05T01:23:03.986191+00:00"
+          }
+        ],
+        "completed_utc": "2026-09-05T01:23:03.986271+00:00"
+      },
+      "verified_binary_hashes": {
+        "agention-logit-capture": "e5e8fd13e0e30dd282c7e31c163a168ee5409779b95e57b2ffef3eb5d82db015",
+        "libggml.so.0.22.0": "2bbc5d9d724471ce8ba2bd718f42540683937a516cbfd6e7a2db892142cae6c9",
+        "libllama-bench-impl.so": "dd076a83339e15dd882511c4a572ea437769a1fbb9e0eac1431e1b79204ed375",
+        "libggml-cpu.so.0.22.0": "3ef48c8227e760b0eef31a5cf8a9e304ba0e54da4c7bd25e1e85b8100170a287",
+        "llama-perplexity": "18795d1a52d38afcbd98d9246e023a41254adaabb7bafa1432b9199c4e213f27",
+        "libllama-common.so.0.3.0": "0ea75f4fbeddfb4f32df9551d351d2bd0070c3965386c41860de54abc803ce9c",
+        "libllama.so.0.3.0": "ea96f618251bf27e91bbd01f6d88ec7c617b05bdb590696b33a19aed2fc039e4",
+        "llama-server": "ee03ebdbfabd73ab96f4db975f64ee4c514ade22d7c91b5119a4c7298543cc23",
+        "libllama-server-impl.so": "eaaf255d36c54f1792cceb9fc076139f3c7af082170dc464eb80b39585026e6a",
+        "llama-bench": "0f86842c7c7d19be46715f92fd738b39457640d4a73f8564bb9e6e0bdf10db9f",
+        "libggml-vulkan.so.0.22.0": "35027a5e4d4a16abbf03fb766179779801376d2706978f2802d5289b50302c5a",
+        "libggml-base.so.0.22.0": "7c38040b141b7d992e5038fc41a0672a59e08f6da5100087d38f819db76efdaa",
+        "libllama-perplexity-impl.so": "b4f4034405ea24ac288638dbd49958b250db9ad380243ae824ee399cc64c559d",
+        "libmtmd.so.0.3.0": "77f181821ccb697b842e20ea17cbe373fe7a129c84a49c9bd24ed85230e94564"
+      },
+      "dataset_sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
+      "driver_sha256": "b9533cc94b2305d79153567443b895b806cecf24211b40d054a9a960c66df81c",
+      "sampler": {
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 1,
+        "min_p": 0,
+        "repeat_penalty": 1,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "seed": 123
+      },
+      "reasoning": false,
+      "task_protocol": "Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.",
+      "output_policy": "Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.",
+      "aggregate_policy": "TG=sum generated tokens / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.",
+      "settings_basis": "CIRU locked retained d6 ROCm10 recipe at16K; Laurent publisher adaptive2\u20134 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.",
+      "governors": {
+        "/sys/devices/system/cpu/cpu21/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu11/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu9/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu7/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu28/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu18/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu5/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu26/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu16/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu24/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu14/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu22/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu12/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu30/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu20/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu10/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu8/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu29/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu19/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu6/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu27/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu17/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu25/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu15/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu23/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu13/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu31/cpufreq/scaling_governor": "performance"
+      },
+      "rendered_sha256": "2cc4c7910b4ad2e7f96e9f5f6ffda94e14ea458f110d302b2ff7a44358e92f2e",
+      "template_sha256": "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+    },
+    "identity": {
+      "arm": "laurent",
+      "host": "sozo",
+      "protocol_lock": "/srv/llm/work/qwen38-research-page-20260905/benchmarks/laurent/protocol.lock.json",
+      "command": [
+        "/srv/llm/work/agention-baseline-20260904/bin-native/llama-server",
+        "-m",
+        "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-ROCmFP4-FAST-ad4c5717254a/Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+        "-md",
+        "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST-5a2cf56c3e0f/Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST.gguf",
+        "--spec-type",
+        "draft-mtp",
+        "--spec-draft-adaptive",
+        "--spec-draft-n-min",
+        "2",
+        "--spec-draft-n-max",
+        "4",
+        "-ngl",
+        "99",
+        "--n-gpu-layers-draft",
+        "99",
+        "-ctk",
+        "q8_0",
+        "-ctv",
+        "q8_0",
+        "-fa",
+        "on",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/laurent/slots"
+      ],
+      "maps": [
+        "78e61c600000-78e61c681000 r--p 00000000 103:04 30954711                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-vulkan.so.0.22.0",
+        "78e61c681000-78e61c95e000 r-xp 00081000 103:04 30954711                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-vulkan.so.0.22.0",
+        "78e61c95e000-78e6203af000 r--p 0035e000 103:04 30954711                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-vulkan.so.0.22.0",
+        "78e6203af000-78e6203b7000 r--p 03daf000 103:04 30954711                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-vulkan.so.0.22.0",
+        "78e6203b7000-78e6203b9000 rw-p 03db7000 103:04 30954711                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-vulkan.so.0.22.0",
+        "78e62043a000-78e62044d000 r--p 00000000 103:04 30954710                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-cpu.so.0.22.0",
+        "78e62044d000-78e620558000 r-xp 00013000 103:04 30954710                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-cpu.so.0.22.0",
+        "78e620558000-78e620578000 r--p 0011e000 103:04 30954710                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-cpu.so.0.22.0",
+        "78e620578000-78e62057a000 r--p 0013d000 103:04 30954710                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-cpu.so.0.22.0",
+        "78e62057a000-78e62057b000 rw-p 0013f000 103:04 30954710                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-cpu.so.0.22.0",
+        "78e620600000-78e6206ae000 r--p 00000000 103:04 30954717                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama.so.0.3.0",
+        "78e6206ae000-78e620935000 r-xp 000ae000 103:04 30954717                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama.so.0.3.0",
+        "78e620935000-78e6209b4000 r--p 00335000 103:04 30954717                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama.so.0.3.0",
+        "78e6209b4000-78e6209c1000 r--p 003b4000 103:04 30954717                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama.so.0.3.0",
+        "78e6209c1000-78e6209c6000 rw-p 003c1000 103:04 30954717                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama.so.0.3.0",
+        "78e620c00000-78e620caa000 r--p 00000000 103:04 30954714                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-common.so.0.3.0",
+        "78e620caa000-78e620f8d000 r-xp 000aa000 103:04 30954714                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-common.so.0.3.0",
+        "78e620f8d000-78e62102b000 r--p 0038d000 103:04 30954714                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-common.so.0.3.0",
+        "78e62102b000-78e621033000 r--p 0042b000 103:04 30954714                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-common.so.0.3.0",
+        "78e621033000-78e621038000 rw-p 00433000 103:04 30954714                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-common.so.0.3.0",
+        "78e62111b000-78e621131000 r--p 00000000 103:04 30954709                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-base.so.0.22.0",
+        "78e621131000-78e6211d9000 r-xp 00016000 103:04 30954709                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-base.so.0.22.0",
+        "78e6211d9000-78e6211fb000 r--p 000be000 103:04 30954709                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-base.so.0.22.0",
+        "78e6211fb000-78e6211fe000 r--p 000df000 103:04 30954709                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-base.so.0.22.0",
+        "78e6211fe000-78e621200000 rw-p 000e2000 103:04 30954709                  /srv/llm/work/agention-baseline-20260904/bin-native/libggml-base.so.0.22.0",
+        "78e621200000-78e62127d000 r--p 00000000 103:04 30954716                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-server-impl.so",
+        "78e62127d000-78e62147a000 r-xp 0007d000 103:04 30954716                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-server-impl.so",
+        "78e62147a000-78e6217c9000 r--p 0027a000 103:04 30954716                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-server-impl.so",
+        "78e6217c9000-78e6217ce000 r--p 005c9000 103:04 30954716                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-server-impl.so",
+        "78e6217ce000-78e6217d2000 rw-p 005ce000 103:04 30954716                  /srv/llm/work/agention-baseline-20260904/bin-native/libllama-server-impl.so"
+      ],
+      "pid": 321253,
+      "slots": [
+        {
+          "id": 0,
+          "n_ctx": 262144,
+          "speculative": true,
+          "is_processing": false
+        }
+      ],
+      "props": {
+        "default_generation_settings": {
+          "params": {
+            "seed": 4294967295,
+            "temperature": 0.0,
+            "dynatemp_range": 0.0,
+            "dynatemp_exponent": 1.0,
+            "top_k": 1,
+            "top_p": 1.0,
+            "min_p": 0.0,
+            "top_n_sigma": -1.0,
+            "xtc_probability": 0.0,
+            "xtc_threshold": 0.10000000149011612,
+            "typical_p": 1.0,
+            "repeat_last_n": 64,
+            "repeat_penalty": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "dry_multiplier": 0.0,
+            "dry_base": 1.75,
+            "dry_allowed_length": 2,
+            "dry_penalty_last_n": 64,
+            "mirostat": 0,
+            "mirostat_tau": 5.0,
+            "mirostat_eta": 0.10000000149011612,
+            "adaptive_target": -1.0,
+            "adaptive_decay": 0.8999999761581421,
+            "max_tokens": -1,
+            "n_predict": -1,
+            "n_keep": 0,
+            "n_discard": 0,
+            "ignore_eos": false,
+            "stream": false,
+            "n_probs": 0,
+            "min_keep": 0,
+            "chat_format": "Content-only",
+            "reasoning_format": "none",
+            "reasoning_in_content": false,
+            "generation_prompt": "",
+            "samplers": [
+              "penalties",
+              "dry",
+              "top_n_sigma",
+              "top_k",
+              "typ_p",
+              "top_p",
+              "min_p",
+              "xtc",
+              "temperature"
+            ],
+            "speculative.types": "none",
+            "timings_per_token": false,
+            "post_sampling_probs": false,
+            "backend_sampling": false,
+            "lora": []
+          },
+          "n_ctx": 262144
+        },
+        "total_slots": 1,
+        "model_alias": "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-ROCmFP4-FAST-ad4c5717254a/Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+        "model_ftype": "Q4_0_ROCMFP4_FAST",
+        "model_path": "/srv/llm/models/agentionai-Qwen3.8-Flash-Next-ROCmFP4-FAST-ad4c5717254a/Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+        "modalities": {
+          "vision": false,
+          "video": false,
+          "audio": false
+        },
+        "media_marker": "<__media_anicSXLOq1OdvsgwoV4pWJv8ZTVkl8LO__>",
+        "endpoint_slots": true,
+        "endpoint_props": false,
+        "endpoint_metrics": true,
+        "ui": true,
+        "ui_settings": {},
+        "chat_template": "{%- set image_count = namespace(value=0) %}\n{%- set video_count = namespace(value=0) %}\n{%- macro render_content(content, do_vision_count, is_system_content=false) %}\n    {%- if content is string %}\n        {{- content }}\n    {%- elif content is iterable and content is not mapping %}\n        {%- for item in content %}\n            {%- if 'image' in item or 'image_url' in item or item.type == 'image' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain images.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set image_count.value = image_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Picture ' ~ image_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|image_pad|><|vision_end|>' }}\n            {%- elif 'video' in item or item.type == 'video' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain videos.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set video_count.value = video_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Video ' ~ video_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|video_pad|><|vision_end|>' }}\n            {%- elif 'text' in item %}\n                {{- item.text }}\n            {%- else %}\n                {{- raise_exception('Unexpected item type in content.') }}\n            {%- endif %}\n        {%- endfor %}\n    {%- elif content is none or content is undefined %}\n        {{- '' }}\n    {%- else %}\n        {{- raise_exception('Unexpected content type.') }}\n    {%- endif %}\n{%- endmacro %}\n{%- if not messages %}\n    {{- raise_exception('No messages provided.') }}\n{%- endif %}\n{%- set sysns = namespace(count=0, text='') %}\n{%- for message in messages %}\n    {%- if sysns.count == loop.index0 and (message.role == 'system' or message.role == 'developer') %}\n        {%- set sys_content = render_content(message.content, false, true)|trim %}\n        {%- if sys_content %}\n            {%- set sysns.text = sysns.text + ('\\n' if sysns.text else '') + sys_content %}\n        {%- endif %}\n        {%- set sysns.count = sysns.count + 1 %}\n    {%- endif %}\n{%- endfor %}\n{%- set num_sys = sysns.count %}\n{%- set merged_system = sysns.text %}\n{%- set reasoning_instructions = '' %}\n{%- if enable_thinking is undefined or enable_thinking is true %}\n    {%- set resolved_reasoning_effort = reasoning_effort|default('xhigh') %}\n    {%- if resolved_reasoning_effort == 'high' %}\n        {%- set resolved_reasoning_effort = 'xhigh' %}\n    {%- endif %}\n    {%- if resolved_reasoning_effort not in ('xhigh', 'medium', 'low') %}\n        {{- raise_exception('Unexpected reasoning effort ' ~ reasoning_effort ~ '. Supported types are xhigh (default), medium, and low.') }}\n    {%- endif %}\n    {%- if resolved_reasoning_effort == 'xhigh' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to xhigh. Please think carefully through the task, validate key assumptions, consider plausible alternatives, and prioritize correctness, consistency, and clarity in the final answer.' %}\n    {%- elif resolved_reasoning_effort == 'low' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to low. Keep your thinking brief and focused, moving directly to the conclusion without unnecessary elaboration.' %}\n    {%- endif %}\n{%- endif %}\n{%- if tools and tools is iterable and tools is not mapping %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if reasoning_instructions %}\n        {{- reasoning_instructions + '\\n\\n' }}\n    {%- endif %}\n    {{- \"# Tools\\n\\nYou have access to the following functions:\\n\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\" }}\n    {{- '\\n\\nIf you choose to call a function ONLY reply in the following format with NO suffix:\\n\\n<tool_call>\\n<function=example_function_name>\\n<parameter=example_parameter_1>\\nvalue_1\\n</parameter>\\n<parameter=example_parameter_2>\\nThis is the value for the second parameter\\nthat can span\\nmultiple lines\\n</parameter>\\n</function>\\n</tool_call>\\n\\n<IMPORTANT>\\nReminder:\\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\\n- Required parameters MUST be specified\\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\\n</IMPORTANT>' }}\n    {%- if merged_system %}\n        {{- '\\n\\n' + merged_system }}\n    {%- endif %}\n    {{- '<|im_end|>\\n' }}\n{%- else %}\n    {%- if merged_system %}\n        {{- '<|im_start|>system\\n' + (reasoning_instructions + '\\n\\n' if reasoning_instructions else '')  + merged_system + '<|im_end|>\\n' }}\n    {%- elif reasoning_instructions %}\n        {{- '<|im_start|>system\\n' + reasoning_instructions + '<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- set ns = namespace(multi_step_tool=true, last_query_index=messages|length - 1) %}\n{%- for message in messages[::-1] %}\n    {%- set index = (messages|length - 1) - loop.index0 %}\n    {%- if ns.multi_step_tool and message.role == \"user\" %}\n        {%- set content = render_content(message.content, false)|trim %}\n        {%- if not(content.startswith('<tool_response>') and content.endswith('</tool_response>')) %}\n            {%- set ns.multi_step_tool = false %}\n            {%- set ns.last_query_index = index %}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- for message in messages %}\n    {%- if loop.index0 >= num_sys %}\n    {%- set content = render_content(message.content, true)|trim %}\n    {%- if message.role == \"system\" or message.role == \"developer\" %}\n        {{- raise_exception('System message must be at the beginning.') }}\n    {%- elif message.role == \"user\" %}\n        {{- '<|im_start|>' + message.role + '\\n' + content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {%- set reasoning_content = '' %}\n        {%- if message.reasoning_content is string %}\n            {%- set reasoning_content = message.reasoning_content %}\n        {%- endif %}\n        {%- set reasoning_content = reasoning_content|trim %}\n        {%- if preserve_thinking is undefined or preserve_thinking is true or loop.index0 > ns.last_query_index %}\n            {{- '<|im_start|>' + message.role + '\\n<think>\\n' + reasoning_content + '\\n</think>\\n\\n' + content }}\n        {%- else %}\n            {{- '<|im_start|>' + message.role + '\\n' + content }}\n        {%- endif %}\n        {%- if message.tool_calls and message.tool_calls is iterable and message.tool_calls is not mapping %}\n            {%- for tool_call in message.tool_calls %}\n                {%- if tool_call.function is defined %}\n                    {%- set tool_call = tool_call.function %}\n                {%- endif %}\n                {%- if tool_call.name is not defined or tool_call.name is none %}\n                    {{- raise_exception('Tool call is missing a function name.') }}\n                {%- endif %}\n                {%- if loop.first %}\n                    {%- if content|trim %}\n                        {{- '\\n\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- else %}\n                        {{- '<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- endif %}\n                {%- else %}\n                    {{- '\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                {%- endif %}\n                {%- if tool_call.arguments is mapping %}\n                    {%- for args_name, args_value in tool_call.arguments|items %}\n                        {{- '<parameter=' + args_name + '>\\n' }}\n                        {%- set args_value = args_value | string if args_value is string else args_value | tojson | safe %}\n                        {{- args_value }}\n                        {{- '\\n</parameter>\\n' }}\n                    {%- endfor %}\n                {%- elif tool_call.arguments is string %}\n                    {%- if tool_call.arguments|trim %}\n                        {{- raise_exception('Tool call arguments for function \"' + (tool_call.name | string) + '\" were passed as a JSON string. Parse them into an object before calling apply_chat_template.') }}\n                    {%- endif %}\n                {%- elif tool_call.arguments is defined and tool_call.arguments is not none %}\n                    {{- raise_exception('Tool call arguments for function \"' + (tool_call.name | string) + '\" must be an object/mapping or a JSON string.') }}\n                {%- endif %}\n                {{- '</function>\\n</tool_call>' }}\n            {%- endfor %}\n        {%- endif %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if loop.previtem and loop.previtem.role != \"tool\" %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- content }}\n        {{- '\\n</tool_response>' }}\n        {%- if not loop.last and loop.nextitem.role != \"tool\" %}\n            {{- '<|im_end|>\\n' }}\n        {%- elif loop.last %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- else %}\n        {{- raise_exception('Unexpected message role.') }}\n    {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n    {%- if enable_thinking is defined and enable_thinking is false %}\n        {{- '<think>\\n\\n</think>\\n\\n' }}\n    {%- else %}\n        {{- '<think>\\n' }}\n    {%- endif %}\n{%- endif %}\n{#- Unsloth fixes - developer role, merged system messages, tool calling #}",
+        "chat_template_caps": {
+          "supports_object_arguments": true,
+          "supports_parallel_tool_calls": true,
+          "supports_preserve_reasoning": true,
+          "supports_reasoning_effort": true,
+          "supports_string_content": true,
+          "supports_system_role": true,
+          "supports_tool_calls": true,
+          "supports_tools": true,
+          "supports_typed_content": false
+        },
+        "bos_token": "<|endoftext|>",
+        "eos_token": "<|im_end|>",
+        "build_info": "b1-5e085d1",
+        "is_sleeping": false,
+        "cors_proxy_enabled": false
+      },
+      "runtime": {
+        "source": "https://github.com/LaurentZuijdwijk/llama.cpp",
+        "branch": "vulkan/qwen4exp-rocmfpx",
+        "commit": "5e085d123eead2e89b5c19f824fccb05727da6a2",
+        "source_modified": false,
+        "build": "Release; GGML_VULKAN=ON; GGML_NATIVE=ON; -march=native on identical Ryzen AI MAX+395; GCC15.2; glslc2026.1",
+        "bin": "/srv/llm/work/agention-baseline-20260904/bin-native",
+        "binary_sha256": {
+          "agention-logit-capture": "e5e8fd13e0e30dd282c7e31c163a168ee5409779b95e57b2ffef3eb5d82db015",
+          "libggml.so.0.22.0": "2bbc5d9d724471ce8ba2bd718f42540683937a516cbfd6e7a2db892142cae6c9",
+          "libllama-bench-impl.so": "dd076a83339e15dd882511c4a572ea437769a1fbb9e0eac1431e1b79204ed375",
+          "libggml-cpu.so.0.22.0": "3ef48c8227e760b0eef31a5cf8a9e304ba0e54da4c7bd25e1e85b8100170a287",
+          "llama-perplexity": "18795d1a52d38afcbd98d9246e023a41254adaabb7bafa1432b9199c4e213f27",
+          "libllama-common.so.0.3.0": "0ea75f4fbeddfb4f32df9551d351d2bd0070c3965386c41860de54abc803ce9c",
+          "libllama.so.0.3.0": "ea96f618251bf27e91bbd01f6d88ec7c617b05bdb590696b33a19aed2fc039e4",
+          "llama-server": "ee03ebdbfabd73ab96f4db975f64ee4c514ade22d7c91b5119a4c7298543cc23",
+          "libllama-server-impl.so": "eaaf255d36c54f1792cceb9fc076139f3c7af082170dc464eb80b39585026e6a",
+          "llama-bench": "0f86842c7c7d19be46715f92fd738b39457640d4a73f8564bb9e6e0bdf10db9f",
+          "libggml-vulkan.so.0.22.0": "35027a5e4d4a16abbf03fb766179779801376d2706978f2802d5289b50302c5a",
+          "libggml-base.so.0.22.0": "7c38040b141b7d992e5038fc41a0672a59e08f6da5100087d38f819db76efdaa",
+          "libllama-perplexity-impl.so": "b4f4034405ea24ac288638dbd49958b250db9ad380243ae824ee399cc64c559d",
+          "libmtmd.so.0.3.0": "77f181821ccb697b842e20ea17cbe373fe7a129c84a49c9bd24ed85230e94564"
+        },
+        "model_receipt": {
+          "state": "COMPLETE",
+          "repo": "agentionai/Qwen3.8-Flash-Next-ROCmFP4-FAST-imatrix-GGUF",
+          "revision": "ad4c5717254a630ee0c5a8db5208eb1f8476e56c",
+          "files": [
+            {
+              "file": ".gitattributes",
+              "bytes": 3056,
+              "sha256": "13abf0cb3eaf629e3431d353759d39dc05f6ee93be4e0be3659b998f3e83cd5f",
+              "verified_utc": "2026-09-05T01:14:03.991766+00:00"
+            },
+            {
+              "file": "README.md",
+              "bytes": 9020,
+              "sha256": "2aa99e13ea2f3e4329692282ea6aed56f2e73e62364627d8c8209b0ca06d8bbf",
+              "verified_utc": "2026-09-05T01:14:04.302070+00:00"
+            },
+            {
+              "file": "assets/throughput-vs-depth.png",
+              "bytes": 185136,
+              "sha256": "757755421061f21730f8251240e429e1ed2e1f683e277f81083c81146484c582",
+              "verified_utc": "2026-09-05T01:14:04.930333+00:00"
+            },
+            {
+              "file": "mmproj/mmproj-Qwen3.8-Flash-Next-f16.gguf",
+              "bytes": 904004128,
+              "sha256": "f456cd796fdbdef0cadb22710b54e0071b6cdf22c07963365baa898267aec517",
+              "verified_utc": "2026-09-05T01:14:12.918470+00:00"
+            },
+            {
+              "file": "Qwen3.8-Flash-Next-ROCmFP4-FAST-v2-ple16.gguf",
+              "bytes": 93484237760,
+              "sha256": "552a7a162f6a620c3aa0850d070086bc2b95094e0a4e8b860694c7f212cb59d8",
+              "verified_utc": "2026-09-05T01:23:03.986191+00:00"
+            }
+          ],
+          "completed_utc": "2026-09-05T01:23:03.986271+00:00"
+        },
+        "draft_receipt": {
+          "state": "COMPLETE",
+          "repo": "agentionai/Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST-GGUF",
+          "revision": "5a2cf56c3e0f8bc8d395d53bec649ec8e358a993",
+          "files": [
+            {
+              "file": ".gitattributes",
+              "bytes": 1596,
+              "sha256": "2c8de7fbce4de3b2a94d3215ba4e3e33ebeb107c634b429d3b18e2713252d669",
+              "verified_utc": "2026-09-05T03:33:09.932944+00:00"
+            },
+            {
+              "file": "README.md",
+              "bytes": 2939,
+              "sha256": "fa6de4146c9b31e3f96c2969d6a8c958681f36a92b28033f98f36c24bc908a18",
+              "verified_utc": "2026-09-05T03:33:10.160120+00:00"
+            },
+            {
+              "file": "LICENSE",
+              "bytes": 3235,
+              "sha256": "a0dc422560841fd68e06d974907f8b4c709bca44a67daad2b528437bdf676c08",
+              "verified_utc": "2026-09-05T03:33:10.377404+00:00"
+            },
+            {
+              "file": "Qwen3.8-Flash-Next-MTP-ROCmFP4-FAST.gguf",
+              "bytes": 2444519296,
+              "sha256": "5046d69571bb35c699e19c7a00b36633c2fdfdd06d70482551744ec523a6b590",
+              "verified_utc": "2026-09-05T03:34:21.425457+00:00"
+            }
+          ],
+          "completed_utc": "2026-09-05T03:34:21.425537+00:00"
+        },
+        "environment": {
+          "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+          "LD_LIBRARY_PATH": "/srv/llm/work/agention-baseline-20260904/bin-native:/nix/store/zs7y2aadk71bawprdcn000az9y05s8nf-vulkan-loader-1.4.341.0/lib"
+        }
+      }
+    }
+  },
+  "unsloth": {
+    "protocol": {
+      "classification": "local-custom HumanEval0-9 non-thinking MTP speed workload",
+      "arm": "unsloth",
+      "host": "sozo",
+      "command": [
+        "/srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/llama-server",
+        "-m",
+        "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+        "-md",
+        "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf",
+        "--spec-type",
+        "draft-mtp",
+        "--spec-draft-n-max",
+        "2",
+        "-ngl",
+        "999",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/unsloth/slots"
+      ],
+      "runtime": {
+        "commit": "d1a92352cbd417fd840b4e765c0b82f5fe3d1d89",
+        "path": "/srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth",
+        "build": "native Release Vulkan GCC15.2",
+        "sha256": {
+          "libggml.so.0.22.0": "98a1577666dbc408ea7e0ca53ecf131c9fb2e0fdc5aa722d700f3f6d32de364f",
+          "libllama-bench-impl.so": "007fd5258bcbe3df3bcd3a920e5ef0d751256b706a03edfb0c325bafa2a3f549",
+          "libggml-cpu.so.0.22.0": "e9b2cc40e27e87ebaab290b67b69f7e6148483a7310b8efc5a477b45df985fa8",
+          "libllama-common.so.0.3.0": "f5e60bf4529920ed0e58099e5540da46857f2c6b4bbcd4112c0ab6f801b6d1ae",
+          "libllama.so.0.3.0": "2b772ffdfe672a28faaa00f313bf2a407c0a26a09222c64b6437349bf2874c59",
+          "llama-server": "f16f7acc3bcbf035166df093470797e3ffcc7bd05fc09570994bbff8ba949f69",
+          "libllama-server-impl.so": "c8058db9aec86b1d7a9326881e10d95b9d529f4476d19bb69635c33f13b97bde",
+          "logit-capture": "9fdff72b74e326b802228fdf2b35be3516d71b3bdf6238e4a408caa65a45b6fc",
+          "llama-bench": "b28863f4bffd5dc210745e8d154824bd121fc6c1daa075c3a99de9c82233d228",
+          "libggml-vulkan.so.0.22.0": "43a9fd1608f68f9a8358b1e64911c1ebd39583e07c2ff6677d6673ae9da7393a",
+          "libggml-base.so.0.22.0": "b18eb78d5e212593aa3ad509892abba5fc6fab77cbb85241b5742443ff47f82e",
+          "libmtmd.so.0.3.0": "1846d70cc91fe4af957fc4562ab2e18993a7e8cbd17af7fbd2f4d5fcd8d39cc3"
+        }
+      },
+      "artifacts": {
+        "state": "COMPLETE",
+        "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+        "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+        "files": [
+          {
+            "file": "README.md",
+            "bytes": 59183,
+            "sha256": "9538227ff778ba7d8ba61b42cde3927487bf4c9c647ce18ac31d08a0b42998e6",
+            "verified_utc": "2026-09-05T05:04:33.439844+00:00"
+          },
+          {
+            "file": "MTP/README.md",
+            "bytes": 5906,
+            "sha256": "18a8c2d894bb0b63e31cf8aec0fceeee30564fa3e8115fee81e94ec73027fd63",
+            "verified_utc": "2026-09-05T05:04:33.728653+00:00"
+          },
+          {
+            "file": "UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+            "bytes": 10946624,
+            "sha256": "5ce89370720f8bf90890f439361282104c1aa1482d4013bb9a50923e758e71a4",
+            "verified_utc": "2026-09-05T05:04:34.952622+00:00"
+          },
+          {
+            "file": "UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00002-of-00003.gguf",
+            "bytes": 49835229856,
+            "sha256": "577a38a2392b40ca2193cea502e1d92f60b8cd370675d308e0ec21885d9daaa7",
+            "verified_utc": "2026-09-05T05:11:01.301186+00:00"
+          },
+          {
+            "file": "UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00003-of-00003.gguf",
+            "bytes": 43836407744,
+            "sha256": "d4634e6d84f0ebb0940be15c90d3790bf6464e3dea3a1cddc567dc0e83ad8833",
+            "verified_utc": "2026-09-05T05:19:54.395294+00:00"
+          },
+          {
+            "file": "MTP/mtp-Qwen3.8-Flash-Next-Q8_0.gguf",
+            "bytes": 4137429120,
+            "sha256": "cd87e5d1a4dadaeed63e35929f3b2f28d13e081b4cd32e00f2835095ec09351e",
+            "verified_utc": "2026-09-05T05:20:59.165207+00:00"
+          },
+          {
+            "file": "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf",
+            "bytes": 2786568256,
+            "sha256": "5ff54097406a905cf3a724c709124ceb0e3e10235ee862298969e91c96fa96e6",
+            "verified_utc": "2026-09-05T05:21:22.474475+00:00"
+          }
+        ],
+        "completed_utc": "2026-09-05T05:21:22.474550+00:00"
+      },
+      "verified_binary_hashes": {
+        "libggml.so.0.22.0": "98a1577666dbc408ea7e0ca53ecf131c9fb2e0fdc5aa722d700f3f6d32de364f",
+        "libllama-bench-impl.so": "007fd5258bcbe3df3bcd3a920e5ef0d751256b706a03edfb0c325bafa2a3f549",
+        "libggml-cpu.so.0.22.0": "e9b2cc40e27e87ebaab290b67b69f7e6148483a7310b8efc5a477b45df985fa8",
+        "libllama-common.so.0.3.0": "f5e60bf4529920ed0e58099e5540da46857f2c6b4bbcd4112c0ab6f801b6d1ae",
+        "libllama.so.0.3.0": "2b772ffdfe672a28faaa00f313bf2a407c0a26a09222c64b6437349bf2874c59",
+        "llama-server": "f16f7acc3bcbf035166df093470797e3ffcc7bd05fc09570994bbff8ba949f69",
+        "libllama-server-impl.so": "c8058db9aec86b1d7a9326881e10d95b9d529f4476d19bb69635c33f13b97bde",
+        "logit-capture": "9fdff72b74e326b802228fdf2b35be3516d71b3bdf6238e4a408caa65a45b6fc",
+        "llama-bench": "b28863f4bffd5dc210745e8d154824bd121fc6c1daa075c3a99de9c82233d228",
+        "libggml-vulkan.so.0.22.0": "43a9fd1608f68f9a8358b1e64911c1ebd39583e07c2ff6677d6673ae9da7393a",
+        "libggml-base.so.0.22.0": "b18eb78d5e212593aa3ad509892abba5fc6fab77cbb85241b5742443ff47f82e",
+        "libmtmd.so.0.3.0": "1846d70cc91fe4af957fc4562ab2e18993a7e8cbd17af7fbd2f4d5fcd8d39cc3"
+      },
+      "dataset_sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
+      "driver_sha256": "b9533cc94b2305d79153567443b895b806cecf24211b40d054a9a960c66df81c",
+      "sampler": {
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 1,
+        "min_p": 0,
+        "repeat_penalty": 1,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
+        "seed": 123
+      },
+      "reasoning": false,
+      "task_protocol": "Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.",
+      "output_policy": "Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.",
+      "aggregate_policy": "TG=sum generated tokens / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.",
+      "settings_basis": "CIRU locked retained d6 ROCm10 recipe at16K; Laurent publisher adaptive2\u20134 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.",
+      "governors": {
+        "/sys/devices/system/cpu/cpu21/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu11/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu9/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu7/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu28/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu18/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu5/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu26/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu16/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu24/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu14/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu22/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu12/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu30/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu20/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu10/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu8/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu29/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu19/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu6/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu27/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu17/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu25/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu15/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu23/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu13/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "performance",
+        "/sys/devices/system/cpu/cpu31/cpufreq/scaling_governor": "performance"
+      },
+      "rendered_sha256": "2cc4c7910b4ad2e7f96e9f5f6ffda94e14ea458f110d302b2ff7a44358e92f2e",
+      "template_sha256": "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce"
+    },
+    "identity": {
+      "arm": "unsloth",
+      "host": "sozo",
+      "protocol_lock": "/srv/llm/work/qwen38-research-page-20260905/benchmarks/unsloth/protocol.lock.json",
+      "command": [
+        "/srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/llama-server",
+        "-m",
+        "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+        "-md",
+        "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf",
+        "--spec-type",
+        "draft-mtp",
+        "--spec-draft-n-max",
+        "2",
+        "-ngl",
+        "999",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--temp",
+        "0",
+        "--top-k",
+        "1",
+        "--top-p",
+        "1",
+        "--min-p",
+        "0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "18184",
+        "--parallel",
+        "1",
+        "--metrics",
+        "--slots",
+        "--slot-save-path",
+        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/unsloth/slots"
+      ],
+      "maps": [
+        "74f493e00000-74f493e72000 r--p 00000000 103:04 30954756                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-vulkan.so.0.22.0",
+        "74f493e72000-74f4940dc000 r-xp 00072000 103:04 30954756                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-vulkan.so.0.22.0",
+        "74f4940dc000-74f497219000 r--p 002dc000 103:04 30954756                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-vulkan.so.0.22.0",
+        "74f497219000-74f497220000 r--p 03419000 103:04 30954756                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-vulkan.so.0.22.0",
+        "74f497220000-74f497222000 rw-p 03420000 103:04 30954756                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-vulkan.so.0.22.0",
+        "74f49722f000-74f497242000 r--p 00000000 103:04 30954755                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-cpu.so.0.22.0",
+        "74f497242000-74f497350000 r-xp 00013000 103:04 30954755                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-cpu.so.0.22.0",
+        "74f497350000-74f497378000 r--p 00121000 103:04 30954755                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-cpu.so.0.22.0",
+        "74f497378000-74f49737a000 r--p 00148000 103:04 30954755                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-cpu.so.0.22.0",
+        "74f49737a000-74f49737b000 rw-p 0014a000 103:04 30954755                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-cpu.so.0.22.0",
+        "74f497400000-74f4974ad000 r--p 00000000 103:04 30954761                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama.so.0.3.0",
+        "74f4974ad000-74f497733000 r-xp 000ad000 103:04 30954761                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama.so.0.3.0",
+        "74f497733000-74f4977b2000 r--p 00333000 103:04 30954761                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama.so.0.3.0",
+        "74f4977b2000-74f4977bf000 r--p 003b2000 103:04 30954761                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama.so.0.3.0",
+        "74f4977bf000-74f4977c4000 rw-p 003bf000 103:04 30954761                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama.so.0.3.0",
+        "74f497a00000-74f497aa9000 r--p 00000000 103:04 30954759                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-common.so.0.3.0",
+        "74f497aa9000-74f497d89000 r-xp 000a9000 103:04 30954759                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-common.so.0.3.0",
+        "74f497d89000-74f497e26000 r--p 00389000 103:04 30954759                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-common.so.0.3.0",
+        "74f497e26000-74f497e2e000 r--p 00426000 103:04 30954759                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-common.so.0.3.0",
+        "74f497e2e000-74f497e33000 rw-p 0042e000 103:04 30954759                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-common.so.0.3.0",
+        "74f497f2e000-74f497f43000 r--p 00000000 103:04 30954754                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-base.so.0.22.0",
+        "74f497f43000-74f497fdc000 r-xp 00015000 103:04 30954754                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-base.so.0.22.0",
+        "74f497fdc000-74f497ffc000 r--p 000ae000 103:04 30954754                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-base.so.0.22.0",
+        "74f497ffc000-74f497ffe000 r--p 000ce000 103:04 30954754                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-base.so.0.22.0",
+        "74f497ffe000-74f498000000 rw-p 000d0000 103:04 30954754                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libggml-base.so.0.22.0",
+        "74f498000000-74f49807d000 r--p 00000000 103:04 30954760                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-server-impl.so",
+        "74f49807d000-74f498279000 r-xp 0007d000 103:04 30954760                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-server-impl.so",
+        "74f498279000-74f4985c8000 r--p 00279000 103:04 30954760                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-server-impl.so",
+        "74f4985c8000-74f4985cd000 r--p 005c8000 103:04 30954760                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-server-impl.so",
+        "74f4985cd000-74f4985d1000 rw-p 005cd000 103:04 30954760                  /srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth/libllama-server-impl.so"
+      ],
+      "pid": 321348,
+      "slots": [
+        {
+          "id": 0,
+          "n_ctx": 262144,
+          "speculative": true,
+          "is_processing": false
+        }
+      ],
+      "props": {
+        "default_generation_settings": {
+          "params": {
+            "seed": 4294967295,
+            "temperature": 0.0,
+            "dynatemp_range": 0.0,
+            "dynatemp_exponent": 1.0,
+            "top_k": 1,
+            "top_p": 1.0,
+            "min_p": 0.0,
+            "top_n_sigma": -1.0,
+            "xtc_probability": 0.0,
+            "xtc_threshold": 0.10000000149011612,
+            "typical_p": 1.0,
+            "repeat_last_n": 64,
+            "repeat_penalty": 1.0,
+            "presence_penalty": 0.0,
+            "frequency_penalty": 0.0,
+            "dry_multiplier": 0.0,
+            "dry_base": 1.75,
+            "dry_allowed_length": 2,
+            "dry_penalty_last_n": 64,
+            "mirostat": 0,
+            "mirostat_tau": 5.0,
+            "mirostat_eta": 0.10000000149011612,
+            "adaptive_target": -1.0,
+            "adaptive_decay": 0.8999999761581421,
+            "max_tokens": -1,
+            "n_predict": -1,
+            "n_keep": 0,
+            "n_discard": 0,
+            "ignore_eos": false,
+            "stream": false,
+            "n_probs": 0,
+            "min_keep": 0,
+            "chat_format": "Content-only",
+            "reasoning_format": "none",
+            "reasoning_in_content": false,
+            "generation_prompt": "",
+            "samplers": [
+              "penalties",
+              "dry",
+              "top_n_sigma",
+              "top_k",
+              "typ_p",
+              "top_p",
+              "min_p",
+              "xtc",
+              "temperature"
+            ],
+            "speculative.types": "none",
+            "timings_per_token": false,
+            "post_sampling_probs": false,
+            "backend_sampling": false,
+            "lora": []
+          },
+          "n_ctx": 262144
+        },
+        "total_slots": 1,
+        "model_alias": "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+        "model_ftype": "IQ4_XS - 4.25 bpw",
+        "model_path": "/srv/llm/models/unsloth-Qwen3.8-Flash-Next-38bb39ee9782/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+        "modalities": {
+          "vision": false,
+          "video": false,
+          "audio": false
+        },
+        "media_marker": "<__media_D2vituKGgsFU3mPTqfvk5n6vMLiKUUlT__>",
+        "endpoint_slots": true,
+        "endpoint_props": false,
+        "endpoint_metrics": true,
+        "ui": true,
+        "ui_settings": {},
+        "chat_template": "{%- set image_count = namespace(value=0) %}\n{%- set video_count = namespace(value=0) %}\n{%- macro render_content(content, do_vision_count, is_system_content=false) %}\n    {%- if content is string %}\n        {{- content }}\n    {%- elif content is iterable and content is not mapping %}\n        {%- for item in content %}\n            {%- if 'image' in item or 'image_url' in item or item.type == 'image' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain images.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set image_count.value = image_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Picture ' ~ image_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|image_pad|><|vision_end|>' }}\n            {%- elif 'video' in item or item.type == 'video' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain videos.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set video_count.value = video_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Video ' ~ video_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|video_pad|><|vision_end|>' }}\n            {%- elif 'text' in item %}\n                {{- item.text }}\n            {%- else %}\n                {{- raise_exception('Unexpected item type in content.') }}\n            {%- endif %}\n        {%- endfor %}\n    {%- elif content is none or content is undefined %}\n        {{- '' }}\n    {%- else %}\n        {{- raise_exception('Unexpected content type.') }}\n    {%- endif %}\n{%- endmacro %}\n{%- if not messages %}\n    {{- raise_exception('No messages provided.') }}\n{%- endif %}\n{%- set sysns = namespace(count=0, text='') %}\n{%- for message in messages %}\n    {%- if sysns.count == loop.index0 and (message.role == 'system' or message.role == 'developer') %}\n        {%- set sys_content = render_content(message.content, false, true)|trim %}\n        {%- if sys_content %}\n            {%- set sysns.text = sysns.text + ('\\n' if sysns.text else '') + sys_content %}\n        {%- endif %}\n        {%- set sysns.count = sysns.count + 1 %}\n    {%- endif %}\n{%- endfor %}\n{%- set num_sys = sysns.count %}\n{%- set merged_system = sysns.text %}\n{%- set reasoning_instructions = '' %}\n{%- if enable_thinking is undefined or enable_thinking is true %}\n    {%- set resolved_reasoning_effort = reasoning_effort|default('xhigh') %}\n    {%- if resolved_reasoning_effort == 'high' %}\n        {%- set resolved_reasoning_effort = 'xhigh' %}\n    {%- endif %}\n    {%- if resolved_reasoning_effort not in ('xhigh', 'medium', 'low') %}\n        {{- raise_exception('Unexpected reasoning effort ' ~ reasoning_effort ~ '. Supported types are xhigh (default), medium, and low.') }}\n    {%- endif %}\n    {%- if resolved_reasoning_effort == 'xhigh' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to xhigh. Please think carefully through the task, validate key assumptions, consider plausible alternatives, and prioritize correctness, consistency, and clarity in the final answer.' %}\n    {%- elif resolved_reasoning_effort == 'low' %}\n        {%- set reasoning_instructions = 'Reasoning effort is set to low. Keep your thinking brief and focused, moving directly to the conclusion without unnecessary elaboration.' %}\n    {%- endif %}\n{%- endif %}\n{%- if tools and tools is iterable and tools is not mapping %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if reasoning_instructions %}\n        {{- reasoning_instructions + '\\n\\n' }}\n    {%- endif %}\n    {{- \"# Tools\\n\\nYou have access to the following functions:\\n\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\" }}\n    {{- '\\n\\nIf you choose to call a function ONLY reply in the following format with NO suffix:\\n\\n<tool_call>\\n<function=example_function_name>\\n<parameter=example_parameter_1>\\nvalue_1\\n</parameter>\\n<parameter=example_parameter_2>\\nThis is the value for the second parameter\\nthat can span\\nmultiple lines\\n</parameter>\\n</function>\\n</tool_call>\\n\\n<IMPORTANT>\\nReminder:\\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\\n- Required parameters MUST be specified\\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\\n</IMPORTANT>' }}\n    {%- if merged_system %}\n        {{- '\\n\\n' + merged_system }}\n    {%- endif %}\n    {{- '<|im_end|>\\n' }}\n{%- else %}\n    {%- if merged_system %}\n        {{- '<|im_start|>system\\n' + (reasoning_instructions + '\\n\\n' if reasoning_instructions else '')  + merged_system + '<|im_end|>\\n' }}\n    {%- elif reasoning_instructions %}\n        {{- '<|im_start|>system\\n' + reasoning_instructions + '<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- set ns = namespace(multi_step_tool=true, last_query_index=messages|length - 1) %}\n{%- for message in messages[::-1] %}\n    {%- set index = (messages|length - 1) - loop.index0 %}\n    {%- if ns.multi_step_tool and message.role == \"user\" %}\n        {%- set content = render_content(message.content, false)|trim %}\n        {%- if not(content.startswith('<tool_response>') and content.endswith('</tool_response>')) %}\n            {%- set ns.multi_step_tool = false %}\n            {%- set ns.last_query_index = index %}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- for message in messages %}\n    {%- if loop.index0 >= num_sys %}\n    {%- set content = render_content(message.content, true)|trim %}\n    {%- if message.role == \"system\" or message.role == \"developer\" %}\n        {{- raise_exception('System message must be at the beginning.') }}\n    {%- elif message.role == \"user\" %}\n        {{- '<|im_start|>' + message.role + '\\n' + content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {%- set reasoning_content = '' %}\n        {%- if message.reasoning_content is string %}\n            {%- set reasoning_content = message.reasoning_content %}\n        {%- endif %}\n        {%- set reasoning_content = reasoning_content|trim %}\n        {%- if preserve_thinking is undefined or preserve_thinking is true or loop.index0 > ns.last_query_index %}\n            {{- '<|im_start|>' + message.role + '\\n<think>\\n' + reasoning_content + '\\n</think>\\n\\n' + content }}\n        {%- else %}\n            {{- '<|im_start|>' + message.role + '\\n' + content }}\n        {%- endif %}\n        {%- if message.tool_calls and message.tool_calls is iterable and message.tool_calls is not mapping %}\n            {%- for tool_call in message.tool_calls %}\n                {%- if tool_call.function is defined %}\n                    {%- set tool_call = tool_call.function %}\n                {%- endif %}\n                {%- if tool_call.name is not defined or tool_call.name is none %}\n                    {{- raise_exception('Tool call is missing a function name.') }}\n                {%- endif %}\n                {%- if loop.first %}\n                    {%- if content|trim %}\n                        {{- '\\n\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- else %}\n                        {{- '<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                    {%- endif %}\n                {%- else %}\n                    {{- '\\n<tool_call>\\n<function=' + tool_call.name + '>\\n' }}\n                {%- endif %}\n                {%- if tool_call.arguments is mapping %}\n                    {%- for args_name, args_value in tool_call.arguments|items %}\n                        {{- '<parameter=' + args_name + '>\\n' }}\n                        {%- set args_value = args_value | string if args_value is string else args_value | tojson | safe %}\n                        {{- args_value }}\n                        {{- '\\n</parameter>\\n' }}\n                    {%- endfor %}\n                {%- elif tool_call.arguments is string %}\n                    {%- if tool_call.arguments|trim %}\n                        {{- raise_exception('Tool call arguments for function \"' + (tool_call.name | string) + '\" were passed as a JSON string. Parse them into an object before calling apply_chat_template.') }}\n                    {%- endif %}\n                {%- elif tool_call.arguments is defined and tool_call.arguments is not none %}\n                    {{- raise_exception('Tool call arguments for function \"' + (tool_call.name | string) + '\" must be an object/mapping or a JSON string.') }}\n                {%- endif %}\n                {{- '</function>\\n</tool_call>' }}\n            {%- endfor %}\n        {%- endif %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if loop.previtem and loop.previtem.role != \"tool\" %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- content }}\n        {{- '\\n</tool_response>' }}\n        {%- if not loop.last and loop.nextitem.role != \"tool\" %}\n            {{- '<|im_end|>\\n' }}\n        {%- elif loop.last %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- else %}\n        {{- raise_exception('Unexpected message role.') }}\n    {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n    {%- if enable_thinking is defined and enable_thinking is false %}\n        {{- '<think>\\n\\n</think>\\n\\n' }}\n    {%- else %}\n        {{- '<think>\\n' }}\n    {%- endif %}\n{%- endif %}\n{#- Unsloth fixes - developer role, merged system messages, tool calling #}",
+        "chat_template_caps": {
+          "supports_object_arguments": true,
+          "supports_parallel_tool_calls": true,
+          "supports_preserve_reasoning": true,
+          "supports_reasoning_effort": true,
+          "supports_string_content": true,
+          "supports_system_role": true,
+          "supports_tool_calls": true,
+          "supports_tools": true,
+          "supports_typed_content": false
+        },
+        "bos_token": "<|endoftext|>",
+        "eos_token": "<|im_end|>",
+        "build_info": "b1-d1a9235",
+        "is_sleeping": false,
+        "cors_proxy_enabled": false
+      },
+      "runtime": {
+        "commit": "d1a92352cbd417fd840b4e765c0b82f5fe3d1d89",
+        "path": "/srv/llm/work/unsloth-runtime-compare-20260905/bin-unsloth",
+        "build": "native Release Vulkan GCC15.2",
+        "sha256": {
+          "libggml.so.0.22.0": "98a1577666dbc408ea7e0ca53ecf131c9fb2e0fdc5aa722d700f3f6d32de364f",
+          "libllama-bench-impl.so": "007fd5258bcbe3df3bcd3a920e5ef0d751256b706a03edfb0c325bafa2a3f549",
+          "libggml-cpu.so.0.22.0": "e9b2cc40e27e87ebaab290b67b69f7e6148483a7310b8efc5a477b45df985fa8",
+          "libllama-common.so.0.3.0": "f5e60bf4529920ed0e58099e5540da46857f2c6b4bbcd4112c0ab6f801b6d1ae",
+          "libllama.so.0.3.0": "2b772ffdfe672a28faaa00f313bf2a407c0a26a09222c64b6437349bf2874c59",
+          "llama-server": "f16f7acc3bcbf035166df093470797e3ffcc7bd05fc09570994bbff8ba949f69",
+          "libllama-server-impl.so": "c8058db9aec86b1d7a9326881e10d95b9d529f4476d19bb69635c33f13b97bde",
+          "logit-capture": "9fdff72b74e326b802228fdf2b35be3516d71b3bdf6238e4a408caa65a45b6fc",
+          "llama-bench": "b28863f4bffd5dc210745e8d154824bd121fc6c1daa075c3a99de9c82233d228",
+          "libggml-vulkan.so.0.22.0": "43a9fd1608f68f9a8358b1e64911c1ebd39583e07c2ff6677d6673ae9da7393a",
+          "libggml-base.so.0.22.0": "b18eb78d5e212593aa3ad509892abba5fc6fab77cbb85241b5742443ff47f82e",
+          "libmtmd.so.0.3.0": "1846d70cc91fe4af957fc4562ab2e18993a7e8cbd17af7fbd2f4d5fcd8d39cc3"
+        }
+      }
+    }
+  },
+  "_analysis": {
+    "reported_aggregate": "Sum(generated_tokens-1)/sum(predicted_ms/1000), matching native per-task TG. Raw driver summaries initially summed all generated tokens; collect_he.py derives the final report from preserved timing records and validates this convention for all30 requests.",
+    "source_of_truth": "results.json and humaneval-totals.csv use the corrected native convention; no inference was repeated."
+  }
+}

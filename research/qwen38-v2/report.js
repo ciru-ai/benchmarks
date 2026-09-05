@@ -1,0 +1,11 @@
+'use strict';
+const charts=new Map();
+fetch('chart-options.json').then(r=>{if(!r.ok)throw new Error('Chart data unavailable');return r.json()}).then(options=>{
+  if(!window.echarts)throw new Error('Chart library unavailable');
+  function apply(id,key){const el=document.getElementById(id);let c=charts.get(id);if(!c){c=echarts.init(el,null,{renderer:'canvas'});charts.set(id,c)}const o=structuredClone(options[key]);o.tooltip.valueFormatter=v=>typeof v==='number'?v.toLocaleString(undefined,{maximumFractionDigits:5}):v;if(el.clientWidth<440){o.grid.left=49;o.grid.right=15;o.xAxis[0].axisLabel.fontSize=9;o.legend.textStyle.fontSize=10;o.legend.itemWidth=14;o.legend.itemGap=12;if(o.xAxis[0].data.some(x=>String(x).length>10))o.xAxis[0].axisLabel.formatter=v=>v==='Unsloth IQ4_XS'?'Unsloth\nIQ4_XS':v.replace(' ','\n');}c.setOption(o,true);el.dataset.chart=key;}
+  document.querySelectorAll('.chart[data-chart]').forEach(el=>{if(el.clientWidth>0)apply(el.id,el.dataset.chart)});
+  [['he-view','he-cases'],['kl-view','bf-kl'],['ppl-view','bf-ppl'],['sweep-view','sweep-extra']].forEach(([control,target])=>document.getElementById(control).addEventListener('change',e=>apply(target,e.target.value)));
+  document.getElementById('more-sweep').addEventListener('toggle',e=>{if(e.target.open)requestAnimationFrame(()=>apply('sweep-extra',document.getElementById('sweep-view').value))});
+  const observer=new ResizeObserver(entries=>entries.forEach(({target})=>{if(target.clientWidth>0){if(charts.has(target.id))charts.get(target.id).resize();else apply(target.id,target.dataset.chart)}}));document.querySelectorAll('.chart').forEach(el=>observer.observe(el));
+  document.querySelectorAll('[data-export]').forEach(button=>button.addEventListener('click',()=>{const c=charts.get(button.dataset.export);if(!c)return;const a=document.createElement('a');a.download='ciru-qwen38-'+button.dataset.export+'.png';a.href=c.getDataURL({type:'png',pixelRatio:2,backgroundColor:'#111216'});a.click()}));
+}).catch(error=>{document.querySelectorAll('.chart').forEach(el=>{el.classList.add('chart-error');el.textContent='Interactive chart unavailable. Exact measurements remain in the tables and downloads.'});console.error(error)});

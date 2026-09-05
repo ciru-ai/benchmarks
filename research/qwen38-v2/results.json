@@ -1,0 +1,1990 @@
+{
+  "schema": "ciru.qwen38-research.v2",
+  "date": "2026-09-05",
+  "order": [
+    "ciru",
+    "laurent",
+    "unsloth"
+  ],
+  "profiles": {
+    "ciru": {
+      "name": "CIRU IU4",
+      "full_name": "CIRU STRIX IU4 v2.0",
+      "color": "#ff4e5f",
+      "backend": "ROCm10",
+      "runner": "CIRU RC2",
+      "mtp": "Fixed depth 6 \u00b7 p-min 0 \u00b7 Q8 MTP head",
+      "context": 16384,
+      "target_kv": "F16",
+      "draft_kv": "Q8_0",
+      "threads": 8,
+      "batch": "2048 / 512",
+      "host": "Ciru",
+      "model_url": "https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0",
+      "runtime_url": "https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0/runtime",
+      "notes": "4 GiB PLE cache, 16 pager workers, device-resident depth-6 drafting, 32K MTP shortlist."
+    },
+    "laurent": {
+      "name": "Laurent FP4",
+      "full_name": "Agention FP4 FAST / Laurent",
+      "color": "#f6c046",
+      "backend": "Vulkan",
+      "runner": "Laurent 5e085d1",
+      "mtp": "Adaptive depth 2\u20134 \u00b7 dedicated MTP head",
+      "context": 262144,
+      "target_kv": "Q8_0",
+      "draft_kv": "Runner default",
+      "threads": 16,
+      "batch": "2048 / 512",
+      "host": "Sozo",
+      "model_url": "https://huggingface.co/agentionai/Qwen3.8-Flash-Next-ROCmFP4-FAST-imatrix-GGUF/tree/ad4c5717254a630ee0c5a8db5208eb1f8476e56c",
+      "runtime_url": "https://github.com/LaurentZuijdwijk/llama.cpp/tree/5e085d123eead2e89b5c19f824fccb05727da6a2",
+      "notes": "Publisher adaptive MTP recipe, full GPU offload, flash attention on, target Q8 KV."
+    },
+    "unsloth": {
+      "name": "Unsloth IQ4_XS",
+      "full_name": "Unsloth UD-IQ4_XS / recommended fork",
+      "color": "#39d0ff",
+      "backend": "Vulkan",
+      "runner": "Unsloth d1a9235",
+      "mtp": "Depth 2 \u00b7 shared Q8 MTP head",
+      "context": 262144,
+      "target_kv": "Runner default",
+      "draft_kv": "Runner default",
+      "threads": 16,
+      "batch": "2048 / 512",
+      "host": "Sozo",
+      "model_url": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/tree/38bb39ee97821de2c9009abb7e93950eec396e66",
+      "runtime_url": "https://github.com/danielhanchen/llama.cpp/tree/d1a92352cbd417fd840b4e765c0b82f5fe3d1d89",
+      "notes": "Recommended qwen4exp/mtp fork and d2 shared-head recipe; remaining runtime defaults retained."
+    }
+  },
+  "humaneval": {
+    "ciru": {
+      "arm": "ciru",
+      "host": "ciru",
+      "completed": 10,
+      "total": 10,
+      "reasoning": false,
+      "generated_tokens": 1633,
+      "prompt_tokens": 1180,
+      "total_tokens": 2813,
+      "request_wall_seconds": 36.94148063659668,
+      "panel_wall_seconds": 38.05236765998416,
+      "decode_seconds": 28.805157,
+      "drafted": 1596.0,
+      "accepted": 1377.0,
+      "rows": [
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/0",
+          "tg": 50.86042833943067,
+          "prompt_tokens": 134,
+          "generated_tokens": 173,
+          "total_tokens": 307,
+          "wall_seconds": 4.2593300342559814,
+          "decode_seconds": 3.3818040000000003,
+          "ttfp_ms": 876.2474060058594,
+          "drafted": 168.0,
+          "accepted": 142.0,
+          "acceptance": 0.8452380952380952,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 173,
+            "tokens_evaluated": 134,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 172,
+          "source_row_sha256": "ea14b4505b5c1b842d7fcdc77a33203a478d204823a79e7dc5cfc88d508c631c",
+          "source_raw_sha256": "b177c8b50a1e05354980b132c36c6809232f472e1e38d738706854230655c505",
+          "store": {
+            "host": "ciru",
+            "seq": 3372,
+            "row_hash": "8ab32612d44408e080a5f0eacf308b41137f7413d58be5a3183a8efddc6beb03",
+            "chain_hash": "d81f4dd669d3c0b9d08771e897433cfd3038472ea3cb61daa7e4a8d78a6384fb"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/1",
+          "tg": 54.922454724638776,
+          "prompt_tokens": 126,
+          "generated_tokens": 232,
+          "total_tokens": 358,
+          "wall_seconds": 5.067384958267212,
+          "decode_seconds": 4.20593,
+          "ttfp_ms": 860.5449199676514,
+          "drafted": 240.0,
+          "accepted": 191.0,
+          "acceptance": 0.7958333333333333,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 232,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 231,
+          "source_row_sha256": "969c2ffa8f563207990df6ab3197e5e30349da53c467c6a6b2e7d0ae744c2520",
+          "source_raw_sha256": "f67e699be1d347d2995554e3697f6bba05a75af0f89329d27ce4e0dcc4d5c3cf",
+          "store": {
+            "host": "ciru",
+            "seq": 3373,
+            "row_hash": "3f61c2acfc4d60d5c82fa39d116968f8e5c542aa232bd6e955d2fa7a8c9cb690",
+            "chain_hash": "bb02fccdb8bf00d2323455b20d2e960f816128c0ceb9c734140720548b16a677"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/2",
+          "tg": 59.92135322389365,
+          "prompt_tokens": 95,
+          "generated_tokens": 97,
+          "total_tokens": 192,
+          "wall_seconds": 2.265362501144409,
+          "decode_seconds": 1.6020999999999999,
+          "ttfp_ms": 662.8947257995605,
+          "drafted": 90.0,
+          "accepted": 85.0,
+          "acceptance": 0.9444444444444444,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 97,
+            "tokens_evaluated": 95,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 96,
+          "source_row_sha256": "c369e1928e6d98401d062acd865c7b586944bca115b9db4994ec8127052a0a1f",
+          "source_raw_sha256": "47c890172bb5c468b40e5d56b21e67fb6f1abdf891cf10eaa71382aa746ce5b1",
+          "store": {
+            "host": "ciru",
+            "seq": 3374,
+            "row_hash": "c72ab17e7bff5d93753a8ddb8370e794d2bc40a30952a4296c17caf9b7541206",
+            "chain_hash": "5de8b44f42bb85e503b5a52fddd1dc6c2b42a53b53b15a184526a7590230ff85"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/3",
+          "tg": 56.89246776549363,
+          "prompt_tokens": 129,
+          "generated_tokens": 157,
+          "total_tokens": 286,
+          "wall_seconds": 3.658891439437866,
+          "decode_seconds": 2.742015,
+          "ttfp_ms": 916.2743091583252,
+          "drafted": 150.0,
+          "accepted": 134.0,
+          "acceptance": 0.8933333333333333,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 157,
+            "tokens_evaluated": 129,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 156,
+          "source_row_sha256": "6411de242fd44e44aa383b1a13c15b4c2174704d65e4fb6d59cecc7e91156008",
+          "source_raw_sha256": "95fc1c88e099762440052e09fd25197df1bd8796df4dc69377521f42ac9220d8",
+          "store": {
+            "host": "ciru",
+            "seq": 3375,
+            "row_hash": "3d01374b656d5ff645b6cb62dc9f12a162a8a3c9fba8771fe2d455aa7ddb0c05",
+            "chain_hash": "505a58d53d333f6db44a1d1d1fe7e3554e84f99a90f76c8f0f3a7ae1c6cbde8d"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/4",
+          "tg": 54.677319197076585,
+          "prompt_tokens": 128,
+          "generated_tokens": 169,
+          "total_tokens": 297,
+          "wall_seconds": 3.9484314918518066,
+          "decode_seconds": 3.072572,
+          "ttfp_ms": 874.5691776275635,
+          "drafted": 174.0,
+          "accepted": 143.0,
+          "acceptance": 0.8218390804597702,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 169,
+            "tokens_evaluated": 128,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 168,
+          "source_row_sha256": "e194f320f6d10b0c64a7b3a66e6f8de4dfecbc91e02dc433b86e00fb97f7ea76",
+          "source_raw_sha256": "c6bf2069140bd5ecd0a789c61d72f34bd4b1597b305b774dc1fdb0f9a71f83d5",
+          "store": {
+            "host": "ciru",
+            "seq": 3376,
+            "row_hash": "bdc7cf61dcf628fb072d84979e5d182f86f4f1430486a2c9a2856d792f0f240d",
+            "chain_hash": "b5b04b88f94d51cb50f725fbfa0b2e67e82fa4d9e79311e8dabd84534cffefc0"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/5",
+          "tg": 58.73192026124573,
+          "prompt_tokens": 104,
+          "generated_tokens": 154,
+          "total_tokens": 258,
+          "wall_seconds": 3.3294131755828857,
+          "decode_seconds": 2.605057,
+          "ttfp_ms": 723.4609127044678,
+          "drafted": 150.0,
+          "accepted": 129.0,
+          "acceptance": 0.86,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 154,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 153,
+          "source_row_sha256": "5580adfc1ad1e6e032d12ccfd063d2419878105e854b6d36f03438a4fb5f6793",
+          "source_raw_sha256": "24ef244cfe32d6a6a6a71896670dc8557cde538305cf7082f83f70210e3e5cb2",
+          "store": {
+            "host": "ciru",
+            "seq": 3377,
+            "row_hash": "560c3a81d55460b32107034080e71b3c32f3abb0ee0fc9e4cee382813db26981",
+            "chain_hash": "a36c980824c46bbf25ceb151df2d4727a8029d5c6f21d71b5783b2aa91c9686b"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/6",
+          "tg": 53.43992549520998,
+          "prompt_tokens": 124,
+          "generated_tokens": 214,
+          "total_tokens": 338,
+          "wall_seconds": 4.846680402755737,
+          "decode_seconds": 3.985784,
+          "ttfp_ms": 860.0955009460449,
+          "drafted": 228.0,
+          "accepted": 179.0,
+          "acceptance": 0.7850877192982456,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 214,
+            "tokens_evaluated": 124,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 213,
+          "source_row_sha256": "69daed945577bc58dcbd151b05a9fc7bae5bc5997b986634c063f9ccdad06156",
+          "source_raw_sha256": "e13999d207de9b38461dc6b602e844a43e5a76b41afd32b5d9b4d3e46675ddee",
+          "store": {
+            "host": "ciru",
+            "seq": 3378,
+            "row_hash": "3fb35d61255af967386c035c32ce1b1c0b12b11af9b54b7ea284a4a93f79d00b",
+            "chain_hash": "825003c5a724b471422262d77b782e54cf275e9df25b955e55dd6c09f7d813a7"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/7",
+          "tg": 58.357074848994486,
+          "prompt_tokens": 104,
+          "generated_tokens": 112,
+          "total_tokens": 216,
+          "wall_seconds": 2.6308224201202393,
+          "decode_seconds": 1.9020830000000002,
+          "ttfp_ms": 727.5984287261963,
+          "drafted": 108.0,
+          "accepted": 97.0,
+          "acceptance": 0.8981481481481481,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 112,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 111,
+          "source_row_sha256": "a8e04a070d5a963cab104c7e1512494e31235ea66016540c1df5a90b21e3a606",
+          "source_raw_sha256": "faed30c21083c29af85d514eb2237afa51f742d87e702af1b729218181deaa0c",
+          "store": {
+            "host": "ciru",
+            "seq": 3379,
+            "row_hash": "e78a1fba74866da289cc54adc92c01931f4048f2a032568b26be7edcfc93fe17",
+            "chain_hash": "982806c43f913a15d568dc46e58ba3da0920fef0555223f41464dd561305cdb0"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/8",
+          "tg": 57.96163941276988,
+          "prompt_tokens": 126,
+          "generated_tokens": 163,
+          "total_tokens": 289,
+          "wall_seconds": 3.666240930557251,
+          "decode_seconds": 2.7949520000000003,
+          "ttfp_ms": 870.1479434967041,
+          "drafted": 144.0,
+          "accepted": 139.0,
+          "acceptance": 0.9652777777777778,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 163,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 162,
+          "source_row_sha256": "641bbbce736bcb66bd1201da5529a6b8746a259934554056e783a8955f5f13d0",
+          "source_raw_sha256": "25fc1e600b323e2d25cda2cedd80956f7653a85af236bbadbad45be8c5c9cd10",
+          "store": {
+            "host": "ciru",
+            "seq": 3380,
+            "row_hash": "f177ad8596754483fc584f625939f1189360209cef372dcf67176a5c0406cb5a",
+            "chain_hash": "fa4bd3510de79e647e6ba9f9707990ba61627b252bc996dc31a6b028f2832c39"
+          }
+        },
+        {
+          "arm": "ciru",
+          "host": "ciru",
+          "task": "HumanEval/9",
+          "tg": 64.07042175051535,
+          "prompt_tokens": 110,
+          "generated_tokens": 162,
+          "total_tokens": 272,
+          "wall_seconds": 3.268923282623291,
+          "decode_seconds": 2.5128600000000003,
+          "ttfp_ms": 754.4047832489014,
+          "drafted": 144.0,
+          "accepted": 138.0,
+          "acceptance": 0.9583333333333334,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 162,
+            "tokens_evaluated": 110,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 161,
+          "source_row_sha256": "6b89654f6f28fd526cdff4710243be57987a45ab13c8b10e894fba56fbe70707",
+          "source_raw_sha256": "848c38fdc75ff786a87b9bc0bfdd9991547326d549691524a5088c2dd55dca38",
+          "store": {
+            "host": "ciru",
+            "seq": 3381,
+            "row_hash": "636cd92d62b6de87c672286a9278efbcc3552c55d09b6e1c8197e47999dc9870",
+            "chain_hash": "1c1d8d39f4b77c3d47e25f20c2213f43bc4160232d3001e2aa244adcfcd653d0"
+          }
+        }
+      ],
+      "weighted_tg": 56.34407755527942,
+      "acceptance": 0.8627819548872181,
+      "decode_timed_tokens": 1623,
+      "note": "Server TG excludes the first generated token from decode timing. Generated/total token counts retain every token; aggregate TG uses sum(n_generated-1)/sum(predicted_ms/1000), consistent with per-task server TG."
+    },
+    "laurent": {
+      "arm": "laurent",
+      "host": "sozo",
+      "completed": 10,
+      "total": 10,
+      "reasoning": false,
+      "generated_tokens": 1632,
+      "prompt_tokens": 1180,
+      "total_tokens": 2812,
+      "request_wall_seconds": 38.72798037528992,
+      "panel_wall_seconds": 39.78832150102244,
+      "decode_seconds": 31.190312,
+      "drafted": 1325.0,
+      "accepted": 1282.0,
+      "rows": [
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/0",
+          "tg": 51.38822910784656,
+          "prompt_tokens": 134,
+          "generated_tokens": 173,
+          "total_tokens": 307,
+          "wall_seconds": 4.187466382980347,
+          "decode_seconds": 3.34707,
+          "ttfp_ms": 839.6854400634766,
+          "drafted": 141.0,
+          "accepted": 138.0,
+          "acceptance": 0.9787234042553191,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 173,
+            "tokens_evaluated": 134,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 172,
+          "source_row_sha256": "1d244b9eec248c34d4e6af026bd2e12e25f7b6f5c30d11bc626dafc591facbce",
+          "source_raw_sha256": "4c2f92b8b64cf54bd8ba8393fb29b899fa76ac1ae767ea3f78af21621dcc1996",
+          "store": {
+            "host": "sozo",
+            "seq": 252,
+            "row_hash": "52749d6c3d880741f306dccd4e1788f84329b8f8a0eed414c6887673bf38721f",
+            "chain_hash": "1c9b7df5981e8396c49d69a3b1f926672e6680ae52d2f68ff036e8ce9c4bc15c"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/1",
+          "tg": 50.25105779573845,
+          "prompt_tokens": 126,
+          "generated_tokens": 230,
+          "total_tokens": 356,
+          "wall_seconds": 5.316675186157227,
+          "decode_seconds": 4.557118,
+          "ttfp_ms": 758.6872577667236,
+          "drafted": 189.0,
+          "accepted": 179.0,
+          "acceptance": 0.9470899470899471,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 230,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 229,
+          "source_row_sha256": "d8f80d187efa86429b8c165427fe025f499cf288b0352da0c6cc477310d3d726",
+          "source_raw_sha256": "b68c347667658071bac3e0969267aafcc295967c9c91063d761b6cdb3ec9b845",
+          "store": {
+            "host": "sozo",
+            "seq": 253,
+            "row_hash": "25214d3650aa9f62862b7b5941a33ceb840bb1b85672ac0bdf0e50f4f742895f",
+            "chain_hash": "8ae0ec0307f0a873014497bb20b8538fe3d9992dfefa4c6127333ae19658d308"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/2",
+          "tg": 52.61882811292439,
+          "prompt_tokens": 95,
+          "generated_tokens": 97,
+          "total_tokens": 192,
+          "wall_seconds": 2.524923086166382,
+          "decode_seconds": 1.824442,
+          "ttfp_ms": 699.819803237915,
+          "drafted": 77.0,
+          "accepted": 76.0,
+          "acceptance": 0.987012987012987,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 97,
+            "tokens_evaluated": 95,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 96,
+          "source_row_sha256": "6d5b1682c8ca6dd7d82681dbf9fa897fc4602cb326db985f478975b058c73f58",
+          "source_raw_sha256": "c5e9162cd6f7b9992b752d18660ea3a1b78279794e872aa2d867b46873123161",
+          "store": {
+            "host": "sozo",
+            "seq": 254,
+            "row_hash": "3e9087e299a84e1dbff503157515864ac6c7fca0a8cbac73fe35847392b512d9",
+            "chain_hash": "b41e51684482c7dd0a4e1958d9999a51653dfea1743753ec70ffe5fefff1b27c"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/3",
+          "tg": 53.823724178068325,
+          "prompt_tokens": 129,
+          "generated_tokens": 156,
+          "total_tokens": 285,
+          "wall_seconds": 3.685530424118042,
+          "decode_seconds": 2.8797710000000003,
+          "ttfp_ms": 804.9538135528564,
+          "drafted": 125.0,
+          "accepted": 124.0,
+          "acceptance": 0.992,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 156,
+            "tokens_evaluated": 129,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 155,
+          "source_row_sha256": "ffb022aa71e2823be8fcd234b722b2617b455c21e7493eaee89e8caeb46debe4",
+          "source_raw_sha256": "253a1d870a8012736a68db4e624a63ed5ce95bb6557cd5bd75ed7a59f0804f63",
+          "store": {
+            "host": "sozo",
+            "seq": 255,
+            "row_hash": "78133ea37336573c06410a2cea7a38fe77a9723d35e8f9a888146728d50b5d0f",
+            "chain_hash": "2a5941d61b8ce4785f3f33015f967dd4df34ec0e5645cd151d1c85d62e6ef282"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/4",
+          "tg": 53.903910504107444,
+          "prompt_tokens": 128,
+          "generated_tokens": 169,
+          "total_tokens": 297,
+          "wall_seconds": 3.8867573738098145,
+          "decode_seconds": 3.116657,
+          "ttfp_ms": 769.22607421875,
+          "drafted": 137.0,
+          "accepted": 135.0,
+          "acceptance": 0.9854014598540146,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 169,
+            "tokens_evaluated": 128,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 168,
+          "source_row_sha256": "63b5205e562556bc78a6d03e981c34f0a13943a83d74beb0e0cdb1de64735ec9",
+          "source_raw_sha256": "ba71ecd4b6fece9cfcd6583e0d82b6af508ce74d6c3844ae13aed7b13ca18330",
+          "store": {
+            "host": "sozo",
+            "seq": 256,
+            "row_hash": "757bc9b160cead53ef8a751ce018271de940116257a6167d71999273272d2ca2",
+            "chain_hash": "c01805b948cac1ca2fab0a15e5c772e5ae68e3addb99520b026ada96eec9a4b3"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/5",
+          "tg": 50.11723977746563,
+          "prompt_tokens": 104,
+          "generated_tokens": 146,
+          "total_tokens": 250,
+          "wall_seconds": 3.6007049083709717,
+          "decode_seconds": 2.893216,
+          "ttfp_ms": 706.507682800293,
+          "drafted": 121.0,
+          "accepted": 115.0,
+          "acceptance": 0.9504132231404959,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 146,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 145,
+          "source_row_sha256": "f5d5befafa12c4f6e7455d62924431ad766bf020074bcc084fb8d2709fdb35cb",
+          "source_raw_sha256": "9dbf666a0df62c082f058f19a2c8b0e145731dd39817b3baa6e32148ae5033e0",
+          "store": {
+            "host": "sozo",
+            "seq": 257,
+            "row_hash": "252f0f0da2cdf87e9e33eac5e5d5bedfaa8cd2ba0d8ec2055cfb07f44fdd541d",
+            "chain_hash": "add5fb66b1f55376cc4ead9122550374b0b6bb7682da69e40a7e83ecee5f4a9b"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/6",
+          "tg": 49.674807421416226,
+          "prompt_tokens": 124,
+          "generated_tokens": 225,
+          "total_tokens": 349,
+          "wall_seconds": 5.269541263580322,
+          "decode_seconds": 4.509328,
+          "ttfp_ms": 759.5314979553223,
+          "drafted": 185.0,
+          "accepted": 174.0,
+          "acceptance": 0.9405405405405406,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 225,
+            "tokens_evaluated": 124,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 224,
+          "source_row_sha256": "4604080209b9319dc586ba45abdbb68595ee9e9e085afcc75dd5b97c5bdbc6c5",
+          "source_raw_sha256": "3b43ab2674aeda89c4787eba3456e8cdac3c72a73e196dfe73b0f7fa2dc516f7",
+          "store": {
+            "host": "sozo",
+            "seq": 258,
+            "row_hash": "79401fbf0b8499c0fc92f78cd1aea0a571a88b6c686cb703b456e458d83c3bf9",
+            "chain_hash": "fe28d73af41bbb2744d93ea5f83a51b3602664f6ba0e99666ef756a412d389fa"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/7",
+          "tg": 55.18486681803561,
+          "prompt_tokens": 104,
+          "generated_tokens": 112,
+          "total_tokens": 216,
+          "wall_seconds": 2.7151055335998535,
+          "decode_seconds": 2.011421,
+          "ttfp_ms": 702.9180526733398,
+          "drafted": 89.0,
+          "accepted": 89.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 112,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 111,
+          "source_row_sha256": "514f697052aad230652a6cceef5edb0aa607007d54aba46e61dde3eb56bd59ff",
+          "source_raw_sha256": "ff119f13a75a6af098a8c126f8ffc6a2098777f642525bbb6807de450cd44475",
+          "store": {
+            "host": "sozo",
+            "seq": 259,
+            "row_hash": "c66bd7ab5ad5e3bde7013033766d4f8f7e2b8dcd3d962c315bef7cffa86ff077",
+            "chain_hash": "fde40f761e5bbe46f823b9a08abe595125d859b0ab45accc3cbeaa65a46d77f9"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/8",
+          "tg": 55.52271033082282,
+          "prompt_tokens": 126,
+          "generated_tokens": 163,
+          "total_tokens": 289,
+          "wall_seconds": 3.6880714893341064,
+          "decode_seconds": 2.917725,
+          "ttfp_ms": 769.6480751037598,
+          "drafted": 129.0,
+          "accepted": 129.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 163,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 162,
+          "source_row_sha256": "3445ff594ef6836e851a15ff1c25efb2977d38270c2fe94cbeb98ffb2010ab5a",
+          "source_raw_sha256": "0752f9507b485a65242a4406cdbb87ab7eaea6504b50ee582990915dcb02e5c5",
+          "store": {
+            "host": "sozo",
+            "seq": 260,
+            "row_hash": "9c03224d2aa3c3e70da5b2805185b4c335238bc796b085de4f7dc71f0e5a2c35",
+            "chain_hash": "091213fbabdbf6460ddb9e67d6c301c297bb2998a6421a01ee5902d21c84e6b6"
+          }
+        },
+        {
+          "arm": "laurent",
+          "host": "sozo",
+          "task": "HumanEval/9",
+          "tg": 51.06007089690844,
+          "prompt_tokens": 110,
+          "generated_tokens": 161,
+          "total_tokens": 271,
+          "wall_seconds": 3.8532047271728516,
+          "decode_seconds": 3.133564,
+          "ttfp_ms": 718.853235244751,
+          "drafted": 132.0,
+          "accepted": 123.0,
+          "acceptance": 0.9318181818181818,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 161,
+            "tokens_evaluated": 110,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 160,
+          "source_row_sha256": "918f9f2c73129f5a61612098188da2deda700b5c55ef6b2567eaf0f306a30472",
+          "source_raw_sha256": "e879c15c250f03d6c629f30805d354b22592cf2479d788c5e236c1680c81168b",
+          "store": {
+            "host": "sozo",
+            "seq": 261,
+            "row_hash": "1e1e205c1c514f9e85aa17e373f7adb133aefccfe52d73de862749e11ba08663",
+            "chain_hash": "2c5cf3862d36585b6d1a0fc5c0a0431f7628b3f2f85967ea9fd22b03c172eeb4"
+          }
+        }
+      ],
+      "weighted_tg": 52.00332718698037,
+      "acceptance": 0.9675471698113207,
+      "decode_timed_tokens": 1622,
+      "note": "Server TG excludes the first generated token from decode timing. Generated/total token counts retain every token; aggregate TG uses sum(n_generated-1)/sum(predicted_ms/1000), consistent with per-task server TG."
+    },
+    "unsloth": {
+      "arm": "unsloth",
+      "host": "sozo",
+      "completed": 10,
+      "total": 10,
+      "reasoning": false,
+      "generated_tokens": 1639,
+      "prompt_tokens": 1180,
+      "total_tokens": 2819,
+      "request_wall_seconds": 48.77105927467346,
+      "panel_wall_seconds": 49.61241520801559,
+      "decode_seconds": 34.30465,
+      "drafted": 1100.0,
+      "accepted": 1086.0,
+      "rows": [
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/0",
+          "tg": 47.711822771571605,
+          "prompt_tokens": 134,
+          "generated_tokens": 176,
+          "total_tokens": 310,
+          "wall_seconds": 5.169704914093018,
+          "decode_seconds": 3.6678539999999997,
+          "ttfp_ms": 1500.9796619415283,
+          "drafted": 118.0,
+          "accepted": 118.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 176,
+            "tokens_evaluated": 134,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 175,
+          "source_row_sha256": "014a76983335ed0af25f396053553f3d8f35f6aa9a12027bbff7945cf38412d9",
+          "source_raw_sha256": "6b3b388c924e5b4056d7a23f59cbcce13a9f6cf57128bb8282cd3d4cb09f2a8a",
+          "store": {
+            "host": "sozo",
+            "seq": 262,
+            "row_hash": "da078355237a60b084338042ccd3d9b3ea648e3a82aaa99e3372a4402f11f8d4",
+            "chain_hash": "c469bbdccd23d075079aa1faf4b58095e7eeff4ddb016fc5db9b1529d372f8c8"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/1",
+          "tg": 45.590568345817104,
+          "prompt_tokens": 126,
+          "generated_tokens": 239,
+          "total_tokens": 365,
+          "wall_seconds": 6.693435192108154,
+          "decode_seconds": 5.220377999999999,
+          "ttfp_ms": 1472.2495079040527,
+          "drafted": 166.0,
+          "accepted": 157.0,
+          "acceptance": 0.9457831325301205,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 239,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 238,
+          "source_row_sha256": "88e8336a6a274b657f625ea003a1cd573f7828e8e225ca9718aca7985d0a8930",
+          "source_raw_sha256": "9a376737c901876380dc558d29c93e87c8924c15724ade0b8488c7b033ed13b4",
+          "store": {
+            "host": "sozo",
+            "seq": 263,
+            "row_hash": "9e1f5bf0b5d40e81e79bed35c8f158d98b70152859f75052fe3d97f9b16aa83f",
+            "chain_hash": "5558aa0df008329c3c3b9c7d42cfb821565abac95e0e155b6be6010c8b3ae364"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/2",
+          "tg": 48.727353201234834,
+          "prompt_tokens": 95,
+          "generated_tokens": 97,
+          "total_tokens": 192,
+          "wall_seconds": 3.348337173461914,
+          "decode_seconds": 1.970146,
+          "ttfp_ms": 1377.3281574249268,
+          "drafted": 64.0,
+          "accepted": 64.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 97,
+            "tokens_evaluated": 95,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 96,
+          "source_row_sha256": "5ebd12df22d884fa7a3d6a31428323376702cf9f955b6e21902a88249d23fde9",
+          "source_raw_sha256": "4b6324baef7eb6888d90e311c93292160d296d8563a5640883cbfb33c1fb996b",
+          "store": {
+            "host": "sozo",
+            "seq": 264,
+            "row_hash": "b96b2bbfe03cdde91ef4da7875df12c98d682ef3397708153e2cfcf7cc07966e",
+            "chain_hash": "5ab70d0605324a59bb9a1f20d358d9f33096cda804effaa4e47136fdb5663386"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/3",
+          "tg": 46.94618101845526,
+          "prompt_tokens": 129,
+          "generated_tokens": 157,
+          "total_tokens": 286,
+          "wall_seconds": 4.846970081329346,
+          "decode_seconds": 3.322954,
+          "ttfp_ms": 1523.2126712799072,
+          "drafted": 106.0,
+          "accepted": 104.0,
+          "acceptance": 0.9811320754716981,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 157,
+            "tokens_evaluated": 129,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 156,
+          "source_row_sha256": "dd8d095134cf462d41012d4c54dbe9164158e515c24f00acb74b1d926352aa0b",
+          "source_raw_sha256": "55c4cbdfc64f01c6652490f43eb642debd4e49de6ff4f83bb7997c74e1b3e44f",
+          "store": {
+            "host": "sozo",
+            "seq": 265,
+            "row_hash": "00e8c45f8c2509a43cac9a0687328045f04723aee17aadedfc35cf90e7b2a86e",
+            "chain_hash": "7e5d2184e3b37257e224156f688a1ba2baf69b5437ddb6ea4d54177b7f18261a"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/4",
+          "tg": 47.97608049700935,
+          "prompt_tokens": 128,
+          "generated_tokens": 169,
+          "total_tokens": 297,
+          "wall_seconds": 4.992528200149536,
+          "decode_seconds": 3.501745,
+          "ttfp_ms": 1489.9942874908447,
+          "drafted": 112.0,
+          "accepted": 112.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 169,
+            "tokens_evaluated": 128,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 168,
+          "source_row_sha256": "9c546163ed2972f5654b69ac7dc55cc648b8aaa615e8ac5e2e812ce2a7d4b09b",
+          "source_raw_sha256": "32ec100e717cc15f80e2579fde800cb86f47eec841477921b0c59429475fc03d",
+          "store": {
+            "host": "sozo",
+            "seq": 266,
+            "row_hash": "6858d60d4e0783242137bf22c037a08e129d607d3e17454c02901cc43aa28737",
+            "chain_hash": "9129d854367d28568089d1897a35f926d41d2a12db4903be8c961497668c3188"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/5",
+          "tg": 47.525042041383344,
+          "prompt_tokens": 104,
+          "generated_tokens": 144,
+          "total_tokens": 248,
+          "wall_seconds": 4.390758991241455,
+          "decode_seconds": 3.00894,
+          "ttfp_ms": 1381.0350894927979,
+          "drafted": 96.0,
+          "accepted": 96.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 144,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 143,
+          "source_row_sha256": "bed7889d7af036a353f52503ba0720fe97785b5ecad2de0502ab0b973ebe5f9a",
+          "source_raw_sha256": "ab2a8595456ed11058f157c097c09b47d5d292ec54c3e3fb0e5cfd77a862f424",
+          "store": {
+            "host": "sozo",
+            "seq": 267,
+            "row_hash": "bf2659a37b7140ea67644f300bc9c4e36b66d210d889075e4632e1f1da917756",
+            "chain_hash": "b2c3661b69d60e31de00e6ff2c8b9a9b91a3b431d80789e633a87318e0857b5e"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/6",
+          "tg": 47.408898952026284,
+          "prompt_tokens": 124,
+          "generated_tokens": 221,
+          "total_tokens": 345,
+          "wall_seconds": 6.119290351867676,
+          "decode_seconds": 4.640479,
+          "ttfp_ms": 1477.3871898651123,
+          "drafted": 148.0,
+          "accepted": 147.0,
+          "acceptance": 0.9932432432432432,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 221,
+            "tokens_evaluated": 124,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 220,
+          "source_row_sha256": "b7fae971b81585cdf9fd07218e92bb15bac0b87909cf857b1ec06c7d4dbfd9ec",
+          "source_raw_sha256": "e4d2eaed658150177c766a1417603ba2d300a55c6de139a1363bfc9b9ab04ae8",
+          "store": {
+            "host": "sozo",
+            "seq": 268,
+            "row_hash": "70cecb6b392debe2af6261c59673e33dbf2656669ba9133759dbffdf1b525b39",
+            "chain_hash": "89b099715e5e3b83a55b4bdcc005f3e6a78bd89265f27dcea19e2f57ada11394"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/7",
+          "tg": 48.666216832986755,
+          "prompt_tokens": 104,
+          "generated_tokens": 112,
+          "total_tokens": 216,
+          "wall_seconds": 3.6730427742004395,
+          "decode_seconds": 2.280843,
+          "ttfp_ms": 1391.6351795196533,
+          "drafted": 74.0,
+          "accepted": 74.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 112,
+            "tokens_evaluated": 104,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 111,
+          "source_row_sha256": "a29c13ec79925f2bb84dc88dfd7198886ba0ed8f0ce67d18621fd006932cc5da",
+          "source_raw_sha256": "3da32a1c10ff3ef54861125842234df535e1cc52259352bfb802d06d157e8bc9",
+          "store": {
+            "host": "sozo",
+            "seq": 269,
+            "row_hash": "482f129f2ab7d41a2a9b640d48e542ac51d7824ca9aa82476240fc74779d5c6d",
+            "chain_hash": "547d90493df0b438ad10fceaa3fd3883be486e6eecd95026cda813c31ac09c61"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/8",
+          "tg": 48.632496233983545,
+          "prompt_tokens": 126,
+          "generated_tokens": 163,
+          "total_tokens": 289,
+          "wall_seconds": 4.811828136444092,
+          "decode_seconds": 3.331106,
+          "ttfp_ms": 1480.2570343017578,
+          "drafted": 108.0,
+          "accepted": 108.0,
+          "acceptance": 1.0,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 163,
+            "tokens_evaluated": 126,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 162,
+          "source_row_sha256": "b1ffe15f0bd685766414555daaac0bd4bd7c10e239fa571282b381e81caeccc0",
+          "source_raw_sha256": "cc1328ffc6bc46ebecbc30ad901a52043d8ac46a27b904754a01c019dc75d589",
+          "store": {
+            "host": "sozo",
+            "seq": 270,
+            "row_hash": "3844ec2897060a5ec66f9491d3129fed77e9ddc738d53327b657dacb330f66c4",
+            "chain_hash": "1237045dfb7243e08937d37a930f52596b408523b123a78a6f0ae9120f91fb43"
+          }
+        },
+        {
+          "arm": "unsloth",
+          "host": "sozo",
+          "task": "HumanEval/9",
+          "tg": 47.616142467498264,
+          "prompt_tokens": 110,
+          "generated_tokens": 161,
+          "total_tokens": 271,
+          "wall_seconds": 4.725163459777832,
+          "decode_seconds": 3.360205,
+          "ttfp_ms": 1364.046335220337,
+          "drafted": 108.0,
+          "accepted": 106.0,
+          "acceptance": 0.9814814814814815,
+          "finish": {
+            "stop": true,
+            "tokens_predicted": 161,
+            "tokens_evaluated": 110,
+            "truncated": false,
+            "stop_type": "eos",
+            "stopping_word": ""
+          },
+          "decode_timed_tokens": 160,
+          "source_row_sha256": "3923b0e02ea75c233f59cdbf55a8b5d2483501b7a245d889b9daf99f49f90abd",
+          "source_raw_sha256": "96212c06046db62d72c2ddb17d58bd42204f45af6be68a17f5922f9e6e1f463b",
+          "store": {
+            "host": "sozo",
+            "seq": 271,
+            "row_hash": "7f4b2e224dca2cd0fd095633e3130f010a7856e7772ffcadc1cea599ae508ca1",
+            "chain_hash": "092d72074f4efd0792591c1f2d171e13ce6afc8f786c2cd062a59d5b5b227345"
+          }
+        }
+      ],
+      "weighted_tg": 47.48627372673967,
+      "acceptance": 0.9872727272727273,
+      "decode_timed_tokens": 1629,
+      "note": "Server TG excludes the first generated token from decode timing. Generated/total token counts retain every token; aggregate TG uses sum(n_generated-1)/sum(predicted_ms/1000), consistent with per-task server TG."
+    }
+  },
+  "bf16": {
+    "benchmark": "BF16 full-vocabulary fidelity diagnostic",
+    "distributions": 64,
+    "next_token_losses": 60,
+    "vocab": 248320,
+    "domains": [
+      "assistant_dialogue",
+      "math_reasoning",
+      "python",
+      "physics_engineering"
+    ],
+    "positions": "48 through 63 after each of four 64-token prefixes",
+    "bf16_ppl_60": 2.017988158399302,
+    "reference_sha256": "74566152452e5b6ce7cb22cd32a80ef5ea57f6d23ad6f872132b1968b9a4a7b9",
+    "panel_sha256": "decdcfe075ac3d7961c1ad72f9754f18d90bfda16d402101de725a9d846048d0",
+    "rows": {
+      "ciru": {
+        "mean_kl": 0.030452830391296454,
+        "median_kl": 0.0027612169312611666,
+        "p95_kl": 0.1545270358247857,
+        "max_kl": 0.33367892204649147,
+        "top1_agreement": 61,
+        "ppl_60": 2.084010558412682,
+        "sha256": "2d2edef8de50e5781fc6e4dcc1cf9c80daaeea9097d0ba79b4340b07d4b1d279"
+      },
+      "unsloth": {
+        "mean_kl": 0.17457136128131387,
+        "median_kl": 0.003924902626586302,
+        "p95_kl": 0.5572221597760761,
+        "max_kl": 3.8420741561452627,
+        "top1_agreement": 61,
+        "ppl_60": 2.4293137420087842,
+        "sha256": "fcfbe409021ae5125d905af36ce119d4702aab576db047251a173a0ce275a0db"
+      },
+      "laurent": {
+        "mean_kl": 0.11223406250141665,
+        "median_kl": 0.007866695901408137,
+        "p95_kl": 0.2976523841628686,
+        "max_kl": 1.9122826231950454,
+        "top1_agreement": 60,
+        "ppl_60": 2.383803541246223,
+        "sha256": "25e5f12db31908110d0e1f02e7fab1afcd618de106da6649637b58ceaf42df9d"
+      }
+    },
+    "limits": "Small numerical panel, not a full perplexity or task benchmark. CIRU F16 KV/FA auto; competitor Q8_0 KV/FA on. MTP off. Two independent CIRU loads produce identical raw logits. Other capture-to-CIRU differences are deliberately omitted from this BF16-only table."
+  },
+  "sweep": {
+    "ciru": [
+      {
+        "prompt_tokens": 512,
+        "generated_tokens": 128,
+        "pp": 306.5260717785876,
+        "tg": 22.54527250488629,
+        "ttfp_ms": 1671.9896793365479,
+        "total_ms": 7305.761814117432,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 745472,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89918681088,
+            "ram_available_bytes": 40144433152,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94165233664,
+            "t": 1788619776.7673035,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 168734720
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89918681088,
+            "ram_available_bytes": 40146853888,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94162812928,
+            "t": 1788619784.0726674,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 168734720
+          },
+          "peak_gtt_used_bytes": 89918681088,
+          "peak_ram_used_bytes": 94165979136,
+          "peak_vram_used_bytes": 168734720,
+          "sample_count": 31
+        },
+        "source_row_sha256": "473fb0da15e39b5a83b5bb67c70bbc5aeb83a00e93786a907b7eb88739d14b1b",
+        "source_raw_sha256": "e7185d638e0c37bd72c9ad349a8adadf35b7ed369e269d17b5985691619816a6",
+        "label": "v2-ciru-rc2-no-mtp-pp512"
+      },
+      {
+        "prompt_tokens": 2048,
+        "generated_tokens": 128,
+        "pp": 382.0255487047133,
+        "tg": 20.942985114154936,
+        "ttfp_ms": 5364.029407501221,
+        "total_ms": 11428.162574768066,
+        "memory": {
+          "delta_gtt_used_bytes": 393216,
+          "delta_ram_used_bytes": 235118592,
+          "delta_vram_used_bytes": 344064,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89918681088,
+            "ram_available_bytes": 40143777792,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94165889024,
+            "t": 1788619784.1546354,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 168734720
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919074304,
+            "ram_available_bytes": 39909175296,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94400491520,
+            "t": 1788619795.5826085,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169078784
+          },
+          "peak_gtt_used_bytes": 89919074304,
+          "peak_ram_used_bytes": 94401007616,
+          "peak_vram_used_bytes": 169078784,
+          "sample_count": 47
+        },
+        "source_row_sha256": "bd259a73f6cd69f048c4269908915d19c26a1debd395f507e9631fe1bb3d44a8",
+        "source_raw_sha256": "a9ccac0bd0ebbcaf5c28d926d1881d1d30adbba564d1057bfc306983ef4bf5ec",
+        "label": "v2-ciru-rc2-no-mtp-pp2048"
+      },
+      {
+        "prompt_tokens": 8192,
+        "generated_tokens": 128,
+        "pp": 370.40756452549965,
+        "tg": 19.19183920684209,
+        "ttfp_ms": 22118.80850791931,
+        "total_ms": 28736.945390701294,
+        "memory": {
+          "delta_gtt_used_bytes": 229376,
+          "delta_ram_used_bytes": 470446080,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919074304,
+            "ram_available_bytes": 40156749824,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94152916992,
+            "t": 1788619795.701831,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169078784
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39686303744,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94623363072,
+            "t": 1788619824.4386148,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169078784
+          },
+          "peak_gtt_used_bytes": 89919303680,
+          "peak_ram_used_bytes": 94623363072,
+          "peak_vram_used_bytes": 169078784,
+          "sample_count": 116
+        },
+        "source_row_sha256": "da000c4648ae584c75dbc4336187587ee55e69de74bb8acd31a44ccfac4e9c72",
+        "source_raw_sha256": "004a8ef9965ca1c6548f1ead1dc8dcb46e699d5e683ca5a6e5a4f3d5fab5b76b",
+        "label": "v2-ciru-rc2-no-mtp-pp8192"
+      },
+      {
+        "prompt_tokens": 16384,
+        "generated_tokens": 128,
+        "pp": 352.1295823107842,
+        "tg": 17.472675212409946,
+        "ttfp_ms": 46532.26041793823,
+        "total_ms": 53801.73420906067,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 553902080,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39922704384,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94386962432,
+            "t": 1788619824.5504465,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169078784
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39378653184,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94931013632,
+            "t": 1788619878.3519537,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169058304
+          },
+          "peak_gtt_used_bytes": 89919303680,
+          "peak_ram_used_bytes": 94940864512,
+          "peak_vram_used_bytes": 169078784,
+          "sample_count": 216
+        },
+        "source_row_sha256": "6f23c195db77cb88ddc4731f3981eec2d0ddb02db483eda3dc574cc78c9f2467",
+        "source_raw_sha256": "4904535ad05beae3366bd04f815587b01a5926a930809fc9dbfefb62d974c152",
+        "label": "v2-ciru-rc2-no-mtp-pp16384"
+      },
+      {
+        "prompt_tokens": 32768,
+        "generated_tokens": 128,
+        "pp": 321.33055955606176,
+        "tg": 14.323446658864336,
+        "ttfp_ms": 101982.33151435852,
+        "total_ms": 110850.14271736145,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 329519104,
+          "delta_vram_used_bytes": 8192,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39596859392,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94712807424,
+            "t": 1788619878.4932935,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169058304
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39267360768,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 95042306048,
+            "t": 1788619989.3432505,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169062400
+          },
+          "peak_gtt_used_bytes": 89919303680,
+          "peak_ram_used_bytes": 95042326528,
+          "peak_vram_used_bytes": 169066496,
+          "sample_count": 444
+        },
+        "source_row_sha256": "086960f2abb3b29f56ffffb3693a5243e423fd08be8c933516b9f12c174e2b5c",
+        "source_raw_sha256": "acb5b3fb6f76b31c31ca6a42cb3674ece7373254a82754fb4ecc534b193d6e4d",
+        "label": "v2-ciru-rc2-no-mtp-pp32768"
+      },
+      {
+        "prompt_tokens": 65536,
+        "generated_tokens": 128,
+        "pp": 282.9922226883487,
+        "tg": 10.165215161986707,
+        "ttfp_ms": 231594.47526931763,
+        "total_ms": 244090.87371826172,
+        "memory": {
+          "delta_gtt_used_bytes": 52428800,
+          "delta_ram_used_bytes": 601722880,
+          "delta_vram_used_bytes": 40960,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89919303680,
+            "ram_available_bytes": 39502532608,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 94807134208,
+            "t": 1788619989.5020185,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169062400
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89971732480,
+            "ram_available_bytes": 38902194176,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 95407472640,
+            "t": 1788620233.5926564,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169103360
+          },
+          "peak_gtt_used_bytes": 89971732480,
+          "peak_ram_used_bytes": 95408857088,
+          "peak_vram_used_bytes": 169103360,
+          "sample_count": 976
+        },
+        "source_row_sha256": "803b8e4cf5a82d1ae7ccc12fb1556dab4bf3ceb6e00aff90dcad2d8fbd04cb97",
+        "source_raw_sha256": "ac7bfde237162b53d1d57f2a58aaefaa791d467566cba0fe7e270338724cbe2a",
+        "label": "v2-ciru-rc2-no-mtp-pp65536"
+      },
+      {
+        "prompt_tokens": 131072,
+        "generated_tokens": 128,
+        "pp": 232.95215096846331,
+        "tg": 6.748802247021679,
+        "ttfp_ms": 562672.7845668793,
+        "total_ms": 581497.358083725,
+        "memory": {
+          "delta_gtt_used_bytes": 35651584,
+          "delta_ram_used_bytes": 1520336896,
+          "delta_vram_used_bytes": 8192,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 89971732480,
+            "ram_available_bytes": 39124025344,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 95185641472,
+            "t": 1788620233.7813432,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169103360
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 90007384064,
+            "ram_available_bytes": 37603688448,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 96705978368,
+            "t": 1788620815.2784042,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 169111552
+          },
+          "peak_gtt_used_bytes": 90007384064,
+          "peak_ram_used_bytes": 96705978368,
+          "peak_vram_used_bytes": 169111552,
+          "sample_count": 2324
+        },
+        "source_row_sha256": "a7566b16fdc3740f078a69e74e558ae6b548c8624a799308da02447ec0427fcf",
+        "source_raw_sha256": "6bc32148916d08c2feee98b09be62b36bad843f1df5eab9bf702dd6c1336ec5a",
+        "label": "v2-ciru-rc2-no-mtp-pp131072"
+      }
+    ],
+    "unsloth": [
+      {
+        "prompt_tokens": 512,
+        "generated_tokens": 128,
+        "pp": 235.02841456808937,
+        "tg": 24.53706574948274,
+        "ttfp_ms": 2180.333137512207,
+        "total_ms": 7356.932640075684,
+        "memory": {
+          "delta_gtt_used_bytes": 33128448,
+          "delta_ram_used_bytes": 130293760,
+          "delta_vram_used_bytes": 36864,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72547319808,
+            "ram_available_bytes": 29520384000,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104789282816,
+            "t": 1788585805.4317117,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 513044480
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580448256,
+            "ram_available_bytes": 29391036416,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104918630400,
+            "t": 1788585812.7882414,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 513081344
+          },
+          "peak_gtt_used_bytes": 72580448256,
+          "peak_ram_used_bytes": 104919576576,
+          "peak_vram_used_bytes": 513081344,
+          "sample_count": 31
+        },
+        "source_row_sha256": "ece8eca9f56e7d41b92246d1e12e6d97c871afa86a52c68dae0ab436b9486d61",
+        "source_raw_sha256": "61734e4f1dc0c25ed4a7d31ff42632e8bed5c80998e076dd173f43a1defb97f8",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp512"
+      },
+      {
+        "prompt_tokens": 2048,
+        "generated_tokens": 128,
+        "pp": 270.12154942142814,
+        "tg": 23.98476457537146,
+        "ttfp_ms": 7584.341049194336,
+        "total_ms": 12880.511999130249,
+        "memory": {
+          "delta_gtt_used_bytes": 196608,
+          "delta_ram_used_bytes": 214904832,
+          "delta_vram_used_bytes": 61440,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580448256,
+            "ram_available_bytes": 29464027136,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104845639680,
+            "t": 1788585812.9251993,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 513081344
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580644864,
+            "ram_available_bytes": 29274816512,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 105034850304,
+            "t": 1788585825.8052313,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 513142784
+          },
+          "peak_gtt_used_bytes": 72580644864,
+          "peak_ram_used_bytes": 105060544512,
+          "peak_vram_used_bytes": 513142784,
+          "sample_count": 53
+        },
+        "source_row_sha256": "d69332962298bd5ad08fab9a0e3fef4e16d9333c158bed8a76625af3d1925984",
+        "source_raw_sha256": "b74560d0cf1b77f1b625051026746d3f6da653f00ae57c136eca7b695b480db7",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp2048"
+      },
+      {
+        "prompt_tokens": 8192,
+        "generated_tokens": 128,
+        "pp": 274.78231585274597,
+        "tg": 22.68762216927253,
+        "ttfp_ms": 29816.16234779358,
+        "total_ms": 35415.289640426636,
+        "memory": {
+          "delta_gtt_used_bytes": 15728640,
+          "delta_ram_used_bytes": 230735872,
+          "delta_vram_used_bytes": 12582912,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580644864,
+            "ram_available_bytes": 29519159296,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104790507520,
+            "t": 1788585825.918342,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 513142784
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580644864,
+            "ram_available_bytes": 29288710144,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 105020956672,
+            "t": 1788585861.333005,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 525725696
+          },
+          "peak_gtt_used_bytes": 72596373504,
+          "peak_ram_used_bytes": 105021243392,
+          "peak_vram_used_bytes": 525725696,
+          "sample_count": 143
+        },
+        "source_row_sha256": "0ea4bddc406a4d9dc83ba3f0c0da273407a6ced581b5866e899479b310077b8c",
+        "source_raw_sha256": "ab258b25a16756e808e1f88674c3b00bc5235d97e379fe8e2c139a5f08c75ada",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp8192"
+      },
+      {
+        "prompt_tokens": 16384,
+        "generated_tokens": 128,
+        "pp": 266.86943792269767,
+        "tg": 21.28038193426272,
+        "ttfp_ms": 61398.22745323181,
+        "total_ms": 67369.02523040771,
+        "memory": {
+          "delta_gtt_used_bytes": 33554432,
+          "delta_ram_used_bytes": 207589376,
+          "delta_vram_used_bytes": 2097152,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72580644864,
+            "ram_available_bytes": 29452505088,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104857161728,
+            "t": 1788585861.4517806,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 525725696
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72614199296,
+            "ram_available_bytes": 29244940288,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 105064726528,
+            "t": 1788585928.820109,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508948480
+          },
+          "peak_gtt_used_bytes": 72614199296,
+          "peak_ram_used_bytes": 105064751104,
+          "peak_vram_used_bytes": 527822848,
+          "sample_count": 270
+        },
+        "source_row_sha256": "b54e72f78ab5f0e40b37bea50c5e261557c25d435266a76b47dc8510e3448ee4",
+        "source_raw_sha256": "025d8274176c18fb25e22b6b31ef0f5961169cfa52ac550ec2eb2bcbc601637f",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp16384"
+      },
+      {
+        "prompt_tokens": 32768,
+        "generated_tokens": 128,
+        "pp": 254.67648015684492,
+        "tg": 18.79396882302548,
+        "ttfp_ms": 128672.66249656677,
+        "total_ms": 135432.7266216278,
+        "memory": {
+          "delta_gtt_used_bytes": 33554432,
+          "delta_ram_used_bytes": 275447808,
+          "delta_vram_used_bytes": 4096,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72614199296,
+            "ram_available_bytes": 29478772736,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104830894080,
+            "t": 1788585928.9364839,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508948480
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72647753728,
+            "ram_available_bytes": 29203410944,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 105106255872,
+            "t": 1788586064.368746,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508948480
+          },
+          "peak_gtt_used_bytes": 72647753728,
+          "peak_ram_used_bytes": 105106341888,
+          "peak_vram_used_bytes": 508952576,
+          "sample_count": 541
+        },
+        "source_row_sha256": "27587fba86adcf3881b1df1af6e172f39b6deec77cd2b9977407442ecb8f40df",
+        "source_raw_sha256": "064cdb307d51d06fbfbc60eeb02c302e1a4977f03750f8c57ae6182c6042fdb1",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp32768"
+      },
+      {
+        "prompt_tokens": 65536,
+        "generated_tokens": 128,
+        "pp": 228.77660940134743,
+        "tg": 13.36603064357227,
+        "ttfp_ms": 286475.9120941162,
+        "total_ms": 295982.67555236816,
+        "memory": {
+          "delta_gtt_used_bytes": 67108864,
+          "delta_ram_used_bytes": 57982976,
+          "delta_vram_used_bytes": 8192,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72647753728,
+            "ram_available_bytes": 29440012288,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104869654528,
+            "t": 1788586064.5691152,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508948480
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72714862592,
+            "ram_available_bytes": 29507186688,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104802480128,
+            "t": 1788586360.5511396,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508952576
+          },
+          "peak_gtt_used_bytes": 72714862592,
+          "peak_ram_used_bytes": 104927637504,
+          "peak_vram_used_bytes": 508956672,
+          "sample_count": 1180
+        },
+        "source_row_sha256": "511214805cfb1b70241842a3661094fcf41b4f6eea94d4536e2e5ed15b4241bb",
+        "source_raw_sha256": "a484d183b8c22552f19a0a61b4147af35397a7dd58058ef5a7efda05cd904394",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp65536"
+      },
+      {
+        "prompt_tokens": 131072,
+        "generated_tokens": 128,
+        "pp": 189.79235543145583,
+        "tg": 9.978903654785249,
+        "ttfp_ms": 690630.3057670593,
+        "total_ms": 703363.6708259583,
+        "memory": {
+          "delta_gtt_used_bytes": 134217728,
+          "delta_ram_used_bytes": 398831616,
+          "delta_vram_used_bytes": 4096,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72714862592,
+            "ram_available_bytes": 29736456192,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104573210624,
+            "t": 1788586360.7821238,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508952576
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 72849080320,
+            "ram_available_bytes": 29337624576,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104972042240,
+            "t": 1788587064.145355,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 508952576
+          },
+          "peak_gtt_used_bytes": 72849080320,
+          "peak_ram_used_bytes": 104972042240,
+          "peak_vram_used_bytes": 508956672,
+          "sample_count": 2803
+        },
+        "source_row_sha256": "5529d96e3d1bee14af87530c0a01105776fd9d9db50ddaae533838272c4b9839",
+        "source_raw_sha256": "07d2d590b3972df5a6fbcf894d9c81fd331870e4d379c33ccea5ad45bb3ceb44",
+        "label": "unsloth-compare-unsloth-no-mtp-ladder-pp131072"
+      }
+    ],
+    "laurent": [
+      {
+        "prompt_tokens": 512,
+        "generated_tokens": 128,
+        "pp": 357.62781003257766,
+        "tg": 25.932868583656983,
+        "ttfp_ms": 1433.5122108459473,
+        "total_ms": 6331.249713897705,
+        "memory": {
+          "delta_gtt_used_bytes": 29687808,
+          "delta_ram_used_bytes": 162824192,
+          "delta_vram_used_bytes": 8192,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101335601152,
+            "ram_available_bytes": 29871378432,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104438288384,
+            "t": 1788581822.0923114,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 524312576
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101365288960,
+            "ram_available_bytes": 29708554240,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104601112576,
+            "t": 1788581828.4232647,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 524320768
+          },
+          "peak_gtt_used_bytes": 101365288960,
+          "peak_ram_used_bytes": 104601112576,
+          "peak_vram_used_bytes": 524320768,
+          "sample_count": 27
+        },
+        "source_row_sha256": "775a400e7c22fa92d91edf847405c2c51a0ed18661efe85a8fd6255a99bc6086",
+        "source_raw_sha256": "6febe5d187916fe64790b491cc456c7dadc432d26f2ffc9916e987dba8c8620b",
+        "label": "agention-card-ladder-pp512"
+      },
+      {
+        "prompt_tokens": 2048,
+        "generated_tokens": 128,
+        "pp": 363.83333235624184,
+        "tg": 25.58463922435432,
+        "ttfp_ms": 5631.121873855591,
+        "total_ms": 10595.957040786743,
+        "memory": {
+          "delta_gtt_used_bytes": 4390912,
+          "delta_ram_used_bytes": 243486720,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101365288960,
+            "ram_available_bytes": 29818118144,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104491548672,
+            "t": 1788581828.5312965,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 524320768
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29574631424,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104735035392,
+            "t": 1788581839.1267073,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104735035392,
+          "peak_vram_used_bytes": 524320768,
+          "sample_count": 44
+        },
+        "source_row_sha256": "dadbba441f5daa39776c0bd59e0594e8cb76de2a4c98c1288687b0dcf45e66af",
+        "source_raw_sha256": "b59f04d0ef7fbde95fb2a97a8004ca6b32dcdfa1834a5c75fcc77899cd7a3e24",
+        "label": "agention-card-ladder-pp2048"
+      },
+      {
+        "prompt_tokens": 8192,
+        "generated_tokens": 128,
+        "pp": 325.5891187734956,
+        "tg": 24.953315686558064,
+        "ttfp_ms": 25164.159536361694,
+        "total_ms": 30255.13529777527,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 233160704,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29795074048,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104514592768,
+            "t": 1788581839.284278,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29561913344,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104747753472,
+            "t": 1788581869.5386808,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104747753472,
+          "peak_vram_used_bytes": 521228288,
+          "sample_count": 122
+        },
+        "source_row_sha256": "102a59f7add6c625a184371d644d79a444d8f83387995f3735c1b49cad9c5447",
+        "source_raw_sha256": "6c4d7d5185fefd323d4ee9896943a7223df04c4334454af249a111bec92b8c38",
+        "label": "agention-card-ladder-pp8192"
+      },
+      {
+        "prompt_tokens": 16384,
+        "generated_tokens": 128,
+        "pp": 302.71994163181125,
+        "tg": 24.35992382057209,
+        "ttfp_ms": 54127.56133079529,
+        "total_ms": 59342.663526535034,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 153559040,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29705891840,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104603774976,
+            "t": 1788581869.7269146,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29552332800,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104757334016,
+            "t": 1788581929.0693126,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104757334016,
+          "peak_vram_used_bytes": 521228288,
+          "sample_count": 238
+        },
+        "source_row_sha256": "41f2c620690cb08189ac49e3888386169ffecdd7b3275222f47d24078eb4face",
+        "source_raw_sha256": "abdbb2b146e533e30b6e7ec9acfdc34d171529a5485d74e5ae389fa1ce6c41e7",
+        "label": "agention-card-ladder-pp16384"
+      },
+      {
+        "prompt_tokens": 32768,
+        "generated_tokens": 128,
+        "pp": 273.9458158618122,
+        "tg": 22.769845982610295,
+        "ttfp_ms": 119622.07579612732,
+        "total_ms": 125202.11839675903,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 247328768,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29789585408,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104520081408,
+            "t": 1788581929.2211366,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29542256640,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104767410176,
+            "t": 1788582054.4227529,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104767410176,
+          "peak_vram_used_bytes": 521228288,
+          "sample_count": 501
+        },
+        "source_row_sha256": "5a3b9729d7b3164e3a5e2400666207d03324c2a1285c32a2356ba325cc4b7219",
+        "source_raw_sha256": "a88b8146341fa30fca8b8d3977f9fcafceca712cb89552e8bd2a6caed66acb60",
+        "label": "agention-card-ladder-pp32768"
+      },
+      {
+        "prompt_tokens": 65536,
+        "generated_tokens": 128,
+        "pp": 229.67782088765648,
+        "tg": 20.252305453882073,
+        "ttfp_ms": 285350.79431533813,
+        "total_ms": 291627.0384788513,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 193069056,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29699903488,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104609763328,
+            "t": 1788582054.6204512,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29506834432,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104802832384,
+            "t": 1788582346.2469826,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104802832384,
+          "peak_vram_used_bytes": 521228288,
+          "sample_count": 1164
+        },
+        "source_row_sha256": "f275968ad35f1d6554a1825f22ab7175558bc4f24fd555def9d0bcaeafd1a46f",
+        "source_raw_sha256": "aadd44795c66555e4f3a7d730eb122b1cda5fb808e431081bc6371b244f3a3b0",
+        "label": "agention-card-ladder-pp65536"
+      },
+      {
+        "prompt_tokens": 131072,
+        "generated_tokens": 128,
+        "pp": 184.33343093700745,
+        "tg": 17.85921705754915,
+        "ttfp_ms": 711083.1847190857,
+        "total_ms": 718204.247713089,
+        "memory": {
+          "delta_gtt_used_bytes": 0,
+          "delta_ram_used_bytes": 24977408,
+          "delta_vram_used_bytes": 0,
+          "idle": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 101369679872,
+            "ram_available_bytes": 29738627072,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104571039744,
+            "t": 1788582346.4750206,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 521228288
+          },
+          "last": {
+            "gtt_total_bytes": 133143986176,
+            "gtt_used_bytes": 100378251264,
+            "ram_available_bytes": 30736842752,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 103572824064,
+            "t": 1788583064.6787124,
+            "vram_total_bytes": 536870912,
+            "vram_used_bytes": 516562944
+          },
+          "peak_gtt_used_bytes": 101369679872,
+          "peak_ram_used_bytes": 104596017152,
+          "peak_vram_used_bytes": 521228288,
+          "sample_count": 2863
+        },
+        "source_row_sha256": "1dce28c2dca2dde22c874671a7f8507ba882fea2e31220c310e151b2ee7b5d02",
+        "source_raw_sha256": "d4db4b5cfb6adbd5b4e0158910ece599ab7430d8f7b3a0002c014c095e18fd03",
+        "label": "agention-card-ladder-pp131072"
+      }
+    ]
+  },
+  "scope": {
+    "humaneval": "HumanEval0\u20139 canonical task text through each embedded non-thinking chat template. Greedy, seed123, one natural-EOS completion per task. MTP acceptance and speed only.",
+    "hardware": "Two Ryzen AI MAX+395 / Radeon8060S gfx1151 systems with128GB unified memory, NixOS. HE: CIRU on Ciru; Laurent and Unsloth on Sozo, CPU performance governor, no concurrent model load per host. Sweep: all Sozo, powersave governor.",
+    "sweep": "MTP off, 512\u2013131072 exact source tokens,128 generated tokens,262144 context, erased slot, temp0,seed1234,ignoreEOS. Each package retains its documented sweep settings.",
+    "bf16": "Small numerical panel, not a full perplexity or task benchmark. CIRU F16 KV/FA auto; competitor Q8_0 KV/FA on. MTP off. Two independent CIRU loads produce identical raw logits. Other capture-to-CIRU differences are deliberately omitted from this BF16-only table.",
+    "tg": "Aggregate TG = sum(generated_tokens\u22121) / sum(server predicted seconds), preserving the runtime convention that the first generated token is outside decode timing.",
+    "wall": "Request wall includes prefill and streamed generation. Panel wall also includes recorder overhead between requests; excludes model loading. Total tokens = prompt + generated.",
+    "batch_verification": "Pinned Laurent and Unsloth card commands do not override batch/microbatch. Both native binaries report defaults2048/512 via --help. HumanEval retained those defaults; target-only sweeps explicitly specify2048/512. CIRU profile explicitly specifies2048/512."
+  }
+}
