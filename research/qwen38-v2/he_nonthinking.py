@@ -31,7 +31,7 @@ def run(arm):
  env=os.environ.copy()
  for name in ['LLAMA_API_KEY','LLAMA_ARG_API_KEY']:env.pop(name,None)
  if arm=='ciru':
-  b=RC/'bin';args=[str(RC/'run.sh')];model='/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf'
+  b=RC/'bin';args=[str(RC/'run.sh'),'-c','262144'];model='/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf'
   manifest=json.loads((RC/'LOCK.json').read_text()); artifacts=json.loads((RC/'models.json').read_text())
   checked={}
   for line in (RC/'SHA256SUMS').read_text().splitlines():
@@ -51,7 +51,7 @@ def run(arm):
   checked=manifest['sha256'];assert all(sha(b/n)==h for n,h in checked.items())
  if arm!='ciru':env.update({'VK_ICD_FILENAMES':'/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json','LD_LIBRARY_PATH':str(b)+':/nix/store/zs7y2aadk71bawprdcn000az9y05s8nf-vulkan-loader-1.4.341.0/lib'})
  args+=['--jinja','--reasoning','off','--temp','0','--top-k','1','--top-p','1','--min-p','0','--host','127.0.0.1','--port','18184','--parallel','1','--metrics','--slots','--slot-save-path',str(d/'slots')]
- lock={'classification':'local-custom HumanEval0-9 non-thinking MTP speed workload','arm':arm,'host':HOST,'command':args,'runtime':manifest,'artifacts':artifacts,'verified_binary_hashes':checked,'dataset_sha256':sha(I/'HumanEval.jsonl.gz'),'driver_sha256':sha(__file__),'sampler':SAMPLER,'reasoning':False,'task_protocol':'Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.','output_policy':'Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.','aggregate_policy':'TG=sum(generated tokens-1) / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.','settings_basis':'CIRU locked retained d6 ROCm10 recipe at16K; Laurent publisher adaptive2–4 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.','governors':{str(p):p.read_text().strip() for p in governors}}
+ lock={'classification':'local-custom HumanEval0-9 non-thinking MTP speed workload','arm':arm,'host':HOST,'command':args,'runtime':manifest,'artifacts':artifacts,'verified_binary_hashes':checked,'dataset_sha256':sha(I/'HumanEval.jsonl.gz'),'driver_sha256':sha(__file__),'sampler':SAMPLER,'reasoning':False,'task_protocol':'Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.','output_policy':'Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.','aggregate_policy':'TG=sum(generated tokens-1) / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.','settings_basis':'CIRU released d6 ROCm10 profile at262144 context, per runtime-v2/README.md and model card; Laurent publisher adaptive2–4 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.','governors':{str(p):p.read_text().strip() for p in governors}}
  save(d/'protocol.lock.json',lock);note('loading',arm=arm)
  with (d/'server.log').open('x') as f:server=subprocess.Popen(args,cwd=d,env=env,stdout=f,stderr=subprocess.STDOUT)
  save(d/'pid.json',{'pid':server.pid})
@@ -63,7 +63,7 @@ def run(arm):
   except Exception:pass
   time.sleep(1)
  else:raise RuntimeError('startup timeout')
- slots=api('/slots');props=api('/props');assert len(slots)==1 and slots[0].get('speculative'),slots
+ slots=api('/slots');props=api('/props');assert len(slots)==1 and slots[0].get('speculative') and slots[0]['n_ctx']==262144,slots
  maps=[s for s in Path(f'/proc/{server.pid}/maps').read_text().splitlines() if 'libllama' in s or 'libggml-' in s];assert maps and all(str(b) in s for s in maps)
  ident={'arm':arm,'host':HOST,'protocol_lock':str(d/'protocol.lock.json'),'command':args,'maps':maps,'pid':server.pid,'slots':slots,'props':props,'runtime':manifest}
  save(d/'identity.json',ident);save(ROOT/'current-server.json',ident)
@@ -83,7 +83,7 @@ def run(arm):
   payload=SAMPLER|{'prompt':x['prompt'],'n_predict':-1,'stream':True,'cache_prompt':False}
   save(rd/'payload.json',payload);(rd/'prompt.txt').write_text(x['prompt']);save(rd/'erase.json',api('/slots/0?action=erase',{}))
   before=api('/metrics');save(rd/'before.json',{'metrics':before,'slots':api('/slots')})
-  cmd=[sys.executable,str(ROOT/'recorder.py'),'api','--label',f'research-nonthinking-{arm}-{task.replace("/","-")}','--base-url',BASE,'--model',model,'--prompt-file',str(rd/'prompt.txt'),'--gen','-1','--timeout','1800','--payload-file',str(rd/'payload.json'),'--out-dir',str(STORE)]
+  cmd=[sys.executable,str(ROOT/'recorder.py'),'api','--label',f'research-release256k-{arm}-{task.replace("/","-")}','--base-url',BASE,'--model',model,'--prompt-file',str(rd/'prompt.txt'),'--gen','-1','--timeout','1800','--payload-file',str(rd/'payload.json'),'--out-dir',str(STORE)]
   note('request-start',arm=arm,task=task)
   with (rd/'row.json').open('x') as f:subprocess.run(cmd,stdout=f,stderr=subprocess.STDOUT,check=True,timeout=1900)
   row=json.loads((rd/'row.json').read_text());after=api('/metrics');save(rd/'after.json',{'metrics':after,'slots':api('/slots')})

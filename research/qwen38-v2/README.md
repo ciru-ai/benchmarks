@@ -22,3 +22,7 @@ CIRU ran on Ciru; Laurent and Unsloth ran sequentially on Sozo. All use Ryzen AI
 Laurent and Unsloth card commands omit batch and microbatch flags. The exact native binaries' `--help` output was checked on 2026-09-05: each defaults to batch 2048, microbatch 512. New MTP panels retain those defaults. Sweeps explicitly use the same values. CIRU's retained profile explicitly uses 2048/512.
 
 The `he_nonthinking.py` harness expects the local server installations and official llama-benchmark recorder paths captured in the protocol. It is an auditable reproduction artifact for this lab setup, not a portable model installer.
+
+## Serving-context correction, 2026-09-05
+
+The displayed CIRU HumanEval panel now uses the released 262144-token context. It supersedes the earlier 16384-token diagnostic configuration. All 10 outputs are byte-identical to the earlier run; all 10 MTP counters match. The new native aggregate TG is 54.8240798979 tok/s. Comparator panels, BF16 data and MTP-off sweeps are unchanged. Each package must use live recommended serving settings; no 16K serving profiles are permitted.

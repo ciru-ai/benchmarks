@@ -6,6 +6,8 @@
       "host": "ciru",
       "command": [
         "/srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/run.sh",
+        "-c",
+        "262144",
         "--jinja",
         "--reasoning",
         "off",
@@ -26,7 +28,7 @@
         "--metrics",
         "--slots",
         "--slot-save-path",
-        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/slots"
+        "/srv/llm/work/qwen38-he-release-context-20260905/benchmarks/ciru/slots"
       ],
       "runtime": {
         "schema": "ciru.locked-runtime.v1",
@@ -395,7 +397,7 @@
         "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
       },
       "dataset_sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
-      "driver_sha256": "b0baed6c9f74603ef749cc86f7807abd46647f3e1b215d4f02b77eeaa91833ed",
+      "driver_sha256": "d4978a25fcb0dbaf7f9611b64ae6fc2327e9ac0f9d789afef439ae3efd93c71c",
       "sampler": {
         "temperature": 0,
         "top_k": 1,
@@ -409,8 +411,8 @@
       "reasoning": false,
       "task_protocol": "Canonical HumanEval prompt in one user message, embedded chat template with enable_thinking=false; no added instructions. One first sample, no retries. Speed and acceptance only; no quality score.",
       "output_policy": "Natural EOS; n_predict=-1; no custom stops. 1800-second transport timeout. Preserve unsuccessful/incomplete requests.",
-      "aggregate_policy": "TG=sum generated tokens / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.",
-      "settings_basis": "CIRU locked retained d6 ROCm10 recipe at16K; Laurent publisher adaptive2\u20134 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.",
+      "aggregate_policy": "TG=sum(generated tokens-1) / sum server decode seconds. Request wall=sum measured HTTP request wall seconds. Panel wall=elapsed loop time including recorder overhead, excluding model load.",
+      "settings_basis": "CIRU released d6 ROCm10 profile at262144 context, per runtime-v2/README.md and model card; Laurent publisher adaptive2\u20134 Q8 targetKV; Unsloth recommended fork sharedQ8 d2. Greedy non-thinking for MTP acceptance speed, supported by retained CIRU probe and published Unsloth greedy MTP recipe.",
       "governors": {
         "/sys/devices/system/cpu/cpu21/cpufreq/scaling_governor": "performance",
         "/sys/devices/system/cpu/cpu11/cpufreq/scaling_governor": "performance",
@@ -451,9 +453,11 @@
     "identity": {
       "arm": "ciru",
       "host": "ciru",
-      "protocol_lock": "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/protocol.lock.json",
+      "protocol_lock": "/srv/llm/work/qwen38-he-release-context-20260905/benchmarks/ciru/protocol.lock.json",
       "command": [
         "/srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/run.sh",
+        "-c",
+        "262144",
         "--jinja",
         "--reasoning",
         "off",
@@ -474,45 +478,45 @@
         "--metrics",
         "--slots",
         "--slot-save-path",
-        "/srv/llm/work/qwen38-research-page-20260905/benchmarks/ciru/slots"
+        "/srv/llm/work/qwen38-he-release-context-20260905/benchmarks/ciru/slots"
       ],
       "maps": [
-        "787921400000-7879246cb000 r--p 00000000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
-        "7879246cb000-7879251bc000 r-xp 032ca000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
-        "7879251bc000-7879251cc000 r--p 03dba000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
-        "7879251cc000-7879251d0000 rw-p 03dc9000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
-        "78792523a000-78792524d000 r--p 00000000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
-        "78792524d000-787925358000 r-xp 00013000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
-        "787925358000-787925378000 r--p 0011e000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
-        "787925378000-78792537a000 r--p 0013d000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
-        "78792537a000-78792537b000 rw-p 0013f000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
-        "787925400000-7879254b4000 r--p 00000000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
-        "7879254b4000-787925762000 r-xp 000b4000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
-        "787925762000-7879257e9000 r--p 00362000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
-        "7879257e9000-7879257f7000 r--p 003e8000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
-        "7879257f7000-7879257fc000 rw-p 003f6000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
-        "787925800000-7879258a8000 r--p 00000000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
-        "7879258a8000-787925b89000 r-xp 000a8000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
-        "787925b89000-787925c26000 r--p 00389000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
-        "787925c26000-787925c2e000 r--p 00425000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
-        "787925c2e000-787925c33000 rw-p 0042d000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
-        "787925e00000-787925e7b000 r--p 00000000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
-        "787925e7b000-787926075000 r-xp 0007b000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
-        "787926075000-7879263c3000 r--p 00275000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
-        "7879263c3000-7879263c8000 r--p 005c3000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
-        "7879263c8000-7879263cc000 rw-p 005c8000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
-        "7879263fa000-78792640f000 r--p 00000000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
-        "78792640f000-7879264a8000 r-xp 00015000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
-        "7879264a8000-7879264c8000 r--p 000ae000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
-        "7879264c8000-7879264ca000 r--p 000ce000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
-        "7879264ca000-7879264cc000 rw-p 000d0000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
-        "7879264cc000-7879264d4000 rw-p 000e3000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0"
+        "7a5767c00000-7a576aecb000 r--p 00000000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7a576aecb000-7a576b9bc000 r-xp 032ca000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7a576b9bc000-7a576b9cc000 r--p 03dba000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7a576b9cc000-7a576b9d0000 rw-p 03dc9000 103:03 97537285                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-hip.so.0.22.0",
+        "7a576ba3a000-7a576ba4d000 r--p 00000000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "7a576ba4d000-7a576bb58000 r-xp 00013000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "7a576bb58000-7a576bb78000 r--p 0011e000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "7a576bb78000-7a576bb7a000 r--p 0013d000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "7a576bb7a000-7a576bb7b000 rw-p 0013f000 103:03 97537284                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-cpu.so.0.22.0",
+        "7a576bc00000-7a576bcb4000 r--p 00000000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7a576bcb4000-7a576bf62000 r-xp 000b4000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7a576bf62000-7a576bfe9000 r--p 00362000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7a576bfe9000-7a576bff7000 r--p 003e8000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7a576bff7000-7a576bffc000 rw-p 003f6000 103:03 97537292                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama.so.0.3.0",
+        "7a576c000000-7a576c0a8000 r--p 00000000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7a576c0a8000-7a576c389000 r-xp 000a8000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7a576c389000-7a576c426000 r--p 00389000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7a576c426000-7a576c42e000 r--p 00425000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7a576c42e000-7a576c433000 rw-p 0042d000 103:03 97537290                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-common.so.0.3.0",
+        "7a576c600000-7a576c67b000 r--p 00000000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7a576c67b000-7a576c875000 r-xp 0007b000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7a576c875000-7a576cbc3000 r--p 00275000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7a576cbc3000-7a576cbc8000 r--p 005c3000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7a576cbc8000-7a576cbcc000 rw-p 005c8000 103:03 97537291                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libllama-server-impl.so",
+        "7a576cc03000-7a576cc18000 r--p 00000000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7a576cc18000-7a576ccb1000 r-xp 00015000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7a576ccb1000-7a576ccd1000 r--p 000ae000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7a576ccd1000-7a576ccd3000 r--p 000ce000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7a576ccd3000-7a576ccd5000 rw-p 000d0000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0",
+        "7a576ccd5000-7a576ccdd000 rw-p 000e3000 103:03 97537283                  /srv/llm/work/sozo-adaptive-diagnosis-20260905/locked/qwen38-ciru-rocm10-20260905-rc2/bin/libggml-base.so.0.22.0"
       ],
-      "pid": 3024002,
+      "pid": 3061397,
       "slots": [
         {
           "id": 0,
-          "n_ctx": 16384,
+          "n_ctx": 262144,
           "speculative": true,
           "is_processing": false
         }
@@ -573,7 +577,7 @@
             "backend_sampling": false,
             "lora": []
           },
-          "n_ctx": 16384
+          "n_ctx": 262144
         },
         "total_slots": 1,
         "model_alias": "qwen38-mtp-probe",
@@ -584,7 +588,7 @@
           "video": false,
           "audio": false
         },
-        "media_marker": "<__media_SvEPL4iTDhpMhA3yKQfFgF5SZnJ6RbX9__>",
+        "media_marker": "<__media_6eQTpvIWFsxSW9heZdJedSgS5qjjXKUx__>",
         "endpoint_slots": true,
         "endpoint_props": false,
         "endpoint_metrics": true,
@@ -1817,6 +1821,11 @@
   },
   "_analysis": {
     "reported_aggregate": "Sum(generated_tokens-1)/sum(predicted_ms/1000), matching native per-task TG. Raw driver summaries initially summed all generated tokens; collect_he.py derives the final report from preserved timing records and validates this convention for all30 requests.",
-    "source_of_truth": "results.json and humaneval-totals.csv use the corrected native convention; no inference was repeated."
+    "source_of_truth": "results.json and humaneval-totals.csv use the corrected native convention; no inference was repeated.",
+    "context_correction": {
+      "date": "2026-09-05",
+      "scope": "CIRU HumanEval0\u20139 rerun at released262144-token context; supersedes earlier16384-token diagnostic configuration. Laurent/Unsloth and BF16/sweep data unchanged.",
+      "new_source": "research-release256k-ciru-HumanEval-*"
+    }
   }
 }
