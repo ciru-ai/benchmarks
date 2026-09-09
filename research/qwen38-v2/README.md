@@ -1,4 +1,4 @@
-# Qwen3.8 Flash v2.0 research report
+# Qwen3.8 Flash v3 research report with historical v2 archive
 
 Published at https://llm.ciru.ai/research/qwen38-v2/.
 
@@ -26,3 +26,7 @@ The `he_nonthinking.py` harness expects the local server installations and offic
 ## Serving-context correction, 2026-09-05
 
 The displayed CIRU HumanEval panel now uses the released 262144-token context. It supersedes the earlier 16384-token diagnostic configuration. All 10 outputs are byte-identical to the earlier run; all 10 MTP counters match. The new native aggregate TG is 54.8240798979 tok/s. Comparator panels, BF16 data and MTP-off sweeps are unchanged. Each package must use live recommended serving settings; no 16K serving profiles are permitted.
+
+## V3 results update, 2026-09-09
+
+The existing route now leads with verified v3 measurements. `v3-results.json` contains normalized release and follow-up measurements; `build_v3.py` renders the new sections through `build_report.py`. Historical `results.json`, CSVs and measurement records remain unchanged. The older v2 sections are accessible in the archive and through their original fragment links. The v3 mixed panel is distinct from the historical full-ARC/sampled EvalScope suite. No extrapolated v3 EvalScope time is included as a measured benchmark.

@@ -63,6 +63,9 @@ profiles=table(['Package','Runtime / backend','MTP recipe','Target KV','b / ub',
 chips=''.join(f'<span class="package-chip">{model(k)}<small>{P[k]["backend"]}</small></span>' for k in ORDER)
 t=Template((R/'report-template.html').read_text())
 values={'chips':chips,'he_summary':summary,'he_table':per_table,'bf_table':bf_table,'sweep_table':sweep_table,'profiles':profiles,'ciru_tg':f(H['ciru']['weighted_tg']),'ciru_kl':f(Q['rows']['ciru']['mean_kl'],5),'ciru_ppl':f(Q['rows']['ciru']['ppl_60'],4),'ciru_pp128':f(S['ciru'][-1]['pp']),'delta_laurent':f((H['ciru']['weighted_tg']/H['laurent']['weighted_tg']-1)*100,1),'delta_unsloth':f((H['ciru']['weighted_tg']/H['unsloth']['weighted_tg']-1)*100,1)}
+from build_v3 import build_v3
+values['v3_sections']=build_v3(R,table,bar)
+(R/'chart-options.json').write_text(json.dumps(charts,separators=(',',':'))+'\n')
 (R/'index.html').write_text(t.substitute(values))
 manifest={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in R.iterdir() if p.is_file() and p.name!='SHA256.json'}
 (R/'SHA256.json').write_text(json.dumps(manifest,indent=2)+'\n')

@@ -9,3 +9,6 @@ fetch('chart-options.json').then(r=>{if(!r.ok)throw new Error('Chart data unavai
   const observer=new ResizeObserver(entries=>entries.forEach(({target})=>{if(target.clientWidth>0){if(charts.has(target.id))charts.get(target.id).resize();else apply(target.id,target.dataset.chart)}}));document.querySelectorAll('.chart').forEach(el=>observer.observe(el));
   document.querySelectorAll('[data-export]').forEach(button=>button.addEventListener('click',()=>{const c=charts.get(button.dataset.export);if(!c)return;const a=document.createElement('a');a.download='ciru-qwen38-'+button.dataset.export+'.png';a.href=c.getDataURL({type:'png',pixelRatio:2,backgroundColor:'#111216'});a.click()}));
 }).catch(error=>{document.querySelectorAll('.chart').forEach(el=>{el.classList.add('chart-error');el.textContent='Interactive chart unavailable. Exact measurements remain in the tables and downloads.'});console.error(error)});
+
+function revealHistoricalAnchor(){const id=decodeURIComponent(location.hash.slice(1));const target=document.getElementById(id);const archive=document.getElementById("v2-archive");if(target&&archive&&target!==archive&&archive.contains(target)){archive.open=true;requestAnimationFrame(()=>target.scrollIntoView());}}
+window.addEventListener("hashchange",revealHistoricalAnchor);revealHistoricalAnchor();
