@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qwen3.8-27B H2H — Escha-W2 vs Bonsai PQ2 (4bpw reference)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0a;
+    --panel: #141311;
+    --line: #2a2822;
+    --hair: #221f1a;
+    --ink: #f2efe6;
+    --muted: #97938a;
+    --faint: #6b675f;
+    --es: #2ec4b6;
+    --es-dim: #2ec4b633;
+    --pq: #f0b429;
+    --pq-dim: #f0b42933;
+    --base: #7a766c;
+    --cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #070706; color: var(--ink); font: 15px/1.5 var(--body); }
+  .page { max-width: 1180px; margin: 0 auto; padding: 32px 20px 90px; }
+
+  /* ============ POSTER: 1080×1350, screenshot this ============ */
+  .poster {
+    width: 1080px; height: 1350px;
+    margin: 0 auto 64px;
+    background:
+      radial-gradient(900px 500px at 12% -8%, #2ec4b60f, transparent 55%),
+      radial-gradient(900px 500px at 95% 8%, #f0b4290d, transparent 55%),
+      linear-gradient(175deg, #12110e 0%, #0b0b0a 45%, #0d0c0a 100%);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 44px 52px 40px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 40px 100px #000c;
+  }
+  .poster > :not(.tick):not(.rail) { position: relative; }
+  .tick { position: absolute; width: 20px; height: 20px; border: 2px solid #f2efe640; }
+  .tick.tl { top: 13px; left: 13px; border-right: 0; border-bottom: 0; }
+  .tick.tr { top: 13px; right: 13px; border-left: 0; border-bottom: 0; }
+  .tick.bl { bottom: 13px; left: 13px; border-right: 0; border-top: 0; }
+  .tick.br { bottom: 13px; right: 13px; border-left: 0; border-top: 0; }
+  .rail {
+    position: absolute; right: 18px; top: 50%;
+    transform: translateY(-50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    font: 500 12px var(--mono); letter-spacing: 0.5em;
+    color: #4a463e; text-transform: uppercase;
+  }
+
+  .ticket {
+    display: flex; justify-content: space-between; align-items: center;
+    font: 600 14px var(--mono); letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  .ticket .t-es { color: var(--es); }
+  .ticket .t-pq { color: var(--pq); }
+  .ticket .sep { color: var(--faint); margin: 0 6px; }
+
+  .phead { margin: 30px 0 0; }
+  .ptitle { font: 800 80px/0.94 var(--cond); letter-spacing: -0.01em; text-transform: uppercase; margin: 0; }
+  .ptitle .l2 { display: block; }
+  .ptitle .l2 em { font-style: normal; color: var(--muted); }
+  .psub { font: 400 18px/1.45 var(--body); color: var(--muted); margin: 16px 0 0; }
+  .psub b { color: var(--ink); font-weight: 600; }
+  .psub .b-es { color: var(--es); } .psub .b-pq { color: var(--pq); }
+
+  /* —— the face-off —— */
+  .versus { display: grid; grid-template-columns: 1fr 64px 1fr; gap: 0; align-items: stretch; margin-top: 32px; }
+  .fighter { border-radius: 8px; padding: 22px 26px 20px; }
+  .fighter.es { border: 2px solid var(--es); background: linear-gradient(140deg, var(--es-dim), transparent 60%); }
+  .fighter.pq { border: 2px solid var(--pq); background: linear-gradient(220deg, var(--pq-dim), transparent 60%); }
+  .ftag { font: 600 12px var(--mono); letter-spacing: 0.22em; text-transform: uppercase; }
+  .fighter.es .ftag { color: var(--es); }
+  .fighter.pq .ftag { color: var(--pq); }
+  .ftag::before { content: "■ "; }
+  .fname { font: 700 30px var(--cond); text-transform: uppercase; letter-spacing: 0.02em; margin-top: 7px; }
+  .fscore { font: 800 126px/0.95 var(--cond); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .fighter.es .fscore { color: var(--es); }
+  .fighter.pq .fscore { color: var(--pq); }
+  .fscore small { font-size: 44px; font-weight: 700; opacity: 0.75; margin-left: 4px; }
+  .funit { font: 500 12px var(--mono); letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; margin-top: 8px; }
+  .fstats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+  .fstat .sv { font: 700 27px var(--cond); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .fstat .sv small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+  .fstat .sk { font: 500 10.5px var(--mono); letter-spacing: 0.12em; color: var(--faint); text-transform: uppercase; margin-top: 2px; }
+  .vsbadge {
+    align-self: center; justify-self: center;
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 2px solid var(--line); background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font: 800 24px var(--cond); letter-spacing: 0.04em; color: var(--ink);
+    margin: 0 -8px; z-index: 2;
+  }
+
+  /* —— reference marker chart —— */
+  .reference { margin-top: 28px; border: 1px dashed var(--base); border-radius: 8px; padding: 18px 26px 16px; }
+  .ref-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .ref-title { font: 600 12px var(--mono); letter-spacing: 0.24em; text-transform: uppercase; color: var(--base); }
+  .ref-score { font: 500 13px var(--mono); color: var(--muted); }
+  .ref-score b { color: var(--ink); font-weight: 600; font-size: 15px; }
+  .refrow { display: grid; grid-template-columns: 118px 1fr 150px; gap: 12px; align-items: center; padding: 6.5px 0; }
+  .reflab { font: 600 12px var(--mono); letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+  .reftrack { position: relative; height: 32px; }
+  .refbar { position: absolute; left: 0; height: 10px; border-radius: 2px; }
+  .refbar.es { top: 4px; background: var(--es); }
+  .refbar.pq { top: 18px; background: var(--pq); }
+  .refmark { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dashed var(--base); }
+  .refmark span {
+    position: absolute; top: -3px; left: 6px; white-space: nowrap;
+    font: 600 10.5px var(--mono); color: var(--base); letter-spacing: 0.08em;
+  }
+  .refval { font: 500 12px var(--mono); color: var(--muted); text-align: right; white-space: nowrap; }
+  .refval b { font-weight: 600; }
+
+  /* —— size & speed panels —— */
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 26px; }
+  .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 18px 22px 16px; }
+  .panel-title { font: 600 12px var(--mono); letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--hair); padding-bottom: 9px; margin-bottom: 12px; }
+  .panel-title span { float: right; letter-spacing: 0.06em; color: var(--faint); text-transform: none; }
+  .pbar { display: grid; grid-template-columns: 92px 1fr 92px; gap: 10px; align-items: center; padding: 6px 0; }
+  .pwho { font: 600 11.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+  .pwho.es { color: var(--es); } .pwho.pq { color: var(--pq); } .pwho.dim { color: var(--faint); }
+  .ptrack { height: 14px; background: #1c1a16; border-radius: 2px; position: relative; }
+  .pfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+  .pval { font: 600 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pval small { color: var(--faint); font-weight: 400; font-size: 10.5px; }
+  .panel .pnote { margin: 12px 0 0; font: 400 11px/1.55 var(--mono); color: var(--faint); }
+
+  .pfoot { margin-top: 20px; font: 400 11px/1.6 var(--mono); color: var(--faint); }
+
+  /* ============ REPORT BODY ============ */
+  section.blk { margin-top: 56px; }
+  .sechead { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; }
+  .secnum { font: 600 14px var(--mono); color: var(--faint); letter-spacing: 0.1em; }
+  .sectitle { font: 700 34px var(--cond); text-transform: uppercase; letter-spacing: 0.02em; margin: 0; }
+  .secnote { margin-left: auto; font: 400 12px var(--mono); color: var(--faint); }
+
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 11px 14px; border-bottom: 1px solid var(--hair); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font: 600 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+  tbody tr:hover { background: #ffffff05; }
+  td { font-size: 14.5px; }
+  .colhead-base { color: var(--base) !important; }
+  .colhead-e { color: var(--es) !important; }
+  .colhead-p { color: var(--pq) !important; }
+  td.ghost { color: var(--faint); }
+  .best-es { color: var(--es); font-weight: 700; }
+  .best-es::after { content: " ◂"; font-size: 10px; }
+  .best-pq { color: var(--pq); font-weight: 700; }
+  .best-pq::after { content: " ◂"; font-size: 10px; }
+  .bestn { color: var(--ink); font-weight: 700; }
+  .bestn::after { content: " ◂"; font-size: 10px; }
+  td.mono, .mono { font-family: var(--mono); font-size: 13px; }
+
+  .specs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 6px; }
+  .spec {
+    border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+    padding: 16px 18px 14px; font: 400 13.5px/1.6 var(--body); color: var(--muted);
+  }
+  .spec .sname { font: 700 21px var(--cond); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px; }
+  .spec .ssize { font: 600 13px var(--mono); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .spec.e { border-top: 3px solid var(--es); } .spec.e .sname, .spec.e .ssize { color: var(--es); }
+  .spec.p { border-top: 3px solid var(--pq); } .spec.p .sname, .spec.p .ssize { color: var(--pq); }
+  .spec.b { border-top: 3px solid var(--base); } .spec.b .sname, .spec.b .ssize { color: var(--base); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; margin: 2px 0 16px; font: 500 12px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .swatch { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 8px; vertical-align: 3px; }
+
+  .bars { display: flex; flex-direction: column; }
+  .bar-row { display: grid; grid-template-columns: 190px 1fr 180px; gap: 14px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--hair); }
+  .bar-row:last-child { border-bottom: 0; }
+  .bar-row .lab { font: 500 13px var(--body); color: var(--muted); }
+  .pill { font: 500 10.5px var(--mono); padding: 2px 7px; border-radius: 3px; border: 1px solid var(--line); color: var(--faint); margin-left: 6px; }
+  .pair { display: flex; flex-direction: column; gap: 4px; }
+  .track { height: 7px; background: #1c1a16; border-radius: 2px; position: relative; overflow: hidden; }
+  .fill { height: 100%; border-radius: 2px; position: absolute; left: 0; top: 0; }
+  .vals { font: 500 12px var(--mono); color: var(--muted); text-align: right; }
+  .vals b { color: var(--ink); }
+
+  .chart { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 18px 14px 8px; margin: 4px 0 14px; }
+  .chart svg { width: 100%; height: 260px; display: block; }
+  .note { color: var(--muted); font-size: 13.5px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 18px 20px; }
+  .card > b { display: block; font: 700 22px var(--cond); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 10px; }
+
+  footer { margin-top: 60px; color: var(--faint); font: 400 12px var(--mono); border-top: 1px solid var(--line); padding-top: 18px; letter-spacing: 0.04em; }
+
+  @media (max-width: 1120px) {
+    .poster { transform-origin: top center; transform: scale(0.88); margin-bottom: -90px; }
+  }
+  @media (max-width: 960px) {
+    .poster { transform: scale(0.7); margin-bottom: -330px; }
+    .specs, .two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ================= SOCIAL POSTER ================= -->
+<section class="poster" id="poster" aria-label="Social head-to-head poster">
+  <div class="tick tl"></div><div class="tick tr"></div><div class="tick bl"></div><div class="tick br"></div>
+  <div class="rail">ESCHA&nbsp;VS&nbsp;BONSAI&nbsp;—&nbsp;IFEVAL&nbsp;—&nbsp;27B</div>
+
+  <div class="ticket">
+    <span><span class="t-es">Escha-W2</span><span class="sep">vs</span><span class="t-pq">Bonsai PQ2</span></span>
+    <span>IFEval · n=541</span>
+    <span>18 Sep 2026</span>
+  </div>
+
+  <div class="phead">
+    <h1 class="ptitle">Two ways to crush 27B.<span class="l2"><em>One 16 GB card.</em></span></h1>
+    <p class="psub"><b class="b-es">Escha-W2</b> (2-bit, <b>10.2 GB</b>) vs <b class="b-pq">Bonsai PQ2</b> (ternary, <b>7.2 GB</b>) on official Google <b>IFEval</b> — 541 prompts, thinking off — with a 4.00bpw EXL3 build as the reference, not a contestant.</p>
+  </div>
+
+  <div class="versus">
+    <div class="fighter es">
+      <div class="ftag">Quality lead · +2.4 pts</div>
+      <div class="fname">Escha-W2</div>
+      <div class="fscore">81.9<small>%</small></div>
+      <div class="funit">Strict prompt-level IFEval</div>
+      <div class="fstats">
+        <div class="fstat"><div class="sv">10.2<small>GB</small></div><div class="sk">Weights</div></div>
+        <div class="fstat"><div class="sv">42<small>t/s</small></div><div class="sk">Decode</div></div>
+        <div class="fstat"><div class="sv">~64<small>min</small></div><div class="sk">541 prompts</div></div>
+      </div>
+    </div>
+    <div class="vsbadge">VS</div>
+    <div class="fighter pq">
+      <div class="ftag">Speed lead · ×1.35 decode</div>
+      <div class="fname">Bonsai PQ2</div>
+      <div class="fscore">79.5<small>%</small></div>
+      <div class="funit">Strict prompt-level IFEval</div>
+      <div class="fstats">
+        <div class="fstat"><div class="sv">7.2<small>GB</small></div><div class="sk">Weights</div></div>
+        <div class="fstat"><div class="sv">57<small>t/s</small></div><div class="sk">Decode</div></div>
+        <div class="fstat"><div class="sv">~59<small>min</small></div><div class="sk">541 prompts</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reference">
+    <div class="ref-head">
+      <span class="ref-title">The reference — r0b0t EXL3 4.00bpw · RTX 5090</span>
+      <span class="ref-score"><b>84.1</b> strict · <b>87.2</b> loose · <b>89.0</b> inst.</span>
+    </div>
+    <div id="refchart"></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-title">Weights on disk <span>GB</span></div>
+      <div class="pbar"><span class="pwho dim">PTQ1</span><div class="ptrack"><div class="pfill" style="width:42.5%;background:var(--base)"></div></div><div class="pval" style="color:var(--base)">5.95 <small>GB</small></div></div>
+      <div class="pbar"><span class="pwho pq">PQ2</span><div class="ptrack"><div class="pfill" style="width:51.5%;background:var(--pq)"></div></div><div class="pval" style="color:var(--pq)">7.21 <small>GB</small></div></div>
+      <div class="pbar"><span class="pwho es">Escha</span><div class="ptrack"><div class="pfill" style="width:72.6%;background:var(--es)"></div></div><div class="pval" style="color:var(--es)">10.2 <small>GB</small></div></div>
+      <div class="pbar"><span class="pwho dim">4bpw ref</span><div class="ptrack"><div class="pfill" style="width:96.4%;background:transparent;border:1px dashed var(--base)"></div></div><div class="pval" style="color:var(--base)">≈13.5 <small>GB</small></div></div>
+      <p class="pnote">PQ2 is 30% smaller than Escha and about half the 4bpw reference — 27B plus 32k context on one 16 GB 4080 SUPER. PTQ1 is Bonsai's smaller sibling (speed-only entry, no IFEval run).</p>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Decode speed <span>tok/s · short ctx</span></div>
+      <div class="pbar"><span class="pwho dim">PTQ1</span><div class="ptrack"><div class="pfill" style="width:88.9%;background:var(--base)"></div></div><div class="pval" style="color:var(--base)">62.2 <small>t/s</small></div></div>
+      <div class="pbar"><span class="pwho pq">PQ2</span><div class="ptrack"><div class="pfill" style="width:80.7%;background:var(--pq)"></div></div><div class="pval" style="color:var(--pq)">56.5 <small>t/s</small></div></div>
+      <div class="pbar"><span class="pwho es">Escha</span><div class="ptrack"><div class="pfill" style="width:59.9%;background:var(--es)"></div></div><div class="pval" style="color:var(--es)">41.9 <small>t/s</small></div></div>
+      <div class="pbar"><span class="pwho dim">4bpw ref</span><div class="ptrack"><div class="pfill" style="width:100%;background:transparent;border:1px dashed var(--base)"></div></div><div class="pval" style="color:var(--base)">276 <small>t/s agg.</small></div></div>
+      <p class="pnote">PQ2 decodes 1.35× faster than Escha. The 4bpw reference isn't in this fight: 8-way parallel on a 5090 it cleared all 541 prompts in 6.8 min vs ~59–64 min sequential.</p>
+    </div>
+  </div>
+
+  <p class="pfoot">Escha: SGLang 1.2.2, fp8 KV, greedy temp 0, sequential. PQ2 / PTQ1: Prism llama.cpp, greedy, sequential — all on one RTX 4080 SUPER 16 GB. Reference: r0b0tlab EXL3 4.00bpw + DFlash2, Aider sampler temp 0.7 / top_p 0.8 / top_k 20, 8-way on RTX 5090. Official Google IFEval, 541 prompts, max 2048 tokens, thinking off. Decode = tg128 after 128-token prefill; 4bpw ≈13.5 GB = 27B × 4 bits.</p>
+</section>
+
+<!-- ================= 01 NUMBERS ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">01</span><h2 class="sectitle">IFEval numbers</h2><span class="secnote">◂ marks best of the two compressed quants</span></div>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th class="colhead-base">r0b0t EXL3 · reference</th><th class="colhead-e">Escha-W2</th><th class="colhead-p">Bonsai PQ2</th><th>Escha − PQ2</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Strict prompt-level</td><td class="ghost">84.1%</td><td class="best-es">81.9%</td><td>79.5%</td><td class="mono">+2.4 pts</td></tr>
+      <tr><td>Loose prompt-level</td><td class="ghost">87.2%</td><td class="best-es">84.5%</td><td>82.6%</td><td class="mono">+1.9 pts</td></tr>
+      <tr><td>Strict instruction-level</td><td class="ghost">89.0%</td><td class="best-es">87.3%</td><td>86.5%</td><td class="mono">+0.8 pts</td></tr>
+      <tr><td>Loose instruction-level</td><td class="ghost">91.5%</td><td class="best-es">89.3%</td><td>88.5%</td><td class="mono">+0.8 pts</td></tr>
+    </tbody>
+  </table>
+
+  <div class="specs" style="margin-top:18px">
+    <div class="spec e"><div class="sname">Escha-W2</div><div class="ssize">10.2 GB · 2.0-bit</div>SGLang 1.2.2 · fp8 KV · Triton · graphs on · 32k ctx · RTX 4080 SUPER · sequential</div>
+    <div class="spec p"><div class="sname">Bonsai PQ2_0</div><div class="ssize">7.21 GB · ternary</div>Prism llama.cpp · -b 2048 -ub 512 · 32k ctx · RTX 4080 SUPER · sequential</div>
+    <div class="spec b"><div class="sname">r0b0tlab EXL3 · ref</div><div class="ssize">≈13.5 GB · 4.00bpw</div>+ DFlash2 · ExLlamaV3 cq3 · 32 slots / 262k pool · Aider 8 workers · RTX 5090 (Dunamis)</div>
+  </div>
+</section>
+
+<!-- ================= 02 CATEGORIES ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">02</span><h2 class="sectitle">By category</h2><span class="secnote">strict · instruction-level</span></div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--es)"></i>Escha</span>
+    <span><i class="swatch" style="background:var(--pq)"></i>PQ2</span>
+    <span><i class="swatch" style="background:var(--base)"></i>4bpw reference</span>
+  </div>
+  <div class="bars" id="catbars"></div>
+</section>
+
+<!-- ================= 03 SUBCATEGORIES ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">03</span><h2 class="sectitle">By subcategory</h2><span class="secnote">strict · sorted by Escha</span></div>
+  <table>
+    <thead><tr><th>Instruction</th><th>n</th><th class="colhead-e">Escha</th><th class="colhead-p">PQ2</th><th class="colhead-base">4bpw ref</th></tr></thead>
+    <tbody id="subbody"></tbody>
+  </table>
+</section>
+
+<!-- ================= 04 DECODE SPEED ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">04</span><h2 class="sectitle">Decode speed</h2><span class="secnote">tg128 after prefill · tok/s · 4080 SUPER</span></div>
+  <p class="note">Bonsai: llama-bench. Escha: HTTP. The 4bpw reference was not ladder-benched on the 4080; its Aider panel on the 5090 measured 276 aggregate output tok/s at 8 workers.</p>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--es)"></i>Escha</span>
+    <span><i class="swatch" style="background:var(--pq)"></i>PQ2</span>
+    <span><i class="swatch" style="background:var(--base)"></i>PTQ1</span>
+  </div>
+  <div class="chart"><svg id="tgchart" viewBox="0 0 1000 260"></svg></div>
+  <table>
+    <thead><tr><th>Prefill</th><th class="colhead-e">Escha tg</th><th class="colhead-p">PQ2 tg</th><th>PTQ1 tg</th></tr></thead>
+    <tbody>
+      <tr><td>128</td><td>41.9</td><td>56.5</td><td class="bestn">62.2</td></tr>
+      <tr><td>2k</td><td>42.2</td><td>55.7</td><td class="bestn">59.9</td></tr>
+      <tr><td>4k</td><td>41.8</td><td>55.0</td><td class="bestn">59.7</td></tr>
+      <tr><td>8k</td><td>41.3</td><td>52.8</td><td class="bestn">56.4</td></tr>
+      <tr><td>16k</td><td>31.7</td><td>50.6</td><td class="bestn">54.8</td></tr>
+      <tr><td>32k</td><td>29.5</td><td>46.0</td><td class="bestn">49.0</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 05 PREFILL SPEED ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">05</span><h2 class="sectitle">Prefill speed</h2><span class="secnote">pp · tok/s · 4080 SUPER</span></div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--es)"></i>Escha</span>
+    <span><i class="swatch" style="background:var(--pq)"></i>PQ2</span>
+    <span><i class="swatch" style="background:var(--base)"></i>PTQ1</span>
+  </div>
+  <div class="chart"><svg id="ppchart" viewBox="0 0 1000 260"></svg></div>
+  <table>
+    <thead><tr><th>Prefill</th><th class="colhead-e">Escha pp</th><th class="colhead-p">PQ2 pp</th><th>PTQ1 pp</th></tr></thead>
+    <tbody>
+      <tr><td>128</td><td>762</td><td class="bestn">1393</td><td>902</td></tr>
+      <tr><td>2k</td><td class="bestn">1612</td><td>1529</td><td>925</td></tr>
+      <tr><td>4k</td><td class="bestn">1621</td><td>1573</td><td>938</td></tr>
+      <tr><td>8k</td><td>1609</td><td class="bestn">1636</td><td>922</td></tr>
+      <tr><td>16k</td><td>1268</td><td class="bestn">1655</td><td>903</td></tr>
+      <tr><td>32k</td><td>1326</td><td class="bestn">1545</td><td>839</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 06 EXTRAS ================= -->
+<section class="blk">
+  <div class="sechead"><span class="secnum">06</span><h2 class="sectitle">Fine print</h2></div>
+  <div class="two">
+    <div class="card">
+      <b>Bonsai ubatch @ 4k prefill</b>
+      <table>
+        <thead><tr><th>ub</th><th>PTQ1 pp/tg</th><th class="colhead-p">PQ2 pp/tg</th></tr></thead>
+        <tbody>
+          <tr><td>256</td><td>921 / 67.6</td><td class="bestn">1945 / 62.1</td></tr>
+          <tr><td>512</td><td>916 / 67.7</td><td class="bestn">1933 / 63.1</td></tr>
+          <tr><td>1024</td><td>903 / 68.5</td><td class="bestn">1857 / 62.2</td></tr>
+          <tr><td>2048</td><td>950 / 68.7</td><td class="bestn">1758 / 62.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <b>How to read the poster</b>
+      <p class="note" style="margin:0">The competition is between the two hyper-compressed builds — Escha-W2 (2-bit, 10.2 GB) and Bonsai PQ2 (ternary, 7.2 GB) — both running solo on a 16 GB 4080 SUPER. The r0b0t EXL3 4.00bpw build is the reference: a normal, non-hyper-compressed quant showing where an uncrushed model lands (dashed marker). Escha takes quality on every aggregate metric (+2.4 strict prompt); PQ2 takes decode speed (×1.35) and is 30% smaller. Headline is strict prompt-level IFEval — every instruction in a prompt must pass. Speed ladders are 4080-only; the reference wall-clock (6.8 min) came from 8-way concurrency on a 5090.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Screenshot the 1080×1350 poster at the top for social (4:5, feed-ready). Data in ~/Desktop/qwen38-27b-h2h/eval/results/{r0b0t,escha,pq2}/
+</footer>
+</div>
+
+<script>
+/* ---------- reference marker chart: absolute scores + dashed 4bpw marker ---------- */
+const REF = [
+  { lab: "Strict", es: 81.9, pq: 79.5, base: 84.1 },
+  { lab: "Loose", es: 84.5, pq: 82.6, base: 87.2 },
+  { lab: "Inst. strict", es: 87.3, pq: 86.5, base: 89.0 },
+];
+const refEl = document.getElementById("refchart");
+REF.forEach((m, i) => {
+  const row = document.createElement("div");
+  row.className = "refrow";
+  row.innerHTML = `<span class="reflab">${m.lab}</span>
+    <div class="reftrack">
+      <div class="refbar es" style="width:${m.es}%"></div>
+      <div class="refbar pq" style="width:${m.pq}%"></div>
+      <div class="refmark" style="left:${m.base}%">${i === 0 ? "<span>4bpw " + m.base + "</span>" : ""}</div>
+    </div>
+    <div class="refval"><b style="color:var(--es)">${m.es}</b> / <b style="color:var(--pq)">${m.pq}</b> <span style="color:var(--faint)">vs ${m.base}</span></div>`;
+  refEl.appendChild(row);
+});
+
+/* ---------- category bars ---------- */
+const cats = [
+  ["Detectable format", 0.9490, 0.9490, 0.8981, 157],
+  ["Keywords", 0.8650, 0.8160, 0.7669, 163],
+  ["Detectable content", 0.9434, 0.8868, 0.8679, 53],
+  ["Language", 1.0000, 1.0000, 1.0000, 31],
+  ["Punctuation", 0.8788, 0.9242, 0.9242, 66],
+  ["Start / end", 0.9701, 0.9552, 0.9701, 67],
+  ["Change case", 0.8090, 0.8315, 0.8427, 89],
+  ["Combination", 0.8462, 0.8308, 0.8615, 65],
+  ["Length", 0.8462, 0.8042, 0.8462, 143],
+];
+const catEl = document.getElementById("catbars");
+cats.forEach(([name, base, e, p, n]) => {
+  const row = document.createElement("div");
+  row.className = "bar-row";
+  row.innerHTML = `<div class="lab">${name}<span class="pill">n=${n}</span></div>
+    <div class="pair">
+      <div class="track"><div class="fill" style="width:${e*100}%;background:var(--es)"></div></div>
+      <div class="track"><div class="fill" style="width:${p*100}%;background:var(--pq)"></div></div>
+      <div class="track"><div class="fill" style="width:${base*100}%;background:var(--base)"></div></div>
+    </div>
+    <div class="vals"><b>${(e*100).toFixed(1)}</b> / ${(p*100).toFixed(1)} / ${(base*100).toFixed(1)}</div>`;
+  catEl.appendChild(row);
+});
+
+/* ---------- subcategory table: best among the two compressed quants ---------- */
+const subs = [
+  ["detectable_format:number_highlighted_sections", 48, 0.9375, 0.9583, 0.7708],
+  ["keywords:existence", 39, 1.0000, 0.9744, 0.8974],
+  ["change_case:english_capital", 25, 0.8800, 0.8800, 0.7600],
+  ["keywords:frequency", 42, 0.9048, 0.8571, 0.7857],
+  ["detectable_content:number_placeholders", 27, 0.9259, 0.8148, 0.7778],
+  ["keywords:letter_frequency", 33, 0.6061, 0.5455, 0.4545],
+  ["detectable_format:constrained_response", 10, 1.0000, 1.0000, 1.0000],
+  ["detectable_format:title", 37, 1.0000, 1.0000, 1.0000],
+  ["language:response_language", 31, 1.0000, 1.0000, 1.0000],
+  ["detectable_format:number_bullet_lists", 31, 0.9355, 0.9032, 0.9032],
+  ["detectable_format:multiple_sections", 14, 0.8571, 0.8571, 0.8571],
+  ["punctuation:no_comma", 66, 0.8788, 0.9242, 0.9242],
+  ["detectable_content:postscript", 26, 0.9615, 0.9615, 0.9615],
+  ["startend:end_checker", 26, 1.0000, 0.9615, 0.9615],
+  ["length_constraints:nth_paragraph_first_word", 12, 0.8333, 0.8333, 0.8333],
+  ["detectable_format:json_format", 17, 0.9412, 0.9412, 1.0000],
+  ["startend:quotation", 41, 0.9512, 0.9512, 0.9756],
+  ["change_case:english_lowercase", 39, 0.8462, 0.9231, 0.9744],
+  ["combination:two_responses", 24, 1.0000, 0.8750, 0.9167],
+  ["keywords:forbidden_words", 49, 0.8980, 0.8367, 0.8571],
+  ["combination:repeat_prompt", 41, 0.7561, 0.8049, 0.8293],
+  ["length_constraints:number_paragraphs", 27, 0.8889, 0.9259, 0.9630],
+  ["length_constraints:number_sentences", 52, 0.7885, 0.8077, 0.8654],
+  ["length_constraints:number_words", 52, 0.8846, 0.7308, 0.7692],
+  ["change_case:capital_word_frequency", 25, 0.6800, 0.6400, 0.7200],
+];
+/* rows are [name, n, base(r0b0t), escha, pq2] — display Escha vs PQ2, base as ghost ref */
+const tb = document.getElementById("subbody");
+subs.sort((a, b) => b[3] - a[3]);
+subs.forEach(([name, n, base, e, p]) => {
+  const tr = document.createElement("tr");
+  const eBest = e > p, tie = Math.abs(e - p) < 1e-9;
+  const eCell = eBest && !tie ? `<td class="best-es">${(e * 100).toFixed(1)}%</td>` : `<td>${(e * 100).toFixed(1)}%</td>`;
+  const pCell = !eBest && !tie ? `<td class="best-pq">${(p * 100).toFixed(1)}%</td>` : `<td>${(p * 100).toFixed(1)}%</td>`;
+  tr.innerHTML = `<td class="mono">${name}</td><td class="mono">${n}</td>${eCell}${pCell}<td class="ghost">${(base * 100).toFixed(1)}%</td>`;
+  tb.appendChild(tr);
+});
+
+/* ---------- line charts ---------- */
+function lineChart(svgId, series, yMax) {
+  const svg = document.getElementById(svgId);
+  const W = 1000, H = 260, L = 48, R = 16, T = 12, B = 32;
+  const labels = ["128", "2k", "4k", "8k", "16k", "32k"];
+  const x = i => L + (W - L - R) * i / 5;
+  const y = v => T + (H - T - B) * (1 - v / yMax);
+  let g = "";
+  for (let t = 0; t <= 4; t++) {
+    const v = yMax * t / 4, yy = y(v);
+    g += `<line x1="${L}" y1="${yy}" x2="${W - R}" y2="${yy}" stroke="#26241f" stroke-width="1"/>`;
+    g += `<text x="${L - 8}" y="${yy + 4}" fill="#6b675f" font-size="12" font-family="IBM Plex Mono, monospace" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  labels.forEach((lab, i) => {
+    g += `<text x="${x(i)}" y="${H - 8}" fill="#6b675f" font-size="12" font-family="IBM Plex Mono, monospace" text-anchor="middle">${lab}</text>`;
+  });
+  series.forEach(s => {
+    const d = s.vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" ${s.dash ? 'stroke-dasharray="6 5"' : ""}/>`;
+    s.vals.forEach((v, i) => { g += `<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${s.color}"/>`; });
+  });
+  svg.innerHTML = g;
+}
+lineChart("tgchart", [
+  { color: "#2ec4b6", vals: [41.9, 42.2, 41.8, 41.3, 31.7, 29.5] },
+  { color: "#f0b429", vals: [56.5, 55.7, 55.0, 52.8, 50.6, 46.0] },
+  { color: "#7a766c", vals: [62.2, 59.9, 59.7, 56.4, 54.8, 49.0], dash: true },
+], 70);
+lineChart("ppchart", [
+  { color: "#2ec4b6", vals: [762, 1612, 1621, 1609, 1268, 1326] },
+  { color: "#f0b429", vals: [1393, 1529, 1573, 1636, 1655, 1545] },
+  { color: "#7a766c", vals: [902, 925, 938, 922, 903, 839], dash: true },
+], 2000);
+</script>
+</body>
+</html>
