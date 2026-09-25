@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voxel Pagoda Garden</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#0b1420;overflow:hidden}
+  canvas{display:block;width:100vw;height:100vh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/* ============================================================
+   VOXEL PAGODA GARDEN  —  single-file canvas 2D isometric renderer
+   ============================================================ */
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
+const W = 1280, H = 800;
+cvs.width = W; cvs.height = H;
+
+/* ---------- voxel storage ---------- */
+const V = new Map();
+function put(x,y,z,c){ V.set(Math.round(x)+','+Math.round(y)+','+Math.round(z),c); }
+function box(x0,y0,z0,x1,y1,z1,c){
+  for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) for(let z=z0;z<=z1;z++) put(x,y,z,c);
+}
+function ring(x0,x1,z0,z1,y,c){
+  box(x0,y,z0,x0,y,z1,c); box(x1,y,z0,x1,y,z1,c);
+  box(x0,y,z0,x1,y,z0,c); box(x0,y,z1,x1,y,z1,c);
+}
+function rnd(a,b,c,s){
+  const n = Math.sin(a*127.1 + b*311.7 + c*74.7 + s*265.44)*43758.5453;
+  return n - Math.floor(n);
+}
+
+/* ---------- palette ---------- */
+const C = {
+  grass:'#7cb342', grass2:'#8cc63f', grassD:'#66a02c',
+  gravel:'#d9c3a3', stone:'#b0bec5', stoneD:'#8d99a3',
+  water:'#3498db', water2:'#4fb3e6',
+  red:'#c0392b', redD:'#8e2b22', redL:'#d9534f',
+  gold:'#f0c020', goldL:'#ffd94d', goldD:'#c9920b',
+  white:'#f7f2e6', wood:'#5d4037', woodD:'#4a3328',
+  roof:'#223b4d', roofD:'#162a36', roofL:'#2f5366',
+  dark:'#2c3e50', leaf:'#388e3c', leafD:'#2e7d32', leafL:'#43a047',
+  bark:'#7a5230', barkD:'#6b4a2e',
+  blossom:'#f7b7cd', blossom2:'#f39db8', blossomL:'#f8d7e2', blossomD:'#f48fb1',
+  rock:'#9aa5b1', rockD:'#7d8994',
+  pink:'#e91e63', yellow:'#f5c518', blue:'#3498db',
+  cloud:'#ffffff', cloudS:'#eef6fb',
+  path:'#d9c3a3', path2:'#e8d6b8'
+};
+
+/* ============================================================
+   GROUND  —  heightmap garden
+   ============================================================ */
+const GROUND_X0=-16, GROUND_X1=16, GROUND_Z0=-16, GROUND_Z1=16;
+const POND_CX=9, POND_CZ=6, POND_R=3.5;
+const PATH_X0=-1, PATH_X1=1;
+
+function groundH(x,z){
+  const d = Math.hypot(x-POND_CX, z-POND_CZ);
+  if(d < POND_R) return -1;
+  if(Math.abs(x)<1.7 && z>2) return 0;            // main gravel path
+  if(Math.abs(x)<1.7 && z<=2) return 0;           // path to platform
+  if(Math.abs(x)<1.9 && z>=2 && z<=12) return 0;   // torii apron
+  return 0;
+}
+
+function ground(){
+  for(let x=GROUND_X0;x<=GROUND_X1;x++) for(let z=GROUND_Z0;z<=GROUND_Z1;z++){
+    const h = groundH(x,z);
+    if(h<0){
+      const d = Math.hypot(x-POND_CX,z-POND_CZ);
+      const shade = (rnd(x*3,z*5,1,3)>0.5)? C.water : C.water2;
+      put(x,0,z,shade);
+      if(d<3.2 && rnd(x*7,z*11,5,1)>0.55) put(x,0,z,'#2e86c1');
+      continue;
+    }
+    let c = (rnd(x*2.3,z*2.9,7,1)>0.5)? C.grass : C.grass2;
+    if(rnd(x*3.1,z*4.1,9,2)>0.965) c = C.grassD;
+    put(x,0,z,c);
+  }
+  // gravel path
+  for(let z=2;z<=GROUND_Z1;z++) for(let x=PATH_X0;x<=PATH_X1;x++){
+    put(x,0,z,C.gravel);
+    if(rnd(x,z,11,3)>0.5) put(x,0,z,C.path2);
+  }
+  // stepping stones across the pond
+  for(let z=8;z<=18;z+=2) put(2,0,z,C.stone);
+}
+
+/* ============================================================
+   POND DETAIL
+   ============================================================ */
+function pondDetail(){
+  for(let x=POND_CX-4;x<=POND_CX+4;x++) for(let z=POND_CZ-4;z<=POND_CZ+4;z++){
+    const d=Math.hypot(x-POND_CX,z-POND_CZ);
+    if(d<POND_R){
+      // lily pads
+      if(rnd(x*5,z*7,21,2)>0.86){
+        put(x,0,z,'#2e7d32');
+        if(rnd(x,z,22,4)>0.4) put(x,0,z,'#43a047');
+      }
+      // reeds at the rim
+      if(d>3.0 && d<3.7){
+        const hh = 1 + Math.floor(rnd(x,z,23,5)*2);
+        for(let k=0;k<hh;k++) put(x,k,z,k%2? '#58a14e':'#388e3c');
+      }
+    }
+  }
+  // stepping-stone bridge
+  for(let z=2;z<=11;z++){
+    put(0,0,z,C.stone);
+    if(rnd(0,z,24,6)>0.5) put(0,0,z,C.stoneD);
+  }
+  for(let x=-1;x<=1;x++) for(let z=-4;z<=-2;z++) put(x,0,z,C.gravel);
+}
+
+/* ============================================================
+   ROCKS
+   ============================================================ */
+function rock(x,z,s){
+  const top = 1 + Math.floor(rnd(x,z,31,1)*2);
+  for(let y=0;y<top;y++){
+    const t = y/(top-1);
+    const r = s*(1-t*0.75);
+    for(let dx=-r;dx<=r;dx++) for(let dz=-r;dz<=r;dz++){
+      if(rnd(dx*13,y*17,dz*19,x,z)>0.55) put(x+dx,y,z+dz,C.rock);
+    }
+  }
+  for(let dx=-s;dx<=s;dx++) for(let dz=-s;dz<=s;dz++){
+    if(rnd(dx,0,dz,33,2)>0.45) put(x+dx,0,z+dz,C.rockD);
+  }
+}
+
+/* ============================================================
+   TREES
+   ============================================================ */
+function trunk(cx,cz,h,lean){
+  for(let y=0;y<h;y++){
+    const t = lean ? Math.round(lean*(y/(h-1))) : 0;
+    put(cx+t,y,cz,C.bark);
+  }
+  for(let y=1;y<h-1;y+=Math.max(2,Math.floor(h/3.2))){
+    const t = lean ? Math.round(lean*(y/(h-1))) : 0;
+    box(cx+t-1,y,cz-1,cx+t+1,y,cz+1,C.barkD);
+  }
+}
+function canopy(cx,cy,cz,r,cols,seed){
+  for(let x=cx-r;x<=cx+r;x++) for(let y=cy-r;y<=cy+r;y++) for(let z=cz-r;z<=cz+r;z++){
+    const dx=(x-cx)/(r*0.84), dy=(y-cy)/(r*0.92), dz=(z-cz)/(r*0.84);
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(d>1) continue;
+    if(rnd(x*3.7,y*5.1,z*2.3,seed)<0.34) continue;
+    put(x,y,z,cols[Math.floor(rnd(x,y,z,seed+9)*cols.length)]);
+  }
+}
+function treeCherry(cx,cz,h){
+  trunk(cx,cz,h*0.72,0.12);
+  canopy(cx,h*0.70,cz,h*0.38,[C.blossom,C.blossom2,C.blossomL,C.blossomD,C.white],11);
+  // drifting petals
+  for(let i=0;i<26;i++){
+    const a = rnd(i,1,1,70)*Math.PI*2;
+    const rr = rnd(i,2,1,70)*h*0.44;
+    const px = cx+Math.cos(a)*rr, py = h*0.72+Math.sin(a)*rr*0.62, pz = cz+Math.sin(a)*rr;
+    if(rnd(px,py,pz,71)>0.6) put(Math.round(px),Math.round(py),Math.round(pz), i%3===0?C.white:C.blossom2);
+  }
+}
+function pine(cx,cz,h){
+  trunk(cx,cz,Math.floor(h*0.42),0.05);
+  for(let i=0;i<4;i++){
+    const y=Math.floor(h*0.40+i*h*0.125);
+    canopy(cx,y,cz,h*0.29-i*h*0.055,[C.leafD,C.leaf,C.leafL],40+i*13);
+  }
+  canopy(cx,Math.floor(h*0.78),cz,h*0.10,[C.leaf,C.leafL],99);
+}
+function oak(cx,cz,h){
+  trunk(cx,cz,Math.floor(h*0.60),0.10);
+  canopy(cx,Math.floor(h*0.56),cz,h*0.40,[C.leafD,C.leaf,C.leafL,C.leaf],7);
+}
+
+/* ============================================================
+   TORII GATE
+   ============================================================ */
+function torii(){
+  const tx=0, tz=12;
+  box(tx-1.3,0,tz-1.3,tx-1.3,3,tz-1.3,C.red);
+  box(tx+1.3,0,tz-1.3,tx+1.3,3,tz-1.3,C.red);
+  box(tx-1.3,0,tz+1.3,tx-1.3,3,tz+1.3,C.red);
+  box(tx+1.3,0,tz+1.3,tx+1.3,3,tz+1.3,C.red);
+  box(tx-1.9,3,tz-1.9,tx+1.9,3,tz-1.9,C.gold);
+  box(tx-1.9,3,tz+1.9,tx+1.9,3,tz+1.9,C.gold);
+  box(tx-1.9,4,tz-1.9,tx+1.9,4,tz-1.9,C.redL);
+  box(tx-1.9,4,tz+1.9,tx+1.9,4,tz+1.9,C.redL);
+  box(tx-1.2,4,tz-1.2,tx+1.2,4,tz-1.2,C.gold);
+  box(tx-1.2,4,tz+1.2,tx+1.2,4,tz+1.2,C.gold);
+  box(tx-1.9,5,tz-1.9,tx-0.6,5,tz-1.9,C.gold);
+  box(tx+0.6,5,tz-1.9,tx+1.9,5,tz-1.9,C.gold);
+  box(tx-1.9,5,tz+1.9,tx-0.6,5,tz+1.9,C.gold);
+  box(tx+0.6,5,tz+1.9,tx+1.9,5,tz+1.9,C.gold);
+  // lanterns
+  box(tx-2.4,0,tz-2.4,tx-2.4,2,tz-2.4,C.wood);
+  box(tx+2.4,0,tz-2.4,tx+2.4,2,tz-2.4,C.wood);
+  box(tx-2.4,0,tz+2.4,tx-2.4,2,tz+2.4,C.wood);
+  box(tx+2.4,0,tz+2.4,tx+2.4,2,tz+2.4,C.wood);
+  box(tx-2.4,2,tz-2.4,tx-1.7,2,tz-1.7,C.gold);
+  box(tx+1.7,2,tz-2.4,tx+2.4,2,tz-1.7,C.gold);
+  box(tx-2.4,2,tz+1.7,tx-1.7,2,tz+2.4,C.gold);
+  box(tx+1.7,2,tz+1.7,tx+2.4,2,tz+2.4,C.gold);
+}
+
+/* ============================================================
+   PAGODA
+   ============================================================ */
+function pagoda(){
+  const ox=0, oz=2;
+  // stone plinth
+  box(ox-6,0,oz-3,ox+6,0,oz+3,C.stoneD);
+  box(ox-6,1,oz-3,ox+6,1,oz+3,C.stone);
+  box(ox-6,2,oz-3,ox+6,2,oz+3,C.white);
+  for(let x=ox-6;x<=ox+6;x++) for(let z=oz-3;z<=oz+3;z++){
+    if(rnd(x,z,40,1)>0.5) put(x,2,z,'#e4e9ec');
+  }
+  const col=(x,z)=>box(ox+x,3,oz+z,ox+x,4,oz+z,C.red);
+  const win=(x0,x1,z0,z1)=>box(ox+x0,3,oz+z0,ox+x1,3,oz+z1,C.dark);
+  // ---- tier 1 ----
+  box(ox-5,3,oz-2,ox+5,3,oz+2,C.white);
+  col(-5,-2); col(5,-2); col(-5,2); col(5,2);
+  win(-4,-4,oz-2,oz-2); win(4,4,oz-2,oz-2); win(-4,-4,oz+2,oz+2); win(4,4,oz+2,oz+2);
+  win(ox-5,ox-5,oz-1,oz+1); win(ox+5,ox+5,oz-1,oz+1);
+  // roof 1
+  box(ox-6,5,oz-3,ox+6,5,oz+3,C.roof);
+  box(ox-6,5,oz-3,ox+6,6,oz+3,C.roofD);
+  ring(ox-6,ox+6,oz-3,oz+3,5,C.gold);
+  box(ox-6,6,oz-3,ox+6,6,oz-3,C.gold);          // ridge line
+  for(let i=-5;i<=5;i+=2) put(ox+i,6,oz,C.goldL);
+  // ---- tier 2 ----
+  box(ox-4,7,oz-1,ox+4,7,oz+1,C.white);
+  col(-4,-1); col(4,-1); col(-4,1); col(4,1);
+  win(ox-3,ox-3,oz-1,oz-1); win(ox+3,ox+3,oz-1,oz+1);
+  win(ox-3,ox-3,oz+1,oz+1); win(ox+3,ox+3,oz+1,oz+1);
+  box(ox-3,7,oz-1,ox+3,7,oz+1,C.white);
+  // roof 2
+  box(ox-5,9,oz-2,ox+5,9,oz+2,C.roof);
+  box(ox-5,9,oz-2,ox+5,10,oz+2,C.roofD);
+  ring(ox-5,ox+5,oz-2,oz+2,9,C.gold);
+  box(ox-5,10,oz-2,ox+5,10,oz-2,C.gold);
+  // ---- tier 3 ----
+  box(ox-3,11,oz-1,ox+3,11,oz+1,C.white);
+  col(-3,-1); col(3,-1); col(-3,1); col(3,1);
+  win(ox-2,ox-2,oz-1,oz-1); win(ox+2,ox+2,oz-1,oz+1);
+  win(ox-2,ox-2,oz+1,oz+1); win(ox+2,ox+2,oz+1,oz+1);
+  // roof 3
+  box(ox-4,13,oz-1,ox+4,13,oz+1,C.roof);
+  box(ox-4,13,oz-1,ox+4,14,oz+1,C.roofD);
+  ring(ox-4,ox+4,oz-1,oz+1,13,C.gold);
+  box(ox-4,14,oz-1,ox+4,14,oz-1,C.gold);
+  // ---- tier 4 ----
+  box(ox-2,15,oz-1,ox+2,15,oz+1,C.white);
+  col(-2,-1); col(2,-1); col(-2,1); col(2,1);
+  win(ox-1,ox-1,oz-1,oz-1); win(ox+1,ox+1,oz-1,oz+1);
+  win(ox-1,ox-1,oz+1,oz+1); win(ox+1,ox+1,oz+1,oz+1);
+  // roof 4
+  box(ox-3,17,oz-1,ox+3,17,oz+1,C.roof);
+  box(ox-3,17,oz-1,ox+3,18,oz+1,C.roofD);
+  ring(ox-3,ox+3,oz-1,oz+1,17,C.gold);
+  box(ox-3,18,oz-1,ox+3,18,oz-1,C.gold);
+  // ---- spire ----
+  box(ox,19,oz,ox,19,oz,C.gold);
+  box(ox,20,oz,ox,20,oz,C.goldL);
+  box(ox-1,21,oz-1,ox+1,21,oz+1,C.gold);
+  // gold corner finials on tier roofs
+  const fin=(px,pz,py)=>{ box(ox+px,py,oz+pz,ox+px,py+1,oz+pz,C.goldL); box(ox+px,py+1,oz+pz,ox+px,py+2,oz+pz,C.gold); };
+  fin(-5,-2,6); fin(5,-2,6); fin(-5,2,6); fin(5,2,6);
+  fin(-5,-2,10); fin(5,-2,10); fin(-5,2,10); fin(5,2,10);
+  fin(-2,-1,18); fin(2,-1,18); fin(-2,1,18); fin(2,1,18);
+  // shadow under the pagoda
+  for(let x=ox-6;x<=ox+6;x++) for(let z=oz-3;z<=oz+3;z++){
+    const d=Math.hypot(x-ox,z-oz);
+    if(d<5.4) put(x,-1,z,'#4a5b3a');
+  }
+}
+
+/* ============================================================
+   LANTERNS  (path lights)
+   ============================================================ */
+function lantern(x,z){
+  const top = 1 + Math.floor(rnd(x,z,50,1)*2);
+  for(let y=0;y<top;y++) put(x,y,z,'#8d6e63');
+  box(x-1,top,z,x+1,top,z,'#c0392b');
+  box(x-1,top+1,z,x+1,top+1,z,'#f0c020');
+  box(x-1,top+2,z,x-0.5,top+2,z,'#c0392b');
+  box(x+0.5,top+2,z,x+1,top+2,z,'#c0392b');
+}
+
+/* ============================================================
+   FLOWERS / GRASS BLADES
+   ============================================================ */
+function scatter(){
+  for(let x=GROUND_X0+2;x<=GROUND_X1-2;x++) for(let z=GROUND_Z0+2;z<=GROUND_Z1-2;z++){
+    const d = Math.hypot(x-POND_CX,z-POND_CZ);
+    if(d<POND_R+1) continue;
+    if(Math.abs(x)<1.9 && z>2) continue;
+    if(rnd(x,z,60,1)>0.94){
+      const c = rnd(x,z,61,2)>0.5 ? C.blossom2 : (rnd(x,z,62,3)>0.5?C.yellow:C.blue);
+      put(x,1,z,c);
+      put(x,2,z,c);
+    }
+  }
+}
+
+/* ============================================================
+   BUILD THE SCENE
+   ============================================================ */
+ground();
+pondDetail();
+scatter();
+pagoda();
+torii();
+rock(-12,-8,3); rock(12,-8,2); rock(-12,6,2); rock(12,6,3);
+rock(-15,0,2); rock(15,0,2); rock(-10,-13,2); rock(10,-13,2);
+rock(-14,10,2); rock(14,10,2); rock(-8,-15,2); rock(8,-15,2);
+rock(-16,4,2); rock(16,4,2);
+
+// ---- trees ----
+treeCherry(-11,-9,14); treeCherry(11,-9,12);
+treeCherry(-11,5,11);
+treeCherry(-12,0,10);
+treeCherry(-5,-14,10); treeCherry(5,-14,10);
+
+pine(-11,-12,15); pine(11,-12,13); pine(-11,12,14);
+pine(-16,0,13);
+
+oak(-9,11,12);
+oak(-13,5,10);
+
+// stepping stones from the torii toward the pond
+for(let z=6;z<=11;z++) put(0,0,z,C.stone);
+
+lantern(-1.7,10); lantern(1.7,10); lantern(-1.7,7); lantern(1.7,7);
+lantern(-1.7,4); lantern(1.7,4); lantern(-2.4,2); lantern(2.4,2);
+lantern(-1.7,13); lantern(1.7,13);
+
+// a few gold coins / shrine ornaments scattered
+for(let i=0;i<24;i++){
+  const x=Math.round(rnd(i,1,1,80)*32)-16, z=Math.round(rnd(i,2,1,80)*32)-16;
+  if(Math.abs(x)<2 && z>2) continue;
+  if(rnd(x,z,81,1)>0.5) put(x,1,z,C.goldD);
+}
+
+// clouds
+function cloud(cx,cy,cz,s){
+  for(let x=cx-s;x<=cx+s;x++) for(let y=cy-s;y<=cy+s;y++) for(let z=cz-s;z<=cz+s;z++){
+    const dx=(x-cx)/(s*1.15), dy=(y-cy)/(s*1.0), dz=(z-cz)/(s*1.15);
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(d>1) continue;
+    if(rnd(x*5,y*7,z*3,s)<0.42) continue;
+    put(x,y,z, rnd(x,y,z,s+1)>0.5?C.cloud:C.cloudS);
+  }
+}
+cloud(-10,19,-8,3); cloud(8,21,-10,2); cloud(-4,22,-12,2); cloud(12,18,-6,2);
+cloud(-15,19,-4,2); cloud(16,20,-3,2);
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const ORDER = [];
+for(const [k,v] of V) ORDER.push([k,v]);
+ORDER.sort((a,b)=>{
+  const [ax,ay,az]=a[0].split(','), [bx,by,bz]=b[0].split(',');
+  const da=+ax+ +az, db=+bx+ +bz;
+  if(da!==db) return da-db;
+  return (+ay)-(+by);
+});
+
+const COS30 = Math.cos(Math.PI/6), SIN30 = Math.sin(Math.PI/6);
+function project(x,y,z){
+  return [ W/2 + (x-z)*COS30, H/2 + (x+z)*SIN30 - y ];
+}
+function drawCube(x,y,z,c){
+  const a=project(x,y+1,z), b=project(x+1,y+1,z);
+  const c1=project(x+1,y+1,z+1), d=project(x,y+1,z+1);
+  const e=project(x+1,y,z), f=project(x+1,y,z+1), g=project(x,y,z+1);
+  const hex=(pts,fill)=>{
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+  };
+  hex([a,b,e,project(x,y,z)],shade(c,0.72));
+  hex([b,c1,f,e],shade(c,0.84));
+  hex([d,c1,f,g],shade(c,0.64));
+  hex([a,b,c1,d],c);
+}
+
+function shade(c,f){
+  const n=c.replace('#',''); let r=parseInt(n.substr(0,2),16),g=parseInt(n.substr(2,2),16),b=parseInt(n.substr(4,2),16);
+  r=Math.max(0,Math.min(255,Math.round(r*f))); g=Math.max(0,Math.min(255,Math.round(g*f))); b=Math.max(0,Math.min(255,Math.round(b*f)));
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+// Fit the projected voxel bounds inside the canvas, including each cube's top.
+let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+for(const [key] of ORDER){
+  const [x,y,z]=key.split(',').map(Number);
+  for(const [px,py] of [project(x,y,z),project(x+1,y,z),project(x,y,z+1),project(x,y+1,z)]){
+    minX=Math.min(minX,px); maxX=Math.max(maxX,px);
+    minY=Math.min(minY,py); maxY=Math.max(maxY,py);
+  }
+}
+const margin=36;
+const sceneScale=Math.min((W-2*margin)/(maxX-minX),(H-2*margin)/(maxY-minY));
+const sceneOffsetX=(W-sceneScale*(minX+maxX))/2;
+const sceneOffsetY=(H-sceneScale*(minY+maxY))/2;
+
+function render(){
+  // sky
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#79b8e8'); g.addColorStop(0.55,'#bfe3f5'); g.addColorStop(1,'#eaf4fb');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // sun
+  const sx=W-150, sy=110;
+  const sg=ctx.createRadialGradient(sx,sy,10,sx,sy,80);
+  sg.addColorStop(0,'rgba(255,244,190,0.95)'); sg.addColorStop(0.4,'rgba(255,236,170,0.35)'); sg.addColorStop(1,'rgba(255,236,170,0)');
+  ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sx,sy,80,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ffe9a8'; ctx.beginPath(); ctx.arc(sx,sy,34,0,Math.PI*2); ctx.fill();
+
+  ctx.save();
+  ctx.translate(sceneOffsetX,sceneOffsetY);
+  ctx.scale(sceneScale,sceneScale);
+  for(const [k,v] of ORDER) drawCube(...k.split(',').map(Number), v);
+  ctx.restore();
+}
+
+render();
+</script>
+</body>
+</html>
