@@ -526,7 +526,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         pass
 
 
-class Handler(socketserver.BaseRequestHandler):
+class GopherTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             raw = self.request.recv(4096)
@@ -561,7 +561,7 @@ def main():
     args = ap.parse_args()
 
     HOSTPORT = f"localhost:{args.port}"
-    srv = Server((args.host, args.port), Handler)
+    srv = Server((args.host, args.port), GopherTCPHandler)
     print(f"  GopherMatch listening:  gopher://{args.host}:{args.port}/")
     print(f"  try:  linx gopher://localhost:{args.port}/")
     print(f"        printf '\\r\\n' | nc localhost {args.port}")
