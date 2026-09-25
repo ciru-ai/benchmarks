@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GopherR — Find Your Dig</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦫</text></svg>">
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #1a1428;
+  --surface: #251e36;
+  --card: #2e2642;
+  --primary: #E8734A;
+  --primary-glow: rgba(232,115,74,.25);
+  --like: #43D17A;
+  --nope: #E84A5F;
+  --super: #6BA3F0;
+  --text: #f0eaf4;
+  --text-dim: #9a8faa;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+html { font-size: 16px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Background Texture ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 20% 20%, rgba(232,115,74,.06), transparent),
+    radial-gradient(ellipse 500px 500px at 80% 80%, rgba(107,163,240,.05), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(26,20,40,.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.35rem; font-weight: 700; color: var(--primary);
+  letter-spacing: -.02em;
+}
+.logo svg { width: 32px; height: 32px; }
+.logo span { color: var(--text); }
+nav { display: flex; gap: 4px; }
+nav button {
+  background: none; border: none; color: var(--text-dim);
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  font-size: .875rem; font-weight: 600; cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+nav button:hover { background: rgba(255,255,255,.06); color: var(--text); }
+nav button.active { color: var(--primary); background: var(--primary-glow); }
+nav button .badge {
+  position: absolute; top: 2px; right: 6px;
+  background: var(--primary); color: #fff;
+  font-size: .65rem; width: 16px; height: 16px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+}
+nav button .badge:empty { display: none; }
+
+/* ── Main Layout ── */
+main {
+  position: relative; z-index: 1;
+  max-width: 480px; margin: 0 auto;
+  padding: 20px 16px 100px;
+  min-height: calc(100vh - 60px);
+}
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── Card Stack ── */
+.card-stack {
+  position: relative;
+  width: 100%; aspect-ratio: 3/4.2;
+  perspective: 1000px;
+}
+.profile-card {
+  position: absolute; inset: 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition: transform .4s cubic-bezier(.22,.68,0,.98), opacity .3s;
+  box-shadow: 0 8px 32px rgba(0,0,0,.3);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.profile-card:active { cursor: grabbing; }
+.profile-card.drifting-left {
+  transform: translateX(-140%) rotate(-25deg);
+  opacity: 0;
+  transition: transform .5s cubic-bezier(.22,.68,0,.98), opacity .4s;
+}
+.profile-card.drifting-right {
+  transform: translateX(140%) rotate(25deg);
+  opacity: 0;
+  transition: transform .5s cubic-bezier(.22,.68,0,.98), opacity .4s;
+}
+.profile-card.drifting-up {
+  transform: translateY(-120%) scale(1.1);
+  opacity: 0;
+  transition: transform .5s cubic-bezier(.22,.68,0,.98), opacity .4s;
+}
+.card-avatar {
+  height: 55%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.card-avatar svg { width: 65%; height: 65%; }
+.card-avatar::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+  background: linear-gradient(transparent, var(--card));
+}
+.card-stamp {
+  position: absolute; top: 20px; padding: 6px 18px;
+  border-radius: 8px; font-size: 1.4rem; font-weight: 800;
+  transform: rotate(-20deg) scale(0); transition: transform .2s;
+  border: 3px solid;
+  pointer-events: none; z-index: 5;
+}
+.card-stamp.nope { left: 20px; color: var(--nope); border-color: var(--nope); }
+.card-stamp.like { right: 20px; color: var(--like); border-color: var(--like); transform: rotate(20deg) scale(0); }
+.card-stamp.super { top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-10deg) scale(0); color: var(--super); border-color: var(--super); }
+.card-stamp.visible { transform: rotate(-20deg) scale(1); }
+.card-stamp.super.visible { transform: translate(-50%,-50%) rotate(-10deg) scale(1); }
+.card-stamp.like.visible { transform: rotate(20deg) scale(1); }
+
+.card-info {
+  padding: 0 20px 16px;
+}
+.card-name {
+  font-size: 1.5rem; font-weight: 700;
+  margin-bottom: 2px;
+}
+.card-name span { font-weight: 400; color: var(--text-dim); }
+.card-species {
+  font-size: .8rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 8px;
+}
+.card-bio {
+  font-size: .875rem; line-height: 1.5;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.card-tags span {
+  background: rgba(255,255,255,.08);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: .75rem; color: var(--text-dim);
+}
+.card-meta {
+  display: flex; gap: 16px; margin-bottom: 10px;
+}
+.card-meta div {
+  display: flex; align-items: center; gap: 4px;
+  font-size: .8rem; color: var(--text-dim);
+}
+.compat-ring {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700;
+  border: 3px solid var(--primary);
+  background: var(--primary-glow);
+}
+
+/* ── Action Buttons ── */
+.actions {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin-top: 20px;
+}
+.action-btn {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.1);
+  background: var(--card);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  font-size: 1.4rem;
+}
+.action-btn:hover { transform: scale(1.1); }
+.action-btn.nope-btn { color: var(--nope); border-color: rgba(232,74,95,.3); }
+.action-btn.nope-btn:hover { background: rgba(232,74,95,.15); }
+.action-btn.super-btn { color: var(--super); border-color: rgba(107,163,240,.3); width: 44px; height: 44px; font-size: 1.1rem; }
+.action-btn.super-btn:hover { background: rgba(107,163,240,.15); }
+.action-btn.like-btn { color: var(--like); border-color: rgba(67,209,122,.3); }
+.action-btn.like-btn:hover { background: rgba(67,209,122,.15); }
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-state h2 { font-size: 1.2rem; margin-bottom: 8px; }
+.empty-state p { color: var(--text-dim); font-size: .9rem; line-height: 1.5; }
+.empty-state button {
+  margin-top: 20px; padding: 10px 24px;
+  background: var(--primary); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-weight: 600; cursor: pointer; font-size: .9rem;
+}
+
+/* ── List Views (Liked / Matches) ── */
+.list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.list-header h2 { font-size: 1.25rem; }
+.list-header button {
+  background: none; border: none; color: var(--primary);
+  font-size: .85rem; cursor: pointer; font-weight: 600;
+}
+.profile-list { display: flex; flex-direction: column; gap: 12px; }
+.profile-list-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card);
+  padding: 14px; border-radius: var(--radius-sm);
+  cursor: pointer; transition: all .2s;
+  border: 1px solid transparent;
+}
+.profile-list-item:hover {
+  border-color: rgba(255,255,255,.08);
+  transform: translateY(-1px);
+}
+.profile-list-item .mini-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; overflow: hidden;
+}
+.profile-list-item .mini-avatar svg { width: 80%; height: 80%; }
+.profile-list-item .info { flex: 1; min-width: 0; }
+.profile-list-item .info h3 { font-size: .95rem; margin-bottom: 2px; }
+.profile-list-item .info p { font-size: .8rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-list-item .meta { text-align: right; flex-shrink: 0; }
+.profile-list-item .meta .compat { font-size: .75rem; color: var(--primary); font-weight: 700; }
+.profile-list-item .meta .dist { font-size: .7rem; color: var(--text-dim); margin-top: 2px; }
+
+/* Match list specific */
+.match-item {
+  position: relative;
+}
+.match-item .msg-preview {
+  font-size: .75rem; color: var(--text-dim);
+  margin-top: 4px;
+}
+.match-item .msg-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary);
+  position: absolute; right: 14px; top: 14px;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(4px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto;
+  border-radius: var(--radius) var(--radius) 0 0;
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-avatar {
+  height: 280px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.modal-avatar svg { width: 55%; height: 55%; }
+.modal-avatar::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+  background: linear-gradient(transparent, var(--surface));
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,.4); border: none;
+  color: #fff; font-size: 1.2rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+}
+.modal-body { padding: 0 20px 24px; }
+.modal-body h2 { font-size: 1.6rem; margin-bottom: 2px; }
+.modal-body h2 span { font-weight: 400; color: var(--text-dim); }
+.modal-body .species { color: var(--text-dim); font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 16px; }
+.modal-section { margin-bottom: 18px; }
+.modal-section h4 { font-size: .8rem; color: var(--primary); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.modal-section p { font-size: .9rem; line-height: 1.6; color: var(--text-dim); }
+.modal-section .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.modal-section .tags span { background: rgba(255,255,255,.08); padding: 5px 12px; border-radius: 20px; font-size: .8rem; color: var(--text-dim); }
+.modal-dealbreakers { display: flex; flex-wrap: wrap; gap: 6px; }
+.modal-dealbreakers span { background: rgba(232,74,95,.12); color: var(--nope); padding: 5px 12px; border-radius: 20px; font-size: .8rem; }
+.modal-compat {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,.04);
+  padding: 14px; border-radius: var(--radius-sm);
+}
+.modal-compat .ring {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 3px solid var(--primary);
+  background: var(--primary-glow);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: .9rem; color: var(--primary);
+}
+.modal-compat .detail { font-size: .85rem; color: var(--text-dim); }
+.modal-compat .detail strong { color: var(--text); }
+.modal-actions {
+  display: flex; gap: 10px; margin-top: 20px;
+}
+.modal-actions button {
+  flex: 1; padding: 12px;
+  border-radius: var(--radius-sm); border: none;
+  font-weight: 600; cursor: pointer; font-size: .9rem;
+  transition: all .2s;
+}
+.modal-actions .pass { background: rgba(255,255,255,.06); color: var(--text-dim); }
+.modal-actions .pass:hover { background: rgba(232,74,95,.15); color: var(--nope); }
+.modal-actions .interested { background: var(--primary); color: #fff; }
+.modal-actions .interested:hover { opacity: .9; }
+
+/* ── Match Popup ── */
+.match-popup {
+  display: none;
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(26,20,40,.95);
+  flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 20px;
+  animation: fadeIn .3s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.match-popup.show { display: flex; }
+.match-popup h1 {
+  font-size: 2.5rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), #E8A04A, var(--like));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.match-popup p { color: var(--text-dim); margin-bottom: 24px; }
+.match-avatars {
+  display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px;
+}
+.match-avatars .mini-circle {
+  width: 90px; height: 90px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.match-avatars .mini-circle svg { width: 70%; height: 70%; }
+.match-avatars .heart { font-size: 2rem; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+.match-popup .name-row { font-size: 1.1rem; color: var(--text); margin-bottom: 24px; font-weight: 600; }
+.match-popup button {
+  padding: 12px 32px; border-radius: var(--radius-sm);
+  border: none; font-weight: 600; cursor: pointer;
+  font-size: .9rem; margin: 6px;
+}
+.match-popup .chat-btn { background: var(--primary); color: #fff; }
+.match-popup .keep-btn { background: rgba(255,255,255,.08); color: var(--text-dim); }
+
+/* ── Chat View ── */
+.chat-container { display: flex; flex-direction: column; height: calc(100vh - 100px); }
+.chat-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 12px;
+}
+.chat-back {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 1.2rem; padding: 4px 8px;
+}
+.chat-header-info h3 { font-size: .95rem; }
+.chat-header-info p { font-size: .75rem; color: var(--text-dim); }
+.chat-messages {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 12px;
+}
+.msg {
+  max-width: 75%; padding: 10px 14px;
+  border-radius: 16px; font-size: .875rem; line-height: 1.4;
+}
+.msg.them {
+  background: var(--card); align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.msg.me {
+  background: var(--primary); color: #fff; align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.msg .time { font-size: .65rem; opacity: .6; margin-top: 4px; }
+.chat-input-row {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.chat-input-row input {
+  flex: 1; background: var(--card); border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  color: var(--text); font-size: .875rem; outline: none;
+}
+.chat-input-row input::placeholder { color: var(--text-dim); }
+.chat-input-row input:focus { border-color: var(--primary); }
+.chat-send {
+  background: var(--primary); border: none; color: #fff;
+  border-radius: var(--radius-sm); padding: 10px 16px;
+  cursor: pointer; font-size: 1rem; font-weight: 600;
+}
+
+/* ── Settings ── */
+.settings-section { margin-bottom: 20px; }
+.settings-section h3 { font-size: .95rem; margin-bottom: 10px; color: var(--text); }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.setting-row label { font-size: .875rem; color: var(--text-dim); }
+.setting-row select, .setting-row input[type="range"] {
+  background: var(--card); border: 1px solid rgba(255,255,255,.08);
+  color: var(--text); border-radius: 8px; padding: 6px 10px;
+  font-size: .85rem;
+}
+
+/* ── Animations ── */
+@keyframes cardAppear {
+  from { transform: scale(.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.card-enter { animation: cardAppear .35s ease; }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  header { padding: 10px 14px; }
+  main { padding: 12px 12px 80px; }
+  .profile-card { border-radius: 12px; }
+  .card-name { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 100 100" fill="none">
+      <ellipse cx="50" cy="55" rx="32" ry="28" fill="#E8734A"/>
+      <ellipse cx="50" cy="42" rx="24" ry="20" fill="#F0987A"/>
+      <circle cx="40" cy="38" r="3" fill="#1a1428"/>
+      <circle cx="60" cy="38" r="3" fill="#1a1428"/>
+      <ellipse cx="50" cy="46" rx="6" ry="4" fill="#D46A3A"/>
+      <ellipse cx="38" cy="52" rx="8" ry="5" fill="#D46A3A" opacity=".4"/>
+      <ellipse cx="62" cy="52" rx="8" ry="5" fill="#D46A3A" opacity=".4"/>
+      <path d="M38 62 Q50 72 62 62" stroke="#1a1428" stroke-width="2" fill="none"/>
+      <ellipse cx="28" cy="45" rx="8" ry="12" fill="#E8734A" transform="rotate(-15 28 45)"/>
+      <ellipse cx="72" cy="45" rx="8" ry="12" fill="#E8734A" transform="rotate(15 72 45)"/>
+    </svg>
+    GopherR<span style="color:var(--primary)">.</span>
+  </div>
+  <nav>
+    <button class="active" data-view="discover">Discover</button>
+    <button data-view="liked" id="likedTab">Liked <span class="badge" id="likedBadge"></span></button>
+    <button data-view="matches" id="matchesTab">Matches <span class="badge" id="matchesBadge"></span></button>
+  </nav>
+</header>
+
+<main>
+  <!-- Discover View -->
+  <div class="view active" id="discoverView">
+    <div class="card-stack" id="cardStack"></div>
+    <div class="actions" id="actions">
+      <button class="action-btn nope-btn" id="nopeBtn" title="Nope">✕</button>
+      <button class="action-btn super-btn" id="superBtn" title="Super Dig">★</button>
+      <button class="action-btn like-btn" id="likeBtn" title="Like">♥</button>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="icon">🦫</div>
+      <h2>No more gophers to discover</h2>
+      <p>You've seen everyone in your burrow radius. Check back later for new digs, or revisit your matches!</p>
+      <button onclick="resetDeck()">Reset Deck</button>
+    </div>
+  </div>
+
+  <!-- Liked View -->
+  <div class="view" id="likedView">
+    <div class="list-header">
+      <h2>💚 Liked Gophers</h2>
+      <button onclick="resetDeck()">Reset All</button>
+    </div>
+    <div id="likedList" class="profile-list"></div>
+    <div class="empty-state" id="emptyLiked" style="display:none">
+      <div class="icon">💚</div>
+      <h2>No likes yet</h2>
+      <p>Start swiping to find your perfect burrow mate!</p>
+    </div>
+  </div>
+
+  <!-- Matches View -->
+  <div class="view" id="matchesView">
+    <div class="list-header">
+      <h2>🤝 Your Matches</h2>
+    </div>
+    <div id="matchesList" class="profile-list"></div>
+    <div class="empty-state" id="emptyMatches" style="display:none">
+      <div class="icon">💕</div>
+      <h2>No matches yet</h2>
+      <p>When two gophers like each other, it's a match! Keep digging.</p>
+    </div>
+  </div>
+
+  <!-- Chat View -->
+  <div class="view" id="chatView">
+    <div class="chat-container">
+      <div class="chat-header">
+        <button class="chat-back" id="chatBack">←</button>
+        <div class="mini-avatar" id="chatAvatar" style="width:40px;height:40px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;"></div>
+        <div class="chat-header-info">
+          <h3 id="chatName"></h3>
+          <p id="chatStatus">Online — digging nearby</p>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Say something nice...">
+        <button class="chat-send" id="chatSend">→</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <div class="modal-avatar" id="modalAvatar">
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Match Popup -->
+<div class="match-popup" id="matchPopup">
+  <h1>It's a Match!</h1>
+  <p>You and the other gopher like each other</p>
+  <div class="match-avatars" id="matchAvatars"></div>
+  <div class="name-row" id="matchNames"></div>
+  <div>
+    <button class="chat-btn" id="matchChat">Send a Message</button>
+    <button class="keep-btn" id="matchKeep">Keep Digiing</button>
+  </div>
+</div>
+
+<script>
+// ── State ──
+const state = {
+  profiles: [],
+  deck: [],
+  liked: JSON.parse(localStorage.getItem('gr_liked') || '[]'),
+  matched: JSON.parse(localStorage.getItem('gr_matched') || '[]'),
+  chats: JSON.parse(localStorage.getItem('gr_chats') || '{}'),
+  current: null,
+  dragging: false,
+  startX: 0, startY: 0, dx: 0, dy: 0,
+};
+
+// ── SVG Gopher Generator ──
+function gopherSVG(color, accent, size = 200) {
+  const hueShift = Math.random() * 30 - 15;
+  const lighter = adjustColor(color, 30);
+  const darker = adjustColor(color, -30);
+  return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+    <!-- Body -->
+    <ellipse cx="100" cy="120" rx="55" ry="50" fill="${color}"/>
+    <!-- Belly -->
+    <ellipse cx="100" cy="125" rx="35" ry="32" fill="${lighter}" opacity=".4"/>
+    <!-- Head -->
+    <ellipse cx="100" cy="72" rx="42" ry="36" fill="${color}"/>
+    <!-- Forehead -->
+    <ellipse cx="100" cy="62" rx="30" ry="22" fill="${lighter}" opacity=".5"/>
+    <!-- Ears -->
+    <ellipse cx="58" cy="52" rx="14" ry="20" fill="${color}" transform="rotate(-20 58 52)"/>
+    <ellipse cx="58" cy="52" rx="8" ry="12" fill="${lighter}" opacity=".5" transform="rotate(-20 58 52)"/>
+    <ellipse cx="142" cy="52" rx="14" ry="20" fill="${color}" transform="rotate(20 142 52)"/>
+    <ellipse cx="142" cy="52" rx="8" ry="12" fill="${lighter}" opacity=".5" transform="rotate(20 142 52)"/>
+    <!-- Eyes -->
+    <circle cx="84" cy="66" r="7" fill="${accent}"/>
+    <circle cx="116" cy="66" r="7" fill="${accent}"/>
+    <circle cx="86" cy="64" r="2.5" fill="#fff" opacity=".8"/>
+    <circle cx="118" cy="64" r="2.5" fill="#fff" opacity=".8"/>
+    <!-- Nose -->
+    <ellipse cx="100" cy="80" rx="9" ry="7" fill="${darker}"/>
+    <ellipse cx="97" cy="79" rx="3" ry="2" fill="${darker}" opacity=".6"/>
+    <!-- Mouth -->
+    <path d="M90 88 Q100 96 110 88" stroke="${darker}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Whiskers -->
+    <line x1="70" y1="78" x2="55" y2="74" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <line x1="70" y1="82" x2="52" y2="82" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <line x1="70" y1="86" x2="55" y2="90" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <line x1="130" y1="78" x2="145" y2="74" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <line x1="130" y1="82" x2="148" y2="82" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <line x1="130" y1="86" x2="145" y2="90" stroke="${darker}" stroke-width="1.2" opacity=".5"/>
+    <!-- Cheeks -->
+    <ellipse cx="76" cy="86" rx="12" ry="8" fill="${darker}" opacity=".15"/>
+    <ellipse cx="124" cy="86" rx="12" ry="8" fill="${darker}" opacity=".15"/>
+    <!-- Paws -->
+    <ellipse cx="70" cy="135" rx="16" ry="10" fill="${color}" transform="rotate(-10 70 135)"/>
+    <ellipse cx="130" cy="135" rx="16" ry="10" fill="${color}" transform="rotate(10 130 135)"/>
+    <!-- Feet -->
+    <ellipse cx="78" cy="165" rx="14" ry="9" fill="${darker}"/>
+    <ellipse cx="122" cy="165" rx="14" ry="9" fill="${darker}"/>
+    <!-- Tail -->
+    <ellipse cx="100" cy="172" rx="10" ry="6" fill="${color}"/>
+  </svg>`;
+}
+
+function adjustColor(hex, amount) {
+  let r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  r = Math.min(255,Math.max(0,r+amount)); g = Math.min(255,Math.max(0,g+amount)); b = Math.min(255,Math.max(0,b+amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// ── Initialize ──
+async function init() {
+  const res = await fetch('profiles.json');
+  state.profiles = await res.json();
+  state.deck = shuffle([...state.profiles]);
+  renderCard();
+  updateBadges();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── Card Rendering ──
+function renderCard() {
+  const stack = document.getElementById('cardStack');
+  const actions = document.getElementById('actions');
+  const empty = document.getElementById('emptyState');
+
+  if (state.deck.length === 0) {
+    stack.innerHTML = '';
+    actions.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  actions.style.display = 'flex';
+  empty.style.display = 'none';
+
+  // Render up to 2 cards (top + background)
+  stack.innerHTML = '';
+  const toShow = state.deck.slice(0, 2).reverse();
+  toShow.forEach((p, idx) => {
+    const isTop = idx === toShow.length - 1;
+    const card = createCardElement(p, isTop);
+    if (isTop) state.current = p;
+    stack.appendChild(card);
+  });
+}
+
+function createCardElement(profile, interactive) {
+  const card = document.createElement('div');
+  card.className = 'profile-card card-enter';
+  card.dataset.id = profile.id;
+  if (!interactive) {
+    card.style.transform = 'scale(.95) translateY(10px)';
+    card.style.opacity = '.6';
+    card.style.pointerEvents = 'none';
+    return card;
+  }
+
+  card.innerHTML = `
+    <div class="card-avatar" style="background:linear-gradient(135deg, ${profile.color}33, ${profile.accent}55)">
+      ${gopherSVG(profile.color, profile.accent, 180)}
+      <div class="card-stamp nope">NOPE</div>
+      <div class="card-stamp like">LIKE</div>
+      <div class="card-stamp super">SUPER DIG</div>
+    </div>
+    <div class="card-info">
+      <div class="card-name">${profile.name} <span>${profile.age}</span></div>
+      <div class="card-species">${profile.species} · ${profile.distance}</div>
+      <div class="card-meta">
+        <div class="compat-ring">${profile.compatibility}%</div>
+        <div>
+          <div style="font-weight:600;color:var(--text)">Compatibility</div>
+          <div style="font-size:.75rem">${profile.zodiac} · ${profile.species}</div>
+        </div>
+      </div>
+      <div class="card-bio">${profile.bio}</div>
+      <div class="card-tags">${profile.interests.map(i => `<span>${i}</span>`).join('')}</div>
+    </div>
+  `;
+
+  // Drag interactions
+  setupDrag(card, profile);
+  return card;
+}
+
+// ── Drag / Swipe ──
+function setupDrag(card, profile) {
+  const nopeStamp = card.querySelector('.card-stamp.nope');
+  const likeStamp = card.querySelector('.card-stamp.like');
+  const superStamp = card.querySelector('.card-stamp.super');
+
+  function onStart(e) {
+    state.dragging = true;
+    const point = e.touches ? e.touches[0] : e;
+    state.startX = point.clientX;
+    state.startY = point.clientY;
+    card.style.transition = 'none';
+  }
+
+  function onMove(e) {
+    if (!state.dragging) return;
+    const point = e.touches ? e.touches[0] : e;
+    state.dx = point.clientX - state.startX;
+    state.dy = point.clientY - state.startY;
+    const rot = state.dx * 0.08;
+    card.style.transform = `translateX(${state.dx}px) translateY(${state.dy}px) rotate(${rot}deg)`;
+
+    const threshold = 60;
+    const progress = Math.min(Math.abs(state.dx) / threshold, 1);
+    nopeStamp.style.opacity = state.dx < 0 ? progress : 0;
+    likeStamp.style.opacity = state.dx > 0 ? progress : 0;
+    superStamp.style.opacity = state.dy < -threshold ? Math.min(Math.abs(state.dy) / (threshold*2), 1) : 0;
+  }
+
+  function onEnd() {
+    if (!state.dragging) return;
+    state.dragging = false;
+    card.style.transition = '';
+
+    const threshold = 100;
+    const upThreshold = 80;
+
+    if (state.dx > threshold) {
+      doAction('like', card, profile);
+    } else if (state.dx < -threshold) {
+      doAction('nope', card, profile);
+    } else if (state.dy < -upThreshold) {
+      doAction('super', card, profile);
+    } else {
+      card.style.transform = '';
+      card.style.transition = 'transform .3s ease';
+    }
+  }
+
+  card.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  card.addEventListener('touchstart', onStart, { passive: true });
+  card.addEventListener('touchmove', onMove, { passive: true });
+  card.addEventListener('touchend', onEnd);
+}
+
+// ── Actions ──
+function doAction(action, card, profile) {
+  if (action === 'nope') {
+    card.classList.add('drifting-left');
+  } else if (action === 'like') {
+    card.classList.add('drifting-right');
+    likeProfile(profile);
+  } else if (action === 'super') {
+    card.classList.add('drifting-up');
+    likeProfile(profile);
+    // Super dig = auto-match
+    setTimeout(() => triggerMatch(profile), 600);
+  }
+
+  setTimeout(() => {
+    state.deck.shift();
+    renderCard();
+    updateBadges();
+  }, 400);
+}
+
+function likeProfile(profile) {
+  if (!state.liked.includes(profile.id)) {
+    state.liked.push(profile.id);
+    saveState();
+  }
+  // Random match chance (40%)
+  if (Math.random() < 0.4) {
+    setTimeout(() => triggerMatch(profile), 600);
+  }
+}
+
+function triggerMatch(profile) {
+  if (state.matched.find(m => m.id === profile.id)) return;
+
+  state.matched.push({
+    id: profile.id,
+    name: profile.name,
+    color: profile.color,
+    accent: profile.accent,
+    timestamp: Date.now(),
+    lastMessage: null
+  });
+
+  // Init chat with greeting
+  state.chats[profile.id] = [
+    {
+      from: 'them',
+      text: getGreeting(profile),
+      time: Date.now()
+    }
+  ];
+
+  saveState();
+  showMatchPopup(profile);
+  updateBadges();
+}
+
+function getGreeting(profile) {
+  const greetings = [
+    `Hey! Great to meet you! I'm ${profile.name} and I'm already planning our joint burrow. 🏠`,
+    `Oh wow, a match! I've been digging for someone just like you. Want to see my tunnel network?`,
+    `*adjusts whiskers* This is the best news I've had all season. So, what's your favorite root?`,
+    `I was just mapping a new tunnel when we matched! Must be destiny. Or good algorithms. Either way, hi!`,
+    `Finally! I was about to start a solo expedition, but now I can bring a partner. What do you say?`,
+  ];
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}
+
+function showMatchPopup(profile) {
+  const popup = document.getElementById('matchPopup');
+  const avatars = document.getElementById('matchAvatars');
+  const names = document.getElementById('matchNames');
+
+  avatars.innerHTML = `
+    <div class="mini-circle" style="background:${profile.color}44">
+      ${gopherSVG(profile.color, profile.accent, 80)}
+    </div>
+    <div class="heart">💕</div>
+    <div class="mini-circle" style="background:#E8734A44">
+      ${gopherSVG('#E8734A', '#1a1428', 80)}
+    </div>
+  `;
+  names.textContent = `${profile.name} & You`;
+  popup.classList.add('show');
+
+  document.getElementById('matchKeep').onclick = () => popup.classList.remove('show');
+  document.getElementById('matchChat').onclick = () => {
+    popup.classList.remove('show');
+    openChat(profile.id);
+  };
+}
+
+// ── Button Actions ──
+document.getElementById('nopeBtn').addEventListener('click', () => {
+  if (!state.current) return;
+  const card = document.querySelector('.profile-card:last-child');
+  if (card) doAction('nope', card, state.current);
+});
+document.getElementById('likeBtn').addEventListener('click', () => {
+  if (!state.current) return;
+  const card = document.querySelector('.profile-card:last-child');
+  if (card) doAction('like', card, state.current);
+});
+document.getElementById('superBtn').addEventListener('click', () => {
+  if (!state.current) return;
+  const card = document.querySelector('.profile-card:last-child');
+  if (card) doAction('super', card, state.current);
+});
+
+// ── Navigation ──
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(view + 'View').classList.add('active');
+
+    if (view === 'liked') renderLiked();
+    if (view === 'matches') renderMatches();
+  });
+});
+
+// ── Render Lists ──
+function renderLiked() {
+  const list = document.getElementById('likedList');
+  const empty = document.getElementById('emptyLiked');
+  const profiles = state.liked.map(id => state.profiles.find(p => p.id === id)).filter(Boolean);
+
+  if (profiles.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = profiles.map(p => `
+    <div class="profile-list-item" onclick="openProfileModal(${p.id})">
+      <div class="mini-avatar" style="background:${p.color}33">${gopherSVG(p.color, p.accent, 52)}</div>
+      <div class="info">
+        <h3>${p.name}, ${p.age}</h3>
+        <p>${p.bio.slice(0, 60)}...</p>
+      </div>
+      <div class="meta">
+        <div class="compat">${p.compatibility}% match</div>
+        <div class="dist">${p.distance}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMatches() {
+  const list = document.getElementById('matchesList');
+  const empty = document.getElementById('emptyMatches');
+  const matches = state.matched.map(m => {
+    const p = state.profiles.find(pr => pr.id === m.id);
+    return { ...m, ...p };
+  });
+
+  if (matches.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = matches.map(m => {
+    const chat = state.chats[m.id] || [];
+    const lastMsg = chat.length ? chat[chat.length - 1] : null;
+    return `
+      <div class="profile-list-item match-item" onclick="openChat(${m.id})">
+        <div class="mini-avatar" style="background:${m.color}33">${gopherSVG(m.color, m.accent, 52)}</div>
+        <div class="info">
+          <h3>${m.name}</h3>
+          <div class="msg-preview">${lastMsg ? (lastMsg.from === 'me' ? 'You: ' : '') + lastMsg.text.slice(0, 40) + '...' : 'Say hello!'}</div>
+        </div>
+        <div class="meta">
+          <div class="compat">${m.compatibility || 0}% match</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Profile Modal ──
+function openProfileModal(id) {
+  const p = state.profiles.find(pr => pr.id === id);
+  if (!p) return;
+  const modal = document.getElementById('profileModal');
+  const avatar = document.getElementById('modalAvatar');
+  const body = document.getElementById('modalBody');
+
+  avatar.style.background = `linear-gradient(135deg, ${p.color}33, ${p.accent}55)`;
+  avatar.innerHTML = `<button class="modal-close" id="modalClose">✕</button>${gopherSVG(p.color, p.accent, 160)}`;
+  avatar.querySelector('#modalClose').onclick = () => modal.classList.remove('open');
+
+  body.innerHTML = `
+    <h2>${p.name} <span>${p.age}</span></h2>
+    <div class="species">${p.species} · ${p.zodiac}</div>
+
+    <div class="modal-section">
+      <div class="modal-compat">
+        <div class="ring">${p.compatibility}%</div>
+        <div class="detail">
+          <strong>Compatibility Score</strong><br>
+          You're ${p.compatibility > 90 ? 'extremely' : p.compatibility > 80 ? 'very' : 'moderately'} compatible. Shared interests in subterranean living and root-based cuisine.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <h4>About</h4>
+      <p>${p.bio}</p>
+    </div>
+
+    <div class="modal-section">
+      <h4>Looking For</h4>
+      <p>${p.looking_for}</p>
+    </div>
+
+    <div class="modal-section">
+      <h4>Interests</h4>
+      <div class="tags">${p.interests.map(i => `<span>${i}</span>`).join('')}</div>
+    </div>
+
+    <div class="modal-section">
+      <h4>Dealbreakers</h4>
+      <div class="modal-dealbreakers">${p.dealbreakers.map(d => `<span>✕ ${d}</span>`).join('')}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="pass" onclick="modalPass(${p.id})">Pass</button>
+      <button class="interested" onclick="modalLike(${p.id})">Send Interest</button>
+    </div>
+  `;
+
+  modal.classList.add('open');
+}
+
+document.getElementById('profileModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('profileModal')) {
+    document.getElementById('profileModal').classList.remove('open');
+  }
+});
+
+function modalPass(id) {
+  document.getElementById('profileModal').classList.remove('open');
+}
+
+function modalLike(id) {
+  const p = state.profiles.find(pr => pr.id === id);
+  if (!p) return;
+  document.getElementById('profileModal').classList.remove('open');
+  likeProfile(p);
+  updateBadges();
+}
+
+// ── Chat ──
+let activeChatId = null;
+
+function openChat(id) {
+  activeChatId = id;
+  const profile = state.profiles.find(p => p.id === id);
+  if (!profile) return;
+
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('chatView').classList.add('active');
+
+  document.getElementById('chatAvatar').style.background = `${profile.color}44`;
+  document.getElementById('chatAvatar').innerHTML = gopherSVG(profile.color, profile.accent, 40);
+  document.getElementById('chatName').textContent = profile.name;
+
+  renderMessages(id);
+}
+
+document.getElementById('chatBack').addEventListener('click', () => {
+  activeChatId = null;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('matchesView').classList.add('active');
+  document.querySelectorAll('nav button')[2].classList.add('active');
+  renderMatches();
+});
+
+function renderMessages(id) {
+  const container = document.getElementById('chatMessages');
+  const msgs = state.chats[id] || [];
+  container.innerHTML = msgs.map(m => `
+    <div class="msg ${m.from === 'me' ? 'me' : 'them'}">
+      ${m.text}
+      <div class="time">${formatTime(m.time)}</div>
+    </div>
+  `).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+document.getElementById('chatSend').addEventListener('click', sendChat);
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChat();
+});
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || !activeChatId) return;
+
+  if (!state.chats[activeChatId]) state.chats[activeChatId] = [];
+  state.chats[activeChatId].push({ from: 'me', text, time: Date.now() });
+  saveState();
+  input.value = '';
+  renderMessages(activeChatId);
+
+  // Auto-reply after delay
+  const profile = state.profiles.find(p => p.id === activeChatId);
+  if (profile) {
+    setTimeout(() => {
+      const reply = getReply(profile, text);
+      state.chats[activeChatId].push({ from: 'them', text: reply, time: Date.now() });
+      saveState();
+      if (activeChatId) renderMessages(activeChatId);
+    }, 1000 + Math.random() * 2000);
+  }
+}
+
+function getReply(profile, userText) {
+  const lower = userText.toLowerCase();
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+    return `Hey there! ${profile.name} here. So glad we matched! What brings you to the underground world of dating?`;
+  }
+  if (lower.includes('tunnel') || lower.includes('dig') || lower.includes('burrow')) {
+    return `Oh you're into tunneling too? My current project is ${profile.interests[0]} — it's my passion. Want to see the blueprints?`;
+  }
+  if (lower.includes('root') || lower.includes('food') || lower.includes('eat') || lower.includes('seed')) {
+    return `Great topic! I'm a big fan of root vegetables, especially sunflower seeds. My burrow pantry is legendary.`;
+  }
+  if (lower.includes('cute') || lower.includes('pretty') || lower.includes('love')) {
+    return `*blushes, hides whiskers* You're making my fur all warm and fuzzy! This is so sweet...`;
+  }
+  if (lower.includes('meet') || lower.includes('date')) {
+    return `I'd love to! How about a tour of my tunnel network? It's ${state.profiles.find(p=>p.id===profile.id)?.distance || 'somewhere underground'} deep. I can show you the good spots.`;
+  }
+  const replies = [
+    `That's interesting! Tell me more. By the way, have you ever tried ${profile.interests[0]}? It's life-changing.`,
+    `Haha, I love that! You know what I love? A good ${profile.interests[1]} session at dusk. It's peak gopher vibes.`,
+    `Squeak squeak! (That means "I totally agree" in my dialect.) So, what's your favorite part of underground living?`,
+    `You're really someone special. Most gophers just want to talk about root storage. You seem... different. In a good way.`,
+    `I was thinking about expanding my burrow lately. Maybe I could build a second entrance just for you? 💕`,
+    `*nods enthusiastically, dirt falls from ears* Yeah yeah, exactly! You get it. That's rare for a surface-adjacent gopher.`,
+  ];
+  return replies[Math.floor(Math.random() * replies.length)];
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Persistence ──
+function saveState() {
+  localStorage.setItem('gr_liked', JSON.stringify(state.liked));
+  localStorage.setItem('gr_matched', JSON.stringify(state.matched));
+  localStorage.setItem('gr_chats', JSON.stringify(state.chats));
+}
+
+function resetDeck() {
+  state.deck = shuffle([...state.profiles.filter(p => !state.liked.includes(p.id))]);
+  if (state.deck.length === 0) state.deck = shuffle([...state.profiles]);
+  renderCard();
+}
+
+function updateBadges() {
+  document.getElementById('likedBadge').textContent = state.liked.length || '';
+  document.getElementById('matchesBadge').textContent = state.matched.length || '';
+}
+
+// ── Keyboard Shortcuts ──
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('chatView').classList.contains('active')) return;
+  if (document.getElementById('profileModal').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') document.getElementById('nopeBtn').click();
+  if (e.key === 'ArrowRight') document.getElementById('likeBtn').click();
+  if (e.key === 'ArrowUp') document.getElementById('superBtn').click();
+});
+
+// ── Start ──
+init();
+</script>
+</body>
+</html>
