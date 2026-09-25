@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Journal</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #app-container { width: 100%; max-width: 960px; min-height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); overflow: hidden; display: grid; grid-template-columns: 320px 1fr; }
+        header { grid-column: span 2; padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-wrap: space-between; align-items: center; gap: 15px; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        aside { padding: 20px; border-right: 1px solid var(--border); background: #fdfdfd; }
+        main { padding: 20px; overflow-y: auto; height: 550px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; }
+        input:focus { border-color: var(--primary); ring: 2px var(--primary); }
+        textarea { resize: vertical; min-height: 80px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { cursor: pointer; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: opacity 0.2s; font-size: 0.85rem; }
+        button:active { transform: translateY(1px); }
+        [data-testid="primary-action"] { background: var(--primary); color: white; flex-grow: 2; }
+        [data-testid="primary-action"]:hover { background: var(--primary-hover); }
+        [data-testid="reset"] { background: #e2e8f0; color: var(--text-main); flex-grow: 1; }
+        [data-testid="delete-btn"] { background: transparent; color: var(--danger); padding: 4px 8px; font-size: 0.75rem; border: 1px solid #fee2e2; }
+        [data-testid="delete-btn"]:hover { background: #fef2f2; }
+        
+        /* Chart Styles */
+        .chart-container { margin-bottom: 25px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
+        canvas { width: 100% !important; height: 150px !important; }
+
+        /* Entry List */
+        .entry-item { padding: 12px; border-bottom: 1px solid var(--border); position: relative; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .entry-item:last-child { border-bottom: none; }
+        .entry-meta { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .entry-mood-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 8px; text-transform: uppercase; }
+        .mood-5 { background: #fef3c7; color: #92400e; } /* Happy */
+        .mood-3 { background: #e0e7ff; color: #3730a3; } /* Neutral */
+        .mood-1 { background: #fee2e2; color: #991b1b; } /* Sad */
+        .filter-bar { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px 0; font-style: italic; }
+        #status-indicator { font-size: 0.8rem; color: var(--success); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Memory Journal</h1>
+        <div id="status-indicator" data-testid="status">System Ready</div>
+    </header>
+
+    <aside>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="entry-date">
+        </div>
+        <div class="form-group">
+            <label>Mood Level (1-5)</label>
+            <select id="entry-mood">
+                <option value="5">🌟 Amazing</option>
+                <option value="4">😊 Good</option>
+                <option value="3" selected>😐 Neutral</option>
+                <option value="2">😕 Low</option>
+                <option value="1">😢 Bad</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Note</label>
+            <textarea id="entry-note" placeholder="How was your day?"></textarea>
+        </div>
+        <div class="btn-group">
+            <button id="save-btn" data-testid="primary-action">Save Entry</button>
+            <button id="reset-btn" data-testid="reset">Reset</button>
+        </div>
+    </aside>
+
+    <main>
+        <div class="chart-container">
+            <label>Weekly Mood Trend</label>
+            <canvas id="moodChart"></canvas>
+        </div>
+
+        <div class="filter-bar">
+            <label style="margin:0; flex-shrink:0;">Filter:</label>
+            <select id="filter-mood" style="width:auto; padding: 4px;">
+                <option value="all">All Moods</option>
+                <option value="5">Amazing Only</option>
+                <option value="3">Neutral Only</option>
+                <option value="1">Sad Only</option>
+            </select>
+        </div>
+
+        <div id="entries-list">
+            <!-- Entries injected here -->
+        </div>
+    </main>
+</div>
+
+<script>
+(function() {
+    // --- State Management ---
+    let state = {
+        entries: [
+            { id: 1, date: '2023-10-01', mood: 5, note: 'Had a wonderful morning hike!' },
+            { id: 2, date: '2023-10-02', mood: 3, note: 'Just another Tuesday.' },
+            { id: 3, date: '2023-10-03', mood: 1, note: 'Feeling quite exhausted today.' }
+        ],
+        filter: 'all'
+    };
+
+    const INITIAL_STATE = JSON.parse(JSON.stringify(state));
+
+    // --- DOM Elements ---
+    const els = {
+        dateInput: document.getElementById('entry-date'),
+        moodInput: document.getElementById('entry-mood'),
+        noteInput: document.getElementById('entry-note'),
+        saveBtn: document.getElementById('save-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        filterSelect: document.getElementById('filter-mood'),
+        listContainer: document.getElementById('entries-list'),
+        statusEl: document.querySelector('[data-testid="status"]'),
+        canvas: document.getElementById('moodChart')
+    };
+
+    // --- Logic ---
+    function init() {
+        setupEventListeners();
+        render();
+        updateStatus("Journal Loaded");
+        setTodayToInput();
+    }
+
+    function setTodayToInput() {
+        els.dateInput.valueAsDate = new Date();
+    }
+
+    function updateStatus(msg) {
+        els.statusEl.textContent = msg;
+    }
+
+    function saveEntry() {
+        const mood = parseInt(els.moodInput.value);
+        const note = els.noteInput.value.trim();
+        const date = els.dateInput.value;
+
+        if (!date || !note) {
+            alert("Please fill in both date and note.");
+            return;
+        }
+
+        const newEntry = {
+            id: Date.now(),
+            date,
+            mood,
+            note
+        };
+
+        state.entries.unshift(newEntry);
+        render();
+        
+        // Clear form
+        els.noteInput.value = '';
+        updateStatus(`Saved: ${date}`);
+        setTimeout(() => updateStatus("Ready"), 2000);
+    }
+
+    function deleteEntry(id) {
+        state.entries = state.entries.filter(e => e.id !== id);
+        render();
+        updateStatus("Entry Deleted");
+    }
+
+    function render() {
+        renderList();
+        renderChart();
+    }
+
+    function renderList() {
+        els.listContainer.innerHTML = '';
+        const filtered = state.entries.filter(e => {
+            if (els.filterSelect.value === 'all') return true;
+            return e.mood == els.filterSelect.value;
+        });
+
+        if (filtered.length === 0) {
+            els.listContainer.innerHTML = '<div class="empty-state">No entries found matches criteria.</div>';
+            return;
+        }
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(entry => {
+            const div = document.createElement('div');
+            div.className = 'entry-item';
+            
+            const moodMap = {5:'🌟', 4:'😊', 3:'😐', 2:'😕', 1:'😢'};
+            const moodClass = `mood-${entry.mood}`;
+            
+            div.innerHTML = `
+                <div class="entry-meta">
+                    ${entry.date} <span class="entry-mood-tag ${moodClass}">${moodMap[entry.mood] || ''}</span>
+                </div>
+                <div class="entry-content">${escapeHTML(entry.note)}</div>
+                <div style="display:flex; justify-content: flex-end;">
+                    <button data-testid="delete-btn" onclick="window._deleteEntry(${entry.id})">Delete</button>
+                </div>
+            `;
+            els.listContainer.appendChild(div);
+        });
+    }
+
+    function escapeHTML(str) {
+        const p = document.createElement('p');
+        p.textContent = str;
+        return p.innerHTML;
+    }
+
+    function renderChart() {
+        const ctx = els.canvas.getContext('2d');
+        const w = els.canvas.width = els.canvas.offsetWidth * window.devicePixelRatio;
+        const h = els.canvas.height = 150 * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        
+        const drawW = els.canvas.offsetWidth;
+        const drawH = 150;
+
+        ctx.clearRect(0, 0, drawW, drawH);
+
+        // Get last 7 days of unique dates sorted
+        const sortedEntries = [...state.entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const points = [];
+        
+        // Simple logic: show up to 7 most recent unique mood values
+        for(let i=0; i<Math.min(sortedEntries.length, 7); i++) {
+            points.push(sortedEntries[i].mood);
+        }
+
+        if (points.length < 2) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('Add more entries to see trend', drawW/2 - 70, drawH/2);
+            return;
+        }
+
+        const stepX = drawW / (points.length - 1);
+        ctx.beginPath();
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+
+        points.forEach((val, idx) => {
+            // Map mood 1-5 to Y coordinate
+            // Val 1 -> bottom, Val 5 -> top
+            const x = idx * stepX;
+            const y = drawH - ((val - 1) * (drawH - 20) + 10);
+            
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+
+            // Draw dot
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(x - 3, y - 3, 6, 6);
+        });
+        ctx.stroke();
+    }
+
+    function setupEventListeners() {
+        els.saveBtn.addEventListener('click', saveEntry);
+        els.resetBtn.addEventListener('click', () => {
+            state = JSON.parse(JSON.stringify(INITIAL_STATE));
+            els.noteInput.value = '';
+            els.filterSelect.value = 'all';
+            setTodayToInput();
+            render();
+            updateStatus("State Reset");
+        });
+        els.filterSelect.addEventListener('change', render);
+        
+        // Global expose for the inline onDelete handler
+        window._deleteEntry = (id) => deleteEntry(id);
+    }
+
+    init();
+})();
+</script>
+
+</body>
+</html>

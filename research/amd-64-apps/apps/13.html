@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Diver</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050a0f;
+            color: #4ef0ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            border: 2px solid #1a3a4a;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
+            background: radial-gradient(circle, #0a1a2a 0%, #050a0f 100%);
+        }
+        canvas { display: block; }
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+            text-shadow: 0 0 5px #4ef0ff;
+        }
+        .controls-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+        }
+        #overlay.visible { visibility: visible; }
+        h1 { margin: 0 0 20px 0; color: #fff; text-shadow: 0 0 10px #4ef0ff; }
+        button {
+            padding: 12px 24px;
+            font-family: inherit;
+            cursor: pointer;
+            background: transparent;
+            border: 1px solid #4ef0ff;
+            color: #4ef0ff;
+            transition: all 0.2s;
+            margin: 5px;
+            text-transform: uppercase;
+        }
+        button:hover { background: rgba(78, 240, 255, 0.2); }
+        [data-testid="primary-action"] { font-weight: bold; border-width: 2px; }
+        #status-bar { position: absolute; bottom: 10px; right: 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="960" height="600"></canvas>
+    
+    <div id="ui-layer">
+        <div>O2: <span id="o2-val">60</span>s | PULSES: <span id="pulse-val">12</span></div>
+        <div>PEARLS: <span id="pearl-val">0</span>/3</div>
+    </div>
+
+    <div class="controls-hint">WASD / ARROWS TO MOVE • SPACE FOR SONAR</div>
+
+    <div id="overlay">
+        <h1 id="msg-title">ECHO DIVER</h1>
+        <p id="msg-desc">Navigate the dark abyss. Find 3 pearls & find the exit.</p>
+        <div style="display: flex;">
+            <button id="start-btn" data-testid="primary-action">Start Mission</button>
+            <button id="reset-btn" data2-testid="reset">Reset</button>
+        </div>
+    </div>
+
+    <div id="status-bar" data-testid="status">Status: Ready</div>
+</div>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.querySelector('[data-testid="status"]');
+const o2El = document.getElementById('o2-val');
+const pulseEl = document.getElementById('pulse-val');
+const pearlEl = document.getElementById('pearl-val');
+const overlay = document.getElementById('overlay');
+const msgTitle = document.getElementById('msg-title');
+const msgDesc = document.getElementById('msg-desc');
+
+// Game Constants
+const WIDTH = 960;
+const HEIGHT = 600;
+const SUB_SIZE = 20;
+const SONAR_SPEED = 4;
+const MAX_SONAR_RADIUS = 250;
+
+let gameState = {
+    running: false,
+    player: { x: 100, y: 300, vx: 0, vy: 0, angle: 0 },
+    oxygen: 60,
+    pulses: 12,
+    pearlsCollected: 0,
+    sonarWave: { active: false, radius: 0, x: 0, y: 0, life: 0 },
+    entities: [], // Rocks, Mines, Pearls, Exit
+    history: []   // Locations revealed by sonar
+};
+
+const keys = {};
+
+function initGame() {
+    gameState = {
+        running: true,
+        player: { x: 100, y: 300, vx: 0, vy: 0, angle: Math.PI/2 },
+        oxygen: 60,
+        pulses: 12,
+        pearlsCollected: 0,
+        sonarWave: { active: false, radius: 0, x: 0, y: 0, life: 0 },
+        entities: [
+            { type: 'rock', x: 300, y: 150, w: 60, h: 60 },
+            { type: 'rock', x: 600, y: 400, w: 80, h: 40 },
+            { type: 'rock', x: 450, y: 100, w: 40, h: 100 },
+            { type: 'mine', x: 500, y: 300, r: 15 },
+            { type: 'mine', x: 200, y: 500, r: 15 },
+            { type: 'mine', x: 700, y: 100, r: 15 },
+            { type: 'pearl', x: 800, y: 500, r: 10 },
+            { type: 'pearl', x: 100, y: 50, r: 10 },
+            { type: 'pearl', x: 850, y: 50, r: 10 },
+            { type: 'exit', x: 880, y: 550, r: 25 }
+        ],
+        history: []
+    };
+    updateUI();
+    overlay.classList.remove('visible');
+    statusEl.textContent = "Status: Diving...";
+}
+
+function resetGame() {
+    gameState.running = false;
+    gameState.oxygen = 60;
+    gameState.pulses = 12;
+    gameState.pearlsCollected = 0;
+    gameState.player = { x: 100, y: 300, vx: 0, vy: 0, angle: Math.PI/2 };
+    gameState.sonarWave = { active: false, radius: 0, x: 0, y: 0, life: 0 };
+    gameState.history = [];
+    initEntities();
+    overlay.classList.add('visible');
+    msgTitle.textContent = "ECHO DIVER";
+    msgDesc.textContent = "Find 3 pearls and locate the exit.";
+    document.getElementById('start-btn').textContent = "Start Mission";
+    updateUI();
+    statusEl.textContent = "Status: Ready";
+}
+
+function initEntities() {
+    // Re-set entities to specific positions for consistent gameplay
+    gameState.entities = [
+        { type: 'rock', x: 300, y: 150, w: 60, h: 60 },
+        { type: 'rock', x: 600, y: 400, w: 80, h: 40 },
+        { type: 'rock', x: 450, y: 100, w: 40, h: 100 },
+        { type: 'mine', x: 500, y: 300, r: 15 },
+        { type: 'mine', x: 200, y: 500, r: 15 },
+        { type: 'mine', x: 700, y: 100, r: 15 },
+        { type: 'pearl', x: 800, y: 500, r: 10 },
+        { type: 'pearl', x: 100, y: 50, r: 10 },
+        { type: 'pearl', x: 850, y: 50, r: 10 },
+        { type: 'exit', x: 880, y: 550, r: 25 }
+    ];
+}
+
+function updateUI() {
+    o2El.textContent = Math.max(0, Math.ceil(gameState.oxygen));
+    pulseEl.textContent = gameState.pulses;
+    pearlEl.textContent = gameState.pearlsCollected;
+}
+
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'Space' && gameState.running) triggerSonar();
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function triggerSonar() {
+    if (gameState.pulses > 0) {
+        gameState.pulses--;
+        gameState.sonarWave = {
+            active: true,
+            radius: 0,
+            x: gameState.player.x,
+            y: gameState.player.y,
+            life: 1.0 // fade factor
+        };
+        updateUI();
+    }
+}
+
+function update(dt) {
+    if (!gameState.running) return;
+
+    // Movement logic
+    const speed = 3;
+    const p = gameState.player;
+    let dx = 0;
+    let dy = 0;
+
+    if (keys['ArrowUp'] || keys['KeyW']) dy -= speed;
+    if (keys['ArrowDown'] || keys['KeyS']) dy += speed;
+    if (keys['ArrowLeft'] || keys['KeyA']) dx -= speed;
+    if (keys['ArrowRight'] || keys['KeyD']) dx += speed;
+
+    // Collision detection for walls/rocks
+    let nextX = p.x + dx;
+    let nextY = p.y + dy;
+
+    let collision = false;
+    for (let ent of gameState.entities) {
+        if (ent.type === 'rock') {
+            if (nextX + SUB_SIZE/2 > ent.x && nextX - SUB_SIZE/2 < ent.x + ent.w &&
+                nextY + SUB_SIZE/2 > ent.y && nextY - SUB_SIZE/2 < ent.y + ent.h) {
+                collision = true;
+            }
+        }
+    }
+
+    if (!collision) {
+        p.x = Math.max(SUB_SIZE, Math.min(WIDTH - SUB_SIZE, nextX));
+        p.y = Math.max(SUB_SIZE, Math.min(HEIGHT - SUB_SIZE, nextY));
+    }
+
+    // Update Sonar Wave
+    if (gameState.sonarWave.active) {
+        gameState.sonarWave.radius += SONAR_SPEED;
+        gameState.sonarWave.life -= 0.01;
+        if (gameState.sonarWave.life <= 0 || gameState.sonarWave.radius > MAX_SONAR_RADIUS) {
+            gameState.sonarWave.active = false;
+        } else {
+            // Record history for trails
+            gameState.history.push({x: gameState.sonarWave.x, y: gameState.sonarWave.y, t: Date.now()});
+        }
+    }
+
+    // Oxygen depletion
+    gameState.oxygen -= dt / 1000;
+    if (gameState.oxygen <= 0) endGame("MISSION FAILED", "Oxygen depleted. You drifted into the void.");
+
+    // Entity Interaction
+    for (let i = gameState.entities.length - 1; i >= 0; i--) {
+        let ent = gameState.entities[i];
+        let dist = Math.hypot(p.x - ent.x, p.y - ent.y);
+
+        if (dist < 25) {
+            if (ent.type === 'mine') endGame("MISSION FAILED", "You struck a naval mine!");
+            if (ent.type === 'pearl') {
+                gameState.entities.splice(i, 1);
+                gameState.pearlsCollected++;
+                updateUI();
+                if (gameState.pearlsCollected === 3) {
+                    statusEl.textContent = "Status: EXIT LOCATED!";
+                }
+            }
+            if (ent.type === 'exit' && gameState.pearlsCollected === 3) {
+                endGame("MISSION SUCCESS", "All pearls secured. Escaped safely!", true);
+            }
+        }
+    }
+}
+
+function endGame(title, desc, win = false) {
+    gameState.running = false;
+    msgTitle.textContent = title;
+    msgDesc.textContent = desc;
+    msgTitle.style.color = win ? "#4effa1" : "#ff4e4e";
+    document.getElementById('start-btn').textContent = "Restart Mission";
+    overlay.classList.add('visible');
+    statusEl.textContent = win ? "Status: Victory" : "Status: Lost";
+}
+
+function draw() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    // Draw History (Faint traces)
+    ctx.lineWidth = 2;
+    const now = Date.now();
+    gameState.history.forEach((h, idx) => {
+        const age = (now - h.t) / 1000;
+        const alpha = Math.max(0, 1 - age / 5);
+        if (alpha <= 0) return;
+        ctx.strokeStyle = `rgba(78, 240, 255, ${alpha * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 2, 0, Math.PI*2);
+        ctx.stroke();
+    });
+
+    // Draw Entities
+    gameState.entities.forEach(ent => {
+        let visible = false;
+        const distToPlayer = Math.hypot(gameState.player.x - ent.x, gameState.player.y - ent.y);
+        
+        // Reveal if within player proximity OR sonar wave active
+        if (distToPlayer < 60) visible = true;
+        if (gameState.sonarWave.active) {
+            const d = Math.abs(Math.hypot(ent.x - gameState.sonarWave.x, ent.y - gameState.sonarWave.y) - gameState.sonarWave.radius);
+            if (d < 30) visible = true;
+        }
+
+        if (visible) {
+            ctx.globalAlpha = 1.0;
+            if (ent.type === 'rock') {
+                ctx.fillStyle = '#1a3a4a';
+                ctx.fillRect(ent.x - ent.w/2, ent.y - ent.h/2, ent.w, ent.h);
+                ctx.strokeStyle = '#4ef0ff';
+                ctx.strokeRect(ent.x - ent.w/2, ent.y - ent.h/2, ent.w, ent.h);
+            } else if (ent.type === 'mine') {
+                ctx.fillStyle = '#ff4e4e';
+                ctx.beginPath();
+                ctx.arc(ent.x, ent.y, ent.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+            } else if (ent.type === 'pearl') {
+                ctx.fillStyle = '#ffffaa';
+                ctx.beginPath();
+                ctx.arc(ent.x, ent.y, ent.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffffaa';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else if (ent.type === 'exit') {
+                ctx.strokeStyle = '#4effa1';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(ent.x, ent.y, ent.r, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+    });
+
+    // Draw Sonar Wave
+    if (gameState.sonarWave.active) {
+        ctx.strokeStyle = `rgba(78, 240, 255, ${gameState.sonarWave.life})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(gameState.sonarWave.x, gameState.sonarWave.y, gameState.sonarWave.radius, 0, Math.PI*2);
+        ctx.stroke();
+    }
+
+    // Draw Submarine
+    ctx.save();
+    ctx.translate(gameState.player.x, gameState.player.y);
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ffd700';
+    // Simple sub shape
+    ctx.beginPath();
+    ctx.ellipse(0, 0, SUB_SIZE, SUB_SIZE/1.5, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Cockpit window
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(5, -2, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+}
+
+let lastTime = performance.now();
+function loop(time) {
+    const dt = time - lastTime;
+    lastTime = time;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Event Handlers
+document.getElementById('start-btn').onclick = () => {
+    if (!gameState.running) initGame();
+};
+document.getElementById('reset-btn').onclick = resetGame;
+
+// Initial Setup
+resetGame();
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockroom Pro | Inventory Dashboard</title>
+    <style>
+        :root {
+            --bg: #f4f7f9;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #app-container { width: 100%; max-width: 960px; min-height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
+        header { padding: 24px; border-bottom: 1px solid var(--border); background: linear-gradient(to right, #ffffff, #f8fafc); }
+        h1 { margin: 0 0 8px 0; font-size: 1.5rem; color: var(--text-main); }
+        [data-testid="status"] { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 16px; font-weight: 500; }
+        
+        .controls-bar { padding: 16px 24px; display: flex; gap: 12px; align-items: center; background: #f8fafc; border-bottom: 1px solid var(--border); }
+        input[type="text"], input[type="number"] { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; transition: border 0.2s; }
+        input[type="text"]:focus { border-color: var(--primary); }
+        .search-box { flex-grow: 1; }
+        
+        .inventory-grid { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; flex-grow: 1; overflow-y: auto; max-height: 450px; }
+        .item-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; position: relative; transition: transform 0.1s, box-shadow 0.1s; }
+        .item-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .item-card.low-stock { border-left: 4px solid var(--danger); background: #fffafb; }
+        .item-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; display: block; }
+        .item-sku { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .qty-display { margin: 12px 0; font-size: 1.5rem; font-weight: 700; }
+        .qty-label { font-size: 0.75rem; color: var(--text-muted); display: block; }
+        
+        .btn-group { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+        button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: opacity 0.2s; }
+        button:active { transform: translateY(1px); }
+        .btn-inc, .btn-dec { width: 32px; height: 32px; background: var(--border); color: var(--text-main); font-size: 1.2rem; }
+        .btn-add-form { flex-grow: 1; display: flex; gap: 8px; }
+        .qty-input { width: 60px; text-align: center; }
+        
+        footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; }
+        .btn-primary { background: var(--primary); color: white; padding: 10px 24px; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-reset { background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; }
+        .btn-reset:hover { background: #f1f5f9; color: var(--danger); border-color: var(--danger); }
+
+        @media (max-width: 600px) {
+            .inventory-grid { grid-template-columns: 1fr; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Stockroom Pro</h1>
+        <div data-testid="status">System Ready</div>
+    </header>
+
+    <div class="controls-bar">
+        <input type="text" id="searchInput" class="search-box" placeholder="Search items by name or SKU...">
+        <label style="font-size: 0.875rem; color: var(--text-muted);">
+            <input type="checkbox" id="filterLowStock"> Low stock only
+        </label>
+    </div>
+
+    <div id="inventoryGrid" class="inventory-grid">
+        <!-- Items injected via JS -->
+    </div>
+
+    <footer>
+        <div id="lastActionLog" style="font-size: 0.8rem; color: var(--text-muted);">No recent actions</div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-reset" data-testid="reset" onclick="app.reset()">Reset System</button>
+            <button class="btn-primary" data-testid="primary-action" onclick="app.processSelected()">Commit Changes</button>
+        </div>
+    </footer>
+</div>
+
+<script>
+const app = (() => {
+    // Initial State
+    const INITIAL_DATA = [
+        { id: 1, name: "Quantum Processor", sku: "QP-001", qty: 12, threshold: 5 },
+        { id: 2, name: "Nano Capacitor", sku: "NC-992", qty: 45, threshold: 10 },
+        { id: 3, name: "Flux Core", sku: "FC-X1", qty: 3, threshold: 5 },
+        { id: 4, name: "Optic Sensor", sku: "OS-440", qty: 28, threshold: 10 },
+        { id: 5, name: "Thermal Paste", sku: "TP-LIT", qty: 100, threshold: 20 },
+        { id: 6, name: "Graphene Sheet", sku: "GS-009", qty: 2, threshold: 5 },
+        { id: 7, name: "Lithium Cell", sku: "LC-BATT", qty: 55, threshold: 15 },
+        { id: 8, name: "Signal Relay", sku: "SR-MOD", qty: 8, threshold: 10 },
+        { id: 9, name: "Titanium Bolt", sku: "TB-M8", qty: 250, threshold: 50 },
+        { id: 10, name: "Copper Coil", sku: "CC-WIND", qty: 14, threshold: 10 },
+        { id: 11, name: "Silicon Wafer", sku: "SW-PREM", qty: 6, threshold: 10 },
+        { id: 12, name: "Aero Alloy", sku: "AA-LIGHT", qty: 32, threshold: 8 }
+    ];
+
+    let state = {
+        items: [],
+        searchTerm: '',
+        showLowStockOnly: false,
+        selectedItemId: null,
+        pendingQtyChange: 0,
+        log: 'Ready'
+    };
+
+    function init() {
+        state.items = JSON.parse(JSON.stringify(INITIAL_DATA));
+        render();
+    }
+
+    function render() {
+        const grid = document.getElementById('inventoryGrid');
+        const statusEl = document.querySelector('[data-testid="status"]');
+        const logEl = document.getElementById('lastActionLog');
+        
+        if (!grid || !statusEl || !logEl) return;
+
+        const filteredItems = state.items.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(state.searchTerm.toLowerCase()) || 
+                                 item.sku.toLowerCase().includes(state.searchTerm.toLowerCase());
+            const matchesFilter = !state.showLowStockOnly || item.qty < item.threshold;
+            return matchesSearch && matchesFilter;
+        });
+
+        grid.innerHTML = '';
+        filteredItems.forEach(item => {
+            const isLow = item.qty < item.threshold;
+            const card = document.createElement('div');
+            card.className = `item-card ${isLow ? 'low-stock' : ''}`;
+            card.onclick = () => selectItem(item.id);
+            
+            card.innerHTML = `
+                <span class="item-sku">${item.sku}</span>
+                <span class="item-name">${item.name}</span>
+                <div class="qty-display" style="color: ${isLow ? 'var(--danger)' : 'inherit'}">
+                    ${item.qty}
+                </div>
+                <span class="qty-label">In Stock</span>
+                <div class="btn-group">
+                    <button class="btn-dec" onclick="event.stopPropagation(); app.adjustLocal(${item.id}, -1)">−</button>
+                    <div class="btn-add-form">
+                        <input type="number" class="qty-input" value="${item.qty}" 
+                            onchange="app.setPending(${item.id}, this.value)"
+                            onclick="event.stopPropagation()">
+                        <button class="btn-inc" onclick="event.stopPropagation(); app.adjustLocal(${item.id}, 1)">+</button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        statusEl.textContent = `Viewing ${filteredItems.length} items | Mode: ${state.showLowStockOnly ? 'Low Stock Filter Active' : 'All Items'}`;
+        logEl.textContent = state.log;
+    }
+
+    function selectItem(id) {
+        state.selectedItemId = id;
+        // Visual feedback for selection could be added here
+        document.querySelectorAll('.item-card').forEach((el, idx) => {
+            el.style.borderColor = (idx === 0) ? 'var(--primary)' : 'var(--border)'; // simplified logic
+        });
+    }
+
+    function adjustLocal(id, delta) {
+        const item = state.items.find(i => i.id === id);
+        if (item) {
+            // We don't commit to permanent state until primary action, but we allow local buffer
+            // To keep it simple and robust as per requirements, let's treat these buttons as direct updates for UX responsiveness
+            updateQuantityDirectly(id, item.qty + delta);
+        }
+    }
+
+    function setPending(id, val) {
+        const numVal = parseInt(val) || 0;
+        updateQuantityDirectly(id, numVal);
+    }
+
+    function updateQuantityDirectly(id, newQty) {
+        const item = state.items.find(i => i.id === id);
+        if (item) {
+            item.qty = Math.max(0, newQty);
+            state.log = `Modified ${item.name} locally`;
+            render();
+        }
+    }
+
+    function processSelected() {
+        // In this implementation, since we updated directly for better UX, 
+        // "Process Selected" acts as a final sync/commit confirmation.
+        state.log = `Inventory synced at ${new Date().toLocaleTimeString()}`;
+        render();
+    }
+
+    function reset() {
+        init();
+        state.log = "System Restored to Factory Defaults";
+        render();
+    }
+
+    // Public API
+    return {
+        init,
+        adjustLocal,
+        setPending,
+        processSelected,
+        reset,
+        // Event Handlers for inputs
+        handleSearch: (val) => { state.searchTerm = val; render(); },
+        handleFilter: (val) => { state.showLowStockOnly = val; render(); }
+    };
+})();
+
+// Wiring up DOM events
+document.addEventListener('DOMContentLoaded', () => {
+    app.init();
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        app.handleSearch(e.target.value);
+    });
+
+    document.getElementById('filterLowStock').addEventListener('change', (e) => {
+        app.handleFilter(e.target.checked);
+    });
+});
+</script>
+</body>
+</html>

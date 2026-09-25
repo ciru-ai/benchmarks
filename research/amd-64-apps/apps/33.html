@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trail Club | Adventure Planner</title>
+    <style>
+        :root {
+            --forest: #2d5a27;
+            --moss: #4a7c44;
+            --earth: #795548;
+            --sand: #f5f5dc;
+            --sky: #e3f2fd;
+            --accent: #ffab40;
+            --text: #333;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--sand);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--white);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: auto 1fr;
+        }
+
+        header {
+            grid-column: span 2;
+            background: var(--forest);
+            color: var(--white);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+
+        /* Sidebar / Catalog */
+        #catalog {
+            border-right: 1px solid #ddd;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+        .filter-section {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .trail-card {
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .trail-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .trail-card.selected { border-color: var(--moss); background: #f0f7ef; }
+
+        .trail-card h3 { margin: 0 0 5px 0; font-size: 1rem; color: var(--forest); }
+        .trail-card p { margin: 2px 0; font-size: 0.85rem; color: #666; }
+
+        .difficulty-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .diff-easy { background: #c8e6c9; color: #2e7d32; }
+        .diff-moderate { background: #fff9c4; color: #fbc02d; }
+        .diff-hard { background: #ffccbc; color: #d84315; }
+
+        /* Main Content Area */
+        main {
+            display: grid;
+            grid-template-rows: 1fr 200px;
+            overflow: hidden;
+        }
+
+        #planner-view {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .summary-panel {
+            background: var(--sky);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 6px solid var(--forest);
+        }
+
+        .itinerary-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .itinerary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #ccc;
+            font-size: 0.9rem;
+        }
+
+        /* Footer Controls */
+        footer {
+            background: #eee;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #ddd;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        #primaryBtn { background: var(--moss); color: white; }
+        #resetBtn { background: var(--earth); color: white; }
+
+        #status { font-size: 0.85rem; font-style: italic; color: #555; }
+
+        select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <header>
+            <h1>TRAIL CLUB</h1>
+            <div id="status" data-testid="status">Ready</div>
+        </header>
+
+        <aside id="catalog">
+            <div class="filter-section">
+                <label style="font-size: 0.8rem; font-weight: bold;">Filter Difficulty:</label><br>
+                <select id="difficultyFilter" data-testid="filter">
+                    <option value="all">All Levels</option>
+                    <option value="Easy">Easy Only</option>
+                    <option value="Moderate">Moderate Only</option>
+                    <option value="Hard">Hard Only</option>
+                </select>
+            </div>
+            <div id="trailList">
+                <!-- Trails injected here -->
+            </div>
+        </aside>
+
+        <main>
+            <section id="planner-view">
+                <div class="summary-panel">
+                    <h2 style="margin-top:0">Weekend Itinerary</h2>
+                    <ul id="itineraryList" class="itinerary-list">
+                        <!-- Items added here -->
+                    </ul>
+                    <div style="margin-top: 15px; display: flex; gap: 30px; font-weight: bold;">
+                        <span>Total Distance: <span id="totalDist">0</span> km</span>
+                        <span>Total Ascent: <span id="totalAscent">0</span> m</span>
+                    </div>
+                </div>
+            </section>
+
+            <footer>
+                <div>
+                    <button id="primaryBtn" data-testid="primary-action">Add Selected Trail</button>
+                </div>
+                <button id="resetBtn" data-testid="reset">Reset Plan</button>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const initialState = {
+            trails: [
+                { id: 1, name: "Whispering Pines", dist: 8.5, ascent: 320, diff: "Easy" },
+                { id: 2, name: "Eagle Peak Loop", dist: 14.2, ascent: 850, diff: "Moderate" },
+                { id: 3, name: "Summit Ridge", dist: 22.5, ascent: 1450, diff: "Hard" },
+                { id: 4, name: "Hidden Creek Path", dist: 5.2, ascent: 110, diff: "Easy" },
+                { id: 5, name: "Mist Valley Trek", dist: 18.0, ascent: 920, diff: "Moderate" }
+            ],
+            selectedId: 1,
+            itinerary: [],
+            filter: 'all'
+        };
+
+        let state = JSON.parse(JSON.stringify(initialState));
+
+        // --- DOM Elements ---
+        const dom = {
+            trailList: document.getElementById('trailList'),
+            itineraryList: document.getElementById('itineraryList'),
+            totalDist: document.getElementById('totalDist'),
+            totalAscent: document.getElementById('totalAscent'),
+            status: document.getElementById('status'),
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            difficultyFilter: document.getElementById('difficultyFilter')
+        };
+
+        // --- Logic & Rendering ---
+        function calculateTotals() {
+            return state.itinerary.reduce((acc, curr) => {
+                acc.dist += curr.dist;
+                acc.ascent += curr.ascent;
+                return acc;
+            }, { dist: 0, ascent: 0 });
+        }
+
+        function getSelectedTrail() {
+            return state.trails.find(t => t.id === state.selectedId);
+        }
+
+        function render() {
+            // Render Trail List (Catalog)
+            dom.trailList.innerHTML = '';
+            state.trails
+                .filter(t => state.filter === 'all' || t.diff === state.filter)
+                .forEach(trail => {
+                    const isSelected = trail.id === state.selectedId;
+                    const card = document.createElement('div');
+                    card.className = `trail-card ${isSelected ? 'selected' : ''}`;
+                    card.dataset.id = trail.id;
+                    
+                    const diffClass = `diff-${trail.diff.toLowerCase()}`;
+                    
+                    card.innerHTML = `
+                        <h3>${trail.name}</h3>
+                        <p>${trail.dist} km • ${trail.ascent}m ascent</p>
+                        <span class="difficulty-tag ${diffClass}">${trail.diff}</span>
+                    `;
+
+                    card.addEventListener('click', () => handleSelectTrail(trail.id));
+                    dom.trailList.appendChild(card);
+                });
+
+            // Render Itinerary
+            dom.itineraryList.innerHTML = '';
+            if (state.itinerary.length === 0) {
+                dom.itineraryList.innerHTML = '<li style="color:#888; padding: 10px 0; text-align:center;">No trails added yet</li>';
+            } else {
+                state.itinerary.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'itinerary-item';
+                    li.innerHTML = `
+                        <span>${index + 1}. ${item.name} (${item.dist}km)</span>
+                        <span>+${item.ascent}m</span>
+                    `;
+                    dom.itineraryList.appendChild(li);
+                });
+            }
+
+            // Update Totals
+            const totals = calculateTotals();
+            dom.totalDist.textContent = totals.dist.toFixed(1);
+            dom.totalAscent.textContent = totals.ascent;
+
+            // Button States
+            const currentSelection = getSelectedTrail();
+            dom.primaryBtn.disabled = !currentSelection;
+            dom.status.textContent = state.itinerary.length > 0 
+                ? `Plan active: ${state.itinerary.length} trails` 
+                : "Ready to plan";
+        }
+
+        // --- Handlers ---
+        function handleSelectTrail(id) {
+            state.selectedId = id;
+            render();
+        }
+
+        function handleAddTrail() {
+            const trail = getSelectedTrail();
+            if (!trail) return;
+            
+            // Prevent duplicates in this simple logic if desired, but per instructions we just add
+            state.itinerary.push({ ...trail });
+            render();
+        }
+
+        function handleReset() {
+            state = JSON.parse(JSON.stringify(initialState));
+            render();
+        }
+
+        function handleFilterChange(e) {
+            state.filter = e.target.value;
+            render();
+        }
+
+        // --- Initialization ---
+        function init() {
+            // Event Listeners
+            dom.primaryBtn.addEventListener('click', handleAddTrail);
+            dom.resetBtn.addEventListener('click', handleReset);
+            dom.difficultyFilter.addEventListener('change', handleFilterChange);
+
+            // Initial Render
+            render();
+        }
+
+        init();
+    </script>
+</body>
+</html>

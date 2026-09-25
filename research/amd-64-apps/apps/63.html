@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Composer Pro</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --panel-bg: #ffffff;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--panel-bg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            padding: 24px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        h1 { font-size: 1.25rem; margin: 0 0 10px 0; color: var(--accent); }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.85rem; font-weight: 600; color: #4b5563; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        .btn-stack { display: flex; gap: 10px; margin-top: 10px; }
+        button {
+            cursor: pointer;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            border: none;
+        }
+        #primary-btn { background: var(--accent); color: white; flex: 2; }
+        #primary-btn:hover { background: var(--accent-hover); }
+        #reset-btn { background: #ef4444; color: white; flex: 1; }
+        #reset-btn:hover { background: #dc2626; }
+
+        #status-bar {
+            font-size: 0.75rem;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            color: #6b7280;
+        }
+
+        /* Preview Area */
+        #preview-pane {
+            position: relative;
+            padding: 40px;
+            background: #fdfdfd;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #grid-canvas {
+            flex-grow: 1;
+            display: grid;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .grid-item {
+            min-height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8rem;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #code-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            user-select: all;
+        }
+
+        @media (max-width: 800px) {
+            #app-container { grid-template-columns: 1fr; height: auto; overflow: visible; }
+            #sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside id="sidebar">
+        <h1>Grid Composer</h1>
+        
+        <div class="control-group">
+            <label for="col-slider">Columns Count (<span id="col-val">3</span>)</label>
+            <input type="range" id="col-slider" min="1" max="6" value="3">
+        </div>
+
+        <div class="control-group">
+            <label for="row-slider">Rows Count (<span id="row-val">2</span>)</label>
+            <input type="range" id="row-slider" min="1" max="6" value="2">
+        </div>
+
+        <div class="control-group">
+            <label for="gap-slider">Gap Size (<span id="gap-val">10</span>px)</label>
+            <input type="range" id="gap-slider" min="0" max="50" value="10">
+        </div>
+
+        <div class="control-group">
+            <label for="frag-slider">Fractional Unit (fr) Scale</label>
+            <input type="range" id="frag-slider" min="1" max="10" value="1">
+        </div>
+
+        <div class="btn-stack">
+            <button id="primary-btn" data-testid="primary-action">Add Panel</button>
+            <button id="reset-btn" data-testid="reset">Reset</button>
+        </div>
+
+        <div id="status-bar" data-testid="status">State: Initialized</div>
+    </aside>
+
+    <main id="preview-pane">
+        <div id="grid-canvas"></div>
+        <pre id="code-output"></pre>
+    </main>
+</div>
+
+<script>
+    // State Management
+    const initialState = {
+        cols: 3,
+        rows: 2,
+        gap: 10,
+        fracScale: 1,
+        panels: [
+            { color: '#4f46e5' },
+            { color: '#ec4899' },
+            { color: '#10b981' },
+            { color: '#f59e0b' },
+            { color: '#3b82f6' },
+            { color: '#8b5cf6' }
+        ]
+    };
+
+    let state = JSON.parse(JSON.stringify(initialState));
+
+    // DOM Elements
+    const elements = {
+        grid: document.getElementById('grid-canvas'),
+        code: document.getElementById('code-output'),
+        status: document.querySelector('[data-testid="status"]'),
+        primaryBtn: document.getElementById('primary-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        colSlider: document.getElementById('col-slider'),
+        rowSlider: document.getElementById('row-slider'),
+        gapSlider: document.getElementById('gap-slider'),
+        fragSlider: document.getElementById('frag-slider'),
+        colValLabel: document.getElementById('col-val'),
+        rowValLabel: document.getElementById('row-val'),
+        gapValLabel: document.getElementById('gap-val')
+    };
+
+    function updateUI() {
+        // Update Labels
+        elements.colValLabel.textContent = state.cols;
+        elements.rowValLabel.textContent = state.rows;
+        elements.gapValLabel.textContent = state.gap;
+
+        // Configure Grid Styles
+        elements.grid.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
+        elements.grid.style.gridTemplateRows = `repeat(${state.rows}, 1fr)`;
+        elements.grid.style.gap = `${state.gap}px`;
+
+        // Clear and Redraw Items
+        elements.grid.innerHTML = '';
+        const totalCells = state.cols * state.rows;
+        
+        for (let i = 0; i < totalCells; i++) {
+            const div = document.createElement('div');
+            div.className = 'grid-item';
+            // Pick colors from pool or fallback
+            const colorIdx = i % state.panels.length;
+            div.style.backgroundColor = state.panels[colorIdx].color;
+            div.textContent = `P-${i + 1}`;
+            elements.grid.appendChild(div);
+        }
+
+        // Generate CSS Code String
+        const cssCode = `.grid-container {\n  display: grid;\n  grid-template-columns: repeat(${state.cols}, ${state.fracScale}fr);\n  grid-template-rows: repeat(${state.rows}, 1fr);\n  gap: ${state.gap}px;\n}`;
+        elements.code.textContent = cssCode;
+
+        // Status Update
+        elements.status.textContent = `State: ${totalCells} cells active | Gap: ${state.gap}px`;
+    }
+
+    function handleAddPanel() {
+        // Logic: Add more items by increasing row count if needed, but here we just cycle colors
+        // To make it simple as per prompt: "Primary adds a panel"
+        if (state.panels.length < 12) {
+            const newColors = ['#ef4444', '#06b6d6', '#a855f7', '#eab308'];
+            state.panels.push({ color: newColors[state.panels.length % newColors.length] });
+        } else {
+            // If too many, just change existing ones to show dynamic nature
+            state.panels[0].color = '#' + Math.floor(Math.random()*16777215).toString(16);
+        }
+        updateUI();
+    }
+
+    function handleReset() {
+        state = JSON.parse(JSON.stringify(initialState));
+        // Sync Sliders
+        elements.colSlider.value = state.cols;
+        elements.rowSlider.value = state.rows;
+        elements.gapSlider.value = state.gap;
+        elements.fragSlider.value = state.fracScale;
+        updateUI();
+    }
+
+    // Event Listeners
+    elements.colSlider.addEventListener('input', (e) => {
+        state.cols = parseInt(e.target.value);
+        updateUI();
+    });
+
+    elements.rowSlider.addEventListener('input', (e) => {
+        state.rows = parseInt(e.target.value);
+        updateUI();
+    });
+
+    elements.gapSlider.addEventListener('input', (e) => {
+        state.gap = parseInt(e.target.value);
+        updateUI();
+    });
+
+    elements.fragSlider.addEventListener('input', (e) => {
+        state.fracScale = parseFloat(e.target.value).toFixed(1);
+        updateUI();
+    });
+
+    elements.primaryBtn.addEventListener('click', handleAddPanel);
+    elements.resetBtn.addEventListener('click', handleReset);
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+        if (elements.grid && elements.code) {
+            updateUI();
+        } else {
+            console.error("Critical elements missing");
+        }
+    });
+
+</script>
+</body>
+</html>

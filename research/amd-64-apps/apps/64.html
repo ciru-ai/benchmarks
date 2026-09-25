@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Matrix Pro</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1e293b;
+            --border: #cbd5e1;
+            --accent: #f8fafc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--card);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--text); }
+
+        main {
+            flex: 1;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { background: var(--accent); font-weight: 600; }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .weight-input { width: 70px; border-left: 3px solid var(--primary); }
+
+        .results-panel {
+            background: var(--accent);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .rank-badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        #primaryBtn {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        #primaryBtn:hover { background-color: var(--primary-hover); }
+
+        #resetBtn {
+            background-color: transparent;
+            color: #64748b;
+            border: 1px solid var(--border);
+        }
+
+        #resetBtn:hover { background-color: #ef4444; color: white; border-color: #ef4444; }
+
+        #status {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .error-msg { color: #dc2626; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Decision Matrix</h1>
+        <span id="status" data-testid="status">Ready</span>
+    </header>
+
+    <main>
+        <section>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option \ Criteria</th>
+                        <th id="crit-0-label">Criterion A</th>
+                        <th id="crit-1-label">Criterion B</th>
+                        <th id="crit-2-label">Criterion C</th>
+                        <th>Weight</th>
+                    </tr>
+                </thead>
+                <tbody id="matrix-body">
+                    <!-- Rows generated via JS -->
+                </tbody>
+            </table>
+        </section>
+
+        <aside class="results-panel">
+            <h3 style="margin-top:0">Rankings</h3>
+            <div id="ranking-list"></div>
+        </aside>
+    </main>
+
+    <footer class="controls">
+        <button id="primaryBtn" data-testid="primary-action">Calculate Results</button>
+        <button id="resetBtn" data-testid="reset">Reset Data</button>
+    </footer>
+</div>
+
+<script>
+    // --- INITIALIZATION & STATE ---
+    const initialState = {
+        options: ["Project Alpha", "Project Beta", "Project Gamma"],
+        criteria: ["Cost Impact", "Feasibility", "ROI Potential"],
+        scores: [
+            [8, 5, 9], // Option 0: Crit 0, 1, 2
+            [4, 9, 4], // Option 1
+            [6, 7, 6]  // Option 2
+        ],
+        weights: [0.2, 0.5, 0.3]
+    };
+
+    let state = JSON.parse(JSON.stringify(initialState));
+
+    // --- DOM ELEMENTS ---
+    const dom = {
+        matrixBody: document.getElementById('matrix-body'),
+        rankingList: document.getElementById('ranking-list'),
+        status: document.getElementById('status'),
+        primaryBtn: document.getElementById('primaryBtn'),
+        resetBtn: document.getElementById('resetBtn')
+    };
+
+    // Set up labels
+    state.criteria.forEach((label, i) => {
+        document.getElementById(`crit-${i}-label`).textContent = label;
+    });
+
+    // --- CORE LOGIC ---
+
+    function init() {
+        renderMatrix();
+        calculate();
+    }
+
+    function renderMatrix() {
+        dom.matrixBody.innerHTML = '';
+        state.options.forEach((optName, optIdx) => {
+            const tr = document.createElement('tr');
+            
+            // Name cell
+            const nameTd = document.createElement('td');
+            nameTd.textContent = optName;
+            tr.appendChild(nameTd);
+
+            // Score cells
+            for (let critIdx = 0; critIdx < 3; critIdx++) {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = state.scores[optIdx][critIdx];
+                input.addEventListener('change', (e) => handleScoreChange(optIdx, critIdx, e.target.value));
+                td.appendChild(input);
+                tr.appendChild(td);
+            }
+
+            // Weight cell (only on first row to avoid confusion, or per row? Prompt asks for 3 weights)
+            // Re-reading prompt: "Render all nine editable score fields and three weight fields."
+            // Usually, weights apply to columns. Let's place them in the header or a dedicated row.
+            // The prompt says "three weight fields". I will put them in the last column of the first row for clarity.
+            if (optIdx === 0) {
+                const wTd = document.createElement('td');
+                wTd.className = 'weight-cell';
+                // We need 3 weight inputs. To make it intuitive, let's create a separate row for weights or use the col approach.
+                // Actually, standard matrices have weights per CRITERION.
+                // But instructions say: "all nine editable score fields and three weight fields". 
+                // This implies Weights are linked to Criteria. 
+                // I'll append weight inputs into the Header area or a special row.
+                // Let's do a specialized weight row at the top.
+            }
+
+            tr.appendChild(document.createElement('td')); // Empty placeholder for weight logic
+            dom.matrixBody.appendChild(tr);
+        });
+
+        // Correcting layout to match requirement precisely:
+        // Nine score inputs + Three weight inputs.
+        // Let's rebuild tbody properly.
+        dom.matrixBody.innerHTML = '';
+        state.options.forEach((optName, optIdx) => {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.textContent = optName;
+            tr.appendChild(tdName);
+
+            for (let c = 0; c < 3; c++) {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = state.scores[optIdx][c];
+                input.id = `score-${optIdx}-${c}`;
+                input.addEventListener('change', (e) => {
+                    handleScoreChange(optIdx, c, parseFloat(e.target.value));
+                });
+                td.appendChild(input);
+                tr.appendChild(td);
+            }
+            
+            // Adding weight field ONLY for the first row as per common UX, but instruction says "three weight fields".
+            // If we want 3 weight fields, they should correspond to the 3 criteria.
+            // I will add a specific row for weights at the very top.
+            dom.matrixBody.appendChild(tr);
+        });
+
+        // Add Weight Row
+        const weightTr = document.createElement('tr');
+        weightTr.style.backgroundColor = '#edf2f7';
+        const wLabel = document.createElement('td');
+        wLabel.innerHTML = '<strong>Weights</strong>';
+        weightTr.appendChild(wLabel);
+
+        for (let c = 0; c < 3; c++) {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.step = '0.1';
+            input.className = 'weight-input';
+            input.value = state.weights[c];
+            input.id = `weight-${c}`;
+            input.addEventListener('change', (e) => {
+                handleWeightChange(c, parseFloat(e.target.value));
+            });
+            td.appendChild(input);
+            weightTr.appendChild(td);
+        }
+        // Add empty spacer for alignment
+        weightTr.appendChild(document.createElement('td'));
+        dom.matrixBody.prepend(weightTr);
+    }
+
+    function handleScoreChange(optIdx, critIdx, val) {
+        state.scores[optIdx][critIdx] = val;
+        updateStatus("Score updated...");
+    }
+
+    function handleWeightChange(critIdx, val) {
+        state.weights[critIdx] = val;
+        updateStatus("Weight updated...");
+    }
+
+    function updateStatus(msg) {
+        dom.status.textContent = msg;
+        setTimeout(() => {
+            dom.status.textContent = "Ready";
+        }, 2000);
+    }
+
+    function calculate() {
+        const totalWeight = state.weights.reduce((a, b) => a + b, 0);
+        const results = [];
+
+        if (totalWeight === 0) {
+            dom.rankingList.innerHTML = '<p class="error-msg">Error: Total weight cannot be zero.</p>';
+            return;
+        }
+
+        state.options.forEach((name, idx) => {
+            let weightedSum = 0;
+            for (let c = 0; c < 3; c++) {
+                weightedSum += state.scores[idx][c] * state.weights[c];
+            }
+            results.push({
+                name: name,
+                score: weightedSum / totalWeight
+            });
+        });
+
+        // Sort descending
+        results.sort((a, b) => b.score - a.score);
+
+        renderResults(results);
+    }
+
+    function renderResults(results) {
+        dom.rankingList.innerHTML = '';
+        results.forEach((res, index) => {
+            const div = document.createElement('div');
+            div.className = 'result-item';
+            div.innerHTML = `
+                <span>${index + 1}. ${res.name}</span>
+                <span>${res.score.toFixed(2)} <span class="rank-badge">${index + 1}</span></span>
+            `;
+            dom.rankingList.appendChild(div);
+        });
+    }
+
+    function reset() {
+        // Restore from initial constant
+        state = JSON.parse(JSON.stringify(initialState));
+        renderMatrix();
+        calculate();
+        updateStatus("Data reset.");
+    }
+
+    // --- EVENT LISTENERS ---
+
+    dom.primaryBtn.addEventListener('click', () => {
+        calculate();
+        updateStatus("Calculated successfully");
+    });
+
+    dom.resetBtn.addEventListener('click', reset);
+
+    // Start App
+    init();
+
+</script>
+</body>
+</html>

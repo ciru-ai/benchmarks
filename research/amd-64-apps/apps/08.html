@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tempo Focus</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-work: #fb7185;
+            --accent-break: #34d399;
+            --accent-ui: #6366f1;
+            --danger: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Timer Section */
+        .timer-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 40px;
+        }
+
+        .ring-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: #334155;
+            stroke-width: 12;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s linear, stroke 0.3s ease;
+        }
+
+        .time-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        #timeLeftDisplay {
+            font-size: 5rem;
+            font-weight: 700;
+            margin: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #modeLabel {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        /* Controls Section */
+        .controls-sidebar {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-left: 1px solid #334155;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 10px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--accent-ui);
+        }
+
+        .button-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.1s active, opacity 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #primaryBtn {
+            background-color: var(--accent-ui);
+            color: white;
+        }
+
+        #resetBtn {
+            background-color: transparent;
+            border: 1px solid #475569;
+            color: var(--text-dim);
+        }
+
+        #resetBtn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px dashed #334155;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        #status {
+            font-size: 0.75rem;
+            text-align: center;
+            color: var(--text-dim);
+            margin-top: 12px;
+        }
+
+        @media (max-width: 960px) {
+            #app-container {
+                width: 100vw;
+                height: 100vh;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            .controls-sidebar { border-left: none; border-top: 1px solid #334155; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <main class="timer-section">
+            <div class="ring-container">
+                <svg viewBox="0 0 340 340">
+                    <circle class="ring-bg" cx="170" cy="170" r="160"></circle>
+                    <circle id="progressRing" class="ring-progress" cx="170" cy="170" r="160"></circle>
+                </svg>
+                <div class="time-display">
+                    <div id="modeLabel">Focus</div>
+                    <h1 id="timeLeftDisplay">25:00</h1>
+                </div>
+            </div>
+            <div id="status" data-testid="status">Ready to focus</div>
+        </main>
+
+        <aside class="controls-sidebar">
+            <div class="stats-panel">
+                <div class="stat-row">
+                    <span>Completed Sessions</span>
+                    <span id="sessionsCount">0</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="workInput">Work Duration (min)</label>
+                <input type="number" id="workInput" value="25" min="1" max="60">
+            </div>
+
+            <div class="control-group">
+                <label for="breakInput">Break Duration (min)</label>
+                <input type="number" id="breakInput" value="5" min="1" max="60">
+            </div>
+
+            <div class="button-stack">
+                <button id="primaryBtn" data-testid="primary-action">Start Session</button>
+                <button id="resetBtn" data-testid="reset">Reset</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            isRunning: false,
+            isWorkMode: true,
+            timeLeft: 1500, // seconds
+            totalDuration: 1500,
+            completedSessions: 0,
+            intervalId: null,
+            config: {
+                workMinutes: 25,
+                breakMinutes: 5
+            },
+            colors: {
+                work: '#fb7185',
+                break: '#34d399'
+            }
+        };
+
+        // DOM Elements
+        const dom = {
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            timeLeftDisplay: document.getElementById('timeLeftDisplay'),
+            modeLabel: document.getElementById('modeLabel'),
+            progressRing: document.getElementById('progressRing'),
+            sessionsCount: document.getElementById('sessionsCount'),
+            workInput: document.getElementById('workInput'),
+            breakInput: document.getElementById('breakInput')
+        };
+
+        const CIRCUMFERENCE = 2 * Math.PI * 160;
+
+        function init() {
+            dom.progressRing.style.strokeDasharray = `${CIRCUMFERENCE}`;
+            updateUI();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            dom.primaryBtn.addEventListener('click', toggleTimer);
+            dom.resetBtn.addEventListener('click', resetTimer);
+            
+            dom.workInput.addEventListener('change', (e) => {
+                state.config.workMinutes = parseInt(e.target.value) || 1;
+                if (!state.isRunning && !state.isWorkMode) syncInputsToState();
+                else if (!state.isRunning) updateTimeFromConfig();
+            });
+
+            dom.breakInput.addEventListener('change', (e) => {
+                state.config.breakMinutes = parseInt(e.target.value) || 1;
+                if (!state.isRunning && state.isWorkMode) updateTimeFromConfig();
+                else if (!state.isRunning) updateTimeFromConfig();
+            });
+        }
+
+        function updateTimeFromConfig() {
+            state.isWorkMode ? state.timeLeft = state.config.workMinutes * 60 : state.timeLeft = state.config.breakMinutes * 60;
+            state.totalDuration = state.timeLeft;
+            renderTimerContent();
+        }
+
+        function syncInputsToState() {
+            state.timeLeft = state.isWorkMode ? state.config.workMinutes * 60 : state.config.breakMinutes * 60;
+            state.totalDuration = state.timeLeft;
+            renderTimerContent();
+        }
+
+        function toggleTimer() {
+            if (state.isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            state.isRunning = true;
+            dom.primaryBtn.textContent = 'Pause';
+            dom.status.textContent = 'Session in progress...';
+            
+            state.intervalId = setInterval(() => {
+                state.timeLeft -= 1;
+                
+                if (state.timeLeft <= 0) {
+                    handleCycleComplete();
+                }
+                
+                renderTimerContent();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            state.isRunning = false;
+            clearInterval(state.intervalId);
+            state.intervalId = null;
+            dom.primaryBtn.textContent = 'Resume';
+            dom.status.textContent = 'Paused';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            state.isWorkMode = true;
+            state.timeLeft = state.config.workMinutes * 60;
+            state.totalDuration = state.timeLeft;
+            dom.primaryBtn.textContent = 'Start Session';
+            dom.status.textContent = 'Ready to focus';
+            renderTimerContent();
+            updateUI();
+        }
+
+        function handleCycleComplete() {
+            if (state.isWorkMode) {
+                state.completedSessions++;
+                state.isWorkMode = false;
+                state.timeLeft = state.config.breakMinutes * 60;
+                dom.status.textContent = 'Work finished! Take a break.';
+            } else {
+                state.isWorkMode = true;
+                state.timeLeft = state.config.workMinutes * 60;
+                dom.status.textContent = 'Break over! Back to work.';
+            }
+            state.totalDuration = state.timeLeft;
+            renderTimerContent();
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function renderTimerContent() {
+            dom.timeLeftDisplay.textContent = formatTime(state.timeLeft);
+            
+            // Ring calculation
+            const offset = CIRCUMFERENCE - (state.timeLeft / state.totalDuration) * CIRCUMFERENCE;
+            dom.progressRing.style.strokeDashoffset = offset;
+            dom.progressRing.style.stroke = state.isWorkMode ? state.colors.work : state.colors.break;
+            
+            // Labels
+            dom.modeLabel.textContent = state.isWorkMode ? 'Focus' : 'Break';
+            dom.modeLabel.style.color = state.isWorkMode ? state.colors.work : state.colors.break;
+        }
+
+        function updateUI() {
+            dom.sessionsCount.textContent = state.completedSessions;
+            renderTimerContent();
+        }
+
+        init();
+    </script>
+</body>
+</html>

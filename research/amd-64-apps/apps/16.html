@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelly Lens</title>
+    <style>
+        :root {
+            --bg: #2d1b33;
+            --plum: #4a254a;
+            --cream: #fdf5e6;
+            --jelly: rgba(255, 160, 122, 0.7);
+            --accent: #ff7f50;
+        }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--cream);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            max-width: 100%;
+            background: linear-gradient(to bottom, #2d1b33, #4a254a);
+            border: 4px solid var(--cream);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        canvas { display: block; }
+        .ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        .menu {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(45, 27, 51, 0.8);
+            z-index: 10;
+        }
+        h1 { font-size: 3rem; margin: 0 0 20px 0; color: var(--peach); text-align: center;}
+        button {
+            padding: 12px 32px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            margin: 10px;
+            transition: transform 0.1s, filter 0.2s;
+            font-weight: bold;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: var(--accent); color: white; }
+        [data-testid="reset"] { background: transparent; border: 2px solid var(--cream); color: var(--cream); }
+        .hidden { display: none !important; }
+        #status { font-weight: bold; color: #ffd700; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-layer">
+        <div>Score: <span id="scoreDisplay">0</span> / 15</div>
+        <div data-testid="status">Status: Ready</div>
+    </div>
+
+    <div class="controls-hint">A/D or Arrows to Squeeze & Stretch</div>
+
+    <!-- Start Menu -->
+    <div id="startMenu" class="menu">
+        <h1>JELLY LENS</h1>
+        <p>Squeeze through the gates! Don't hit the frames.</p>
+        <button data-testid="primary-action" id="startBtn">START GAME</button>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameOverMenu" class="menu hidden">
+        <h1 id="resultTitle">GAME OVER</h1>
+        <p id="resultMsg">You crashed!</p>
+        <button data-testid="primary-action" id="retryBtn">TRY AGAIN</button>
+        <button data-testid="reset" id="resetBtn">RESET ALL</button>
+    </div>
+</div>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.querySelector('[data-testid="status"]');
+const scoreEl = document.getElementById('scoreDisplay');
+const startMenu = document.getElementById('startMenu');
+const gameOverMenu = document.getElementById('gameOverMenu');
+const resultTitle = document.getElementById('resultTitle');
+const resultMsg = document.getElementById('resultMsg');
+
+// Constants
+const WIDTH = 960;
+const HEIGHT = 600;
+const MIN_DIM = 30;
+const MAX_DIM = 220;
+const TARGET_AREA = 4500; // Area constant approx
+const WIN_SCORE = 15;
+
+let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+let score = 0;
+let scrollX = 0;
+let keys = {};
+
+// Player State
+let player = {
+    x: 150,
+    y: 300,
+    w: 60,
+    h: 75,
+    targetW: 60,
+    ease: 0.15
+};
+
+// Obstacles (Gates)
+let gates = [];
+
+function initGame() {
+    score = 0;
+    scrollX = 0;
+    player.w = 60;
+    player.h = 75;
+    gates = [];
+    for(let i=1; i<=WIN_SCORE; i++) {
+        const type = i % 2 === 0 ? 'WIDE' : 'TALL';
+        gates.push({
+            dist: i * 400 + 400,
+            type: type,
+            passed: false
+        });
+    }
+    updateStatus("Playing");
+}
+
+function spawnGate(dist) {
+    return { dist, passed: false };
+}
+
+function updateStatus(msg) {
+    statusEl.textContent = `Status: ${msg}`;
+}
+
+function drawJelly(ctx, p) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    
+    // Body shadow/glow
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(255, 160, 122, 0.5)";
+    
+    // Main body
+    ctx.fillStyle = 'rgba(255, 160, 122, 0.7)';
+    ctx.beginPath();
+    ctx.roundRect(-p.w/2, -p.h/2, p.w, p.h, 10);
+    ctx.fill();
+
+    // Eyes
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#2d1b33';
+    const eyeSize = p.w * 0.1;
+    ctx.beginPath();
+    ctx.arc(-p.w*0.2, -p.h*0.1, eyeSize, 0, Math.PI * 2);
+    ctx.arc(p.w*0.2, -p.h*0.1, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Shine on eyes
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(-p.w*0.22, -p.h*0.12, eyeSize*0.4, 0, Math.PI * 2);
+    ctx.arc(p.w*0.18, -p.h*0.12, eyeSize*0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawScene(ctx, offset) {
+    // Background gradient parallax effect simulation
+    ctx.fillStyle = '#4a254a';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    
+    // Simple stars/dots for depth
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    for(let i=0; i<20; i++) {
+        let x = (i * 150 - (offset * 0.2)) % WIDTH;
+        if(x < 0) x += WIDTH;
+        ctx.beginPath();
+        ctx.arc(x, (i * 77) % HEIGHT, 2, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+
+function update(dt) {
+    if (gameState !== 'PLAYING') return;
+
+    // Input handling for squeezing
+    const speed = 5;
+    if (keys['KeyA'] || keys['ArrowLeft']) player.targetW -= speed;
+    if (keys['KeyD'] || keys['ArrowRight']) player.targetW += speed;
+    
+    // Clamp target width
+    player.targetW = Math.max(MIN_DIM, Math.min(MAX_DIM, player.targetW));
+    
+    // Constant area physics: h = Area / w
+    player.w += (player.targetW - player.w) * player.ease;
+    player.h = TARGET_AREA / player.w;
+
+    // Scroll movement
+    scrollX += 3;
+
+    // Update Gates
+    gates.forEach(gate => {
+        const gateX = gate.dist - scrollX + WIDTH;
+        
+        // Collision detection
+        // Gate logic: Frame is the boundary. If player hits frame -> lose.
+        // We define the "safe zone" inside the gate.
+        const safeWidth = gate.type === 'WIDE' ? MAX_DIM * 0.9 : MIN_DIM * 2;
+        const safeHeight = gate.type === 'TALL' ? MAX_DIM * 0.9 : MIN_DIM * 2;
+        
+        // Center of gate is fixed vertically at 300
+        const gateY = 300;
+        const gW = gate.type === 'WIDE' ? 300 : 80;
+        const gH = gate.type === 'TALL' ? 80 : 300;
+
+        // Checking if player intersects the frame boundaries
+        // Simplified: If gate is passing the player X position
+        if (!gate.passed && gateX < player.x + player.w/2 && gateX > player.x - player.w/2) {
+             // Collision check against the "frame" around the opening
+             // Since we want to pass THROUGH the hole, we check if the edges overlap the frame
+             // Let's treat the gate as a vertical strip that has a hole in the middle.
+             // Actually, simpler: Define a rect representing the HOLE. If player box isn't fully inside hole, crash.
+             
+             const holeW = gate.type === 'WIDE' ? 300 : 80;
+             const holeH = gate.type === 'TALL' ? 80 : 300;
+             
+             // Hole bounds in world space (relative to gate origin)
+             // This is tricky because everything moves. Let's use local coordinates.
+             const relPlayerX = player.x - gateX;
+             const relPlayerY = player.y - gateY;
+
+             // Check if player is colliding with the non-hole parts of the gate
+             // Boundary checks:
+             const collisionWallLeft = (relPlayerX - player.w/2 < -holeW/2) || (relPlayerX + player.w/2 > holeW/2);
+             const collisionWallTop = (relPlayerY - player.h/2 < -holeH/2) || (relPlayerY + player.h/2 > holeH/2);
+
+             if ((collisionWallLeft || collisionWallTop) && Math.abs(gateX - player.x) < 50) {
+                 endGame(false);
+             }
+        }
+
+        if (gateX < player.x && !gate.passed) {
+            gate.passed = true;
+            score++;
+            scoreEl.textContent = score;
+            if (score >= WIN_SCORE) endGame(true);
+        }
+    });
+
+    if (score >= WIN_SCORE) endGame(true);
+}
+
+function endGame(win) {
+    gameState = 'GAMEOVER';
+    gameOverMenu.classList.remove('hidden');
+    resultTitle.textContent = win ? "YOU WON!" : "CRASHED!";
+    resultMsg.textContent = win ? "The jelly survived the journey." : "The jelly was squashed!";
+    updateStatus(win ? "Victory" : "Defeat");
+}
+
+function render() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    drawScene(ctx, scrollX);
+
+    // Draw Gates
+    gates.forEach(gate => {
+        const gx = gate.dist - scrollX + WIDTH;
+        if (gx < -200 || gx > WIDTH + 200) return;
+
+        const hw = gate.type === 'WIDE' ? 300 : 80;
+        const hh = gate.type === 'TALL' ? 80 : 300;
+
+        ctx.strokeStyle = 'var(--cream)';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(gx - hw/2, 300 - hh/2, hw, hh);
+        
+        // Decorative glow
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(gx - hw/2 - 5, 300 - hh/2 - 5, hw+10, hh+10);
+    });
+
+    drawJelly(ctx, player);
+
+    requestAnimationFrame(() => {
+        update();
+        render();
+    });
+}
+
+// Event Listeners
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+document.getElementById('startBtn').addEventListener('click', () => {
+    startMenu.classList.add('hidden');
+    initGame();
+    gameState = 'PLAYING';
+    render();
+});
+
+document.getElementById('retryBtn').addEventListener('click', () => {
+    gameOverMenu.classList.add('hidden');
+    initGame();
+    gameState = 'PLAYING';
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    location.reload(); // Simplest way to hard reset everything
+});
+
+// Initial Canvas Setup
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+
+</script>
+</body>
+</html>

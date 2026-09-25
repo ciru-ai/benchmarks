@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Tasks</title>
+    <style>
+        :root {
+            --bg: #fdfaf5;
+            --surface: #ffffff;
+            --text: #2d2d2a;
+            --subtle: #6b705e;
+            --accent: #2a52be;
+            --border: #e0ddd5;
+            --high: #ef4444;
+            --med: #f59e0b;
+            --low: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+
+        .app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            padding: 24px;
+            gap: 20px;
+        }
+
+        header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+        h1 { font-size: 24px; letter-spacing: -0.5px; color: var(--text); }
+        #status { font-size: 14px; color: var(--subtle); font-weight: 500; margin-top: 4px; }
+
+        .controls { display: flex; gap: 12px; align-items: center; }
+        input[type="text"], select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--accent); }
+
+        button {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: opacity 0.2s;
+            border: none;
+        }
+        button:active { transform: translateY(1px); }
+        #primary-btn { background: var(--accent); color: white; }
+        #reset-btn { background: transparent; border: 1px solid var(--border); color: var(--subtle); }
+        #reset-btn:hover { background: #f5f5f5; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .column {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+        .column h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--subtle); text-align: center; margin-bottom: 8px;}
+
+        .task-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--subtle);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            animation: slideIn 0.2s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .task-name { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+        .priority-chip {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .p-High { border-left-color: var(--high); } .p-High .priority-chip { background: #fee2e2; color: var(--high); }
+        .p-Med { border-left-color: var(--med); } .p-Med .priority-chip { background: #fef3c7; color: var(--med); }
+        .p-Low { border-left-color: var(--low); } .p-Low .priority-chip { background: #dcfce7; color: var(--low); }
+
+        .move-btn {
+            margin-top: 10px;
+            width: 100%;
+            font-size: 11px;
+            padding: 4px;
+            background: #eee;
+            color: #444;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+
+        /* Responsive scaling for preview */
+        @media (max-width: 1000px) {
+            body::after { content: "Scale down view for full layout"; position: fixed; bottom: 10px; left: 10px; font-size: 10px; color: #ccc; }
+            .app-container { transform: scale(0.8); transform-origin: top center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <div>
+            <h1>Orbit Tasks</h1>
+            <div data-testid="status" id="status">Ready</div>
+        </div>
+        <div class="controls">
+            <select id="filter-priority">
+                <option value="All">All Priorities</option>
+                <option value="High">High Only</option>
+                <option value="Med">Medium Only</option>
+                <option value="Low">Low Only</option>
+            </select>
+            <input type="text" id="new-task-input" placeholder="New task name...">
+            <button id="primary-action" data-testid="primary-action">Add Task</button>
+            <button id="reset" data-testid="reset">Reset</button>
+        </div>
+    </header>
+
+    <main class="board">
+        <div class="column" id="col-todo">
+            <h2>To Do</h2>
+            <div class="task-list"></div>
+        </div>
+        <div class="column" id="col-progress">
+            <h2>In Progress</h2>
+            <div class="task-list"></div>
+        </div>
+        <div class="column" id="col-done">
+            <h2>Completed</h2>
+            <div class="task-list"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const INITIAL_STATE = [
+        { id: 1, name: "Design System Audit", priority: "High", status: "todo" },
+        { id: 2, name: "API Integration", priority: "High", status: "progress" },
+        { id: 3, name: "User Interviews", priority: "Med", status: "todo" },
+        { id: 4, name: "Update Documentation", priority: "Low", status: "done" },
+        { id: 5, name: "Refactor Auth Module", priority: "High", status: "todo" },
+        { id: 6, name: "Color Palette Review", priority: "Low", status: "progress" },
+        { id: 7, name: "Performance Profiling", priority: "Med", status: "todo" },
+        { id: 8, name: "Client Sync Meeting", priority: "Med", status: "done" }
+    ];
+
+    let tasks = JSON.parse(JSON.stringify(INITIAL_STATE));
+    let filterValue = 'All';
+
+    // Elements
+    const elStatus = document.getElementById('status');
+    const elInput = document.getElementById('new-task-input');
+    const elPrimaryBtn = document.getElementById('primary-action');
+    const elResetBtn = document.getElementById('reset');
+    const elFilter = document.getElementById('filter-priority');
+    const cols = {
+        todo: document.querySelector('#col-todo .task-list'),
+        progress: document.querySelector('#col-progress .task-list'),
+        done: document.querySelector('#col-done .task-list')
+    };
+
+    function render() {
+        // Clear columns
+        Object.values(cols).forEach(c => c.innerHTML = '');
+
+        tasks.forEach(task => {
+            if (filterValue !== 'All' && task.priority !== filterValue) return;
+
+            const card = document.createElement('div');
+            card.className = `task-card p-${task.priority}`;
+            
+            const btnText = task.status === 'todo' ? 'Start →' : task.status === 'progress' ? 'Finish ✓' : 'Restart ↺';
+            const nextStatus = task.status === 'todo' ? 'progress' : task.status === 'progress' ? 'done' : 'todo';
+
+            card.innerHTML = `
+                <span class="task-name">${task.name}</span>
+                <span class="priority-chip">${task.priority}</span>
+                ${task.status !== 'done' ? `<button class="move-btn" onclick="moveTask(${task.id})">${btnText}</button>` : ''}
+            `;
+            
+            cols[task.status].appendChild(card);
+        });
+
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const completedCount = tasks.filter(t => t.status === 'done').length;
+        elStatus.textContent = `Active: ${tasks.filter(t => t.status !== 'done').length} | Completed: ${completedCount}`;
+    }
+
+    window.moveTask = (id) => {
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+
+        if (task.status === 'todo') task.status = 'progress';
+        else if (task.status === 'progress') task.status = 'done';
+        else task.status = 'todo';
+
+        render();
+    };
+
+    function addTask() {
+        const name = elInput.value.trim() || "Untitled Task";
+        const newTask = {
+            id: Date.now(),
+            name: name,
+            priority: ['High', 'Med', 'Low'][Math.floor(Math.random() * 3)],
+            status: 'todo'
+        };
+        tasks.push(newTask);
+        elInput.value = "";
+        render();
+    }
+
+    function resetApp() {
+        tasks = JSON.parse(JSON.stringify(INITIAL_STATE));
+        elInput.value = "";
+        elFilter.value = "All";
+        filterValue = "All";
+        render();
+    }
+
+    // Event Listeners
+    elPrimaryBtn.addEventListener('click', () => {
+        addTask();
+        elStatus.textContent = "Task Added Successfully";
+        setTimeout(() => updateStatus(), 1000);
+    });
+
+    elResetBtn.addEventListener('click', resetApp);
+
+    elFilter.addEventListener('change', (e) => {
+        filterValue = e.target.value;
+        render();
+    });
+
+    elInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addTask();
+    });
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        checkElements();
+        render();
+    });
+
+    function checkElements() {
+        const ids = ['status', 'new-task-input', 'primary-action', 'reset', 'filter-priority'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if(!el) console.error(`Missing element: #${id}`);
+        });
+    }
+</script>
+
+</body>
+</html>

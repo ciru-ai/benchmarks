@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday Market Directory</title>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --accent: #e67e22;
+            --bg: #fdfaf5;
+            --card: #ffffff;
+            --text: #333;
+            --border: #ddd;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #app-container { width: 960px; max-width: 100%; min-height: 600px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border); }
+        header { background: var(--primary); color: white; padding: 20px; text-align: center; position: relative; }
+        h1 { margin: 0; font-size: 1.8rem; letter-spacing: 1px; }
+        .controls { padding: 15px 20px; background: #f4f1ea; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        select, input, button { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); outline: none; }
+        button { cursor: pointer; font-weight: 600; transition: transform 0.1s, opacity 0.2s; }
+        button:active { transform: scale(0.97); }
+        [data-testid="primary-action"] { background: var(--accent); color: white; border: none; }
+        [data-testid="reset"] { background: #eee; color: #666; border: 1px solid #ccc; }
+        [data-testid="status"] { font-size: 0.85rem; font-style: italic; color: #555; margin-left: auto; }
+
+        main { display: grid; grid-template-columns: 1fr 320px; flex: 1; overflow: hidden; }
+        #vendor-grid { padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; align-content: start; }
+        .product-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: box-shadow 0.2s; position: relative; }
+        .product-card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .product-img { height: 120px; width: 100%; background: #eee; display: flex; align-items: center; justify-content: center; }
+        .product-info { padding: 12px; }
+        .product-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 4px; }
+        .product-vendor { font-size: 0.8rem; color: #666; margin-bottom: 8px; }
+        .product-price { color: var(--primary); font-weight: bold; font-size: 1.1rem; }
+
+        aside { border-left: 1px solid var(--border); background: #fafafa; padding: 20px; display: flex; flex-direction: column; }
+        .list-header { font-weight: bold; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        #shopping-list { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; font-size: 0.9rem; }
+        .qty-ctrl { display: flex; align-items: center; gap: 5px; }
+        .qty-btn { width: 24px; height: 24px; padding: 0; line-height: 1; font-size: 12px; border: 1px solid #ccc; background: white; }
+        .total-area { border-top: 2px solid var(--primary); margin-top: 15px; padding-top: 15px; }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; color: var(--primary); }
+
+        @media (max-width: 768px) {
+            #app-container { width: 100vw; height: 100vh; border-radius: 0; }
+            main { grid-template-columns: 1fr; overflow-y: auto; }
+            aside { border-left: none; border-top: 1px solid var(--border); }
+            .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>🌿 Sunday Market</h1>
+    </header>
+
+    <div class="controls">
+        <label for="filter-category">Filter:</label>
+        <select id="filter-category">
+            <option value="all">All Products</option>
+            <option value="Produce">Produce</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Bakery">Bakery</option>
+            <option value="Meat">Meat</option>
+        </select>
+        <button data-testid="primary-action" onclick="addItemToFeatured()">Add Featured Item</button>
+        <button data-testid="reset" onclick="resetApp()">Reset List</button>
+        <span data-testid="status">State: Idle</span>
+    </div>
+
+    <main>
+        <section id="vendor-grid"></section>
+        <aside>
+            <div class="list-header">Your Basket</div>
+            <ul id="shopping-list"></ul>
+            <div class="total-area">
+                <div class="total-row">
+                    <span>Total</span>
+                    <span id="grand-total">$0.00</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script>
+    const INITIAL_STATE = {
+        basket: [],
+        filter: 'all'
+    };
+
+    let state = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+    const products = [
+        { id: 1, name: "Organic Carrots", vendor: "Green Valley Farm", price: 3.50, category: "Produce", svg: '<svg viewBox="0 0 24 24" width="60"><path fill="#e67e22" d="M12,2L15,15H9L12,2Z"/><path fill="#ffa500" d="M12,15V22H10V15H12Z"/></svg>' },
+        { id: 2, name: "Artisan Sourdough", vendor: "Wild Yeast Bakery", price: 6.00, category: "Bakery", svg: '<svg viewBox="0 0 24 24" width="60"><path fill="#d2b48c" d="M4,12C4,8 7,5 12,5C17,5 20,8 20,12C20,16 17,19 12,19C7,19 4,16 4,12Z"/></svg>' },
+        { id: 3, name: "Fresh Milk", vendor: "Sunny Dairy", price: 4.25, category: "Dairy", svg: '<svg viewBox="0 0 24 24" width="60"><path fill="#3498db" d="M12,2C10,2 8,4 8,6V18C8,20 10,22 12,22C14,22 16,20 16,18V6C16,4 14,2 12,2Z"/></svg>' },
+        { id: 4, name: "Grass-fed Beef", vendor: "Meadow Meats", price: 12.50, category: "Meat", svg: '<svg viewBox="0 0 24 24" width="60"><path fill="#c0392b" d="M12,2L4,12L12,22L20,12L12,2Z"/></svg>' },
+        { id: 5, name: "Honey Jar", vendor: "Bee Happy Co.", price: 8.50, category: "Produce", svg: '<svg viewBox="0 0 24 24" width="60"><circle fill="#f1c40f" cx="12" cy="12" r="10"/></svg>' },
+        { id: 6, name: "Blueberry Jam", vendor: "Berry Good", price: 5.75, category: "Bakery", svg: '<svg viewBox="0 0 24 24" width="60"><rect fill="#8e44ad" x="6" y="6" width="12" height="12" rx="2"/></svg>' }
+    ];
+
+    function render() {
+        const grid = document.getElementById('vendor-grid');
+        const list = document.getElementById('shopping-list');
+        const totalEl = document.getElementById('grand-total');
+        const statusEl = document.querySelector('[data-testid="status"]');
+
+        // Render Grid
+        grid.innerHTML = '';
+        products
+            .filter(p => state.filter === 'all' || p.category === state.filter)
+            .forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-img">${p.svg}</div>
+                    <div class="product-info">
+                        <div class="product-name">${p.name}</div>
+                        <div class="product-vendor">${p.vendor}</div>
+                        <div class="product-price">$${p.price.toFixed(2)}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+        // Render Shopping List
+        list.innerHTML = '';
+        let grandTotal = 0;
+        state.basket.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'list-item';
+            li.innerHTML = `
+                <div>
+                    <div>${item.name}</div>
+                    <small>$${item.price.toFixed(2)} each</small>
+                </div>
+                <div class="qty-ctrl">
+                    <button class="qty-btn" onclick="updateQty(${index}, -1)">-</button>
+                    <span>${item.qty}</span>
+                    <button class="qty-btn" onclick="updateQty(${index}, 1)">+</button>
+                </div>
+            `;
+            list.appendChild(li);
+            grandTotal += item.price * item.qty;
+        });
+
+        totalEl.textContent = `$${grandTotal.toFixed(2)}`;
+        statusEl.textContent = `Items in basket: ${state.basket.length}`;
+    }
+
+    window.addItemToFeatured = function() {
+        if (state.basket.length < 3) {
+            const nextProd = products[state.basket.length % products.length];
+            state.basket.push({ ...nextProd, qty: 1 });
+            render();
+        } else {
+            alert("Market bag is full! Try resetting.");
+        }
+    };
+
+    window.updateQty = function(index, delta) {
+        state.basket[index].qty += delta;
+        if (state.basket[index].qty <= 0) {
+            state.basket.splice(index, 1);
+        }
+        render();
+    };
+
+    window.resetApp = function() {
+        state = JSON.parse(JSON.stringify(INITIAL_STATE));
+        render();
+    };
+
+    document.getElementById('filter-category').addEventListener('change', (e) => {
+        state.filter = e.target.value;
+        render();
+    });
+
+    // Initialize
+    window.onload = () => {
+        if (typeof document !== 'undefined') {
+            render();
+        }
+    };
+</script>
+
+</body>
+</html>

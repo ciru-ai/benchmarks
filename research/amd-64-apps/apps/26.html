@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Room | Personal Library Manager</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --border: #dcdde1;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--panel);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar / Controls */
+        aside {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 { font-size: 1.5rem; margin: 0; color: #ecf0f1; letter-spacing: -0.5px; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; }
+        input, select {
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            font-weight: bold;
+            transition: transform 0.1s, background 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+
+        #primaryBtn { background: var(--accent); color: white; width: 100%; }
+        #primaryBtn:hover { background: #2980b9; }
+        
+        #resetBtn { background: transparent; border: 1px solid #7f8c8d; color: #bdc3c7; width: 100%; font-size: 0.8rem; }
+        #resetBtn:hover { background: rgba(255,255,255,0.1); }
+
+        /* Main Content Area */
+        main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+        }
+        .stat-item span { font-weight: bold; color: var(--accent); }
+
+        #searchBar {
+            width: 250px;
+            padding: 8px;
+            border: 1px solid var(--border);
+        }
+
+        /* Book List */
+        #bookListContainer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+        .tab {
+            padding: 5px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+        .tab.active {
+            opacity: 1;
+            border-bottom: 2px solid var(--accent);
+            font-weight: bold;
+        }
+
+        .book-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .book-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .book-info p { margin: 0; font-size: 0.85rem; color: #7f8c8d; }
+
+        .book-actions { display: flex; align-items: center; gap: 10px; }
+        
+        .progress-slider { width: 120px; }
+
+        #status {
+            font-size: 0.75rem;
+            text-align: center;
+            color: #bdc3c7;
+            margin-top: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #95a5a6;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside>
+        <h1>Reading Room</h1>
+        
+        <div class="control-group">
+            <label for="inputTitle">Book Title</label>
+            <input type="text" id="inputTitle" placeholder="Enter title...">
+        </div>
+        
+        <div class="control-group">
+            <label for="inputAuthor">Author</label>
+            <input type="text" id="inputAuthor" placeholder="Enter author...">
+        </div>
+
+        <div class="control-group">
+            <label for="inputStatus">Current Status</label>
+            <select id="inputStatus">
+                <option value="Reading">Reading</option>
+                <option value="Want to Read">Want to Read</option>
+                <option value="Finished">Finished</option>
+            </select>
+        </div>
+
+        <button id="primaryBtn" data-testid="primary-action">Add Book</button>
+        <button id="resetBtn" data-testid="reset">Reset Collection</button>
+
+        <div id="status" data-testid="status">Ready</div>
+    </aside>
+
+    <main>
+        <header>
+            <div class="stats-bar">
+                <div class="stat-item">Total: <span id="totalCount">0</span></div>
+                <div class="stat-item">Read: <span id="finishedCount">0</span></div>
+            </div>
+            <input type="text" id="searchBar" placeholder="Search library...">
+        </header>
+
+        <section id="bookListContainer">
+            <div class="tab-nav">
+                <div class="tab active" id="tabAll" data-filter="all">All</div>
+                <div class="tab" id="tabReading" data-filter="Reading">Reading</div>
+                <div class="tab" id="tabWantToRead" data-filter="Want to Read">Want to Read</div>
+                <div class="tab" id="tabFinished" data-filter="Finished">Finished</div>
+            </div>
+            <div id="listContent">
+                <!-- Books injected here -->
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // State management
+    const initialState = {
+        books: [
+            { id: 1, title: "The Great Gatsby", author: "F. Scott Fitzgerald", status: "Finished", progress: 100 },
+            { id: 2, title: "Dune", author: "Frank Herbert", status: "Reading", progress: 45 },
+            { id: 3, title: "Circe", author: "Madeline Miller", status: "Want to Read", progress: 0 },
+            { id: 4, title: "Project Hail Mary", author: "Andy Weir", status: "Reading", progress: 12 }
+        ],
+        filter: 'all',
+        searchQuery: ''
+    };
+
+    let state = JSON.parse(JSON.stringify(initialState));
+
+    // DOM References
+    const dom = {
+        primaryBtn: document.getElementById('primaryBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        status: document.getElementById('status'),
+        inputTitle: document.getElementById('inputTitle'),
+        inputAuthor: document.getElementById('inputAuthor'),
+        inputStatus: document.getElementById('inputStatus'),
+        listContent: document.getElementById('listContent'),
+        totalCount: document.getElementById('totalCount'),
+        finishedCount: document.getElementById('finishedCount'),
+        searchBar: document.getElementById('searchBar'),
+        tabs: document.querySelectorAll('.tab')
+    };
+
+    // Logic Functions
+    function init() {
+        render();
+        setupEventListeners();
+    }
+
+    function setupEventListeners() {
+        dom.primaryBtn.addEventListener('click', addBook);
+        dom.resetBtn.addEventListener('click', resetCollection);
+        dom.searchBar.addEventListener('input', handleSearch);
+        
+        dom.tabs.forEach(tab => {
+            tab.addEventListener('click', () => setFilter(tab.dataset.filter));
+        });
+    }
+
+    function addBook() {
+        const title = dom.inputTitle.value.trim();
+        const author = dom.inputAuthor.value.trim();
+        const status = dom.inputStatus.value;
+
+        if (!title || !author) {
+            updateStatus("Please fill in both fields.");
+            return;
+        }
+
+        const newBook = {
+            id: Date.now(),
+            title: title,
+            author: author,
+            status: status,
+            progress: status === 'Finished' ? 100 : 0
+        };
+
+        state.books.push(newBook);
+        
+        // Clear inputs
+        dom.inputTitle.value = '';
+        dom.inputAuthor.value = '';
+        dom.inputStatus.selectedIndex = 0;
+
+        updateStatus(`Added "${title}"`);
+        render();
+    }
+
+    function resetCollection() {
+        state = JSON.parse(JSON.stringify(initialState));
+        updateStatus("Library reset to defaults");
+        render();
+    }
+
+    function updateProgress(id, val) {
+        const book = state.books.find(b => b.id === id);
+        if (book) {
+            book.progress = parseInt(val);
+            if (book.progress === 100) book.status = 'Finished';
+            else if (book.progress > 0 && book.status === 'Finished') book.status = 'Reading';
+            
+            updateStatus(`Updated ${book.title}`);
+            render();
+        }
+    }
+
+    function changeStatus(id, newStatus) {
+        const book = state.books.find(b => b.id === id);
+        if (book) {
+            book.status = newStatus;
+            if (newStatus === 'Finished') book.progress = 100;
+            if (newStatus === 'Want to Read') book.progress = 0;
+            
+            updateStatus(`${book.title} moved to ${newStatus}`);
+            render();
+        }
+    }
+
+    function deleteBook(id) {
+        state.books = state.books.filter(b => b.id !== id);
+        updateStatus("Book removed");
+        render();
+    }
+
+    function handleSearch(e) {
+        state.searchQuery = e.target.value.toLowerCase();
+        render();
+    }
+
+    function setFilter(filterVal) {
+        state.filter = filterVal;
+        dom.tabs.forEach(t => t.classList.remove('active'));
+        document.querySelector(`[data-filter="${filterVal}"]`).classList.add('active');
+        render();
+    }
+
+    function updateStatus(msg) {
+        dom.status.textContent = msg;
+        setTimeout(() => {
+            if (dom.status.textContent === msg) dom.status.textContent = "Ready";
+        }, 3000);
+    }
+
+    // Rendering Engine
+    function render() {
+        // Stats
+        dom.totalCount.textContent = state.books.length;
+        dom.finishedCount.textContent = state.books.filter(b => b.status === 'Finished').length;
+
+        // Filtered List
+        let filteredBooks = state.books.filter(book => {
+            const matchesFilter = state.filter === 'all' || book.status === state.filter;
+            const matchesSearch = book.title.toLowerCase().includes(state.searchQuery) || 
+                                 book.author.toLowerCase().includes(state.searchQuery);
+            return matchesFilter && matchesSearch;
+        });
+
+        // Render Cards
+        dom.listContent.innerHTML = '';
+
+        if (filteredBooks.length === 0) {
+            dom.listContent.innerHTML = `<div class="empty-state">No books found in this category.</div>`;
+            return;
+        }
+
+        filteredBooks.forEach(book => {
+            const card = document.createElement('div');
+            card.className = 'book-card';
+            card.innerHTML = `
+                <div class="book-info">
+                    <h3>${book.title}</h3>
+                    <p>${book.author}</p>
+                </div>
+                <div class="book-actions">
+                    ${book.status !== 'Finished' ? `
+                        <input type="range" class="progress-slider" value="${book.progress}" min="0" max="100">
+                    ` : '<span style="color: var(--success); font-size: 0.8rem;">✓ Completed</span>'}
+                    
+                    <select class="status-toggle">
+                        <option value="Reading" ${book.status === 'Reading' ? 'selected' : ''}>Reading</option>
+                        <option value="Want to Read" ${book.status === 'Want to Read' ? 'selected' : ''}>Want to Read</option>
+                        <option value="Finished" ${book.status === 'Finished' ? 'selected' : ''}>Finished</option>
+                    </select>
+
+                    <button class="delete-btn" style="background:#e74c3c; color:white; padding: 5px 10px; font-size: 0.7rem;">✕</button>
+                </div>
+            `;
+
+            // Event delegation logic via local scoping
+            card.querySelector('.progress-slider')?.addEventListener('input', (e) => {
+                updateProgress(book.id, e.target.value);
+            });
+
+            card.querySelector('.status-toggle').addEventListener('change', (e) => {
+                changeStatus(book.id, e.target.value);
+            });
+
+            card.querySelector('.delete-btn').addEventListener('click', () => {
+                deleteBook(book.id);
+            });
+
+            dom.listContent.appendChild(card);
+        });
+    }
+
+    // Run App
+    init();
+
+</script>
+</body>
+</html>

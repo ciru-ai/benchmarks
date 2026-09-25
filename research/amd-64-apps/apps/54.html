@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings Map | Goal Planner</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--card);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            padding: 2rem;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            background: #fafafa;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        label { font-size: 0.875rem; font-weight: 600; color: var(--secondary); }
+        select, input {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            border: none;
+        }
+
+        #primaryBtn { background: var(--primary); color: white; width: 100%; }
+        #resetBtn { background: transparent; border: 1px solid var(--border); color: var(--secondary); width: 100%; }
+        button:hover { opacity: 0.9; }
+
+        #status {
+            font-size: 0.75rem;
+            color: var(--secondary);
+            text-align: center;
+            margin-top: auto;
+        }
+
+        /* Main Dashboard */
+        #main-view {
+            padding: 2rem;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 2rem;
+        }
+
+        .header-area {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .goals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .goal-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .ring-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        svg.progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .ring-circle-bg { fill: none; stroke: #edf2f7; stroke-width: 8; }
+        .ring-circle-fill {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease-out;
+        }
+
+        .percentage-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .goal-name { font-weight: 700; margin-bottom: 0.25rem; }
+        .goal-stats { font-size: 0.85rem; color: var(--secondary); line-height: 1.4; }
+
+        @media (max-width: 960px) {
+            #app-container { transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside id="sidebar">
+        <h1>Savings Map</h1>
+        
+        <div class="input-group">
+            <label for="goalSelect">Target Destination</label>
+            <select id="goalSelect"></select>
+        </div>
+
+        <div class="input-group">
+            <label for="depositAmount">Deposit Amount ($)</label>
+            <input type="number" id="depositAmount" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <button id="primaryBtn" data-testid="primary-action">Deposit Funds</button>
+        <button id="resetBtn" data-testid="reset">Reset Plan</button>
+
+        <div id="status" data-testid="status">Ready to plan</div>
+    </aside>
+
+    <main id="main-view">
+        <div class="header-area">
+            <h2 style="margin:0">Financial Progress</h2>
+            <p style="margin:4px 0 0 0; color: var(--secondary); font-size: 0.9rem;">Track your journey toward multiple milestones.</p>
+        </div>
+
+        <div class="goals-grid" id="goalsGrid">
+            <!-- Goal cards injected here -->
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- INITIAL STATE ---
+    const initialState = {
+        goals: [
+            { id: 'g1', name: 'Emergency Fund', target: 10000, current: 4500 },
+            { id: 'g2', name: 'New Car', target: 25000, current: 2100 },
+            { id: 'g3', name: 'Dream Vacation', target: 5000, current: 4850 }
+        ]
+    };
+
+    let state = JSON.parse(JSON.stringify(initialState));
+
+    // --- DOM ELEMENTS ---
+    const dom = {
+        goalSelect: document.getElementById('goalSelect'),
+        depositInput: document.getElementById('depositAmount'),
+        primaryBtn: document.getElementById('primaryBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        status: document.getElementById('status'),
+        goalsGrid: document.getElementById('goalsGrid')
+    };
+
+    // --- CORE LOGIC ---
+
+    function init() {
+        render();
+    }
+
+    function updateStatus(msg) {
+        dom.status.textContent = msg;
+    }
+
+    function handleDeposit() {
+        const amount = parseFloat(dom.depositInput.value);
+        const goalId = dom.goalSelect.value;
+        
+        if (isNaN(amount) || amount <= 0) {
+            updateStatus("Enter a valid amount");
+            return;
+        }
+
+        const goalIndex = state.goals.findIndex(g => g.id === goalId);
+        if (goalIndex !== -1) {
+            state.goals[goalIndex].current += amount;
+            
+            // Clamp at 100% logic if needed? No, let's allow overshooting for visual effect
+            
+            render();
+            updateStatus(`Deposited $${amount.toFixed(2)}`);
+            dom.depositInput.value = '';
+        } else {
+            updateStatus("Error: Goal not found");
+        }
+    }
+
+    function resetPlan() {
+        state = JSON.parse(JSON.stringify(initialState));
+        dom.depositInput.value = '';
+        render();
+        updateStatus("All data restored");
+    }
+
+    // --- RENDERING ENGINE ---
+
+    function createRingSVG(percent) {
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (Math.min(percent, 100) / 100) * circumference;
+
+        return `
+            <div class="ring-container">
+                <svg class="progress-ring" width="120" height="120">
+                    <circle class="ring-circle-bg" cx="60" cy="60" r="${radius}" />
+                    <circle class="ring-circle-fill" cx="60" cy="60" r="${radius}" 
+                        style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};" />
+                </svg>
+                <div class="percentage-text">${Math.round(percent)}%</div>
+            </div>
+        `;
+    }
+
+    function render() {
+        // Render Select Options
+        dom.goalSelect.innerHTML = '';
+        state.goals.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.name;
+            dom.goalSelect.appendChild(opt);
+        });
+
+        // Render Cards
+        dom.goalsGrid.innerHTML = '';
+        state.goals.forEach(g => {
+            const percent = (g.current / g.target) * 100;
+            const card = document.createElement('div');
+            card.className = 'goal-card';
+            card.innerHTML = `
+                ${createRingSVG(percent)}
+                <div class="goal-name">${g.name}</div>
+                <div class="goal-stats">
+                    $${g.current.toLocaleString()} <br/>
+                    of $${g.target.toLocaleString()}
+                </div>
+            `;
+            dom.goalsGrid.appendChild(card);
+        });
+    }
+
+    // --- EVENT LISTENERS ---
+
+    dom.primaryBtn.addEventListener('click', () => handleDeposit());
+    dom.resetBtn.addEventListener('click', () => resetPlan());
+
+    // Initialization
+    init();
+
+</script>
+</body>
+</html>

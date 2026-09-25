@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polarity Panic</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --panel: #2d2d2d;
+            --plus: #ff4b81; /* Pink */
+            --minus: #4b9eff; /* Blue */
+            --text: #e0e0e0;
+            --accent: #f0f0f0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            max-width: 100vw;
+            max-height: 57vw;
+            background: #0f0f0f;
+            border: 4px solid #444;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            cursor: none;
+            overflow: hidden;
+        }
+        canvas { display: block; }
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        h1 { font-size: 48px; margin: 0 0 10px 0; color: var(--accent); }
+        p { max-width: 500px; line-height: 1.5; margin-bottom: 20px; }
+        .controls-hint { font-size: 14px; color: #aaa; margin-bottom: 20px; }
+        button {
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: transform 0.1s, filter 0.2s;
+            margin: 5px;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: var(--accent); color: #000; }
+        [data-testid="reset"] { background: transparent; color: #fff; border: 2px solid #666; }
+        [data-testid="status"] { font-family: monospace; color: #aaa; margin-top: 10px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div class="hud">
+                <div>Score: <span id="scoreVal">0</span> / 30</div>
+                <div>Time: <span id="timeVal">60</span>s</div>
+                <div>Lives: <span id="livesVal">3</span></div>
+            </div>
+            <div data-testid="status" style="pointer-events: none;">Ready to start</div>
+        </div>
+
+        <div id="overlay">
+            <h1 id="msgTitle">POLARITY PANIC</h1>
+            <p id="msgDesc">Collect 30 charges in 60 seconds.<br><br>
+            <strong>RULES:</strong> Match your polarity (+/-) to collect charges (Safe). Opposite polarity will repel you, but colliding causes damage.</p>
+            <div class="controls-hint">CLICK or SPACE to toggle Polarity</div>
+            <div style="display: flex;">
+                <button id="startBtn" data-testid="primary-action">START GAME</button>
+                <button id="resetBtn" data-testid="reset">RESET</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreVal');
+const timeEl = document.getElementById('timeVal');
+const livesEl = document.getElementById('livesVal');
+const statusEl = document.querySelector('[data-testid="status"]');
+const overlay = document.getElementById('overlay');
+const msgTitle = document.getElementById('msgTitle');
+const msgDesc = document.getElementById('msgDesc');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// Game Constants
+const WIDTH = 960;
+const HEIGHT = 600;
+const PLAYER_RADIUS = 15;
+const CHARGE_RADIUS = 10;
+const MAX_SCORE = 30;
+const WIN_TIME = 60;
+const STARTING_LIVES = 3;
+
+// State Management
+let gameState = 'IDLE'; // IDLE, PLAYING, WON, LOST
+let score = 0;
+let timeLeft = WIN_TIME;
+let lives = STARTING_LIVES;
+let playerPos = { x: WIDTH/2, y: HEIGHT/2 };
+let playerVel = { x: 0, y: 0 };
+let playerPolarity = 1; // 1 for Plus (Pink), -1 for Minus (Blue)
+let mousePos = { x: WIDTH/2, y: HEIGHT/2 };
+let charges = [];
+let particles = [];
+let lastTime = 0;
+let timerInterval = null;
+
+function resize() {
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8;
+        this.life = 1.0;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= 0.05;
+    }
+    draw() {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, 3, 3);
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+class Charge {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * (WIDTH - 40) + 20;
+        this.y = Math.random() * (HEIGHT - 40) + 20;
+        this.polarity = Math.random() > 0.5 ? 1 : -1;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if(this.x < 0 || this.x > WIDTH) this.vx *= -1;
+        if(this.y < 0 || this.y > HEIGHT) this.vy *= -1;
+    }
+    draw() {
+        const color = this.polarity === 1 ? '#ff4b81' : '#4b9eff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, CHARGE_RADIUS, 0, Math.PI*2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fill();
+        
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(this.polarity === 1 ? '+' : '-', this.x, this.y);
+    }
+}
+
+function initGame() {
+    score = 0;
+    timeLeft = WIN_TIME;
+    lives = STARTING_LIVES;
+    playerPos = { x: WIDTH/2, y: HEIGHT/2 };
+    playerVel = { x: 0, y: 0 };
+    playerPolarity = 1;
+    charges = Array.from({length: 8}, () => new Charge());
+    particles = [];
+    updateUI();
+    statusEl.textContent = "Game Started";
+}
+
+function updateUI() {
+    scoreEl.textContent = score;
+    timeEl.textContent = Math.ceil(timeLeft);
+    livesEl.textContent = lives;
+}
+
+function spawnParticles(x, y, color) {
+    for(let i=0; i<10; i++) particles.push(new Particle(x, y, color));
+}
+
+function startGame() {
+    initGame();
+    gameState = 'PLAYING';
+    overlay.classList.add('hidden');
+    timerInterval = setInterval(() => {
+        if(gameState === 'PLAYING') {
+            timeLeft--;
+            if(timeLeft <= 0) endGame(false);
+            updateUI();
+        }
+    }, 1000);
+    requestAnimationFrame(loop);
+}
+
+function endGame(won) {
+    gameState = won ? 'WON' : 'LOST';
+    clearInterval(timerInterval);
+    overlay.classList.remove('hidden');
+    msgTitle.textContent = won ? "VICTORY!" : "GAME OVER";
+    msgTitle.style.color = won ? "#4bff81" : "#ff4b81";
+    msgDesc.innerHTML = won ? `You collected ${score} charges!` : `The void consumes you...`;
+    statusEl.textContent = won ? "Player Won" : "Player Lost";
+}
+
+function resetAll() {
+    clearInterval(timerInterval);
+    gameState = 'IDLE';
+    overlay.classList.remove('hidden');
+    msgTitle.textContent = "POLARITY PANIC";
+    msgTitle.style.color = "var(--accent)";
+    msgDesc.innerHTML = "Match charge polarity to survive.";
+    statusEl.textContent = "System Reset";
+    updateUI();
+}
+
+function loop(timestamp) {
+    if(gameState !== 'PLAYING') return;
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
+
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    // Background Grid Effect (Subtle)
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 1;
+    for(let i=0; i<WIDTH; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,HEIGHT); ctx.stroke(); }
+    for(let i=0; i<HEIGHT; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WIDTH,i); ctx.stroke(); }
+
+    // Player Physics & Magnetism
+    const dx = mousePos.x - playerPos.x;
+    const dy = mousePos.y - playerPos.y;
+    const distToMouse = Math.sqrt(dx*dx + dy*dy);
+    
+    // Smooth movement towards cursor
+    playerVel.x += dx * 0.01;
+    playerVel.y += dy * 0.01;
+    playerVel.x *= 0.85; // Friction
+    playerVel.y *= 0.85;
+    playerPos.x += playerVel.x;
+    playerPos.y += playerVel.y;
+
+    // Draw Particles
+    particles.forEach((p, i) => {
+        p.update();
+        p.draw();
+        if(p.life <= 0) particles.splice(i, 1);
+    });
+
+    // Update Charges
+    charges.forEach(c => {
+        c.update();
+        c.draw();
+
+        // Interaction Logic
+        const cdx = c.x - playerPos.x;
+        const cdy = c.y - playerPos.y;
+        const cdist = Math.sqrt(cdx*cdx + cdy*cdy);
+
+        if(cdist < 150) {
+            // Magnetic force logic
+            const strength = (playerPolarity === c.polarity) ? 0.5 : -0.5;
+            const force = strength * (1 - cdist/150) * 2;
+            c.vx -= (cdx/cdist) * force;
+            c.vy -= (cdy/cdist) * force;
+        }
+
+        // Collision detection
+        if(cdist < PLAYER_RADIUS + CHARGE_RADIUS) {
+            if(playerPolarity === c.polarity) {
+                score++;
+                spawnParticles(c.x, c.y, playerPolarity === 1 ? '#ff4b81' : '#4b9eff');
+                c.reset();
+                updateUI();
+                if(score >= MAX_SCORE) endGame(true);
+            } else {
+                lives--;
+                spawnParticles(playerPos.x, playerPos.y, '#ffffff');
+                c.reset();
+                updateUI();
+                if(lives <= 0) endGame(false);
+            }
+        }
+    });
+
+    // Draw Player
+    ctx.save();
+    ctx.translate(playerPos.x, playerPos.y);
+    // Glow effect
+    const grad = ctx.createRadialGradient(0,0, 0, 0,0, PLAYER_RADIUS * 2);
+    grad.addColorStop(0, playerPolarity === 1 ? 'rgba(255, 75, 129, 0.4)' : 'rgba(75, 175, 255, 0.4)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, PLAYER_RADIUS * 2, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, PLAYER_RADIUS, 0, Math.PI*2);
+    ctx.strokeStyle = playerPolarity === 1 ? '#ff4b81' : '#4b9eff';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Symbol
+    ctx.fillStyle = playerPolarity === 1 ? '#ff4b81' : '#4b9eff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(playerPolarity === 1 ? '+' : '-', 0, 0);
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+}
+
+// Event Listeners
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mousePos.x = (e.clientX - rect.left) * scaleX;
+    mousePos.y = (e.clientY - rect.top) * scaleY;
+});
+
+const handleAction = () => {
+    if(gameState === 'PLAYING') {
+        playerPolarity *= -1;
+        statusEl.textContent = `Polarity Switched: ${playerPolarity === 1 ? 'PLUS' : 'MINUS'}`;
+    }
+};
+
+window.addEventListener('keydown', e => {
+    if(e.code === 'Space') {
+        e.preventDefault();
+        handleAction();
+    }
+});
+canvas.addEventListener('mousedown', handleAction);
+
+startBtn.addEventListener('click', startGame);
+resetBtn.addEventListener('click', resetAll);
+
+// Init
+resize();
+window.onresize = resize;
+</script>
+</body>
+</html>

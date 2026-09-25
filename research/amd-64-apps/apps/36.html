@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit School - Interactive Lab</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --text: #2d3748;
+            --accent: #3182ce;
+            --danger: #e53e3e;
+            --success: #38a169;
+            --wire: #4a5568;
+            --glow: rgba(255, 255, 0, 0);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            max-width: 100%;
+            height: 600px;
+            background: var(--card);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        header {
+            padding: 20px;
+            background: #2d3748;
+            color: white;
+        }
+
+        header h1 { margin: 0; font-size: 1.5rem; }
+        header p { margin: 5px 0 0; opacity: 0.8; font-size: 0.9rem; }
+
+        main {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            background: #edf2f7;
+        }
+
+        #circuit-canvas {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #cbd5e0;
+            position: relative;
+        }
+
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label { font-weight: bold; font-size: 0.85rem; color: #4a5568; }
+
+        button {
+            cursor: pointer;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        #primary-btn {
+            background-color: var(--accent);
+            color: white;
+            font-size: 1rem;
+        }
+
+        #reset-btn {
+            background-color: #718096;
+            color: white;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        /* Status Styling */
+        #status-bar {
+            padding: 12px 20px;
+            background: #fff;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        [data-testid="status"]::before {
+            content: "● ";
+            color: #cbd5e0;
+        }
+        .state-on [data-testid="status"]::before { color: var(--success); }
+        .state-off [data-testid="status"]::before { color: var(--danger); }
+
+        @media (max-width: 800px) {
+            #app-container { height: auto; min-height: 500px; }
+            main { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Circuit School</h1>
+        <p>Interactive Physics Laboratory: Simple Series Circuit</p>
+    </header>
+
+    <main>
+        <div id="circuit-canvas">
+            <!-- SVG Circuit Diagram -->
+            <svg id="circuit-svg" width="100%" height="100%" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+                <!-- Wires -->
+                <path id="wire-loop" d="M 100 300 L 100 100 L 400 100 L 400 300 L 100 300" stroke="#4a5568" stroke-width="8" fill="none" />
+                <!-- Electron Flow Path (Animated) -->
+                <path id="electron-path" d="M 100 300 L 100 100 L 400 100 L 400 300 L 100 300" stroke="rgba(66, 153, 225, 0)" stroke-width="4" fill="none" stroke-dasharray="5,15" stroke-linecap="round" />
+                
+                <!-- Battery Symbol -->
+                <rect x="45" y="180" width="40" height="40" rx="5" fill="#ecc94b" stroke="#b7791f" stroke-width="3"/>
+                <text x="52" y="205" font-weight="bold" fill="#744210">+</text>
+                <text x="62" y="225" font-weight="bold" fill="#744210">-</text>
+                
+                <!-- Switch Component -->
+                <g id="switch-component">
+                    <line id="switch-lever" x1="240" y1="100" x2="280" y2="70" stroke="#2d3748" stroke-width="6" stroke-linecap="round" />
+                    <circle cx="240" cy="100" r="5" fill="#2d3748" />
+                    <circle cx="280" cy="100" r="5" fill="#2d3748" />
+                </g>
+
+                <!-- Bulb Component -->
+                <g id="bulb-component">
+                    <circle id="bulb-glass" cx="400" cy="250" r="35" fill="#edf2f7" stroke="#718096" stroke-width="3" />
+                    <path id="filament" d="M 385 250 Q 400 220 415 250 Q 400 280 385 250" fill="none" stroke="#718096" stroke-width="4" />
+                    <circle id="light-center" cx="400" cy="250" r="10" fill="#718096" opacity="0.3" />
+                </g>
+            </svg>
+        </div>
+
+        <aside class="controls-panel">
+            <div class="control-group">
+                <label>Power Source</label>
+                <div class="toggle-row">
+                    <span>Battery</span>
+                    <span id="battery-status-text">Active</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Control System</label>
+                <button id="primary-btn" data-testid="primary-action">Close Switch</button>
+            </div>
+            <div class="control-group">
+                <label>System Settings</label>
+                <button id="reset-btn" data-testid="reset">Reset Lab</button>
+            </div>
+            <div style="margin-top: auto; border-top: 1px solid #eee; padding-top: 10px;">
+                <small style="color: #718096;">Current State:</small>
+                <div id="status-val" data-testid="status">Circuit Open</div>
+            </div>
+        </aside>
+    </main>
+
+    <footer id="status-bar">
+        Ready to begin experiment. Press 'Close Switch' to initiate electron flow.
+    </footer>
+</div>
+
+<script>
+    /**
+     * CIRCUIT SCHOOL ENGINE
+     */
+    const App = {
+        state: {
+            isClosed: false,
+            batteryLevel: 1.0,
+            animationFrame: null
+        },
+
+        // DOM Elements
+        els: {},
+
+        init() {
+            this.cacheElements();
+            this.bindEvents();
+            this.render();
+        },
+
+        cacheElements() {
+            this.els.container = document.getElementById('app-container');
+            this.els.primaryBtn = document.getElementById('primary-btn');
+            this.els.resetBtn = document.getElementById('reset-btn');
+            this.els.statusText = document.getElementById('status-val');
+            this.els.footer = document.getElementById('status-bar');
+            this.els.switchLever = document.getElementById('switch-lever');
+            this.els.bulbGlass = document.getElementById('bulb-glass');
+            this.els.filament = document.getElementById('filament');
+            this.els.lightCenter = document.getElementById('light-center');
+            this.els.electrons = document.getElementById('electron-path');
+        },
+
+        bindEvents() {
+            this.els.primaryBtn.addEventListener('click', () => this.toggleSwitch());
+            this.els.resetBtn.addEventListener('click', () => this.reset());
+        },
+
+        toggleSwitch() {
+            this.state.isClosed = !this.state.isClosed;
+            this.updateUI();
+        },
+
+        reset() {
+            cancelAnimationFrame(this.state.animationFrame);
+            this.state.isClosed = false;
+            this.updateUI();
+        },
+
+        updateUI() {
+            if (this.state.isClosed) {
+                // Visual Update: Closed Switch
+                this.els.switchLever.setAttribute('x2', '280');
+                this.els.switchLever.setAttribute('y2', '100');
+                this.els.primaryBtn.textContent = "Open Switch";
+                this.els.primaryBtn.style.backgroundColor = "#e53e3e"; // Red for danger/stop
+                
+                // Glow effects
+                this.els.bulbGlass.setAttribute('fill', '#fffde7');
+                this.els.filament.setAttribute('stroke', '#f6e052');
+                this.els.lightCenter.setAttribute('opacity', '0.8');
+                this.els.lightCenter.setAttribute('fill', '#ecc94b');
+                
+                this.els.statusText.textContent = "Circuit Closed (Conducting)";
+                this.els.footer.textContent = "Electrons are flowing! The closed loop allows current to move from the battery through the bulb.";
+                this.els.container.classList.remove('state-off');
+                this.els.container.classList.add('state-on');
+
+                this.startAnimation();
+            } else {
+                // Visual Update: Open Switch
+                this.els.switchLever.setAttribute('x2', '280');
+                this.els.switchLever.setAttribute('y2', '70');
+                this.els.primaryBtn.textContent = "Close Switch";
+                this.els.primaryBtn.style.backgroundColor = "#3182ce";
+                
+                // Dimming effects
+                this.els.bulbGlass.setAttribute('fill', '#edf2f7');
+                this.els.filament.setAttribute('stroke', '#718096');
+                this.els.lightCenter.setAttribute('opacity', '0.3');
+                this.els.lightCenter.setAttribute('fill', '#718096');
+
+                this.els.statusText.textContent = "Circuit Open (No Current)";
+                this.els.footer.textContent = "The switch creates a gap in the path. Electrons cannot jump across the air, so the light stays off.";
+                this.els.container.classList.remove('state-on');
+                this.els.container.classList.add('state-off');
+
+                this.stopAnimation();
+            }
+        },
+
+        startAnimation() {
+            let offset = 0;
+            const animate = () => {
+                offset -= 1;
+                if (offset < -100) offset = 0;
+                this.els.electrons.style.strokeDashoffset = offset;
+                this.els.electrons.style.strokeOpacity = "1";
+                this.state.animationFrame = requestAnimationFrame(animate);
+            };
+            animate();
+        },
+
+        stopAnimation() {
+            this.els.electrons.style.strokeOpacity = "0";
+            cancelAnimationFrame(this.state.animationFrame);
+        },
+
+        render() {
+            this.updateUI();
+        }
+    };
+
+    // Boot application
+    window.onload = () => App.init();
+</script>
+
+</body>
+</html>

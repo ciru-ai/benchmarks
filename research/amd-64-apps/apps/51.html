@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type Archive | Specimen Tool</title>
+    <style>
+        :root {
+            --bg: #f4f4f5;
+            --panel: #ffffff;
+            --accent: #2563eb;
+            --text: #18181b;
+            --border: #e4e4e7;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: white;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        /* Sidebar Controls */
+        aside {
+            padding: 24px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #fafafa;
+        }
+        h1 { font-size: 1.2rem; margin: 0 0 10px 0; letter-spacing: -0.02em; color: #3f3f46; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #71717a; }
+        select, input[type="range"], textarea { width: 100%; }
+        textarea {
+            height: 120px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: inherit;
+            resize: none;
+            font-size: 0.85rem;
+        }
+        .btn-stack { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+        button {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        #primary-btn { background: var(--accent); color: white; border: none; }
+        #primary-btn:hover { background: #1d4ed8; }
+        #reset-btn { background: white; border: 1px solid var(--border); color: #52525b; }
+        #reset-btn:hover { background: #f4f4f5; }
+        
+        /* Preview Area */
+        main {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            background: white;
+            overflow: hidden;
+        }
+        #specimen-canvas {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+        #text-output {
+            width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        #status {
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive / Small Viewport logic */
+        @media (max-width: 960px) {
+            #app-container { transform: scale(0.5); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside>
+        <h1>Type Archive</h1>
+        
+        <div class="control-group">
+            <label>Sample Text</label>
+            <textarea id="text-input">The quick brown fox jumps over the lazy dog.</textarea>
+        </div>
+
+        <div class="control-group">
+            <label>Font Family</label>
+            <select id="font-family-ctrl">
+                <option value="serif">Serif System</option>
+                <option value="sans-serif">Sans-Serif System</option>
+                <option value="monospace">Monospace System</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Weight <span id="weight-val">400</span></label>
+            <input type="range" id="weight-ctrl" min="100" max="900" step="100" value="400">
+        </div>
+
+        <div class="control-group">
+            <label>Size <span id="size-val">48</span>px</label>
+            <input type="range" id="size-ctrl" min="12" max="144" step="1" value="48">
+        </div>
+
+        <div class="control-group">
+            <label>Layout Mode</label>
+            <select id="layout-ctrl">
+                <option value="center">Centered Block</option>
+                <option value="left">Left Aligned</option>
+                <option value="justified">Justified</option>
+            </select>
+        </div>
+
+        <div class="btn-stack">
+            <button id="primary-btn" data-testid="primary-action">Cycle Layout</button>
+            <button id="reset-btn" data-testid="reset">Reset All</button>
+        </div>
+    </aside>
+
+    <main>
+        <div id="status" data-testid="status">State: Ready</div>
+        <div id="specimen-canvas">
+            <div id="text-output">The quick brown fox jumps over the lazy dog.</div>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        // State Management
+        const initialState = {
+            text: "The quick brown fox jumps over the lazy dog.",
+            family: "serif",
+            weight: 400,
+            size: 48,
+            layout: 'center'
+        };
+
+        let state = { ...initialState };
+
+        // DOM Elements
+        const el = {
+            textInput: document.getElementById('text-input'),
+            fontFamily: document.getElementById('font-family-ctrl'),
+            weightCtrl: document.getElementById('weight-ctrl'),
+            sizeCtrl: document.getElementById('size-ctrl'),
+            layoutCtrl: document.getElementById('layout-ctrl'),
+            weightVal: document.getElementById('weight-val'),
+            sizeVal: document.getElementById('size-val'),
+            textOutput: document.getElementById('text-output'),
+            status: document.getElementById('status'),
+            primaryBtn: document.getElementById('primary-btn'),
+            resetBtn: document.getElementById('reset-btn')
+        };
+
+        // Logic Functions
+        function updateUI() {
+            el.textOutput.textContent = state.text;
+            el.textOutput.style.fontFamily = `'${state.family}', serif`;
+            el.textOutput.style.fontWeight = state.weight;
+            el.textOutput.style.fontSize = `${state.size}px`;
+            el.textOutput.style.textAlign = state.layout;
+
+            el.weightVal.textContent = state.weight;
+            el.sizeVal.textContent = state.size;
+
+            // Sync inputs if they differ from state (for reset)
+            el.textInput.value = state.text;
+            el.fontFamily.value = state.family;
+            el.weightCtrl.value = state.weight;
+            el.sizeCtrl.value = state.size;
+            el.layoutCtrl.value = state.layout;
+
+            updateStatus();
+        }
+
+        function updateStatus() {
+            el.status.textContent = `State: ${state.family} • ${state.weight}w • ${state.size}px • ${state.layout}`;
+        }
+
+        function cycleLayout() {
+            const modes = ['center', 'left', 'justified'];
+            let currentIndex = modes.indexOf(state.layout);
+            state.layout = modes[(currentIndex + 1) % modes.length];
+            el.layoutCtrl.value = state.layout;
+            updateUI();
+        }
+
+        function reset() {
+            state = { ...initialState };
+            updateUI();
+        }
+
+        // Event Handlers
+        function handleInputChange() {
+            state.text = el.textInput.value;
+            state.family = el.fontFamily.value;
+            state.weight = parseInt(el.weightCtrl.value);
+            state.size = parseInt(el.sizeCtrl.value);
+            state.layout = el.layoutCtrl.value;
+            updateUI();
+        }
+
+        // Initialization & Listeners
+        function init() {
+            // Input listeners
+            el.textInput.addEventListener('input', handleInputChange);
+            el.fontFamily.addEventListener('change', handleInputChange);
+            el.weightCtrl.addEventListener('input', handleInputChange);
+            el.sizeCtrl.addEventListener('input', handleInputChange);
+            el.layoutCtrl.addEventListener('change', handleInputChange);
+
+            // Action buttons
+            el.primaryBtn.addEventListener('click', () => {
+                cycleLayout();
+            });
+
+            el.resetBtn.addEventListener('click', reset);
+
+            // Initial render
+            updateUI();
+        }
+
+        // Safety check for elements existence before running
+        window.onload = () => {
+            const requiredIds = [
+                'text-input', 'font-family-ctrl', 'weight-ctrl', 
+                'size-ctrl', 'layout-ctrl', 'text-output', 
+                'status', 'primary-btn', 'reset-btn'
+            ];
+            
+            const missing = requiredIds.filter(id => !document.getElementById(id));
+            if (missing.length === 0) {
+                init();
+            } else {
+                console.error("Missing elements:", missing);
+            }
+        };
+    })();
+</script>
+
+</body>
+</html>

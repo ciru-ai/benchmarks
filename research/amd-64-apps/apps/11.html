@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Weather - Trip Planner</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --accent: #ef4444;
+            --border: #e2e8f0;
+            --success: #22c55e;
+        }
+
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+
+        .app-container {
+            width: 100%;
+            max-width: 960px;
+            min-height: 600px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            padding: 24px;
+            border-right: 1px solid var(--border);
+            background: #fafafa;
+        }
+
+        h1 { font-size: 1.5rem; margin: 0 0 20px 0; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-light); margin-bottom: 12px; }
+
+        .dest-option {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .dest-option:hover { border-color: var(--primary); background: #eff6ff; }
+        .dest-option.active { border-color: var(--primary); background: var(--primary); color: white; }
+
+        /* Main Content */
+        .main-view { padding: 32px; position: relative; display: flex; flex-direction: column; }
+        
+        .weather-banner {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .temp-large { font-size: 2.5rem; font-weight: 700; margin: 0; }
+        .condition-label { font-weight: 600; color: #0369a1; }
+
+        .checklist-area { flex-grow: 1; }
+        .item-list { list-style: none; padding: 0; margin: 0; }
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .item-row input[type="checkbox"] { width: 20px; height: 20px; margin-right: 12px; cursor: pointer; }
+        .item-row label { flex-grow: 1; cursor: pointer; }
+        .item-row .strike { text-decoration: line-through; color: var(--text-light); }
+
+        .controls {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+        }
+        button:active { transform: translateY(1px); }
+        #btn-add::after { content: ' +'; opacity: 0.6; }
+        [data-testid="primary-action"] { background: var(--primary); color: white; }
+        [data-testid="primary-action"]:hover { background: var(--primary-hover); }
+        [data-testid="reset"] { background: transparent; color: var(--text-light); border: 1px solid var(--border); }
+        [data-testid="reset"]:hover { background: #fee2e2; color: var(--accent); border-color: var(--accent); }
+
+        .input-group { display: flex; gap: 8px; flex-grow: 1; }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+
+        #status { font-size: 0.85rem; color: var(--text-light); font-style: italic; }
+
+        @media (max-width: 768px) {
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a5.5 5.5 0 0 0 5.5-5.5V4.5a2.5 2.5 0 0 0-2.5-2.5H4A2.5 2.5 0 0 0 1.5 2v12.5C1.5 17 5.5 21 10 21h5.5"></path><polyline points="10 21 10 15 14 15"></polyline></svg>
+            RouteWeather
+        </h1>
+        <h2>Destinations</h2>
+        <div id="destination-menu">
+            <!-- Buttons injected via JS -->
+        </div>
+    </aside>
+
+    <main class="main-view">
+        <div class="weather-banner" id="weather-info">
+            <div>
+                <p class="condition-label" id="weather-desc">Loading...</p>
+                <p id="weather-loc" style="margin:0; font-size: 0.9rem;">Select a place</p>
+            </div>
+            <div style="margin-left: auto; text-align: right;">
+                <p class="temp-large" id="weather-temp">--°</p>
+                <p style="margin:0; font-size: 0.8rem; color: var(--text-light);">Forecast</p>
+            </div>
+        </div>
+
+        <div class="checklist-area">
+            <ul class="item-list" id="packing-list">
+                <!-- Items injected via JS -->
+            </ul>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" id="custom-item-input" placeholder="Add custom item...">
+                <button data-testid="primary-action" id="btn-add">Add Item</button>
+            </div>
+            <button data-testid="reset" id="btn-reset">Reset All</button>
+        </div>
+        <div id="status" data-testid="status">Ready to plan your journey.</div>
+    </main>
+</div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    const INITIAL_STATE = {
+        currentDestKey: 'arctic',
+        destinations: {
+            arctic: {
+                name: "Arctic Expedition",
+                temp: "-12°C",
+                desc: "Heavy Snowfall",
+                items: ["Thermal Parkas", "Insulated Boots", "Gloves", "Sunscreen (Snow glare)", "Extra Socks"]
+            },
+            tropical: {
+                name: "Bali Getaway",
+                temp: "31°C",
+                desc: "Sunny & Humid",
+                items: ["Swimsuits", "Flip Flops", "Light Linen Shirts", "Bug Spray", "Sunglasses"]
+            },
+            city: {
+                name: "Tokyo Urban",
+                temp: "18°C",
+                desc: "Partly Cloudy",
+                items: ["Comfortable Shoes", "Power Bank", "Umbrella", "Universal Adapter", "Small Backpack"]
+            }
+        },
+        customItems: [] // User added items stay per session unless reset
+    };
+
+    let state = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+    // --- DOM ELEMENTS ---
+    const elements = {
+        destMenu: document.getElementById('destination-menu'),
+        listContainer: document.getElementById('packing-list'),
+        weatherDesc: document.getElementById('weather-desc'),
+        weatherLoc: document.getElementById('weather-loc'),
+        weatherTemp: document.getElementById('weather-temp'),
+        customInput: document.getElementById('custom-item-input'),
+        btnAdd: document.getElementById('btn-add'),
+        btnReset: document.getElementById('btn-reset'),
+        status: document.getElementById('status')
+    };
+
+    // --- CORE LOGIC ---
+    function init() {
+        renderDestinations();
+        renderChecklist();
+        updateUIState();
+    }
+
+    function renderDestinations() {
+        elements.destMenu.innerHTML = '';
+        Object.keys(state.destinations).forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = `dest-option ${state.currentDestKey === key ? 'active' : ''}`;
+            btn.textContent = state.destinations[key].name;
+            btn.onclick = () => setDestination(key);
+            elements.destMenu.appendChild(btn);
+        });
+    }
+
+    function renderChecklist() {
+        elements.listContainer.innerHTML = '';
+        const destData = state.destinations[state.currentDestKey];
+        
+        // Combine default items and user custom items
+        const allItems = [...destData.items, ...state.customItems];
+
+        if (allItems.length === 0) {
+            elements.listContainer.innerHTML = '<li style="color:#94a3b8; text-align:center; padding: 20px;">No items yet</li>';
+            return;
+        }
+
+        allItems.forEach((itemText, index) => {
+            const li = document.createElement('li');
+            li.className = 'item-row';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            // We track completion by checking if the text matches exactly (simple approach for this scope)
+            checkbox.checked = false; 
+            checkbox.onchange = (e) => toggleItem(itemText, e.target.checked);
+
+            const label = document.createElement('label');
+            label.textContent = itemText;
+            label.onclick = () => checkbox.click();
+
+            li.appendChild(checkbox);
+            li.appendChild(label);
+            elements.listContainer.appendChild(li);
+        });
+    }
+
+    function setDestination(key) {
+        state.currentDestKey = key;
+        renderDestinations();
+        renderChecklist();
+        updateUIState(`Switched view to ${state.destinations[key].name}`);
+    }
+
+    function addItem() {
+        const val = elements.customInput.value.trim();
+        if (val) {
+            state.customItems.push(val);
+            elements.customInput.value = '';
+            renderChecklist();
+            updateUIState(`Added "${val}" to pack list`);
+        }
+    }
+
+    function toggleItem(text, checked) {
+        // In this simple version, we just log the interaction as "checking off" doesn't persist 
+        // across destination swaps in this specific logic, but UI updates visually.
+        updateUIState(`Marked "${text}" as ${checked ? 'packed' : 'needed'}`);
+    }
+
+    function resetApp() {
+        state = JSON.parse(JSON.stringify(INITIAL_STATE));
+        init();
+        updateUIState("All settings restored.");
+    }
+
+    function updateUIState(msg) {
+        elements.status.textContent = msg || "Ready.";
+    }
+
+    // --- EVENT LISTENERS ---
+    elements.btnAdd.addEventListener('click', addItem);
+    elements.btnReset.addEventListener('click', resetApp);
+    elements.customInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addItem();
+    });
+
+    // Initialize on load
+    window.onload = init;
+
+</script>
+</body>
+</html>

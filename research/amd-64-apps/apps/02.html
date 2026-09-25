@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compound Studio</title>
+    <style>
+        :root {
+            --bg-color: #fdfaf5; /* Warm Ivory */
+            --forest-green: #2d4c3e;
+            --accent-green: #4a7c59;
+            --text-dark: #2c2c2c;
+            --border-color: #dcdcdc;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            height: 600px;
+            background: var(--white);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+        }
+
+        /* Sidebar Controls */
+        .sidebar {
+            background-color: var(--forest-green);
+            color: var(--white);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .button-stack {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: opacity 0.2s ease;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        #primaryBtn {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        #resetBtn {
+            background-color: transparent;
+            color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        #resetBtn:hover {
+            color: white;
+            border-color: white;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            padding: 30px;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .results-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--forest-green);
+        }
+
+        .chart-container {
+            position: relative;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            min-height: 250px;
+            display: flex;
+            align-items: flex-end;
+            padding: 20px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .formula-panel {
+            font-family: monospace;
+            font-size: 0.9rem;
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            color: #555;
+        }
+
+        #status {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th {
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            padding: 5px;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        @media (max-width: 800px) {
+            #app-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                grid-template-rows: auto auto;
+            }
+            .sidebar { height: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside class="sidebar">
+        <h1>Compound Studio</h1>
+        
+        <div class="input-group">
+            <label for="initialBalance">Initial Balance ($)</label>
+            <input type="number" id="initialBalance" value="1000">
+        </div>
+
+        <div class="input-group">
+            <label for="annualRate">Annual Return (%)</label>
+            <input type="number" id="annualRate" step="0.1" value="5">
+        </div>
+
+        <div class="input-group">
+            <label for="yearsCount">Years</label>
+            <input type="number" id="yearsCount" value="10">
+        </div>
+
+        <div class="button-stack">
+            <button id="primaryBtn" data-testid="primary-action">Calculate</button>
+            <button id="resetBtn" data-testid="reset">Reset</button>
+        </div>
+
+        <div id="status" data-testid="status">Ready</div>
+    </aside>
+
+    <main class="main-content">
+        <section class="results-summary">
+            <div class="stat-card">
+                <div class="stat-label">Final Balance</div>
+                <div id="finalBalanceDisplay" class="stat-value">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Profit</div>
+                <div id="profitDisplay" class="stat-value">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Growth Multiplier</div>
+                <div id="multiplierDisplay" class="stat-value">0.00x</div>
+            </div>
+        </section>
+
+        <section class="chart-container">
+            <svg id="growthChart" viewBox="0 0 500 200" preserveAspectRatio="none">
+                <!-- Chart elements injected by JS -->
+            </svg>
+        </section>
+
+        <section class="details-footer">
+            <div class="formula-panel" id="formulaText">
+                A = P(1 + r)^t
+            </div>
+            <div style="margin-top: 10px;">
+                <table id="yearlyTable">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Balance</th>
+                            <th>Interest</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // --- State Management ---
+    const initialState = {
+        initialBalance: 1000,
+        annualRate: 5,
+        years: 10
+    };
+
+    let state = { ...initialState };
+
+    // --- DOM References ---
+    const dom = {
+        initialBalance: document.getElementById('initialBalance'),
+        annualRate: document.getElementById('annualRate'),
+        yearsCount: document.getElementById('yearsCount'),
+        primaryBtn: document.getElementById('primaryBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        status: document.getElementById('status'),
+        finalBalanceDisplay: document.getElementById('finalBalanceDisplay'),
+        profitDisplay: document.getElementById('profitDisplay'),
+        multiplierDisplay: document.getElementById('multiplierDisplay'),
+        growthChart: document.getElementById('growthChart'),
+        formulaText: document.getElementById('formulaText'),
+        yearlyTableBody: document.querySelector('#yearlyTable tbody')
+    };
+
+    // --- Logic & Calculation ---
+    function calculate() {
+        const P = parseFloat(dom.initialBalance.value) || 0;
+        const r = (parseFloat(dom.annualRate.value) || 0) / 100;
+        const t = parseInt(dom.yearsCount.value) || 0;
+
+        const history = [];
+        let currentBalance = P;
+
+        // Year 0 initialization
+        history.push({ year: 0, balance: P, interest: 0 });
+
+        for (let i = 1; i <= t; i++) {
+            const interestEarned = currentBalance * r;
+            currentBalance += interestEarned;
+            history.push({
+                year: i,
+                balance: currentBalance,
+                interest: interestEarned
+            });
+        }
+
+        renderResults(history, P, r, t);
+        updateStatus("Calculation Complete");
+    }
+
+    function reset() {
+        state = { ...initialState };
+        dom.initialBalance.value = state.initialBalance;
+        dom.annualRate.value = state.annualRate;
+        dom.yearsCount.value = state.years;
+        calculate();
+        updateStatus("Settings Reset");
+    }
+
+    // --- Rendering Functions ---
+    function renderResults(history, principal, rate, totalYears) {
+        const finalVal = history[history.length - 1].balance;
+        const profit = finalVal - principal;
+        const multiplier = principal !== 0 ? (finalVal / principal) : 0;
+
+        // Text displays
+        dom.finalBalanceDisplay.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(finalVal);
+        dom.profitDisplay.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(profit);
+        dom.multiplierDisplay.textContent = multiplier.toFixed(2) + 'x';
+
+        // Formula text update
+        const rPct = (rate * 100).toFixed(1);
+        dom.formulaText.textContent = `Formula: ${principal.toLocaleString()} × (1 + ${rPct}/100)${totalYears}`;
+
+        // Table update
+        dom.yearlyTableBody.innerHTML = '';
+        history.slice(1).forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.year}</td>
+                <td>$${row.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>$${row.interest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            `;
+            dom.yearlyTableBody.appendChild(tr);
+        });
+
+        // SVG Chart generation
+        drawChart(history);
+    }
+
+    function drawChart(history) {
+        const width = 500;
+        const height = 200;
+        const padding = 10;
+        
+        if (history.length < 2) {
+            dom.growthChart.innerHTML = '';
+            return;
+        }
+
+        const maxVal = Math.max(...history.map(h => h.balance));
+        const minVal = 0;
+        const points = history.map((h, idx) => {
+            const x = (idx / (history.length - 1)) * (width - padding * 2) + padding;
+            const y = height - ((h.balance - minVal) / (maxVal - minVal) * (height - padding * 2) + padding);
+            return `${x},${y}`;
+        }).join(' ');
+
+        dom.growthChart.innerHTML = `
+            <polyline fill="none" stroke="#4a7c59" stroke-width="3" points="${points}" />
+            ${history.map((h, idx) => {
+                const x = (idx / (history.length - 1)) * (width - padding * 2) + padding;
+                const y = height - ((h.balance - minVal) / (maxVal - minVal) * (height - padding * 2) + padding);
+                return `<circle cx="${x}" cy="${y}" r="3" fill="#2d4c3e" />`;
+            }).join('')}
+        `;
+    }
+
+    function updateStatus(msg) {
+        dom.status.textContent = msg;
+    }
+
+    // --- Event Listeners ---
+    dom.primaryBtn.addEventListener('click', () => {
+        calculate();
+    });
+
+    dom.resetBtn.addEventListener('click', () => {
+        reset();
+    });
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+        calculate();
+    });
+
+</script>
+
+</body>
+</html>

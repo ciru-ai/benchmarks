@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Launch Mission Control</title>
+    <style>
+        :root {
+            --space-black: #05070a;
+            --star-white: #f0f4ff;
+            --accent-blue: #00d2ff;
+            --accent-orange: #ff8c00;
+            --ui-panel: rgba(20, 25, 35, 0.85);
+            --text-main: #e0e6ed;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--space-black);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%);
+            border: 2px solid #333;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: 1fr 180px;
+            overflow: hidden;
+        }
+
+        /* Orbital View Area */
+        #visualizer {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            background: var(--ui-panel);
+            border-left: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .mission-card {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .mission-card h3 { margin: 0 0 5px 0; font-size: 1rem; color: var(--accent-blue); }
+        .mission-card p { margin: 0; font-size: 0.85rem; opacity: 0.8; line-height: 1.4; }
+
+        .tabs { display: flex; gap: 5px; }
+        .tab-btn {
+            flex: 1;
+            background: #222;
+            border: none;
+            color: white;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+        .tab-btn.active { background: var(--accent-blue); color: black; font-weight: bold; }
+
+        /* Bottom Timeline Bar */
+        #timeline-bar {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            background: rgba(0,0,0,0.6);
+            border-top: 1px solid #333;
+            padding: 15px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-orange));
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        [data-testid="primary-action"] {
+            background: var(--accent-orange);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+        }
+
+        [data-testid="reset"] {
+            background: transparent;
+            color: #aaa;
+            border: 1px solid #444;
+        }
+
+        [data-testid="reset"]:hover { border-color: #fff; color: #fff; }
+
+        #status {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .visible { display: flex !important; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- Visualizer Canvas -->
+    <div id="visualizer">
+        <canvas id="orbitCanvas"></canvas>
+        <div id="msg-overlay" class="overlay">
+            <h1 id="overlay-title" style="font-size: 3rem; margin: 0;">MISSION COMPLETE</h1>
+            <p id="overlay-subtext">Orbital insertion successful.</p>
+        </div>
+    </div>
+
+    <!-- Sidebar Content -->
+    <aside id="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(0)">Satellites</button>
+            <button class="tab-btn" onclick="switchTab(1)">Cargo</button>
+            <button class="tab-btn" onclick="switchTab(2)">Crew</button>
+        </div>
+
+        <div id="mission-info">
+            <div class="mission-card" id="card-0">
+                <h3>Starlink Deployment</h3>
+                <p>Deploying constellation nodes into Low Earth Orbit (LEO).</p>
+            </div>
+            <div class="mission-card" id="card-1" style="display:none;">
+                <h3>Mars Logistics</h3>
+                <p>Transferring essential supplies to Ares Station.</p>
+            </div>
+            <div class="mission-card" id="card-2" style="display:none;">
+                <h3>Artemis Return</h3>
+                <p>Retrieving lunar samples via splashdown protocol.</p>
+            </div>
+        </div>
+
+        <div>
+            <label style="font-size: 0.7rem; text-transform: uppercase; color: #666;">System Status</label>
+            <div id="status" data-testid="status">READY FOR LAUNCH</div>
+        </div>
+
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+            <button id="launchBtn" data-testid="primary-action">Initiate Sequence</button>
+            <button id="resetBtn" data-testid="reset">Reset System</button>
+        </div>
+    </aside>
+
+    <!-- Bottom Progress Section -->
+    <footer id="timeline-bar">
+        <div class="progress-track">
+            <div id="progress-fill"></div>
+        </div>
+        <div class="controls-row">
+            <span style="font-family: monospace; font-size: 0.8rem;" id="telemetry">T+ 00:00:00</span>
+            <span style="font-size: 0.7rem; color: #555;">ORBITAL ASCENT PROGRESSION</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    /**
+     * APPLICATION STATE
+     */
+    const State = {
+        phase: 'IDLE', // IDLE, ASCENDING, ORBITAL, FINISHED
+        progress: 0,   // 0 to 100
+        timer: 0,      // seconds elapsed
+        currentTab: 0,
+        animationFrame: null,
+        lastUpdate: 0
+    };
+
+    const MISSION_DATA = [
+        { title: "Starlink Deployment", desc: "Deploying constellation nodes into LEO." },
+        { title: "Mars Logistics", desc: "Transferring essential supplies to Ares Station." },
+        { title: "Artemis Return", desc: "Retrieving lunar samples via splashdown protocol." }
+    ];
+
+    // DOM Elements
+    const canvas = document.getElementById('orbitCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.querySelector('[data-testid="status"]');
+    const progressFill = document.getElementById('progress-fill');
+    const telemetryEl = document.getElementById('telemetry');
+    const launchBtn = document.getElementById('launchBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const overlay = document.getElementById('msg-overlay');
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlaySub = document.getElementById('overlay-subtext');
+
+    /**
+     * CORE LOGIC
+     */
+
+    function init() {
+        resize();
+        window.addEventListener('resize', resize);
+        renderLoop();
+    }
+
+    function resize() {
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    }
+
+    function switchTab(idx) {
+        State.currentTab = idx;
+        document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+        for(let i=0; i<3; i++) {
+            document.getElementById(`card-${i}`).style.display = (i === idx) ? 'block' : 'none';
+        }
+    }
+
+    function startLaunch() {
+        if (State.phase !== 'IDLE') return;
+        
+        State.phase = 'ASCENDING';
+        updateStatus("IGNITION SEQUENCE STARTING...");
+        launchBtn.disabled = true;
+        launchBtn.style.opacity = "0.5";
+        overlay.classList.remove('visible');
+    }
+
+    function resetApp() {
+        cancelAnimationFrame(State.animationFrame);
+        State.phase = 'IDLE';
+        State.progress = 0;
+        State.timer = 0;
+        State.lastUpdate = Date.now();
+        
+        progressFill.style.width = '0%';
+        telemetryEl.innerText = `T+ 00:00:00`;
+        updateStatus("SYSTEM READY");
+        launchBtn.disabled = false;
+        launchBtn.style.opacity = "1";
+        overlay.classList.remove('visible');
+    }
+
+    function updateStatus(msg) {
+        statusEl.innerText = msg.toUpperCase();
+    }
+
+    function formatTime(sec) {
+        const s = Math.floor(sec % 60).toString().padStart(2, '0');
+        const m = Math.floor((sec / 60) % 60).toString().padStart(2, '0');
+        return `T+ 00:${m}:${s}`;
+    }
+
+    function updateLogic(delta) {
+        if (State.phase === 'ASCENDING' || State.phase === 'ORBITAL') {
+            State.timer += delta / 1000;
+            
+            // Logic mapping time to progress
+            // Ascent takes ~10s, Orbit stabilization takes ~5s
+            if (State.phase === 'ASCENDING') {
+                State.progress = (State.timer / 10) * 50; // Up to 50%
+                if (State.timer >= 10) {
+                    State.phase = 'ORBITAL';
+                    updateStatus("ORBITAL INSERTION IN PROGRESS");
+                }
+            } else if (State.phase === 'ORBITAL') {
+                State.progress = 50 + ((State.timer - 10) / 5) * 50;
+                if (State.progress >= 100) {
+                    State.progress = 100;
+                    completeMission();
+                }
+            }
+        }
+
+        // Update UI elements based on math
+        progressFill.style.width = `${State.progress}%`;
+        telemetryEl.innerText = formatTime(State.timer);
+    }
+
+    function completeMission() {
+        State.phase = 'FINISHED';
+        updateStatus("MISSION SUCCESSFUL");
+        overlayTitle.innerText = "MISSION COMPLETE";
+        overlaySub.innerText = "Stable orbit achieved successfully.";
+        overlay.classList.add('visible');
+    }
+
+    /**
+     * VISUALS (CANVAS ANIMATION)
+     */
+    function renderLoop(timestamp) {
+        const delta = timestamp - (State.lastUpdate || timestamp);
+        State.lastUpdate = timestamp;
+
+        updateLogic(delta);
+        draw(timestamp);
+
+        State.animationFrame = requestAnimationFrame(renderLoop);
+    }
+
+    function draw(t) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // Draw Stars
+        ctx.fillStyle = "#ffffff";
+        for(let i=0; i<50; i++) {
+            const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * canvas.width;
+            const y = (Math.cos(i * 567.89) * 0.5 + 0.5) * canvas.height;
+            const size = (Math.sin(t / 1000 + i) * 1 + 1.5);
+            ctx.globalAlpha = 0.3 + Math.abs(Math.sin(t/1000 + i)) * 0.5;
+            ctx.fillRect(x, y, size, size);
+        }
+        ctx.globalAlpha = 1.0;
+
+        // Draw Planet (Earth/Target)
+        const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 150);
+        grad.addColorStop(0, '#1a4a8e');
+        grad.addColorStop(1, '#05070a');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 150, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Atmospheric Glow
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.2)';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 155, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Satellite Path
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 220, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Rocket / Satellite Object
+        const angleOffset = (State.timer * 0.5) + (State.progress * 0.1);
+        const radius = 150 + (State.progress > 50 ? 70 : State.progress * 1.4);
+        const rx = cx + Math.cos(angleOffset) * radius;
+        const ry = cy + Math.sin(angleOffset) * radius;
+
+        // Drawing the vessel
+        ctx.save();
+        ctx.translate(rx, ry);
+        ctx.rotate(angleOffset + Math.PI/2);
+
+        // Vessel Body
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(-5, 15);
+        ctx.lineTo(0, -10);
+        ctx.lineTo(5, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Engine Flame (only during ascent)
+        if (State.phase === 'ASCENDING') {
+            const flameSize = 10 + Math.random() * 10;
+            const grd = ctx.createLinearGradient(0, 15, 0, 15 + flameSize);
+            grd.addColorStop(0, '#ff8c00');
+            grd.addColorStop(1, 'transparent');
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.moveTo(-4, 15);
+            ctx.lineTo(0, 15 + flameSize);
+            ctx.lineTo(4, 15);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // Event Listeners
+    launchBtn.addEventListener('click', startLaunch);
+    resetBtn.addEventListener('click', resetApp);
+
+    // Start App
+    init();
+
+</script>
+</body>
+</html>

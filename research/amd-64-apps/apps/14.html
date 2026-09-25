@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantry Ratio - Recipe Scaler</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #fef3c7;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            min-height: 600px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 24px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .controls-bar {
+            padding: 16px 24px;
+            background: #f1f5f9;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        label { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); }
+        input[type="number"], select {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        #primary-btn { background: var(--primary); color: white; }
+        #primary-btn:hover { background: var(--primary-hover); }
+        #reset-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+        #reset-btn:hover { background: #fee2e2; color: #dc2626; }
+        
+        main { padding: 24px; flex-grow: 1; }
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .ingredient-card {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            position: relative;
+        }
+        .ing-name { font-weight: 700; display: block; margin-bottom: 4px; }
+        .ing-qty { font-size: 1.2rem; color: var(--primary); font-weight: 800; }
+        .ing-unit { font-size: 0.85rem; color: var(--text-muted); margin-left: 4px; }
+        
+        footer {
+            padding: 12px 24px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+        [data-testid="status"]::before { content: "● "; color: #10b981; }
+        @media (max-width: 600px) {
+            .controls-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <div>
+            <h1>Pantry Ratio</h1>
+            <p style="margin:4px 0 0 0; font-size:0.9rem; color:var(--text-muted)">Precision Recipe Scaling Engine</p>
+        </div>
+        <button class="btn" id="reset-btn" data-testid="reset">Reset App</button>
+    </header>
+
+    <section class="controls-bar">
+        <div class="control-group">
+            <label for="servings-input">Servings</label>
+            <input type="number" id="servings-input" value="4" min="1" max="100">
+        </div>
+        <div class="control-group">
+            <label for="unit-toggle">Unit System</label>
+            <select id="unit-toggle">
+                <option value="metric">Metric (g)</option>
+                <option value="imperial">Imperial (oz)</option>
+            </select>
+        </div>
+        <button class="btn" id="primary-btn" data-testid="primary-action">Recalculate Ingredients</button>
+    </section>
+
+    <main>
+        <div class="recipe-grid" id="ingredient-list">
+            <!-- Dynamic Content -->
+        </div>
+    </main>
+
+    <footer>
+        <span data-testid="status">Ready</span>
+        <span>Seed Data: Fluffy Pancakes v1.0</span>
+    </footer>
+</div>
+
+<script>
+/**
+ * APP STATE & CONFIGURATION
+ */
+const INITIAL_STATE = {
+    servings: 4,
+    units: 'metric', // metric | imperial
+};
+
+// Base ingredients defined for 4 servings (the seed state)
+// Values stored in Grams (standard base)
+const BASE_RECIPE = [
+    { name: "All-purpose Flour", qty: 250, unitLabel: "g" },
+    { name: "Whole Milk", qty: 300, unitLabel: "ml" },
+    { name: "Granulated Sugar", qty: 50, unitLabel: "g" },
+    { name: "Unsalted Butter", qty: 45, unitLabel: "g" },
+    { name: "Large Eggs", qty: 2, unitLabel: "" },
+    { name: "Baking Powder", qty: 10, unitLabel: "g" },
+    { name: "Salt", qty: 5, unitLabel: "g" }
+];
+
+let currentState = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+/**
+ * DOM ELEMENTS
+ */
+const el = {
+    servingsInput: document.getElementById('servings-input'),
+    unitToggle: document.getElementById('unit-toggle'),
+    primaryBtn: document.getElementById('primary-btn'),
+    resetBtn: document.getElementById('reset-btn'),
+    ingredientList: document.getElementById('ingredient-list'),
+    statusText: document.querySelector('[data-testid="status"]')
+};
+
+/**
+ * LOGIC
+ */
+function convertValue(value, targetSystem) {
+    // If it's already whole units like eggs, don't convert weight logic
+    if (!isNaN(value) && !Number.isInteger(value)) return value; 
+    
+    // Simplified conversion for demo purposes: 1g approx 0.035 oz
+    // In real apps we'd use more complex density math, but this meets requirements
+    return value === 0 ? 0 : parseFloat((value * 0.035274).toFixed(2));
+}
+
+function render() {
+    el.ingredientList.innerHTML = '';
+    
+    BASE_RECIPE.forEach(item => {
+        // Calculate scaled quantity based on servings ratio
+        const ratio = currentState.servings / 4;
+        let scaledQty = item.qty * ratio;
+        let unitDisplay = item.unitLabel;
+
+        if (currentState.units === 'imperial') {
+            if (['g', 'ml'].includes(item.unitLabel)) {
+                scaledQty = convertValue(scaledQty, 'imperial');
+                unitDisplay = 'oz';
+            } else if (item.unitLabel === "") {
+                // For things like eggs, just scale the number
+            }
+        } else {
+            if (['oz'].includes(item.unitLabel)) {
+                 // Convert back to metric if user switches back
+                 scaledQty = scaledQty / 0.035274;
+                 unitDisplay = 'g';
+            }
+        }
+
+        const card = document.createElement('div');
+        card.className = 'ingredient-card';
+        card.innerHTML = `
+            <span class="ing-name">${item.name}</span>
+            <span class="ing-qty">${Math.round(scaledQty)}</span>
+            <span class="ing-unit">${unitDisplay}</span>
+        `;
+        el.ingredientList.appendChild(card);
+    });
+
+    el.statusText.textContent = `Scaling ${currentState.servings} servings (${currentState.units})`;
+}
+
+function handlePrimaryAction() {
+    // Sync input values to state
+    currentState.servings = parseInt(el.servingsInput.value) || 1;
+    currentState.units = el.unitToggle.value;
+    render();
+}
+
+function resetApp() {
+    currentState = JSON.parse(JSON.stringify(INITIAL_STATE));
+    el.servingsInput.value = currentState.servings;
+    el.unitToggle.value = currentState.units;
+    render();
+}
+
+/**
+ * EVENTS & INIT
+ */
+function init() {
+    // Initial Render
+    render();
+
+    // Event Listeners
+    el.primaryBtn.addEventListener('click', handlePrimaryAction);
+    el.resetBtn.addEventListener('click', resetApp);
+    
+    // Optional: Real-time updates on inputs can be added here, 
+    // but requirement asks for Primary Action to trigger calculation.
+    el.servingsInput.addEventListener('change', () => {
+        if(el.servingsInput.value < 1) el.servingsInput.value = 1;
+    });
+}
+
+// Ensure elements exist before running
+window.addEventListener('DOMContentLoaded', () => {
+    if (el.primaryBtn && el.resetBtn && el.ingredientList) {
+        init();
+    } else {
+        console.error("Critical UI components missing.");
+    }
+});
+
+</script>
+</body>
+</html>

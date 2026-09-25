@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Index Pro</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --primary: #e11d48;
+            --primary-dark: #be123c;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #fdf2f8;
+        }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #app-container { width: 100%; max-width: 960px; min-height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+        header { padding: 24px; border-bottom: 1px solid var(--border); background: white; }
+        h1 { margin: 0 0 16px 0; font-size: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        input[type="search"] { padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; width: 250px; outline: none; transition: border-color 0.2s; }
+        input[type="search"]:focus { border-color: var(--primary); }
+        .tabs { display: flex; gap: 8px; margin-top: 20px; }
+        .tab-btn { padding: 6px 16px; border: none; background: transparent; cursor: pointer; border-radius: 20px; font-weight: 500; color: var(--text-muted); transition: all 0.2s; }
+        .tab-btn.active { background: var(--accent); color: var(--primary); }
+        .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 24px; overflow-y: auto; flex-grow: 1; max-height: 450px; }
+        .recipe-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+        .recipe-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); }
+        .recipe-img { height: 140px; width: 100%; background: #cbd5e1; position: relative; }
+        .recipe-info { padding: 16px; }
+        .recipe-name { margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 600; }
+        .recipe-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; }
+        .favorite-toggle { position: absolute; top: 10px; right: 10px; z-index: 10; background: white; border-radius: 50%; padding: 5px; cursor: pointer; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .fav-icon { fill: #ccc; transition: fill 0.2s; }
+        .is-fav .fav-icon { fill: var(--primary); }
+        .ingredient-list { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); list-style: none; padding-left: 0; }
+        .ingredient-list li { font-size: 0.85rem; padding: 2px 0; color: var(--text-muted); }
+        .expand-btn { background: none; border: none; color: var(--primary); font-size: 0.8rem; cursor: pointer; padding: 0; text-decoration: underline; }
+        footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fcfcfc; }
+        button.primary-action { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        button.primary-action:hover { background: var(--primary-dark); }
+        button.reset-btn { background: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        #status { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        @media (max-width: 600px) {
+            .recipe-grid { grid-template-columns: 1fr; }
+            input[type="search"] { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0 4-4H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1-4-4H2"/></svg>
+            Chef's Index
+        </h1>
+        <div class="controls">
+            <input type="search" id="searchField" placeholder="Search ingredients or recipes...">
+            <div class="tabs" id="categoryTabs"></div>
+        </div>
+    </header>
+
+    <main class="recipe-grid" id="recipeGrid"></main>
+
+    <footer>
+        <span id="status" data-testid="status">Initializing...</span>
+        <div style="display:flex; gap:10px;">
+            <button class="reset-btn" id="resetBtn" data-testid="reset">Reset App</button>
+            <button class="primary-action" id="primaryActionBtn" data-testid="primary-action">Favorite Selected</button>
+        </div>
+    </footer>
+</div>
+
+<script>
+const INITIAL_DATA = [
+    { id: 1, name: "Summer Pasta", cat: "Italian", desc: "Light garlic and olive oil pasta.", fav: false, ing: ["Spaghetti", "Garlic", "Olive Oil", "Chili Flakes"] },
+    { id: 2, name: "Avocado Toast", cat: "Breakfast", desc: "Creamy avocado on sourdough bread.", fav: false, ing: ["Bread", "Avocado", "Lemon", "Sea Salt"] },
+    { id: 3, name: "Beef Tacos", cat: "Mexican", desc: "Classic ground beef tacos.", fav: true, ing: ["Tortillas", "Beef", "Cumin", "Lime"] },
+    { id: 4, name: "Greek Salad", cat: "Salad", desc: "Fresh feta and cucumber salad.", fav: false, ing: ["Cucumber", "Tomato", "Feta", "Olives"] },
+    { id: 5, name: "Berry Smoothie", cat: "Breakfast", desc: "Quick morning energy boost.", fav: false, ing: ["Blueberries", "Banana", "Milk", "Honey"] },
+    { id: 6, name: "Margherita Pizza", cat: "Italian", desc: "Authentic Neapolitan style.", fav: false, ing: ["Dough", "Mozzarella", "Basil", "Tomato Sauce"] },
+    { id: 7, name: "Quinoa Bowl", cat: "Salad", desc: "Nutritious grain bowl with veggies.", fav: false, ing: ["Quinoa", "Chickpeas", "Spinach", "Tahini"] },
+    { id: 8, name: "Chicken Curry", cat: "Indian", desc: "Rich coconut milk curry.", fav: false, ing: ["Chicken", "Coconut Milk", "Curry Powder", "Onion"] }
+];
+
+let state = {
+    recipes: JSON.parse(JSON.stringify(INITIAL_DATA)),
+    filter: 'All',
+    searchQuery: '',
+    selectedId: null
+};
+
+function render() {
+    const grid = document.getElementById('recipeGrid');
+    const statusEl = document.getElementById('status');
+    const tabsContainer = document.getElementById('categoryTabs');
+    
+    // Update Status
+    const favCount = state.recipes.filter(r => r.fav).length;
+    statusEl.textContent = `Showing ${state.recipes.filter(r => (state.filter === 'All' || r.cat === state.filter) && r.name.toLowerCase().includes(state.searchQuery.toLowerCase())).length} recipes | Favorites: ${favCount}`;
+
+    // Render Tabs
+    const cats = ['All', ...new Set(INITIAL_DATA.map(r => r.cat))];
+    tabsContainer.innerHTML = '';
+    cats.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${state.filter === cat ? 'active' : ''}`;
+        btn.textContent = cat;
+        btn.onclick = () => { state.filter = cat; render(); };
+        tabsContainer.appendChild(btn);
+    });
+
+    // Filter Recipes
+    const filtered = state.recipes.filter(r => {
+        const matchCat = state.filter === 'All' || r.cat === state.filter;
+        const matchSearch = r.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                             r.ing.some(i => i.toLowerCase().includes(state.searchQuery.toLowerCase()));
+        return matchCat && matchSearch;
+    });
+
+    // Render Grid
+    grid.innerHTML = '';
+    filtered.forEach(r => {
+        const card = document.createElement('div');
+        card.className = `recipe-card ${r.fav ? 'is-fav' : ''}`;
+        if (state.selectedId === r.id) card.style.borderColor = 'var(--primary)';
+        
+        card.innerHTML = `
+            <button class="favorite-toggle" onclick="event.stopPropagation(); toggleFav(${r.id})">
+                <svg class="fav-icon" width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            </button>
+            <div class="recipe-img" style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);"></div>
+            <div class="recipe-info" onclick="selectRecipe(${r.id})">
+                <p style="font-size: 0.7rem; color: var(--primary); margin: 0; font-weight: bold; text-transform: uppercase;">${r.cat}</p>
+                <h3 class="recipe-name">${r.name}</h3>
+                <p class="recipe-desc">${r.desc}</p>
+                <button class="expand-btn" onclick="event.stopPropagation(); toggleExpand(${r.id})">View Ingredients</button>
+                <ul class="ingredient-list" id="ing-${r.id}">
+                    ${r.ing.map(i => `<li>• ${i}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function toggleFav(id) {
+    const recipe = state.recipes.find(r => r.id === id);
+    if (recipe) {
+        recipe.fav = !recipe.fav;
+        render();
+    }
+}
+
+function selectRecipe(id) {
+    state.selectedId = id;
+    render();
+}
+
+function toggleExpand(id) {
+    const el = document.getElementById(`ing-${id}`);
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+document.getElementById('searchField').addEventListener('input', (e) => {
+    state.searchQuery = e.target.value;
+    render();
+});
+
+document.getElementById('primaryActionBtn').addEventListener('click', () => {
+    if (state.selectedId) {
+        const recipe = state.recipes.find(r => r.id === state.selectedId);
+        recipe.fav = true;
+        render();
+    }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    state = {
+        recipes: JSON.parse(JSON.stringify(INITIAL_DATA)),
+        filter: 'All',
+        searchQuery: '',
+        selectedId: null
+    };
+    document.getElementById('searchField').value = '';
+    render();
+});
+
+// Init
+window.onload = () => {
+    render();
+};
+</script>
+
+</body>
+</html>

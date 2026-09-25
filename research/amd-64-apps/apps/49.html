@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folded Signal</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --accent: #e94560;
+            --gold: #ffd700;
+            --violet: #483d8b;
+            --chrome: #bdc3c7;
+            --success: #00ff88;
+            --text: #ffffff;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            aspect-ratio: 960 / 600;
+            background: var(--panel);
+            border: 4px solid var(--violet);
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; }
+        #controls { display: flex; gap: 15px; align-items: center; }
+        button {
+            padding: 10px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        #primary-btn { background: var(--gold); color: #000; }
+        #reset-btn { background: #444; color: white; }
+        #status { font-family: monospace; font-size: 1.1rem; color: var(--gold); }
+        #game-canvas-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background: #0f0f1a;
+            border: 2px solid #333;
+            image-rendering: pixelated;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .win-msg { color: var(--success); font-size: 3rem; text-shadow: 0 0 10px var(--success); }
+        .lose-msg { color: var(--accent); font-size: 3rem; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <div>
+            <h1>Folded Signal</h1>
+            <div data-testid="status">Status: Ready</div>
+        </div>
+        <div id="controls">
+            <button id="primary-action" data-testid="primary-action">START PLAY</button>
+            <button id="reset" data-testid="reset">RESET</button>
+        </div>
+    </header>
+
+    <div id="game-canvas-wrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay" class="overlay">
+            <div id="message" class="win-msg">SUCCESS</div>
+            <p>Signal Received!</p>
+            <button onclick="location.reload()" style="background:var(--gold)">RETRY</button>
+        </div>
+    </div>
+
+    <footer>
+        <small>Goal: Guide signal from Left (Row 2) to Right Edge. Flip mirrors to change path.</small>
+    </footer>
+</div>
+
+<script>
+/**
+ * GAME LOGIC
+ * Grid size: 5x5
+ * Mirrors: Slash (/), Backslash (\)
+ * Directions: 0: North, 1: East, 2: South, 3: West
+ */
+
+const CANVAS_SIZE = 500;
+const GRID_COUNT = 5;
+const CELL_SIZE = CANVAS_SIZE / GRID_COUNT;
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.querySelector('[data-testid="status"]');
+const primaryBtn = document.getElementById('primary-action');
+const resetBtn = document.getElementById('reset');
+const overlay = document.getElementById('overlay');
+const msgEl = document.getElementById('message');
+
+canvas.width = CANVAS_SIZE;
+canvas.height = CANVAS_SIZE;
+
+let gameState = 'READY'; // READY, PLAYING, WON, LOST
+let flipsRemaining = 16;
+let mirrorStates = []; // 0: None, 1: '/', 2: '\'
+let beamPath = [];
+
+// Initial Setup: Solved Path Logic
+// Row 2 entry (1,1). Target (4,1).
+// Fixed paths logic used to generate "puzzle":
+// We want them to click mirrors to achieve this.
+// Let's define a target solution pattern first.
+// Mirror locations for solving: (1,1)->/, (1,2)->\, (2,2)->/, (2,3)->\, (3,3)->/, (3,1)->\ ... too complex.
+// Simplified Puzzle Map:
+// M[r][c] stores type: 0=empty, 1='/', 2='\'
+// Solution sequence: Start (1,1) -> Move East to (1,1)[Mirror '/'] -> Turn South to (2,1) [Mirror '\'] -> Turn East to (2,2) [Mirror '/'] -> Turn South to (3,2) [Mirror '\'] -> Turn East to (3,3) [Mirror '/'] -> Turn South to (4,3) [Target hit?]
+// Actually let's hardcode a specific solvable layout.
+const INITIAL_MIRRORS = [
+    [0,0,0,0,0],
+    [0,1,0,0,0], // (1,1) is '/'
+    [0,2,0,0,0], // (2,1) is '\'
+    [0,0,1,0,0], // (3,2) is '/'
+    [0,0,2,0,0]  // (4,2) is '\' - wait we need to reach side.
+];
+
+// Correct approach: Define a set of interactive mirror coords
+// Interactive mirrors: (1,1), (2,1), (2,2), (3,2), (3,3), (4,3) etc.
+// To keep it simple: User clicks any non-zero cell.
+
+function initGame() {
+    gameState = 'READY';
+    flipsRemaining = 16;
+    beamPath = [];
+    overlay.style.display = 'none';
+    
+    // Create a playable map where user needs to rotate mirrors
+    // 0: Empty, 1: /, 2: \
+    mirrorStates = Array(GRID_COUNT).fill().map(() => Array(GRID_COUNT).fill(0));
+    
+    // Set up a valid path for the player to discover
+    // Path: Enter (1,1) -> turn south via (1,1)'/' -> move down (2,1) -> turn east via (2,1)'\' -> move east (2,2) -> turn south via (2,2)'/' -> move south (3,2) -> turn east via (3,2)'\' -> move east (3,3) -> exit (3,4)
+    // Wait, input is Row 2 (idx 1), col 0. Exit is Col 4.
+    // Entry (1,0) -> (1,1) [/] -> (2,1) [\] -> (2,2) [/] -> (2,3) [\] -> (2,4) EXIT!
+    
+    // Let's place these as toggles. Initially they might be wrong.
+    // Defaulting them to something else to force interaction.
+    mirrorStates[1][1] = 2; // \
+    mirrorStates[2][1] = 1; // /
+    mirrorStates[2][2] = 2; // \
+    mirrorStates[2][3] = 1; // /
+    
+    updateUI();
+    draw();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    
+    // Draw Grid
+    ctx.strokeStyle = '#333';
+    for(let i=0; i<=GRID_COUNT; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i*CELL_SIZE, 0);
+        ctx.lineTo(i*CELL_SIZE, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i*CELL_SIZE);
+        ctx.lineTo(CANVAS_SIZE, i*CELL_SIZE);
+        ctx.stroke();
+    }
+
+    // Draw Beam
+    if (gameState !== 'READY') {
+        drawBeam();
+    }
+
+    // Draw Mirrors
+    for(let r=0; r<GRID_COUNT; r++) {
+        for(let c=0; c<GRID_COUNT; c++) {
+            if (mirrorStates[r][c] > 0) {
+                ctx.fillStyle = 'rgba(189, 195, 199, 0.8)';
+                ctx.fillRect(c*CELL_SIZE + 5, r*CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                if (mirrorStates[r][c] === 1) { // /
+                    ctx.moveTo(c*CELL_SIZE + 10, r*CELL_SIZE + CELL_SIZE - 10);
+                    ctx.lineTo(c*CELL_SIZE + CELL_SIZE - 10, r*CELL_SIZE + 10);
+                } else { // \
+                    ctx.moveTo(c*CELL_SIZE + 10, r*CELL_SIZE + 10);
+                    ctx.lineTo(c*CELL_SIZE + CELL_SIZE - 10, r*CELL_SIZE + CELL_SIZE - 10);
+                }
+                ctx.stroke();
+            }
+        }
+    }
+
+    // Draw Receiver (Right Edge)
+    ctx.fillStyle = '#00ff88';
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect((GRID_COUNT-1)*CELL_SIZE + 10, 0, 20, CANVAS_SIZE);
+    ctx.globalAlpha = 1.0;
+}
+
+function drawBeam() {
+    if (beamPath.length < 1) return;
+    
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#ffd700";
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    
+    let startX = 0;
+    let startY = 1 * CELL_SIZE + CELL_SIZE/2;
+    ctx.moveTo(startX, startY);
+
+    for(let i=1; i<beamPath.length; i++) {
+        ctx.lineTo(beamPath[i].x, beamPath[i].y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+}
+
+function traceBeam() {
+    let x = 0;
+    let y = 1 * CELL_SIZE + CELL_SIZE/2;
+    let dir = 1; // 0:N, 1:E, 2:S, 3:W
+    let steps = 0;
+    const maxSteps = 100;
+
+    beamPath = [{x, y}];
+
+    while (steps < maxSteps) {
+        steps++;
+        // Move based on direction
+        if (dir === 0) y -= CELL_SIZE;
+        else if (dir === 1) x += CELL_SIZE;
+        else if (dir === 2) y += CELL_SIZE;
+        else if (dir === 3) x -= CELL_SIZE;
+
+        // Bounds check
+        if (x < 0 || x >= CANVAS_SIZE || y < 0 || y >= CANVAS_SIZE) break;
+
+        beamPath.push({x, y});
+
+        // Collision detection with mirrors
+        const r = Math.floor(y / CELL_SIZE);
+        const c = Math.floor(x / CELL_SIZE);
+        
+        // Adjust for centering math
+        const adjustedC = (x % CELL_SIZE === 0 && x !== 0) ? c : c; 
+        // Since we increment by full cell sizes, we just check integer grid indices
+        const gridC = Math.floor(x / CELL_SIZE);
+        const gridR = Math.floor(y / CELL_SIZE);
+        
+        // If we land exactly on a mirror corner/center
+        // Because our movement is discrete, we actually should handle mid-points
+        // But simplified: we treat cells as nodes.
+        
+        // Re-calculating collision more robustly:
+        // We moved into a new cell. Is there a mirror?
+        // Note: In this implementation, X and Y represent the center of the next cell.
+        // However, my movement moves whole cell widths.
+        // Let's fix: Movement jumps to cell centers.
+    }
+}
+
+// REVISED TRACING LOGIC
+function runSimulation() {
+    beamPath = [];
+    let curR = 1;
+    let curC = 0;
+    let dir = 1; // E
+    let steps = 0;
+    const maxSteps = 50;
+
+    beamPath.push({x: curC * CELL_SIZE + CELL_SIZE/2, y: curR * CELL_SIZE + CELL_SIZE/2});
+
+    while (steps < maxSteps) {
+        steps++;
+        
+        // Attempt move
+        if (dir === 0) curR--;
+        else if (dir === 1) curC++;
+        else if (dir === 2) curR++;
+        else if (dir === 3) curC--;
+
+        // Hit Wall?
+        if (curR < 0 || curR >= GRID_COUNT || curC < 0 || curC >= GRID_COUNT) {
+            break;
+        }
+
+        beamPath.push({x: curC * CELL_SIZE + CELL_SIZE/2, y: curR * CELL_SIZE + CELL_SIZE/2});
+
+        // Handle Mirror Reflection
+        const mType = mirrorStates[curR][curC];
+        if (mType === 1) { // /
+            // N->E, E->N, S->W, W->S
+            if (dir === 0) dir = 1;
+            else if (dir === 1) dir = 0;
+            else if (dir === 2) dir = 3;
+            else if (dir === 3) dir = 2;
+        } else if (mType === 2) { // \
+            // N->W, W->N, S->E, E->S
+            if (dir === 0) dir = 3;
+            else if (dir === 3) dir = 0;
+            else if (dir === 2) dir = 1;
+            else if (dir === 1) dir = 2;
+        }
+
+        // Win condition: Reach Column 4
+        if (curC === 4) {
+            endGame(true);
+            return;
+        }
+    }
+
+    if (steps >= maxSteps) endGame(false);
+}
+
+function endGame(won) {
+    if (won) {
+        gameState = 'WON';
+        msgEl.innerText = "SIGNAL ACQUIRED!";
+        msgEl.className = "win-msg";
+        overlay.style.display = 'flex';
+    } else {
+        gameState = 'LOST';
+        msgEl.innerText = "SIGNAL LOST";
+        msgEl.className = "lose-msg";
+        overlay.style.display = 'flex';
+    }
+    updateUI();
+}
+
+function updateUI() {
+    if (gameState === 'PLAYING') {
+        statusEl.innerText = `Flipping Remaining: ${flipsRemaining}`;
+    } else if (gameState === 'READY') {
+        statusEl.innerText = "Status: Ready to Deploy";
+    } else {
+        statusEl.innerText = gameState;
+    }
+}
+
+function handleClick(e) {
+    if (gameState !== 'PLAYING') return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+    const c = Math.floor(clientX / (rect.width / GRID_COUNT));
+    const r = Math.floor(clientY / (rect.height / GRID_COUNT));
+
+    if (mirrorStates[r][c] !== undefined && mirrorStates[r][c] !== 0) {
+        // Toggle mirror
+        mirrorStates[r][c] = mirrorStates[r][c] === 1 ? 2 : 1;
+        flipsRemaining--;
+        runSimulation();
+        updateUI();
+        draw();
+
+        if (flipsRemaining <= 0 && gameState !== 'WON') {
+            endGame(false);
+        }
+    }
+}
+
+function startPlay() {
+    gameState = 'PLAYING';
+    flipsRemaining = 16;
+    runSimulation();
+    updateUI();
+    draw();
+}
+
+function reset() {
+    initGame();
+}
+
+// Event Listeners
+primaryBtn.addEventListener('click', () => {
+    if (gameState === 'READY') startPlay();
+});
+
+resetBtn.addEventListener('click', reset);
+
+canvas.addEventListener('mousedown', handleClick);
+
+// Initialization
+initGame();
+
+</script>
+</body>
+</html>

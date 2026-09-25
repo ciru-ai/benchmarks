@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rally</title>
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --panel: #161625;
+            --accent-cyan: #00f2ff;
+            --accent-coral: #ff4d4d;
+            --text: #e0e0ff;
+            --toolbar-h: 60px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #toolbar {
+            width: 100%;
+            height: var(--toolbar-h);
+            background: var(--panel);
+            border-bottom: 2px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+
+        .stats-group {
+            display: flex;
+            gap: 30px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: transform 0.1s, opacity 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #primaryBtn {
+            background-color: var(--accent-cyan);
+            color: var(--bg);
+        }
+
+        #resetBtn {
+            background-color: transparent;
+            border: 1px solid var(--accent-coral);
+            color: var(--accent-coral);
+        }
+
+        #status {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            max-width: 95vw;
+            max-height: calc(100vh - var(--toolbar-h) - 40px);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <div class="stats-group">
+            <div>Score: <span id="scoreVal">0</span></div>
+            <div>Lives: <span id="livesVal">3</span></div>
+        </div>
+        <div id="status" data-testid="status">READY</div>
+        <div class="controls">
+            <button id="primaryBtn" data-testid="primary-action">Play</button>
+            <button id="resetBtn" data-testid="reset">Reset</button>
+        </div>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="instructions">Move Mouse / Arrows to control Paddle • Break Bricks • Don't let Ball escape</div>
+
+    <script>
+        /**
+         * NEON RALLY - CORE LOGIC
+         */
+
+        const STATE = {
+            phase: 'ready', // ready, playing, won, lost
+            score: 0,
+            lives: 3,
+            lastTime: 0,
+            dt: 0,
+            entities: []
+        };
+
+        // Configuration Constants
+        const CONFIG = {
+            PADDLE_WIDTH: 120,
+            PADDLE_HEIGHT: 12,
+            BALL_RADIUS: 7,
+            BRICK_ROWS: 4,
+            BRICK_COLS: 8,
+            BRICK_PADDING: 10,
+            BRICK_OFFSET_TOP: 60,
+            BRICK_OFFSET_LEFT: 50,
+            BASE_SPEED: 350
+        };
+
+        const dom = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: document.getElementById('gameCanvas').getContext('2d'),
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            scoreVal: document.getElementById('scoreVal'),
+            livesVal: document.getElementById('livesVal')
+        };
+
+        let animationFrameId = null;
+        let mouseX = 480;
+        let paddleX = 420;
+        let keys = {};
+
+        // Entities
+        let ball = { x: 0, y: 0, dx: 0, dy: 0 };
+        let paddle = { x: 420, w: CONFIG.PADDLE_WIDTH };
+        let bricks = [];
+
+        function init() {
+            // Set Logical Dimensions (Internal Resolution)
+            dom.canvas.width = 960;
+            dom.canvas.height = 600;
+
+            resetGame();
+            setupListeners();
+        }
+
+        function setupListeners() {
+            dom.primaryBtn.addEventListener('click', startGame);
+            dom.resetBtn.addEventListener('click', resetGame);
+
+            window.addEventListener('mousemove', e => {
+                const rect = dom.canvas.getBoundingClientRect();
+                const scaleX = dom.canvas.width / rect.width;
+                mouseX = ((e.clientX - rect.left) * scaleX);
+            });
+
+            window.addEventListener('keydown', e => keys[e.code] = true);
+            window.addEventListener('keyup', e => keys[e.code] = false);
+        }
+
+        function createBricks() {
+            bricks = [];
+            const brickW = (dom.canvas.width - (CONFIG.BRICK_OFFSET_LEFT * 2) - (CONFIG.BRICK_COLS * CONFIG.BRICK_PADDING)) / CONFIG.BRICK_COLS;
+            
+            for (let r = 0; r < CONFIG.BRICK_ROWS; r++) {
+                for (let c = 0; c < CONFIG.BRICK_COLS; c++) {
+                    bricks.push({
+                        x: CONFIG.BRICK_OFFSET_LEFT + c * (brickW + CONFIG.BRICK_PADDING),
+                        y: CONFIG.BRICK_OFFSET_TOP + r * 30,
+                        w: brickW,
+                        h: 20,
+                        alive: true,
+                        color: r % 2 === 0 ? '#00f2ff' : '#ff4d4d'
+                    });
+                }
+            }
+        }
+
+        function resetBall() {
+            ball.x = dom.canvas.width / 2;
+            ball.y = dom.canvas.height - 80;
+            ball.dx = (Math.random() - 0.5) * 400;
+            ball.dy = -CONFIG.BASE_SPEED;
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animationFrameId);
+            STATE.phase = 'ready';
+            STATE.score = 0;
+            STATE.lives = 3;
+            
+            paddle.x = (dom.canvas.width / 2) - (CONFIG.PADDLE_WIDTH / 2);
+            createBricks();
+            resetBall();
+            updateUI();
+            render();
+        }
+
+        function startGame() {
+            if (STATE.phase !== 'playing') {
+                if (STATE.phase === 'lost' || STATE.phase === 'won') return;
+                STATE.phase = 'playing';
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function updateUI() {
+            dom.scoreVal.textContent = STATE.score;
+            dom.livesVal.textContent = STATE.lives;
+            dom.status.textContent = STATE.phase.toUpperCase();
+            
+            if (STATE.phase === 'playing') dom.primaryBtn.disabled = true;
+            else dom.primaryBtn.disabled = false;
+        }
+
+        function endGame(win) {
+            STATE.phase = win ? 'won' : 'lost';
+            dom.status.textContent = STATE.phase.toUpperCase();
+            dom.status.style.color = win ? '#00f2ff' : '#ff4d4d';
+            updateUI();
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        function gameLoop(timestamp) {
+            const dt = Math.min((timestamp - STATE.lastTime) / 1000, 0.1);
+            STATE.lastTime = timestamp;
+
+            update(dt);
+            render();
+
+            if (STATE.phase === 'playing') {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function update(dt) {
+            // Move Paddle
+            const speed = 600;
+            if (keys['ArrowLeft'] && paddle.x > 0) paddle.x -= speed * dt;
+            if (keys['ArrowRight'] && paddle.x < dom.canvas.width - paddle.w) paddle.x += speed * dt;
+            
+            // Smooth follow mouse
+            const targetX = mouseX - paddle.w / 2;
+            paddle.x += (targetX - paddle.x) * 0.2;
+            paddle.x = Math.max(0, Math.min(dom.canvas.width - paddle.w, paddle.x));
+
+            // Move Ball
+            ball.x += ball.dx * dt;
+            ball.y += ball.dy * dt;
+
+            // Wall Collisions
+            if (ball.x - CONFIG.BALL_RADIUS < 0) {
+                ball.x = CONFIG.BALL_RADIUS;
+                ball.dx *= -1;
+            } else if (ball.x + CONFIG.BALL_RADIUS > dom.canvas.width) {
+                ball.x = dom.canvas.width - CONFIG.BALL_RADIUS;
+                ball.dx *= -1;
+            }
+
+            if (ball.y - CONFIG.BALL_RADIUS < 0) {
+                ball.y = CONFIG.BALL_RADIUS;
+                ball.dy *= -1;
+            }
+
+            // Paddle Collision
+            if (ball.y + CONFIG.BALL_RADIUS > dom.canvas.height - 30 && 
+                ball.y < dom.canvas.height - 10 &&
+                ball.x > paddle.x && 
+                ball.x < paddle.x + paddle.w) {
+                
+                // Calculate hit angle based on where it hits paddle
+                let hitPoint = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+                ball.dx = hitPoint * 400;
+                ball.dy = -Math.abs(ball.dy);
+                ball.y = dom.canvas.height - 30 - CONFIG.BALL_RADIUS; // prevent sticking
+            }
+
+            // Brick Collision
+            bricks.forEach(b => {
+                if (!b.alive) return;
+                if (ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+                    b.alive = false;
+                    ball.dy *= -1;
+                    STATE.score += 10;
+                    updateUI();
+                    checkWinCondition();
+                }
+            });
+
+            // Death condition
+            if (ball.y > dom.canvas.height) {
+                STATE.lives--;
+                updateUI();
+                if (STATE.lives <= 0) {
+                    endGame(false);
+                } else {
+                    resetBall();
+                }
+            }
+        }
+
+        function checkWinCondition() {
+            if (bricks.every(b => !b.alive)) {
+                endGame(true);
+            }
+        }
+
+        function render() {
+            const ctx = dom.ctx;
+            ctx.clearRect(0, 0, dom.canvas.width, dom.canvas.height);
+
+            // Draw Bricks
+            bricks.forEach(b => {
+                if (!b.alive) return;
+                ctx.fillStyle = b.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = b.color;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Paddle
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffffff';
+            ctx.fillRect(paddle.x, dom.canvas.height - 30, paddle.w, CONFIG.PADDLE_HEIGHT);
+            ctx.shadowBlur = 0;
+
+            // Draw Ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, CONFIG.BALL_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#fff';
+            ctx.fill();
+            ctx.closePath();
+            ctx.shadowBlur = 0;
+        }
+
+        init();
+    </script>
+</body>
+</html>

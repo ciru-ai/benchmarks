@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden Planner Pro</title>
+    <style>
+        :root {
+            --bg: #f0f4f0;
+            --card: #ffffff;
+            --primary: #2e7d32;
+            --primary-hover: #1b5e20;
+            --accent: #ffa000;
+            --text: #333;
+            --border: #ccc;
+            --grid-empty: #e8ede8;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #app-container {
+            width: 960px;
+            max-width: 100%;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            overflow: hidden;
+        }
+        /* Sidebar */
+        .sidebar {
+            padding: 20px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .control-group { display: flex; flex-direction: column; gap: 10px; }
+        label { font-weight: bold; font-size: 0.9rem; }
+        .crop-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .crop-option:hover { background: #f9f9f9; }
+        .crop-option input { cursor: pointer; width: 18px; height: 18px; }
+        .crop-option.selected { border-color: var(--primary); background: #e8f5e9; }
+        
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        [data-testid="primary-action"] { background: var(--primary); color: white; }
+        [data-testid="primary-action"]:disabled { background: #ccc; cursor: not-allowed; }
+        [data-testid="reset"] { background: #ef5350; color: white; }
+
+        /* Main Content */
+        .main-view {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+        #garden-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 8px;
+            flex-grow: 1;
+            aspect-ratio: 1 / 1;
+            max-width: 450px;
+            margin: auto;
+        }
+        .cell {
+            background: var(--grid-empty);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .cell svg { width: 80%; height: 80%; animation: grow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes grow { from { transform: scale(0); } to { transform: scale(1); } }
+
+        .summary-panel {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        #status { font-style: italic; color: #666; font-size: 0.85rem; min-height: 1em; }
+
+        @media (max-width: 800px) {
+            #app-container { grid-template-columns: 1fr; overflow-y: auto; height: auto; max-height: none; }
+            .sidebar { border-right: none; border-bottom: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside class="sidebar">
+        <h1>Garden Plan</h1>
+        <p style="font-size: 0.8rem; color: #666;">Select a seed and plant your plot.</p>
+        
+        <div class="control-group">
+            <label>Seed Type</label>
+            <div class="crop-option selected" onclick="selectCrop('tomato', this)">
+                <input type="radio" name="crop" value="tomato" checked>
+                <span>🍅 Tomato</span>
+            </div>
+            <div class="crop-option" onclick="selectCrop('carrot', this)">
+                <input type="radio" name="crop" value="carrot">
+                <span>🥕 Carrot</span>
+            </div>
+            <div class="crop-option" onclick="selectCrop('corn', this)">
+                <input type="radio" name="crop" value="corn">
+                <span>🌽 Corn</span>
+            </div>
+            <div class="crop-option" onclick="selectCrop('eggplant', this)">
+                <input type="radio" name="crop" value="eggplant">
+                <span>🍆 Eggplant</span>
+            </div>
+        </div>
+
+        <hr style="width: 100%; border: 0; border-top: 1px solid #eee;">
+
+        <div class="control-group">
+            <button id="plant-btn" data-testid="primary-action" class="btn" onclick="plantNext()">Plant Next Seed</button>
+            <button id="reset-btn" data-testid="reset" class="btn" onclick="resetApp()">Reset Plot</button>
+        </div>
+
+        <div id="status" data-testid="status">Ready to plant</div>
+    </aside>
+
+    <main class="main-view">
+        <div id="garden-grid"></div>
+        
+        <div class="summary-panel">
+            <div class="stat-row"><strong>Summary</strong> <span>Count</span></div>
+            <div id="stats-list"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // State Management
+    const STATE = {
+        cells: Array(36).fill(null), // null or cropType string
+        currentCrop: 'tomato',
+        isFull: false
+    };
+
+    const CROPS = {
+        tomato: { icon: '<svg viewBox="0"><circle cx="25" cy="25" r="15" fill="#ff5252"/><path d="M25 10 L25 15 M20 12 L24 16" stroke="#4caf50" stroke-width="4"/></svg>' },
+        carrot:  { icon: '<svg viewBox="0"><path d="M25 5 L15 35 L35 35 Z" fill="#fb8c00"/><path d="M25 5 L25 15 M22 8 L28 12" stroke="#4caf50" stroke-width="3"/></svg>' },
+        corn:    { icon: '<svg viewBox="0"><rect x="20" y="10" width="10" height="30" rx="5" fill="#ffd54f"/><path d="M25 10 Q30 15 25 20 Q20 15 25 10" fill="#4caf50"/> <path d="M25 40 Q30 35 25 30 Q20 35 25 40" fill="#4caf50"/></svg>' },
+        eggplant: { icon: '<svg viewBox="0"><ellipse cx="25" cy="25" rx="12" ry="18" fill="#7b1fa2"/><path d="M25 7 L25 12 M20 8 L30 8" stroke="#4caf50" stroke-width="4"/></svg>' }
+    };
+
+    const icons = {
+        tomato: `<svg viewBox="0"><circle cx="25" cy="25" r="15" fill="#ff5252"/><path d="M25 10 L25 15 M20 12 L24 16" stroke="#4caf50" stroke-width="4"/></svg>`,
+        carrot: `<svg viewBox="0"><path d="M25 5 L15 35 L35 35 Z" fill="#fb8c00"/><path d="M25 5 L25 15 M22 8 L28 12" stroke="#4caf50" stroke-width="3"/></svg>`,
+        corn: `<svg viewBox="0"><rect x="20" y="10" width="10" height="30" rx="5" fill="#ffd54f"/><path d="M25 10 Q30 15 25 20 Q20 15 25 10" fill="#4caf50"/><path d="M25 40 Q30 35 25 30 Q20 35 25 40" fill="#4caf50"/></svg>`,
+        eggplant: `<svg viewBox="0"><ellipse cx="25" cy="25" rx="12" ry="18" fill="#7b1fa2"/><path d="M25 7 L25 12 M20 8 L30 8" stroke="#4caf50" stroke-width="4"/></svg>`
+    };
+
+    // DOM Elements
+    let elements = {};
+
+    function init() {
+        elements.grid = document.getElementById('garden-grid');
+        elements.status = document.getElementById('status');
+        elements.plantBtn = document.getElementById('plant-btn');
+        elements.statsList = document.getElementById('stats-list');
+        
+        createGrid();
+        renderStats();
+    }
+
+    function createGrid() {
+        elements.grid.innerHTML = '';
+        for (let i = 0; i < 36; i++) {
+            const div = document.createElement('div');
+            div.className = 'cell';
+            div.id = `cell-${i}`;
+            elements.grid.appendChild(div);
+        }
+    }
+
+    function selectCrop(type, el) {
+        STATE.currentCrop = type;
+        document.querySelectorAll('.crop-option').forEach(opt => opt.classList.remove('selected'));
+        el.classList.add('selected');
+        el.querySelector('input').checked = true;
+        updateStatus(`Selected ${type}`);
+    }
+
+    function plantNext() {
+        if (STATE.isFull) return;
+
+        const nextIdx = STATE.cells.findIndex(c => c === null);
+        if (nextIdx !== -1) {
+            STATE.cells[nextIdx] = STATE.currentCrop;
+            renderCell(nextIdx);
+            renderStats();
+            
+            if (!STATE.cells.includes(null)) {
+                STATE.isFull = true;
+                elements.plantBtn.disabled = true;
+                updateStatus("Garden is full!");
+            } else {
+                updateStatus(`Planted ${STATE.currentCrop}.`);
+            }
+        }
+    }
+
+    function renderCell(idx) {
+        const cellEl = document.getElementById(`cell-${idx}`);
+        if (cellEl && STATE.cells[idx]) {
+            cellEl.innerHTML = icons[STATE.cells[idx]];
+        }
+    }
+
+    function renderStats() {
+        const counts = {};
+        Object.values(CROPS).forEach((_, idx) => {
+            const key = Object.keys(CROPS)[idx];
+            counts[key] = STATE.cells.filter(c => c === key).length;
+        });
+
+        elements.statsList.innerHTML = '';
+        Object.entries(counts).forEach(([name, count]) => {
+            const row = document.createElement('div');
+            row.className = 'stat-row';
+            row.innerHTML = `<span style="text-transform: capitalize">${name}:</span> <span>${count}</span>`;
+            elements.statsList.appendChild(row);
+        });
+    }
+
+    function updateStatus(msg) {
+        elements.status.textContent = msg;
+    }
+
+    function resetApp() {
+        STATE.cells = Array(36).fill(null);
+        STATE.isFull = false;
+        elements.plantBtn.disabled = false;
+        
+        // Clear Visual Grid
+        const cells = document.getElementsByClassName('cell');
+        for (let cell of cells) {
+            cell.innerHTML = '';
+        }
+        
+        renderStats();
+        updateStatus("Plot cleared.");
+    }
+
+    // Start App
+    window.onload = () => {
+        init();
+    };
+</script>
+
+</body>
+</html>

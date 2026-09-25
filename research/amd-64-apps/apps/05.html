@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledger Pocket | Expense Tracker</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            height: 600px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar / Controls */
+        aside {
+            background: #f8fafc;
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 { font-size: 1.5rem; color: var(--primary); margin-bottom: 8px; }
+        .subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+        input, select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #primaryBtn { background: var(--primary); color: white; }
+        #primaryBtn:hover { background: var(--primary-hover); }
+        #resetBtn { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+        #resetBtn:hover { background: #edf2f7; }
+
+        /* Main Content Area */
+        main {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-summary { text-align: right; }
+        .total-amount { font-size: 1.8rem; font-weight: 800; color: var(--text-main); }
+
+        #transaction-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .item-info .item-name { font-weight: 600; display: block; }
+        .item-info .item-cat { font-size: 0.75rem; color: var(--text-muted); }
+        .item-val { font-weight: 700; color: var(--danger); }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #cbd5e1;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        .delete-btn:hover { color: var(--danger); }
+
+        footer {
+            padding: 16px 24px;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        /* Chart Styles */
+        .chart-container { height: 100px; display: flex; align-items: flex-end; gap: 12px; }
+        .bar-wrapper { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; }
+        .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bar-label { font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+
+        #status { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 4px; }
+
+        /* Responsive scaling helper */
+        @media (max-width: 960px) {
+            #app-container { transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <aside>
+            <div>
+                <h1>Ledger Pocket</h1>
+                <p class="subtitle">Track your spending effortlessly.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="expName">Description</label>
+                <input type="text" id="expName" placeholder="e.g., Grocery Store">
+            </div>
+
+            <div class="form-group">
+                <label for="expAmount">Amount ($)</label>
+                <input type="number" id="expAmount" step="0.01" placeholder="0.00">
+            </div>
+
+            <div class="form-group">
+                <label for="expCategory">Category</label>
+                <select id="expCategory">
+                    <option value="Food">Food & Drink</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Shopping">Shopping</option>
+                </select>
+            </div>
+
+            <div class="btn-group">
+                <button id="primaryBtn" data-testid="primary-action">Add Transaction</button>
+                <button id="resetBtn" data-testid="reset">Reset Data</button>
+                <div id="status" data-testid="status">All systems ready</div>
+            </div>
+        </aside>
+
+        <main>
+            <header>
+                <div class="filter-section">
+                    <label style="margin-bottom: 5px;">Filter View</label>
+                    <select id="filterCat">
+                        <option value="All">All Categories</option>
+                        <option value="Food">Food & Drink</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Shopping">Shopping</option>
+                    </select>
+                </div>
+                <div class="total-summary">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Total Spent</div>
+                    <div class="total-amount" id="totalDisplay">$0.00</div>
+                </div>
+            </header>
+
+            <ul id="transaction-list">
+                <!-- Transactions injected here -->
+            </ul>
+
+            <footer>
+                <div class="category-breakdown">
+                    <label>Spending by Category</label>
+                    <div id="chartContainer" class="chart-container">
+                        <!-- Bars injected here -->
+                    </div>
+                </div>
+                <div id="legend" style="font-size: 0.75rem; color: var(--text-muted);">
+                    Showing <span id="countLabel">0</span> items
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // --- INITIALIZATION & STATE ---
+        const initialState = {
+            transactions: [
+                { id: 1, name: 'Starbucks', amount: 5.50, category: 'Food' },
+                { id: 2, name: 'Uber Ride', amount: 18.20, category: 'Transport' },
+                { id: 3, name: 'Electric Bill', amount: 120.00, category: 'Utilities' },
+                { id: 4, name: 'Cinema Tickets', amount: 25.00, category: 'Entertainment' },
+                { id: 5, name: 'Amazon Order', amount: 42.99, category: 'Shopping' },
+                { id: 6, name: 'Whole Foods', amount: 85.40, category: 'Food' }
+            ],
+            filter: 'All',
+            currentInput: {
+                name: '',
+                amount: '',
+                category: 'Food'
+            }
+        };
+
+        let state = JSON.parse(JSON.stringify(initialState));
+
+        const dom = {
+            name: document.getElementById('expName'),
+            amount: document.getElementById('expAmount'),
+            category: document.getElementById('expCategory'),
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            filterCat: document.getElementById('filterCat'),
+            list: document.getElementById('transaction-list'),
+            totalDisplay: document.getElementById('totalDisplay'),
+            chartContainer: document.getElementById('chartContainer'),
+            countLabel: document.getElementById('countLabel')
+        };
+
+        // Pre-fill seed inputs
+        dom.name.value = "New Purchase";
+        dom.amount.value = "0.00";
+
+        // --- CORE LOGIC ---
+
+        function calculateTotals() {
+            const filtered = state.transactions.filter(t => 
+                state.filter === 'All' || t.category === state.filter
+            );
+            
+            const total = filtered.reduce((sum, t) => sum + t.amount, 0);
+            return { total, filtered };
+        }
+
+        function getCategoryData() {
+            const categories = ["Food", "Transport", "Utilities", "Entertainment", "Shopping"];
+            const totals = {};
+            categories.forEach(c => totals[c] = 0);
+            
+            state.transactions.forEach(t => {
+                totals[t.category] += t.amount;
+            });
+            return totals;
+        }
+
+        function updateUI() {
+            const { total, filtered } = calculateTotals();
+            const catData = getCategoryData();
+
+            // Update Total
+            dom.totalDisplay.textContent = `$${total.toFixed(2)}`;
+            dom.countLabel.textContent = filtered.length;
+
+            // Update List
+            dom.list.innerHTML = '';
+            filtered.reverse().forEach(t => {
+                const li = document.createElement('li');
+                li.className = 'transaction-item';
+                li.innerHTML = `
+                    <div class="item-info">
+                        <span class="item-name">${t.name}</span>
+                        <span class="item-cat">${t.category}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="item-val">-$${t.amount.toFixed(2)}</span>
+                        <button class="delete-btn" data-id="${t.id}">&times;</button>
+                    </div>
+                `;
+                
+                li.querySelector('.delete-btn').addEventListener('click', () => deleteTransaction(t.id));
+                dom.list.appendChild(li);
+            });
+
+            // Update Chart
+            dom.chartContainer.innerHTML = '';
+            const maxVal = Math.max(...Object.values(catData), 1);
+            
+            const colors = { Food: '#fbbf24', Transport: '#3b82f6', Utilities: '#a855f7', Entertainment: '#ec4899', Shopping: '#f97316' };
+
+            Object.entries(catData).forEach(([cat, val]) => {
+                if (val > 0) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'bar-wrapper';
+                    
+                    const heightPercent = (val / maxVal) * 100;
+                    
+                    wrapper.innerHTML = `
+                        <div class="bar" style="height: ${heightPercent}%; background: ${colors[cat]}"></div>
+                        <div class="bar-label">${cat}</div>
+                    `;
+                    dom.chartContainer.appendChild(wrapper);
+                }
+            });
+
+            dom.status.textContent = `Last updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+
+        // --- HANDLERS ---
+
+        function addTransaction() {
+            const name = dom.name.value.trim();
+            const amount = parseFloat(dom.amount.value);
+            const category = dom.category.value;
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                updateStatus("Invalid entry!", true);
+                return;
+            }
+
+            const newTx = {
+                id: Date.now(),
+                name: name,
+                amount: amount,
+                category: category
+            };
+
+            state.transactions.push(newTx);
+            updateUI();
+            updateStatus(`Added ${name}`);
+            
+            // Reset form fields but keep category selection logic if desired? No, per req: reset basics
+            dom.name.value = "";
+            dom.amount.value = "0.00";
+        }
+
+        function deleteTransaction(id) {
+            state.transactions = state.transactions.filter(t => t.id !== id);
+            updateUI();
+            updateStatus("Transaction removed");
+        }
+
+        function resetApp() {
+            state = JSON.parse(JSON.stringify(initialState));
+            dom.name.value = "New Purchase";
+            dom.amount.value = "0.00";
+            dom.filterCat.value = "All";
+            updateUI();
+            updateStatus("Data restored");
+        }
+
+        function updateStatus(msg, isError = false) {
+            dom.status.textContent = msg;
+            dom.status.style.color = isError ? "var(--danger)" : "var(--text-muted)";
+            setTimeout(() => {
+                dom.status.style.color = "var(--text-muted)";
+            }, 3000);
+        }
+
+        // --- EVENT LISTENERS ---
+
+        dom.primaryBtn.addEventListener('click', addTransaction);
+        dom.resetBtn.addEventListener('click', resetApp);
+        dom.filterCat.addEventListener('change', (e) => {
+            state.filter = e.target.value;
+            updateUI();
+        });
+
+        // Handle Enter key on inputs
+        [dom.name, dom.amount].forEach(el => {
+            el.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addTransaction();
+            });
+        });
+
+        // Initial Render
+        updateUI();
+
+    </script>
+</body>
+</html>

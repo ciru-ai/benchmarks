@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Budget Pro</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --accent: #10b981;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .app-container {
+            width: 960px;
+            max-width: 95vw;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 768px) {
+            .app-container { grid-template-columns: 1fr; }
+        }
+        h1 { margin: 0 0 1rem 0; font-size: 1.5rem; color: var(--primary); }
+        .input-group { margin-bottom: 1.2rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-light); }
+        input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        #primary-btn { background: var(--primary); color: white; flex: 2; }
+        #primary-btn:hover { background: var(--primary-hover); }
+        #reset-btn { background: var(--border); color: var(--text); flex: 1; }
+        #reset-btn:hover { background: #cbd5e1; }
+        
+        .results-panel {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border);
+        }
+        .stat-val { font-weight: 700; color: var(--primary); }
+        #chart-container {
+            margin-top: 1.5rem;
+            height: 200px;
+            position: relative;
+        }
+        #status {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            font-style: italic;
+            color: var(--text-light);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="inputs-section">
+        <h1>Trip Planner</h1>
+        <div class="input-group">
+            <label>Transport Total ($)</label>
+            <input type="number" id="transport-cost" value="1200">
+        </div>
+        <div class="input-group">
+            <label>Nights Stayed</label>
+            <input type="number" id="nights" value="7">
+        </div>
+        <div class="input-group">
+            <label>Nightly Rate ($)</label>
+            <input type="number" id="nightly-rate" value="150">
+        </div>
+        <div class="input-group">
+            <label>Food Per Day ($)</label>
+            <input type="number" id="food-daily" value="50">
+        </div>
+        <div class="input-group">
+            <label>Number of People</label>
+            <input type="number" id="people" value="2">
+        </div>
+        <div class="controls">
+            <button id="calculate-btn" data-testid="primary-action">Calculate Trip</button>
+            <button id="reset-btn" data-testid="reset">Reset</button>
+        </div>
+    </div>
+
+    <div class="results-panel">
+        <div id="summary-area">
+            <div class="stat-row"><span>Total Cost</span> <span class="stat-val" id="res-total">$0.00</span></div>
+            <div class="stat-row"><span>Per Person Share</span> <span class="stat-val" id="res-perperson">$0.00</span></div>
+        </div>
+        <div id="chart-container">
+            <canvas id="budgetChart"></canvas>
+        </div>
+        <div id="status" data-testid="status">Ready to calculate</div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const els = {
+        transport: document.getElementById('transport-cost'),
+        nights: document.getElementById('nights'),
+        nightlyRate: document.getElementById('nightly-rate'),
+        foodDaily: document.getElementById('food-daily'),
+        people: document.getElementById('people'),
+        calcBtn: document.getElementById('calculate-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        resTotal: document.getElementById('res-total'),
+        resPerPerson: document.getElementById('res-perperson'),
+        status: document.getElementById('status'),
+        canvas: document.getElementById('budgetChart')
+    };
+
+    let history = [];
+
+    function formatCurrency(num) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+    }
+
+    function drawChart(data) {
+        const ctx = els.canvas.getContext('2d');
+        const w = els.canvas.width = els.canvas.offsetWidth * window.devicePixelRatio || 300;
+        const h = els.canvas.height = 200 * window.devicePixelRatio || 200;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        const dw = els.canvas.offsetWidth;
+        const dh = 200;
+
+        ctx.clearRect(0, 0, dw, dh);
+
+        if (!data || data.length === 0) return;
+
+        const barWidth = dw / (data.length + 1);
+        const maxVal = Math.max(...data.map(d => d.value));
+        const padding = 30;
+
+        data.forEach((item, i) => {
+            const x = barWidth * (i + 1);
+            const barH = (item.value / maxVal) * (dh - padding * 2);
+            const y = dh - padding - barH;
+
+            // Bar
+            ctx.fillStyle = item.color;
+            ctx.fillRect(x, y, barWidth - 20, barH);
+
+            // Label
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(item.label, x + (barWidth - 20)/2, dh - 10);
+            ctx.fillText(`$${Math.round(item.value)}`, x + (barWidth - 20)/2, y - 5);
+        });
+    }
+
+    function calculate() {
+        try {
+            const transport = parseFloat(els.transport.value) || 0;
+            const nights = parseFloat(els.nights.value) || 0;
+            const nightly = parseFloat(els.nightlyRate.value) || 0;
+            const food = parseFloat(els.foodDaily.value) || 0;
+            const people = parseFloat(els.people.value) || 1;
+
+            const accommodationTotal = nights * nightly;
+            const foodTotal = (nights + 1) * food; // Including travel day
+            const grandTotal = transport + accommodationTotal + foodTotal;
+            const perPerson = grandTotal / people;
+
+            els.resTotal.textContent = formatCurrency(grandTotal);
+            els.resPerPerson.textContent = formatCurrency(perPerson);
+            els.status.textContent = "Calculation updated.";
+
+            drawChart([
+                { label: 'Trans.', value: transport, color: '#2563eb' },
+                { label: 'Stay', value: accommodationTotal, color: '#10b981' },
+                { label: 'Food', value: foodTotal, color: '#f59e0b' }
+            ]);
+
+            history.push({ timestamp: new Date().toLocaleTimeString(), total: grandTotal });
+        } catch (e) {
+            els.status.textContent = "Error calculating values.";
+        }
+    }
+
+    function reset() {
+        els.transport.value = 1200;
+        els.nights.value = 7;
+        els.nightlyRate.value = 150;
+        els.foodDaily.value = 50;
+        els.people.value = 2;
+        
+        els.resTotal.textContent = "$0.00";
+        els.resPerPerson.textContent = "$0.00";
+        els.status.textContent = "State reset to default.";
+        
+        ctx_clear();
+        history = [];
+    }
+
+    function ctx_clear() {
+        const ctx = els.canvas.getContext('2d');
+        ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+    }
+
+    // Initialization & Listeners
+    els.calcBtn.addEventListener('click', calculate);
+    els.resetBtn.addEventListener('click', reset);
+
+    // Initial State Setup
+    window.addEventListener('resize', () => {
+        if(els.resTotal.textContent !== "$0.00") calculate();
+    });
+
+    // Ensure elements exist before binding
+    if (els.calcBtn && els.resetBtn) {
+        // Boot logic
+        console.log("App initialized");
+    }
+})();
+</script>
+</body>
+</html>

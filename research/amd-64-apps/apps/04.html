@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Grid - Lights Out</title>
+    <style>
+        :root {
+            --bg: #fdfaf5;
+            --cream: #f4eadd;
+            --orange: #ff8c42;
+            --dark: #2b2b2b;
+            --black: #1a1a1a;
+            --shadow: rgba(0,0,0,0.1);
+        }
+        body {
+            background-color: var(--bg);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--dark);
+        }
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 95vh;
+            background: var(--cream);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 2rem; letter-spacing: -1px; color: var(--black); }
+        .status-bar {
+            background: var(--black);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 40px;
+            flex-grow: 1;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: min(350px, 100%);
+            aspect-ratio: 1 / 1;
+            max-width: 400px;
+            margin: auto;
+        }
+        .cell {
+            background: var(--black);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            position: relative;
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3);
+        }
+        .cell:active { transform: scale(0.95); }
+        .cell.on {
+            background: var(--orange);
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.1), 0 0 15px var(--orange);
+        }
+        .cell.hint::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%; height: 40%;
+            border: 4px solid white;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: center;
+        }
+        button {
+            padding: 15px 25px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        [data-testid="primary-action"] {
+            background: var(--orange);
+            color: white;
+        }
+        [data-testid="primary-action"]:hover { filter: brightness(1.1); }
+        [data-testid="reset"] {
+            background: var(--black);
+            color: white;
+        }
+        [data-testid="reset"]:hover { background: #444; }
+        .stats-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .win-msg {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--black);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 8px;
+            display: none;
+            z-index: 10;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .game-layout { grid-template-columns: 1fr; overflow-y: auto; }
+            #app-container { height: auto; min-height: 100vh; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>SIGNAL GRID</h1>
+    </header>
+
+    <div class="status-bar" data-testid="status">Initializing...</div>
+
+    <div class="game-layout">
+        <div class="grid-container" id="grid">
+            <!-- Cells injected via JS -->
+        </div>
+
+        <div class="controls">
+            <div class="stats-panel">
+                <div class="stat-row"><span>Moves:</span> <span id="move-count">0</span></div>
+                <div class="stat-row"><span>Lit:</span> <span id="lit-count">0</span></div>
+            </div>
+            <button data-testid="primary-action" id="hint-btn">Hint</button>
+            <button data-testid="reset" id="reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <div id="win-overlay" class="win-msg">
+        <h2>SOLVED!</h2>
+        <p id="final-score"></p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+</div>
+
+<script>
+/**
+ * LOGIC:
+ * State is represented as a bitmask of length 9.
+ * To find the shortest path (BFS), we treat this as a graph problem.
+ * However, since order doesn't matter and clicking twice cancels out,
+ * we can solve using linear algebra or simply pre-calculate solutions.
+ * For 3x3, there are 2^9 = 512 states. We can BFS easily.
+ */
+
+const GRID_SIZE = 3;
+let currentState = Array(9).fill(false); // false = off, true = on
+let moveCount = 0;
+let solvedState = null; // The target state (all false)
+
+// Predefined "Solvable" start state: Apply specific moves to empty board
+// Let's click cells (0,0) then (1,1) then (2,2) to create a pattern
+function generateInitialBoard() {
+    const s = Array(9).fill(false);
+    const toggle = (arr, idx) => {
+        const neighbors = [idx, idx-3, idx+3];
+        if (idx % 3 !== 0) neighbors.push(idx-1);
+        if (idx % 3 !== 2) neighbors.push(idx+1);
+        neighbors.forEach(n => {
+            if (n >= 0 && n < 9) arr[n] = !arr[n];
+        });
+    };
+    toggle(s, 0);
+    toggle(s, 4);
+    toggle(s, 8);
+    return s;
+}
+
+const INITIAL_BOARD = generateInitialBoard();
+
+class Solver {
+    constructor() {}
+    
+    getNeighbors(idx) {
+        const res = [idx];
+        if (idx % 3 !== 0) res.push(idx - 1);
+        if (idx % 3 !== 2) res.push(idx + 1);
+        if (idx >= 3) res.push(idx - 3);
+        if (idx <= 5) res.push(idx + 3);
+        return res;
+    }
+
+    solve(currentMaskArray) {
+        const queue = [[currentMaskArray.map(v => v ? 1 : 0), []]];
+        const visited = new Set();
+        visited.add(currentMaskArray.map(v => v ? 1 : 0).join(''));
+
+        while (queue.length > 0) {
+            const [state, path] = queue.shift();
+            
+            if (!state.some(v => v === 1)) return path;
+
+            for (let i = 0; i < 9; i++) {
+                const nextState = [...state];
+                this.getNeighbors(i).forEach(n => nextState[n] = 1 - nextState[n]);
+                const key = nextState.join('');
+                if (!visited.has(key)) {
+                    visited.add(key);
+                    queue.push([nextState, [...path, i]]);
+                }
+            }
+        }
+        return [];
+    }
+}
+
+const solver = new Solver();
+
+// DOM Elements
+const gridEl = document.getElementById('grid');
+const statusEl = document.querySelector('[data-testid="status"]');
+const moveEl = document.getElementById('move-count');
+const litEl = document.getElementById('lit-count');
+const hintBtn = document.getElementById('hint-btn');
+const resetBtn = document.getElementById('reset-btn');
+const winOverlay = document.getElementById('win-overlay');
+const finalScoreEl = document.getElementById('final-score');
+
+function init() {
+    currentState = [...INITIAL_BOARD];
+    moveCount = 0;
+    render();
+    updateStatus("Game Ready");
+}
+
+function render() {
+    gridEl.innerHTML = '';
+    currentState.forEach((isOn, i) => {
+        const btn = document.createElement('div');
+        btn.className = `cell ${isOn ? 'on' : ''}`;
+        btn.id = `cell-${i}`;
+        btn.onclick = () => handleCellClick(i);
+        gridEl.appendChild(btn);
+    });
+    
+    moveEl.textContent = moveCount;
+    litEl.textContent = currentState.filter(Boolean).length;
+}
+
+function handleCellClick(idx) {
+    applyMove(idx);
+    checkWin();
+}
+
+function applyMove(idx) {
+    const toggleIndices = [idx, idx-3, idx+3];
+    if (idx % 3 !== 0) toggleIndices.push(idx-1);
+    if (idx % 3 !== 2) toggleIndices.push(idx+1);
+
+    toggleIndices.forEach(i => {
+        if (i >= 0 && i < 9) {
+            currentState[i] = !currentState[i];
+        }
+    });
+    moveCount++;
+    render();
+    updateStatus(`Moved cell ${idx}. Moves: ${moveCount}`);
+}
+
+function updateStatus(msg) {
+    statusEl.textContent = msg;
+}
+
+function checkWin() {
+    if (!currentState.some(v => v === true)) {
+        winOverlay.style.display = 'block';
+        finalScoreEl.textContent = `Completed in ${moveCount} moves`;
+    }
+}
+
+function showHint() {
+    const solutionPath = solver.solve(currentState.map(v => v ? 1 : 0));
+    if (solutionPath.length > 0) {
+        const targetIdx = solutionPath[0];
+        const cell = document.getElementById(`cell-${targetIdx}`);
+        cell.classList.add('hint');
+        setTimeout(() => cell?.classList.remove('hint'), 1500);
+        updateStatus("Hint provided.");
+    } else {
+        updateStatus("No solution found!");
+    }
+}
+
+function reset() {
+    winOverlay.style.display = 'none';
+    init();
+}
+
+// Event Listeners
+hintBtn.addEventListener('click', showHint);
+resetBtn.addEventListener('click', reset);
+
+// Bootstrap
+window.onload = () => {
+    // Verify elements exist before running
+    const essential = ['grid', 'hint-btn', 'reset-btn', 'status'];
+    const missing = essential.filter(id => {
+        const el = document.getElementById(id) || document.querySelector(`[data-testid="${id}"]`);
+        return !el;
+    });
+
+    if (missing.length === 0) {
+        init();
+    } else {
+        console.error("Missing critical elements:", missing);
+    }
+};
+</script>
+</body>
+</html>

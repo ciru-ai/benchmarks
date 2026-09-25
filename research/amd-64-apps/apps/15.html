@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidal Museum | Ocean Science</title>
+    <style>
+        :root {
+            --ocean-deep: #0a2472;
+            --ocean-mid: #1e3c72;
+            --ocean-light: #2a5298;
+            --sand: #f0e68c;
+            --foam: #ffffff;
+            --accent: #00d2ff;
+            --text: #ecf0f1;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, var(--ocean-mid) 0%, var(--ocean-deep) 100%);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            position: relative;
+            display: grid;
+            grid-template-rows: 60px 1fr 80px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; color: var(--accent); }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .exhibit-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 150px;
+            background: #001a33;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-group { display: flex; gap: 10px; }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        [data-testid="primary-action"] {
+            background: var(--accent);
+            color: var(--ocean-deep);
+        }
+
+        [data-testid="reset"] {
+            background: transparent;
+            border: 1px solid #ff4b2b;
+            color: #ff4b2b;
+        }
+
+        [data-testid="status"] {
+            font-size: 0.9rem;
+            font-style: italic;
+            color: #bdc3c7;
+        }
+
+        /* Quiz Overlay */
+        #quiz-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 36, 114, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .option-list {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .option-item {
+            background: rgba(255,255,255,0.1);
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .option-item:hover { background: rgba(255,255,255,0.2); }
+        .option-item.selected { border-color: var(--accent); background: rgba(0, 210, 255, 0.2); }
+
+        canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>TIDAL MUSEUM</h1>
+    </header>
+
+    <main>
+        <section class="exhibit-card">
+            <h3>Tide Cycle</h3>
+            <div class="visualizer">
+                <canvas id="tideCanvas"></canvas>
+            </div>
+            <p><small>Simulating gravitational pull influence on sea levels.</small></p>
+        </section>
+
+        <section class="exhibit-card">
+            <h3>Marine Biodiversity</h3>
+            <div class="visualizer" style="height: auto;">
+                <!-- SVG Exhibit -->
+                <svg viewBox="0 0 200 100" width="100%" height="100%">
+                    <rect width="200" height="100" fill="#001a33" />
+                    <circle cx="50" cy="50" r="20" fill="#ff7f50" opacity="0.6">
+                        <animate attributeName="cx" values="50;150;50" dur="5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="150" cy="70" r="15" fill="#ffd700" opacity="0.6">
+                        <animate attributeName="cy" values="70;30;70" dur="7s" repeatCount="indefinite" />
+                    </circle>
+                    <path d="M0 80 Q 50 60 100 80 T 200 80" stroke="cyan" fill="transparent" stroke-width="2">
+                        <animate attributeName="d" values="M0 80 Q 50 60 100 80 T 200 80; M0 80 Q 50 100 100 80 T 200 80; M0 80 Q 50 60 100 80 T 200 80" dur="4s" repeatCount="indefinite" />
+                    </path>
+                </svg>
+            </div>
+            <p><small>Visualizing ecosystem movement patterns.</small></p>
+        </section>
+    </main>
+
+    <footer>
+        <div data-testid="status">Welcome, Explorer. Explore the exhibits above.</div>
+        <div class="btn-group">
+            <button data-testid="primary-action" id="startBtn">Start Marine Quiz</button>
+            <button data-testid="reset" id="resetBtn">Reset Museum</button>
+        </div>
+    </footer>
+
+    <div id="quiz-overlay">
+        <h2 id="quiz-question">Question Text</h2>
+        <ul class="option-list" id="optionList"></ul>
+        <div id="quiz-feedback" style="margin-top: 20px; font-weight: bold;"></div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        mode: 'idle', // idle, playing, finished
+        currentStep: -1,
+        score: 0,
+        questions: [
+            { q: "What causes tides?", a: ["Moon's Gravity", "Wind Speed", "Ocean Temperature"], correct: 0 },
+            { q: "Which zone has most light?", a: ["Abyssal Zone", "Euphotic Zone", "Benthic Zone"], correct: 1 },
+            { q: "What is coral made of?", a: ["Sand", "Calcium Carbonate", "Salt Crystals"], correct: 1 },
+            { q: "High tide occurs how often?", a: ["Once daily", "Twice daily (avg)", "Weekly"], correct: 1 },
+            { q: "Deepest part of ocean?", a: ["Mariana Trench", "Java Trench", "Puerto Rico Trench"], correct: 0 }
+        ]
+    };
+
+    // Elements
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusEl = document.querySelector('[data-testid="status"]');
+    const overlay = document.getElementById('quiz-overlay');
+    const questionText = document.getElementById('quiz-question');
+    const optionList = document.getElementById('optionList');
+    const feedbackEl = document.getElementById('quiz-feedback');
+    const canvas = document.getElementById('tideCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let animationId = null;
+    let time = 0;
+
+    function init() {
+        cancelAnimationFrame(animationId);
+        drawTides();
+    }
+
+    function drawTides() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        time += 0.02;
+        
+        const waveHeight = Math.sin(time) * 20 + 30;
+        const baseLevel = canvas.height / 2 + waveHeight;
+
+        ctx.fillStyle = '#005c99';
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        ctx.lineTo(0, baseLevel);
+        for (let x = 0; x <= canvas.width; x++) {
+            const y = baseLevel + Math.sin(x * 0.05 + time) * 10;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.fill();
+
+        animationId = requestAnimationFrame(drawTides);
+    }
+
+    function updateStatus(msg) {
+        statusEl.textContent = msg;
+    }
+
+    function startQuiz() {
+        state.mode = 'playing';
+        state.currentStep = 0;
+        state.score = 0;
+        updateStatus("Quiz started. Good luck!");
+        showQuestion();
+        overlay.style.display = 'flex';
+    }
+
+    function showQuestion() {
+        if (state.currentStep >= state.questions.length) {
+            endQuiz();
+            return;
+        }
+
+        const qData = state.questions[state.currentStep];
+        questionText.textContent = qData.q;
+        optionList.innerHTML = '';
+        feedbackEl.textContent = '';
+
+        qData.a.forEach((opt, idx) => {
+            const li = document.createElement('li');
+            li.className = 'option-item';
+            li.textContent = opt;
+            li.onclick = () => handleAnswer(idx);
+            optionList.appendChild(li);
+        });
+    }
+
+    function handleAnswer(selectedIndex) {
+        const correctIdx = state.questions[state.currentStep].correct;
+        const options = optionList.children;
+
+        // Disable further clicks
+        Array.from(options).forEach(el => el.style.pointerEvents = 'none');
+
+        if (selectedIndex === correctIdx) {
+            state.score++;
+            options[selectedIndex].classList.add('selected');
+            options[selectedIndex].style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+            feedbackEl.textContent = "Correct!";
+        } else {
+            options[selectedIndex].style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            options[correctIdx].classList.add('selected');
+            options[correctIdx].style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+            feedbackEl.textContent = "Incorrect.";
+        }
+
+        setTimeout(() => {
+            state.currentStep++;
+            showQuestion();
+        }, 1200);
+    }
+
+    function endQuiz() {
+        state.mode = 'finished';
+        overlay.style.display = 'flex';
+        questionText.textContent = `Quiz Complete!`;
+        optionList.innerHTML = `<p style="font-size: 1.5rem;">Score: ${state.score} / ${state.questions.length}</p>`;
+        feedbackEl.textContent = "";
+        updateStatus(`Quiz ended. Final Score: ${state.score}`);
+    }
+
+    function resetApp() {
+        state.mode = 'idle';
+        state.currentStep = -1;
+        state.score = 0;
+        overlay.style.display = 'none';
+        updateStatus("Museum reset. Ready for exploration.");
+    }
+
+    // Event Listeners
+    startBtn.addEventListener('click', () => {
+        if (state.mode !== 'playing') startQuiz();
+    });
+
+    resetBtn.addEventListener('click', resetApp);
+
+    // Boot
+    window.onload = () => {
+        // Ensure canvas size matches container
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        init();
+    };
+</script>
+
+</body>
+</html>

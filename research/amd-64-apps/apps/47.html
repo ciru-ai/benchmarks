@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Studio</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #ecfdf5;
+            --accent-text: #059669;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text-main); line-height: 1.5; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+
+        #app-container { width: 960px; height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: grid; grid-template-columns: 300px 1fr; overflow: hidden; position: relative; }
+
+        /* Sidebar */
+        aside { padding: 24px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; background: #fff; z-index: 10; }
+        h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em; color: var(--primary); }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+        input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; transition: border 0.2s; }
+        input:focus { border-color: var(--primary); }
+        
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+        button { cursor: pointer; padding: 10px 16px; border-radius: 6px; font-weight: 600; border: none; transition: all 0.2s; font-size: 0.9rem; }
+        [data-testid="primary-action"] { background: var(--primary); color: white; }
+        [data-testid="primary-action"]:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        [data-testid="reset"] { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+        [data-testid="reset"]:hover { background: #f1f5f9; color: var(--danger); }
+
+        /* Main Content */
+        main { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; }
+        #status { font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; background: var(--accent); color: var(--accent-text); font-weight: 500; }
+
+        /* Time Grid */
+        #grid-wrapper { flex: 1; overflow-y: auto; position: relative; padding: 20px 40px 40px 40px; scrollbar-width: thin; }
+        .time-grid { position: relative; width: 100%; height: 1200px; border-left: 1px solid var(--border); border-right: 1px solid transparent; }
+        .hour-marker { height: 60px; border-bottom: 1px solid var(--border); position: relative; }
+        .hour-label { position: absolute; left: -40px; top: -10px; font-size: 0.75rem; color: var(--text-muted); width: 35px; text-align: right; }
+        
+        .appointment { position: absolute; left: 5px; right: 5px; background: #e0e7ff; border-left: 4px solid var(--primary); border-radius: 4px; padding: 6px 10px; font-size: 0.8rem; color: #3730a3; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); user-select: none; animation: fadeIn 0.3s ease-out; }
+        .appointment .delete-btn { position: absolute; right: 5px; top: 5px; background: none; border: none; color: #ef4444; font-size: 1rem; cursor: pointer; opacity: 0; transition: opacity 0.2s; line-height: 1; }
+        .appointment:hover .delete-btn { opacity: 1; }
+        .conflict { background: #fee2e2 !important; border-left-color: #ef4444 !important; color: #991b1b !important; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* Responsive Preview Simulation (Small Window) */
+        @media (max-width: 1000px) {
+            body::after { content: 'Preview Mode Active'; position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #ccc; }
+            #app-container { transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside>
+        <h1>Studio</h1>
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="appt-title" placeholder="Meeting Name">
+        </div>
+        <div class="form-group">
+            <label>Start Time</label>
+            <input type="time" id="appt-start" value="09:00">
+        </div>
+        <div class="form-group">
+            <label>End Time</label>
+            <input type="time" id="appt-end" value="10:00">
+        </div>
+        <div class="btn-group">
+            <button id="add-btn" data-testid="primary-action">Add Appointment</button>
+            <button id="reset-btn" data-testid="reset">Reset View</button>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <h2 style="font-size: 1rem;">Daily Schedule</h2>
+            <span id="status" data-testid="status">Ready</span>
+        </header>
+        <div id="grid-wrapper">
+            <div class="time-grid" id="time-grid">
+                <!-- Hour markers generated by JS -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- State Management ---
+    let appointments = [
+        { id: 1, title: "Morning Sync", start: "09:00", end: "10:30" },
+        { id: 2, title: "Design Review", start: "13:00", end: "14:30" },
+        { id: 3, title: "Client Call", start: "15:00", end: "16:00" }
+    ];
+
+    const INITIAL_STATE = JSON.parse(JSON.stringify(appointments));
+
+    // --- DOM Elements ---
+    const elements = {
+        grid: document.getElementById('time-grid'),
+        status: document.getElementById('status'),
+        addBtn: document.getElementById('add-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        titleInput: document.getElementById('appt-title'),
+        startInput: document.getElementById('appt-start'),
+        endInput: document.getElementById('appt-end')
+    };
+
+    // --- Logic ---
+    function timeToMinutes(t) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    function minutesToTop(minutes) {
+        // Each hour is 60px, so each minute is 1px
+        return (minutes / 60) * 60; 
+    }
+
+    function hasConflict(newAppt, excludeId = null) {
+        const newS = timeToMinutes(newAppt.start);
+        const newE = timeToMinutes(newAppt.end);
+
+        return appointments.some(appt => {
+            if (appt.id === excludeId) return false;
+            const s = timeToMinutes(appt.start);
+            const e = timeToMinutes(appt.end);
+            return (newS < e && newE > s);
+        });
+    }
+
+    function renderGrid() {
+        elements.grid.innerHTML = '';
+        for (let i = 0; i <= 24; i++) {
+            const marker = document.createElement('div');
+            marker.className = 'hour-marker';
+            const label = document.createElement('div');
+            label.className = 'hour-label';
+            label.textContent = `${i.toString().padStart(2, '0')}:00`;
+            marker.appendChild(label);
+            elements.grid.appendChild(marker);
+        }
+
+        renderAppointments();
+    }
+
+    function renderAppointments() {
+        // Clear existing divs but keep markers
+        Array.from(elements.grid.children).forEach((child, idx) => {
+            if (idx >= 24) child.remove(); // Remove previous aptts if they aren't markers
+        });
+
+        appointments.forEach(appt => {
+            const div = document.createElement('div');
+            div.className = 'appointment';
+            if (hasConflict(appt)) div.classList.add('conflict');
+
+            const startMins = timeToMinutes(appt.start);
+            const endMins = timeToMinutes(appt.end);
+            const duration = endMins - startMins;
+
+            if (duration <= 0) return; // Invalid range
+
+            div.style.top = `${startMins}px`;
+            div.style.height = `${duration}px`;
+
+            div.innerHTML = `
+                <strong>${appt.title}</strong><br>${appt.start}-${appt.end}
+                <button class="delete-btn">&times;</button>
+            `;
+
+            div.querySelector('.delete-btn').onclick = (e) => {
+                e.stopPropagation();
+                deleteAppointment(appt.id);
+            };
+
+            elements.grid.appendChild(div);
+        });
+    }
+
+    function deleteAppointment(id) {
+        appointments = appointments.filter(a => a.id !== id);
+        updateStatus(`Deleted ${id}`);
+        renderAppointments();
+    }
+
+    function addAppointment() {
+        const title = elements.titleInput.value || "Untitled";
+        const start = elements.startInput.value;
+        const end = elements.endInput.value;
+
+        if (!start || !end || timeToMinutes(start) >= timeToMinutes(end)) {
+            alert("Please enter valid times.");
+            return;
+        }
+
+        const newAppt = { id: Date.now(), title, start, end };
+        
+        if (hasConflict(newAppt)) {
+            updateStatus("⚠️ Conflict Detected!");
+            // We still add it to show conflict visually as per requirement
+        } else {
+            updateStatus("Appointment added");
+        }
+
+        appointments.push(newAppt);
+        renderAppointments();
+    }
+
+    function updateStatus(msg) {
+        elements.status.textContent = msg;
+    }
+
+    function resetAll() {
+        appointments = JSON.parse(JSON.stringify(INITIAL_STATE));
+        renderGrid();
+        updateStatus("State Restored");
+    }
+
+    // --- Initialization ---
+    function init() {
+        // Event Listeners
+        elements.addBtn.addEventListener('click', addAppointment);
+        elements.resetBtn.addEventListener('click', resetAll);
+
+        // Initial Render
+        renderGrid();
+        updateStatus("Ready");
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>

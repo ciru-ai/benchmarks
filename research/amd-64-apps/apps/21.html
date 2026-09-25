@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine Lodge | Luxury Mountain Retreat</title>
+    <style>
+        :root {
+            --pine: #2d4739;
+            --snow: #f8f9fa;
+            --wood: #5d4037;
+            --accent: #d4a373;
+            --text: #2c3e50;
+            --bg: #eef2f3;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        /* Scenic Sidebar */
+        .scenic-panel {
+            position: relative;
+            background: linear-gradient(to bottom, #87ceeb, #e0f7fa);
+            overflow: hidden;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mountain-art {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 60%;
+            z-index: 1;
+        }
+
+        .ui-layer { position: relative; z-index: 2; }
+        h1 { margin: 0; color: var(--pine); font-size: 2rem; text-shadow: 0 2px 4px rgba(255,255,255,0.5); }
+        p.subtitle { color: var(--wood); font-weight: 600; margin-top: 5px; }
+
+        /* Booking Form */
+        .booking-form {
+            margin-top: auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .field-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8rem; font-weight: bold; color: var(--pine); margin-bottom: 5px; text-transform: uppercase; }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        button {
+            cursor: pointer;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        [data-testid="primary-action"] { background: var(--pine); color: white; flex: 2; }
+        [data-testid="primary-action"]:hover { background: #1e332a; }
+        [data-testid="reset"] { background: #eee; color: #666; flex: 1; }
+        [data-testid="reset"]:hover { background: #ddd; }
+
+        /* Main Content Area */
+        .main-view {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .summary-card {
+            background: #fff;
+            border: 2px dashed var(--accent);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .price-display { font-size: 3.5rem; font-weight: 800; color: var(--pine); margin: 10px 0; }
+        .details-list { list-style: none; padding: 0; margin: 20px 0; color: #666; }
+        .details-list li { margin: 8px 0; font-size: 1.1rem; }
+
+        #status {
+            font-style: italic;
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .room-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .room-thumb {
+            height: 60px;
+            background: #eee;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- Left Panel -->
+    <aside class="scenic-panel">
+        <div class="ui-layer">
+            <h1>Alpine Lodge</h1>
+            <p class="subtitle">Peak Serenity & Comfort</p>
+        </div>
+
+        <svg class="mountain-art" viewBox="0 0 400 300" preserveAspectRatio="none">
+            <rect width="400" height="300" fill="#87ceeb" />
+            <!-- Mountains -->
+            <path d="M-50 300 L150 50 L300 300 Z" fill="#5d6d7e" />
+            <path d="M150 300 L300 100 L450 300 Z" fill="#4a5a6a" />
+            <path d="M-100 300 L100 150 L250 300 Z" fill="#34495e" />
+            <!-- Snow Caps -->
+            <path d="M130 80 L150 50 L170 80 Z" fill="white" opacity="0.8" />
+            <path d="M270 130 L300 100 L330 130 Z" fill="white" opacity="0.8" />
+            <!-- Trees (Simple Triangles) -->
+            <g fill="#2d4739">
+                <polygon points="50,300 65,260 80,300" />
+                <polygon points="70,300 85,250 100,300" />
+                <polygon points="320,300 340,250 360,300" />
+                <polygon points="350,300 365,270 380,300" />
+            </g>
+        </svg>
+
+        <div class="booking-form">
+            <div class="field-group">
+                <label for="room-type">Suite Type</label>
+                <select id="room-type">
+                    <option value="150" selected>Cozy Cabin ($150)</option>
+                    <option value="350">Lodge Suite ($350)</option>
+                    <option value="600">Grand Chalet ($600)</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label for="stay-duration">Nights</label>
+                <input type="number" id="stay-duration" value="1" min="1" max="30">
+            </div>
+            <div class="btn-row">
+                <button id="calc-btn" data-testid="primary-action">Calculate Estimate</button>
+                <button id="reset-btn" data-testid="reset">Reset</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right Main View -->
+    <main class="main-view">
+        <section class="summary-card" id="result-area">
+            <h2 style="margin:0; color:var(--wood)">Booking Summary</h2>
+            <div id="total-price" class="price-display">$0</div>
+            <ul class="details-list">
+                <li><span id="res-suite">Type: N/A</span></li>
+                <li><span id="res-nights">Duration: 0 nights</span></li>
+            </ul>
+            <div id="status" data-testid="status">Ready to calculate...</div>
+        </section>
+
+        <div>
+            <label>Room Amenities Preview</label>
+            <div class="room-preview">
+                <div class="room-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.5L12 17L19.5 20.5L12 2Z"/></svg> Hot Tub</div>
+                <div class="room-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21H23L12 2Z"/></svg> Fireplace</div>
+                <div class="room-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Balcony</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        // State management
+        const state = {
+            basePrice: 150,
+            nights: 1,
+            isCalculated: false,
+            lastTotal: 0
+        };
+
+        // DOM Elements
+        const el = {
+            roomSelect: document.getElementById('room-type'),
+            nightInput: document.getElementById('stay-duration'),
+            calcBtn: document.getElementById('calc-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            status: document.querySelector('[data-testid="status"]'),
+            priceDisplay: document.getElementById('total-price'),
+            resSuite: document.getElementById('res-suite'),
+            resNights: document.getElementById('res-nights')
+        };
+
+        function formatCurrency(num) {
+            return '$' + num.toLocaleString();
+        }
+
+        function updateStatus(msg) {
+            el.status.textContent = msg;
+        }
+
+        function calculateEstimate() {
+            try {
+                state.basePrice = parseFloat(el.roomSelect.value);
+                state.nights = parseInt(el.nightInput.value);
+
+                if (isNaN(state.nights) || state.nights < 1) {
+                    updateStatus("Error: Invalid duration");
+                    return;
+                }
+
+                const total = state.basePrice * state.nights;
+                state.lastTotal = total;
+                state.isCalculated = true;
+
+                // Update UI
+                const suiteNames = { "150": "Cozy Cabin", "350": "Lodge Suite", "600": "Grand Chalet" };
+                el.priceDisplay.textContent = formatCurrency(total);
+                el.resSuite.textContent = `Type: ${suiteNames[state.basePrice]}`;
+                el.resNights.textContent = `Duration: ${state.nights} night${state.nights > 1 ? 's' : ''}`;
+                
+                updateStatus(`Estimated cost calculated successfully.`);
+            } catch (err) {
+                updateStatus("Calculation failed.");
+            }
+        }
+
+        function resetApp() {
+            // Restore Initial State
+            state.basePrice = 150;
+            state.nights = 1;
+            state.isCalculated = false;
+            state.lastTotal = 0;
+
+            // Reset Inputs
+            el.roomSelect.selectedIndex = 0;
+            el.nightInput.value = 1;
+
+            // Reset Display
+            el.priceDisplay.textContent = "$0";
+            el.resSuite.textContent = "Type: N/A";
+            el.resNights.textContent = "Duration: 0 nights";
+            
+            updateStatus("System reset. Ready to calculate...");
+        }
+
+        // Event Listeners
+        el.calcBtn.addEventListener('click', calculateEstimate);
+        el.resetBtn.addEventListener('click', resetApp);
+
+        // Input validation listeners
+        el.nightInput.addEventListener('change', () => {
+            if (el.nightInput.value < 1) el.nightInput.value = 1;
+        });
+
+        // Initialization check
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("Alpine Lodge App Loaded");
+            if (!el.calcBtn || !el.resetBtn || !el.status) {
+                console.error("Critical elements missing!");
+            }
+        });
+    })();
+</script>
+
+</body>
+</html>

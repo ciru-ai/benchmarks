@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split Table | Bill Calculator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --accent: #10b981;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        .app-container {
+            background: var(--card);
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--text); letter-spacing: -0.025em; }
+        p.subtitle { margin: 0.5rem 0 0; color: var(--text-light); font-size: 0.875rem; }
+
+        .input-group { margin-bottom: 1.5rem; position: relative; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text); }
+        
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--primary); ring: 2px solid var(--primary); }
+
+        .slider-container { display: flex; align-items: center; gap: 15px; }
+        .percentage-display { min-width: 45px; font-weight: bold; color: var(--primary); }
+
+        .results-panel {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .result-row:last-child { margin-bottom: 0; padding-top: 0.75rem; border-top: 1px solid var(--border); margin-top: 0.75rem; font-weight: 700; font-size: 1.2rem; color: var(--primary); }
+        .val { font-family: monospace; }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        button {
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        #primary-btn { background: var(--primary); color: white; }
+        #primary-btn:hover { background: var(--primary-hover); }
+        #reset-btn { background: transparent; color: var(--text-light); border: 1px solid var(--border); }
+        #reset-btn:hover { background: #f1f5f9; color: var(--text); }
+
+        #status {
+            text-align: center;
+            font-size: 0.75rem;
+            margin-top: 1.5rem;
+            color: var(--text-light);
+            min-height: 1em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Split Table</h1>
+        <p class="subtitle">Calculate your group's share instantly.</p>
+    </header>
+
+    <div class="input-group">
+        <label for="bill-amount">Bill Amount ($)</label>
+        <input type="number" id="bill-amount" step="0.01" value="120.00" placeholder="0.00">
+    </div>
+
+    <div class="input-group">
+        <label for="tip-percent">Tip Percentage (%)</label>
+        <div class="slider-container">
+            <input type="range" id="tip-range" min="0" max="50" step="1" value="15">
+            <span class="percentage-display" id="tip-value">15%</span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="people-count">Number of People</label>
+        <input type="number" id="people-count" min="1" value="4">
+    </div>
+
+    <div class="results-panel">
+        <div class="result-row">
+            <span>Total Tip</span>
+            <span class="val" id="res-total-tip">$0.00</span>
+        </div>
+        <div class="result-row">
+            <span>Grand Total</span>
+            <span class="val" id="res-grand-total">$0.00</span>
+        </div>
+        <div class="result-row">
+            <span>Per Person Share</span>
+            <span class="val" id="res-per-person">$0.00</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button id="primary-btn" data-testid="primary-action">Calculate</button>
+        <button id="reset-btn" data-testid="reset">Reset</button>
+    </div>
+
+    <div id="status" data-testid="status">Ready to split</div>
+</div>
+
+<script>
+    /**
+     * APP STATE MANAGEMENT
+     */
+    const initialState = {
+        bill: 120.00,
+        tipPercent: 15,
+        people: 4,
+        calculated: false
+    };
+
+    let state = { ...initialState };
+
+    // DOM Elements
+    const el = {
+        billInput: document.getElementById('bill-amount'),
+        tipRange: document.getElementById('tip-range'),
+        tipDisplay: document.getElementById('tip-value'),
+        peopleInput: document.getElementById('people-count'),
+        primaryBtn: document.getElementById('primary-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        status: document.getElementById('status'),
+        resTotalTip: document.getElementById('res-total-tip'),
+        resGrandTotal: document.getElementById('res-grand-total'),
+        resPerPerson: document.getElementById('res-per-person')
+    };
+
+    /**
+     * CORE LOGIC
+     */
+    function calculate() {
+        const bill = parseFloat(el.billInput.value) || 0;
+        const tipP = parseInt(el.tipRange.value) || 0;
+        const people = Math.max(1, parseInt(el.peopleInput.value) || 1);
+
+        if (bill <= 0) {
+            updateStatus("Please enter a valid bill amount.");
+            return;
+        }
+
+        const totalTip = bill * (tipP / 100);
+        const grandTotal = bill + totalTip;
+        const perPerson = grandTotal / people;
+
+        // Update UI
+        el.resTotalTip.textContent = `$${totalTip.toFixed(2)}`;
+        el.resGrandTotal.textContent = `$${grandTotal.toFixed(2)}`;
+        el.resPerPerson.textContent = `$${perPerson.toFixed(2)}`;
+
+        state.calculated = true;
+        updateStatus(`Calculated for ${people} person(s).`);
+    }
+
+    function updateStatus(msg) {
+        el.status.textContent = msg;
+    }
+
+    function resetApp() {
+        state = { ...initialState };
+        el.billInput.value = initialState.bill;
+        el.tipRange.value = initialState.tipTipPercentage || initialState.tipPercent; // fallback logic if needed
+        el.tipRange.value = 15;
+        el.tipDisplay.textContent = '15%';
+        el.peopleInput.value = initialState.people;
+        
+        // Clear results
+        el.resTotalTip.textContent = "$0.00";
+        el.resGrandTotal.textContent = "$0.00";
+        el.resPerPerson.textContent = "$0.00";
+        
+        state.calculated = false;
+        updateStatus("Values reset to default.");
+    }
+
+    /**
+     * EVENT HANDLERS
+     */
+    function init() {
+        // Sync slider label
+        el.tipRange.addEventListener('input', (e) => {
+            el.tipDisplay.textContent = `${e.target.value}%`;
+        });
+
+        // Calculation trigger
+        el.primaryBtn.addEventListener('click', () => {
+            calculate();
+        });
+
+        // Reset trigger
+        el.resetBtn.addEventListener('click', resetApp);
+
+        // Real-time updates on input change (optional but makes it feel premium)
+        [el.billInput, el.peopleInput].forEach(input => {
+            input.addEventListener('change', () => {
+                if(state.calculated) calculate();
+            });
+        });
+
+        // Initial Run
+        calculate();
+    }
+
+    // Boot application
+    window.addEventListener('DOMContentLoaded', () => {
+        init();
+        checkElements();
+    });
+
+    function checkElements() {
+        // Safety check for developer debugging
+        const criticalIds = ['bill-amount', 'tip-range', 'people-count', 'primary-btn', 'reset-btn'];
+        criticalIds.forEach(id => {
+            if (!document.getElementById(id)) {
+                console.error(`Critical element missing: #${id}`);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

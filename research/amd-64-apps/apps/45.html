@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Small Observatory</title>
+    <style>
+        :root {
+            --space-black: #05070a;
+            --nebula-purple: #2d1b4e;
+            --star-white: #f0f0ff;
+            --accent-gold: #ffd700;
+            --ui-border: rgba(255, 255, 255, 0.2);
+            --panel-bg: rgba(15, 23, 42, 0.8);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--space-black);
+            color: var(--star-white);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            position: relative;
+            background: radial-gradient(circle at center, var(--nebula-purple) 0%, var(--space-black) 100%);
+            border: 2px solid var(--ui-border);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            grid-template-rows: 1fr 180px;
+            gap: 10px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        /* Star Map Area */
+        #map-viewport {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            position: relative;
+            background: black;
+            border: 1px solid var(--ui-border);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        #star-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .constellation-line {
+            stroke: rgba(255, 215, 0, 0.3);
+            stroke-width: 1.5;
+            stroke-dasharray: 4;
+            pointer-events: none;
+        }
+
+        .star-dot {
+            fill: white;
+            filter: drop-shadow(0 0 3px white);
+        }
+
+        .star-highlight {
+            fill: var(--accent-gold);
+            filter: drop-shadow(0 0 8px var(--accent-gold));
+        }
+
+        /* Sidebar Panel */
+        #info-panel {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            background: var(--panel-bg);
+            border: 1px solid var(--ui-border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        h2 { margin: 0; font-size: 1.4rem; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 2px; }
+        p { margin: 0; font-size: 0.9rem; line-height: 1.4; color: #cbd5e1; }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; }
+
+        select, button {
+            background: #1e293b;
+            color: white;
+            border: 1px solid var(--ui-border);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        button {
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-weight: bold;
+        }
+
+        button:hover { background: #334155; }
+
+        #primaryBtn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            height: 45px;
+        }
+
+        #primaryBtn:active { transform: translateY(2px); }
+
+        #resetBtn {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        #resetBtn:hover { background: #450a0a; }
+
+        /* Bottom Status Bar */
+        #status-bar {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--ui-border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #status {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--accent-gold);
+        }
+
+        .data-val { font-weight: bold; color: white; }
+
+        @media (max-width: 960px) {
+            #app-container {
+                transform: scale(0.5);
+                margin: -150px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Main Viewport -->
+        <div id="map-viewport">
+            <svg id="star-canvas" viewBox="0 0 800 500">
+                <!-- Constellations Layer -->
+                <g id="lines-layer"></g>
+                <!-- Stars Layer -->
+                <g id="stars-layer"></g>
+                <!-- Highlight Layer -->
+                <g id="highlight-layer"></g>
+            </svg>
+        </div>
+
+        <!-- Information & Controls -->
+        <aside id="info-panel">
+            <h2>Observatory</h2>
+            <div class="control-group">
+                <label>Target Object</label>
+                <select id="targetSelect">
+                    <option value="orion">Orion Nebula</option>
+                    <option value="pleiades">Pleiades Cluster</option>
+                    <option value="andromeda">Andromeda Galaxy</option>
+                    <option value="sirius">Sirius A</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Constellation Mode</label>
+                <select id="modeSelect">
+                    <option value="none">None</option>
+                    <option value="zodiac">Zodiacal</option>
+                    <option value="seasonal">Seasonal</option>
+                </select>
+            </div>
+
+            <hr style="width:100%; border:0; border-top: 1px solid var(--ui-border);">
+
+            <div class="control-group">
+                <label>Celestial Details</label>
+                <div id="detailsPanel">
+                    <p id="detailText">Select a target to begin observation.</p>
+                </div>
+            </div>
+
+            <div class="control-group" style="margin-top: auto;">
+                <button id="primaryBtn" data-testid="primary-action">Scan Sky</button>
+                <button id="resetBtn" data-testid="reset">Reset System</button>
+            </div>
+        </aside>
+
+        <!-- Footer Info -->
+        <footer id="status-bar">
+            <div>Status: <span id="status" data-testid="status">IDLE</span></div>
+            <div id="coordsDisplay"><small>RA: 05h | DEC: +0°</small></div>
+        </footer>
+    </div>
+
+    <script>
+        /**
+         * DATA SEEDING
+         */
+        const CELESTIAL_DATA = {
+            targets: {
+                orion: {
+                    name: "Orion Nebula",
+                    desc: "A diffuse nebula situated in the Milky Way, south of Orion's Belt.",
+                    ra: "05h 35m",
+                    dec: "-05° 02'",
+                    mag: "+4.0"
+                },
+                pleiades: {
+                    name: "Pleiades",
+                    desc: "An open star cluster containing bright blue stars located in Taurus.",
+                    ra: "05h 45m",
+                    dec: "+24° 07'",
+                    mag: "+1.6"
+                },
+                andromeda: {
+                    name: "Andromeda Galaxy",
+                    desc: "A spiral galaxy approximately 2.5 million light-years from Earth.",
+                    ra: "00h 42m",
+                    dec: "+41° 16'",
+                    mag: "+3.4"
+                },
+                sirius: {
+                    name: "Sirius A",
+                    desc: "The brightest star in the night sky, part of Canis Major.",
+                    ra: "06h 45m",
+                    dec: "-16° 42'",
+                    mag: "-1.46"
+                }
+            },
+            constellations: {
+                zodiac: [
+                    { name: "Taurus", points: [[100, 100], [150, 120], [180, 180], [120, 200], [80, 150]] },
+                    { name: "Gemini", points: [[400, 50], [420, 150], [450, 250], [410, 260], [380, 150]] }
+                ],
+                seasonal: [
+                    { name: "Orion", points: [[500, 300], [550, 320], [530, 380], [480, 360], [500, 300]] },
+                    { name: "Cassiopeia", points: [[700, 50], [720, 80], [750, 70], [770, 100], [800, 80]] }
+                ]
+            },
+            stars: Array.from({ length: 60 }, () => ({
+                x: Math.random() * 800,
+                y: Math.random() * 500,
+                r: Math.random() * 1.5 + 0.5,
+                o: Math.random() * 0.5 + 0.5
+            }))
+        };
+
+        // Mapping targets to screen coordinates (approximate for visual effect)
+        const TARGET_COORDS = {
+            orion: { x: 520, y: 340 },
+            pleiades: { x: 140, y: 140 },
+            andromeda: { x: 720, y: 80 },
+            sirius: { x: 580, y: 380 }
+        };
+
+        /**
+         * STATE MANAGEMENT
+         */
+        let state = {
+            currentTarget: 'orion',
+            currentMode: 'none',
+            isScanning: false,
+            timer: null
+        };
+
+        /**
+         * DOM BINDINGS
+         */
+        const dom = {
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            targetSelect: document.getElementById('targetSelect'),
+            modeSelect: document.getElementById('modeSelect'),
+            detailText: document.getElementById('detailText'),
+            starCanvas: document.getElementById('star-canvas'),
+            linesLayer: document.getElementById('lines-layer'),
+            starsLayer: document.getElementById('stars-layer'),
+            highlightLayer: document.getElementById('highlight-layer'),
+            coordDisplay: document.getElementById('coordsDisplay')
+        };
+
+        /**
+         * CORE LOGIC
+         */
+        function init() {
+            renderStars();
+            setupEventListeners();
+            updateUI();
+        }
+
+        function setupEventListeners() {
+            dom.primaryBtn.addEventListener('click', handleScan);
+            dom.resetBtn.addEventListener('click', resetApp);
+            dom.targetSelect.addEventListener('change', (e) => {
+                state.currentTarget = e.target.value;
+                updateUI();
+            });
+            dom.modeSelect.addEventListener('change', (e) => {
+                state.currentMode = e.target.value;
+                updateUI();
+            });
+        }
+
+        function renderStars() {
+            // Clear layers
+            dom.starsLayer.innerHTML = '';
+            dom.linesLayer.innerHTML = '';
+
+            // Render Background Stars
+            CELESTIAL_DATA.stars.forEach(s => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", s.x);
+                circle.setAttribute("cy", s.y);
+                circle.setAttribute("r", s.r);
+                circle.setAttribute("class", "star-dot");
+                circle.setAttribute("opacity", s.o);
+                dom.starsLayer.appendChild(circle);
+            });
+        }
+
+        function updateUI() {
+            // Update Text Content
+            const targetData = CELESTIAL_DATA.targets[state.currentTarget];
+            dom.detailText.innerHTML = `<strong>${targetData.name}</strong><br><br>${targetData.desc}<br><br><em>Mag: ${targetData.mag}</em>`;
+            dom.coordDisplay.innerHTML = `<small>RA: ${targetData.ra} | DEC: ${targetData.dec}</small>`;
+            
+            // Redraw Layers based on mode
+            drawConstellations();
+            clearHighlights();
+            
+            dom.status.textContent = "READY";
+            dom.status.style.color = "var(--accent-gold)";
+        }
+
+        function drawConstellations() {
+            dom.linesLayer.innerHTML = '';
+            if (state.currentMode === 'none') return;
+
+            const group = CELESTIAL_DATA.constellations[state.currentMode];
+            group.forEach(c => {
+                for (let i = 0; i < c.points.length - 1; i++) {
+                    const p1 = c.points[i];
+                    const p2 = c.points[i+1];
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", p1[0]);
+                    line.setAttribute("y1", p1[1]);
+                    line.setAttribute("x2", p2[0]);
+                    line.setAttribute("y2", p2[1]);
+                    line.setAttribute("class", "constellation-line");
+                    dom.linesLayer.appendChild(line);
+                }
+            });
+        }
+
+        function clearHighlights() {
+            dom.highlightLayer.innerHTML = '';
+        }
+
+        function handleScan() {
+            if (state.isScanning) return;
+            
+            state.isScanning = true;
+            dom.status.textContent = "SCANNING...";
+            dom.status.style.color = "#fbbf24";
+            dom.primaryBtn.disabled = true;
+
+            // Simulate scanning delay
+            let progress = 0;
+            clearInterval(state.timer);
+            state.timer = setInterval(() => {
+                progress += 10;
+                dom.status.textContent = `SCANNING ${progress}%`;
+                
+                if (progress >= 100) {
+                    completeScan();
+                }
+            }, 150);
+        }
+
+        function completeScan() {
+            clearInterval(state.timer);
+            state.isScanning = false;
+            dom.primaryBtn.disabled = false;
+            
+            // Show Target Highlighting
+            const coords = TARGET_COORDS[state.currentTarget];
+            const highlightCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            highlightCircle.setAttribute("cx", coords.x);
+            highlightCircle.setAttribute("cy", coords.y);
+            highlightCircle.setAttribute("r", 12);
+            highlightCircle.setAttribute("class", "star-highlight");
+            dom.highlightLayer.appendChild(highlightCircle);
+
+            dom.status.textContent = "TARGET LOCKED";
+            dom.status.style.color = "#4ade80";
+        }
+
+        function resetApp() {
+            clearInterval(state.timer);
+            state = {
+                currentTarget: 'orion',
+                currentMode: 'none',
+                isScanning: false,
+                timer: null
+            };
+            
+            // Reset Form Elements
+            dom.targetSelect.value = 'orion';
+            dom.modeSelect.value = 'none';
+            dom.primaryBtn.disabled = false;
+            
+            updateUI();
+        }
+
+        // Start Application
+        init();
+
+    </script>
+</body>
+</html>

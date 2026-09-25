@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Flora | Boutique Florist</title>
+    <style>
+        :root {
+            --bg: #fdfaf6;
+            --panel: #ffffff;
+            --accent: #7d8e7a;
+            --text: #3e4a3d;
+            --highlight: #d4a373;
+            --border: #e0ddd5;
+            --danger: #c06c84;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            height: 600px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar / Controls */
+        aside {
+            background: #f9f7f2;
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        h1 { font-size: 1.5rem; margin: 0; color: var(--accent); letter-spacing: -0.5px; }
+        .section-label { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; color: #999; margin-bottom: 8px; display: block; }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        select, button {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        select:focus { outline: none; border-color: var(--accent); }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        button:hover { background: #6b7a68; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        #resetBtn {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            margin-top: auto;
+        }
+        #resetBtn:hover { background: #eee; }
+
+        /* Main Viewport */
+        main {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at center, #fff 0%, #fdfaf6 100%);
+        }
+
+        #canvas-area {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bouquet-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 450px;
+        }
+
+        #summary-panel {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .price-tag { font-size: 1.8rem; font-weight: 300; color: var(--accent); }
+        #composition-list { font-size: 0.85rem; color: #777; list-style: none; padding: 0; margin: 5px 0 0 0; }
+        #composition-list li::before { content: "• "; color: var(--highlight); }
+
+        #status { font-size: 0.8rem; color: var(--accent); font-style: italic; }
+
+        /* Bouquet Elements Animation */
+        .flower-element { transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; }
+        .flower-element.visible { opacity: 1; }
+
+        @media (max-width: 960px) {
+            #app-container { width: 100vw; height: 100vh; grid-template-columns: 1fr; overflow-y: auto; }
+            aside { height: auto; }
+            #canvas-area { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside>
+        <h1>Studio Flora</h1>
+        
+        <div class="control-group">
+            <span class="section-label">Occasion</span>
+            <select id="occasionSelect">
+                <option value="romantic">Romantic & Passionate</option>
+                <option value="celebration">Celebratory Joy</option>
+                <option value="sympathy">Sympathy & Grace</option>
+                <option value="minimal">Minimalist Gift</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="section-label">Add Stem Type</span>
+            <select id="stemSelect">
+                <option value="">-- Select Flower --</option>
+                <option value="rose">Red Rose ($5.00)</option>
+                <option value="lily">White Lily ($7.00)</option>
+                <option value="tulip">Pink Tulip ($4.00)</option>
+                <option value="sunflower">Sunflower ($6.00)</option>
+                <option value="daisy">Wild Daisy ($3.00)</option>
+            </select>
+        </div>
+
+        <button id="primaryBtn" data-testid="primary-action">Add to Bouquet</button>
+        <button id="resetBtn" data-testid="reset">Reset Arrangement</button>
+    </aside>
+
+    <main>
+        <div id="canvas-area">
+            <!-- SVG Bouquet Container -->
+            <svg class="bouquet-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+                <!-- Vase/Base -->
+                <path d="M150 350 L250 350 L230 300 L170 300 Z" fill="#eaddca" stroke="#d2b48c" stroke-width="2"/>
+                <rect x="160" y="340" width="80" height="15" rx="5" fill="#d2b48c" />
+                
+                <!-- Stems Group -->
+                <g id="stemsGroup"></g>
+                <!-- Flowers Group -->
+                <g id="flowersGroup"></g>
+            </svg>
+        </div>
+
+        <div id="summary-panel">
+            <div>
+                <div style="font-weight: bold;">Current Arrangement</div>
+                <ul id="composition-list"></ul>
+            </div>
+            <div style="text-align: right;">
+                <div id="status" data-testid="status">Ready to create...</div>
+                <div class="price-tag" id="totalPrice">$0.00</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+/**
+ * STUDIO FLORA - CORE LOGIC
+ */
+
+// Data Definitions
+const FLOWER_DATA = {
+    rose: { name: "Red Rose", price: 5.00, color: "#b22222", shape: 'petal' },
+    lily: { name: "White Lily", price: 7.00, color: "#ffffff", shape: 'star' },
+    tulip: { name: "Pink Tulip", price: 4.00, color: "#ffb7c5", shape: 'cup' },
+    sunflower: { name: "Sunflower", price: 6.00, color: "#ffd700", shape: 'disk' },
+    daisy: { name: "Wild Daisy", price: 3.00, color: "#fafad2", shape: 'small-petal' }
+};
+
+const OCCASION_THEMES = {
+    romantic: { accent: "#b22222", bg: "#fff5f5" },
+    celebration: { accent: "#ffd700", bg: "#fffdf0" },
+    sympathy: { accent: "#f0f0f0", bg: "#fcfcfc" },
+    minimal: { accent: "#7d8e7a", bg: "#f9f9f9" }
+};
+
+// Initial State
+let state = {
+    bouquet: [], // Array of {id, type, x, y, rotation}
+    selectedType: "",
+    occasion: "romantic",
+    totalPrice: 0.00
+};
+
+// DOM References
+const dom = {
+    primaryBtn: document.getElementById('primaryBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    occasionSelect: document.getElementById('occasionSelect'),
+    stemSelect: document.getElementById('stemSelect'),
+    status: document.getElementById('status'),
+    priceDisplay: document.getElementById('totalPrice'),
+    compList: document.getElementById('composition-list'),
+    stemsGroup: document.getElementById('stemsGroup'),
+    flowersGroup: document.getElementById('flowersGroup')
+};
+
+/**
+ * Initialization Logic
+ */
+function init() {
+    setupEventListeners();
+    render();
+}
+
+function setupEventListeners() {
+    dom.primaryBtn.addEventListener('click', handleAddStem);
+    dom.resetBtn.addEventListener('click', handleReset);
+    dom.occasionSelect.addEventListener('change', handleOccasionChange);
+}
+
+/**
+ * Handlers
+ */
+function handleAddStem() {
+    const type = dom.stemSelect.value;
+    if (!type) {
+        updateStatus("Please select a flower first.");
+        return;
+    }
+
+    const flowerInfo = FLOWER_DATA[type];
+    
+    // Create new flower entry with randomized placement logic
+    const newFlower = {
+        id: Date.now(),
+        type: type,
+        // Randomize position slightly around the vase center
+        x: 180 + Math.random() * 40,
+        y: 280 - (state.bouquet.length * 15) - (Math.random() * 20),
+        rotation: (Math.random() * 40) - 20
+    };
+
+    state.bouquet.push(newFlower);
+    calculateTotals();
+    render();
+    updateStatus(`Added ${flowerInfo.name}`);
+}
+
+function handleReset() {
+    state.bouquet = [];
+    state.totalPrice = 0;
+    render();
+    updateStatus("Arrangement cleared.");
+}
+
+function handleOccasionChange(e) {
+    state.occasion = e.target.value;
+    updateStatus(`Switched to ${state.occasion} theme`);
+    renderTheme();
+}
+
+function calculateTotals() {
+    state.totalPrice = state.bouquet.reduce((sum, item) => {
+        return sum + FLOWER_DATA[item.type].price;
+    }, 0);
+}
+
+function updateStatus(msg) {
+    dom.status.textContent = msg;
+}
+
+/**
+ * Rendering Engine
+ */
+function render() {
+    renderFlowers();
+    renderComposition();
+    renderPrices();
+}
+
+function renderTheme() {
+    const theme = OCCASION_THEMES[state.occasion];
+    document.querySelector('main').style.backgroundColor = theme.bg;
+    dom.priceDisplay.style.color = theme.accent;
+}
+
+function renderFlowers() {
+    // Clear current visual elements
+    dom.stemsGroup.innerHTML = '';
+    dom.flowersGroup.innerHTML = '';
+
+    state.bouquet.forEach(item => {
+        const info = FLOWER_DATA[item.type];
+        
+        // Render Stem
+        const stemSvg = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        stemSvg.setAttribute("x1", "200");
+        stemSvg.setAttribute("y1", "310");
+        stemSvg.setAttribute("x2", item.x);
+        stemSvg.setAttribute("y2", item.y);
+        stemSvg.setAttribute("stroke", "#4a5d43");
+        stemSvg.setAttribute("stroke-width", "3");
+        stemSvg.classList.add('flower-element', 'visible');
+        dom.stemsGroup.appendChild(stemSvg);
+
+        // Render Bloom
+        const bloom = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        bloom.setAttribute("class", "flower-element visible");
+        bloom.setAttribute("transform", `translate(${item.x}, ${item.y}) rotate(${item.rotation})`);
+        
+        // Simple procedural shapes based on type
+        let shapeMarkup = '';
+        if (info.shape === 'petal') { // Rose
+             shapeMarkup = `<circle r="12" fill="${info.color}" /><circle r="7" fill="#e33434" opacity="0.5"/><circle r="4" fill="#ffccd5" opacity="0.5"/>`;
+        } else if (info.shape === 'star') { // Lily
+             shapeMarkup = `<path d="M0,-18 Q5,-5 18,0 Q5,5 0,18 Q-5,5 -18,0 Q-5,-5 0,-18" fill="${info.color}" />`;
+        } else if (info.shape === 'cup') { // Tulip
+             shapeMarkup = `<ellipse cx="0" cy="-5" rx="12" ry="15" fill="${info.color}" />`;
+        } else if (info.shape === 'disk') { // Sunflower
+             shapeMarkup = `<circle r="15" fill="${info.color}"/><circle r="7" fill="#5d4037"/>`;
+        } else { // Daisy
+             shapeMarkup = `<circle r="8" fill="${info.color}"/><circle r="4" fill="#eee"/>`;
+        }
+
+        bloom.innerHTML = shapeMarkup;
+        dom.flowersGroup.appendChild(bloom);
+    });
+}
+
+function renderComposition() {
+    dom.compList.innerHTML = '';
+    if (state.bouquet.length === 0) {
+        dom.compList.innerHTML = '<li><em>No stems added</em></li>';
+        return;
+    }
+    state.bouquet.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = FLOWER_DATA[item.type].name;
+        dom.compList.appendChild(li);
+    });
+}
+
+function renderPrices() {
+    dom.priceDisplay.textContent = `$${state.totalPrice.toFixed(2)}`;
+}
+
+// Start App
+init();
+
+</script>
+</body>
+</html>

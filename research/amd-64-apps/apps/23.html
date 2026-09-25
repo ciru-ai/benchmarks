@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Desk</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        #app-container { width: 100%; max-width: 960px; min-height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
+        header { padding: 24px; border-bottom: 1px solid var(--border); background: white; }
+        h1 { margin: 0; font-size: 1.5rem; color: #0f172a; }
+        .toolbar { padding: 12px 24px; background: #f1f5f9; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border); }
+        .main-content { flex: 1; padding: 24px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; padding: 12px; border-bottom: 2px solid var(--border); }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; outline: none; transition: border 0.2s; }
+        input:focus { border-color: var(--primary); ring: 2px solid #bfdbfe; }
+        .btn { cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; border: none; transition: all 0.2s; font-size: 0.875rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: #fef2f2; }
+        .summary-pane { margin-left: auto; width: 300px; border-top: 2px solid var(--border); padding-top: 16px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+        .total-row { font-weight: bold; font-size: 1.25rem; color: var(--primary); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        #status-bar { font-size: 0.85rem; color: #64748b; font-style: italic; }
+        .empty-state { text-align: center; padding: 40px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Invoice Desk</h1>
+        <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: #64748b;">Professional Billing Generator</p>
+    </header>
+
+    <div class="toolbar">
+        <button id="add-item-btn" class="btn btn-primary" data-testid="primary-action">+ Add Line Item</button>
+        <button id="reset-btn" class="btn btn-secondary" data-testid="reset">Reset Form</button>
+        <span id="status-el" data-testid="status">Ready</span>
+    </div>
+
+    <div class="main-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th style="width: 100px;">Qty</th>
+                    <th style="width: 120px;">Price ($)</th>
+                    <th style="width: 120px; text-align: right;">Total</th>
+                    <th style="width: 50px;"></th>
+                </tr>
+            </thead>
+            <tbody id="line-items-body">
+                <!-- Rows injected by JS -->
+            </tbody>
+        </table>
+
+        <div id="no-data-msg" class="empty-state" style="display:none;">No items added yet.</div>
+
+        <div class="summary-pane">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="subtotal-val">$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Tax (10%)</span>
+                <span id="tax-val">$0.00</span>
+            </div>
+            <div class="summary-row total-row">
+                <span>Grand Total</span>
+                <span id="grand-total-val">$0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // --- State Management ---
+    let state = {
+        items: [
+            { id: 'it-1', desc: 'Web Design Services', qty: 1, price: 1200.00 },
+            { id: 'it-2', desc: 'Hosting (Annual)', qty: 1, price: 150.00 },
+            { id: 'it-3', desc: 'SEO Optimization', qty: 5, price: 85.50 }
+        ],
+        taxRate: 0.10
+    };
+
+    const TAX_RATE = 0.10;
+
+    // --- DOM Elements ---
+    const els = {
+        tbody: document.getElementById('line-items-body'),
+        addItemBtn: document.getElementById('add-item-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        statusEl: document.getElementById('status-el'),
+        subtotalEl: document.getElementById('subtotal-val'),
+        taxEl: document.getElementById('tax-val'),
+        totalEl: document.getElementById('grand-total-val'),
+        noDataMsg: document.getElementById('no-data-msg')
+    };
+
+    // --- Core Functions ---
+    function render() {
+        els.tbody.innerHTML = '';
+        
+        if (state.items.length === 0) {
+            els.noDataMsg.style.display = 'block';
+        } else {
+            els.noDataMsg.style.display = 'none';
+        }
+
+        state.items.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td><input type="text" value="${item.desc}" data-id="${item.id}" data-field="desc"></td>
+                <td><input type="number" value="${item.qty}" step="any" data-id="${item.id}" data-field="qty"></td>
+                <td><input type="number" value="${item.price.toFixed(2)}" step="0.01" data-id="${item.id}" data-field="price"></td>
+                <td style="text-align: right;" id="row-total-${item.id}">${formatCurrency(item.qty * item.price)}</td>
+                <td><button class="btn btn-danger delete-btn" data-id="${item.id}">✕</button></td>
+            `;
+            
+            els.tbody.appendChild(tr);
+        });
+
+        calculateTotals();
+        updateStatus(`Current Items: ${state.items.length}`);
+    }
+
+    function calculateTotals() {
+        const subtotal = state.items.reduce((acc, curr) => acc + (curr.qty * curr.price), 0);
+        const tax = subtotal * TAX_RATE;
+        const total = subtotal + tax;
+
+        els.subtotalEl.textContent = formatCurrency(subtotal);
+        els.taxEl.textContent = formatCurrency(tax);
+        els.totalEl.textContent = formatCurrency(total);
+
+        // Update individual row totals if they exist in DOM
+        state.items.forEach(item => {
+            const el = document.getElementById(`row-total-${item.id}`);
+            if (el) el.textContent = formatCurrency(item.qty * item.price);
+        });
+    }
+
+    function formatCurrency(num) {
+        return '$' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function updateStatus(msg) {
+        els.statusEl.textContent = msg;
+    }
+
+    function addItem() {
+        const newId = 'it-' + Date.now();
+        state.items.push({
+            id: newId,
+            desc: 'New Service',
+            qty: 1,
+            price: 0.00
+        });
+        render();
+        updateStatus("Added new item");
+    }
+
+    function removeItem(id) {
+        state.items = state.items.filter(i => i.id !== id);
+        render();
+        updateStatus("Item removed");
+    }
+
+    function handleInput(e) {
+        if (!e.target.matches('input')) return;
+        
+        const id = e.target.dataset.id;
+        const field = e.target.dataset.field;
+        const val = e.target.value;
+
+        const item = state.items.find(i => i.id === id);
+        if (item) {
+            if (field === 'qty') {
+                item[field] = parseFloat(val) || 0;
+            } else if (field === 'price') {
+                item[field] = parseFloat(val) || 0;
+            } else {
+                item[field] = val;
+            }
+            // Re-calc without full re-render to preserve focus
+            calculateTotals();
+            // If we want real-time status updates on change
+            updateStatus(`Editing ${item.desc}...`);
+        }
+    }
+
+    function resetApp() {
+        state = {
+            items: [
+                { id: 'it-1', desc: 'Web Design Services', qty: 1, price: 1200.00 },
+                { id: 'it-2', desc: 'Hosting (Annual)', qty: 1, price: 150.00 },
+                { id: 'it-3', desc: 'SEO Optimization', qty: 5, price: 85.50 }
+            ],
+            taxRate: 0.10
+        };
+        render();
+        updateStatus("State reset to default");
+    }
+
+    // --- Event Listeners ---
+    document.addEventListener('input', handleInput);
+
+    els.addItemBtn.addEventListener('click', () => {
+        addItem();
+    });
+
+    els.resetBtn.addEventListener('click', () => {
+        resetApp();
+    });
+
+    els.tbody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn')) {
+            removeItem(e.target.dataset.id);
+        }
+    });
+
+    // Initial Boot
+    window.onload = () => {
+        render();
+    };
+
+})();
+</script>
+</body>
+</html>

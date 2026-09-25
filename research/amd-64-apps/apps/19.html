@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Fuse</title>
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --grid: #1a222c;
+            --wire: #39ff14;
+            --battery: #ffbf00;
+            --error: #ff0055;
+            --spark: #00d4ff;
+            --text: #e0e0e0;
+        }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            border: 4px solid #2c3e50;
+            border-radius: 8px;
+            background: var(--bg);
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+        .ui-panel {
+            width: 960px;
+            max-width: 95vw;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 10px 20px;
+            background: #161b22;
+            border-bottom: 2px solid #30363d;
+        }
+        .stats { font-size: 1.2rem; font-weight: bold; letter-spacing: 1px; }
+        .controls-hint { font-size: 0.8rem; color: #8b949e; margin-top: 5px; text-align: center;}
+        .actions { padding: 20px; display: flex; gap: 15px; justify-content: center; width: 100%; }
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: var(--wire); color: #000; box-shadow: 0 0 15px var(--wire); }
+        [data-testid="reset"] { background: #30363d; color: white; border: 1px solid #484f58; }
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        #overlay h2 { font-size: 3rem; margin: 0; text-transform: uppercase; }
+        .short-circuit { animation: flash 0.2s infinite alternate; }
+        @keyframes flash { from { opacity: 1; } to { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+
+    <div class="ui-panel">
+        <div>
+            <div class="stats">SCORE: <span id="score-val">0</span> / 20</div>
+            <div id="status" data-testid="status">SYSTEM STANDBY</div>
+        </div>
+        <div style="text-align: right;">
+            <div id="speed-val">VOLTAGE: 1.0x</div>
+            <div style="font-size: 0.7rem; color: #8b949e;">NEXT UPGRADE @ 5 BATTRIES</div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay">
+            <h2 id="overlay-msg">SHORT CIRCUIT</h2>
+            <p>Press R or Reset to Reboot</p>
+        </div>
+    </div>
+
+    <div class="controls-hint">WASD or ARROWS to steer the fuse • COLLECT 20 BATTERIES TO WIN</div>
+
+    <div class="actions">
+        <button id="startBtn" data-testid="primary-action">START FUSE</button>
+        <button id="resetBtn" data-testid="reset">RESET SYSTEM</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const scoreEl = document.getElementById('score-val');
+        const speedEl = document.getElementById('speed-val');
+        const overlay = document.getElementById('overlay');
+        const overlayMsg = document.getElementById('overlay-msg');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Config
+        const GRID_SIZE = 20;
+        const COLS = 48;
+        const ROWS = 30;
+        const CELL_SIZE = 20;
+        canvas.width = COLS * CELL_SIZE;
+        canvas.height = ROWS * CELL_SIZE;
+
+        let gameState = 'IDLE'; // IDLE, PLAYING, WON, LOST
+        let snake = [];
+        let direction = { x: 1, y: 0 };
+        let nextDir = { x: 1, y: 0 };
+        let food = null;
+        let score = 0;
+        let baseSpeed = 120;
+        let lastTick = 0;
+        let particles = [];
+
+        function init() {
+            snake = [
+                {x: 10, y: 15},
+                {x: 9, y: 15},
+                {x: 8, y: 15}
+            ];
+            direction = { x: 1, y: 0 };
+            nextDir = { x: 1, y: 0 };
+            score = 0;
+            baseSpeed = 120;
+            spawnFood();
+            updateUI();
+        }
+
+        function spawnFood() {
+            food = {
+                x: Math.floor(Math.random() * (COLS - 2)) + 1,
+                y: Math.floor(Math.random() * (ROWS - 2)) + 1
+            };
+            // Ensure food doesn't spawn on snake
+            for (let s of snake) {
+                if (s.x === food.x && s.y === food.y) return spawnFood();
+            }
+        }
+
+        function createSpark(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x * CELL_SIZE + CELL_SIZE/2,
+                    y: y * CELL_SIZE + CELL_SIZE/2,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 1.0,
+                    color: '#00d4ff'
+                });
+            }
+        }
+
+        function updateUI() {
+            scoreEl.innerText = score;
+            speedEl.innerText = `VOLTAGE: ${(1 + Math.floor(score/5)*0.2).toFixed(1)}x`;
+            statusEl.innerText = gameState === 'PLAYING' ? 'FUSE ACTIVE' : 'SYSTEM ' + gameState;
+            
+            if (gameState === 'WON') statusEl.innerText = "MISSION COMPLETE";
+            if (gameState === 'LOST') statusEl.innerText = "CRITICAL FAILURE";
+        }
+
+        function handleInput(e) {
+            const key = e.key.toLowerCase();
+            if ((key === 'w' || key === 'arrowup') && direction.y !== 1) nextDir = { x: 0, y: -1 };
+            else if ((key === 's' || key === 'arrowdown') && direction.y !== -1) nextDir = { x: 0, y: 1 };
+            else if ((key === 'a' || key === 'arrowleft') && direction.x !== 1) nextDir = { x: -1, y: 0 };
+            else if ((key === 'd' || key === 'arrowright') && direction.x !== -1) nextDir = { x: 1, y: 0 };
+            else if (key === 'r') resetGame();
+        }
+
+        function gameOver(win = false) {
+            gameState = win ? 'WON' : 'LOST';
+            overlay.style.display = 'flex';
+            overlayMsg.innerText = win ? "CORE STABILIZED" : "SHORT CIRCUIT";
+            overlayMsg.style.color = win ? "#39ff14" : "#ff0055";
+            updateUI();
+        }
+
+        function resetGame() {
+            stopLoop();
+            gameState = 'IDLE';
+            overlay.style.display = 'none';
+            init();
+            draw();
+            updateUI();
+        }
+
+        function startGame() {
+            if (gameState === 'PLAYING') return;
+            init();
+            gameState = 'PLAYING';
+            overlay.style.display = 'none';
+            requestAnimationFrame(gameLoop);
+            updateUI();
+        }
+
+        function stopLoop() {
+            // Handled by requestAnimationFrame naturally via logic checks
+        }
+
+        function gameLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+
+            const delta = timestamp - lastTick;
+            const currentInterval = baseSpeed * (1 - Math.min((score / 20) * 0.3, 0.5)); // Slight speed ramp
+            
+            if (delta > currentInterval) {
+                lastTick = timestamp;
+                update();
+            }
+
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            direction = nextDir;
+            const head = { ...snake[0] };
+            head.x += direction.x;
+            head.y += direction.y;
+
+            // Wall Collision
+            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+                createSpark(snake[0].x, snake[0].y);
+                gameOver(false);
+                return;
+            }
+
+            // Self Collision
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    createSpark(head.x, head.y);
+                    gameOver(false);
+                    return;
+                }
+            }
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                createSpark(food.x, food.y);
+                spawnFood();
+                updateUI();
+                if (score >= 20) gameOver(true);
+            } else {
+                snake.pop();
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0a0e14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid
+            ctx.strokeStyle = '#1a222c';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= COLS; i++) {
+                ctx.beginPath(); ctx.moveTo(i * CELL_SIZE, 0); ctx.lineTo(i * CELL_SIZE, canvas.height); ctx.stroke();
+            }
+            for (let j = 0; j <= ROWS; j++) {
+                ctx.beginPath(); ctx.moveTo(0, j * CELL_SIZE); ctx.lineTo(canvas.width, j * CELL_SIZE); ctx.stroke();
+            }
+
+            // Draw Food (Battery)
+            ctx.fillStyle = '#ffbf00';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffbf00';
+            ctx.beginPath();
+            ctx.arc(food.x * CELL_SIZE + CELL_SIZE/2, food.y * CELL_SIZE + CELL_SIZE/2, CELL_SIZE/3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw Snake (Wire)
+            snake.forEach((part, index) => {
+                const alpha = 1 - (index / (snake.length + 5));
+                ctx.fillStyle = `rgba(57, 255, 20, ${alpha})`;
+                ctx.shadowBlur = index === 0 ? 15 : 0;
+                ctx.shadowColor = '#39ff14';
+                ctx.fillRect(part.x * CELL_SIZE + 2, part.y * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+                ctx.shadowBlur = 0;
+            });
+
+            // Particles
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.05;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.fillRect(p.x, p.y, 3, 3);
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        window.addEventListener('keydown', handleInput);
+        startBtn.addEventListener('click', startGame);
+        resetBtn.addEventListener('click', resetGame);
+
+        // Init view
+        init();
+        draw();
+    </script>
+</body>
+</html>

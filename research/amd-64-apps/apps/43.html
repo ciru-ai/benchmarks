@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lamps of Europa</title>
+    <style>
+        :root {
+            --navy: #0a192f;
+            --amber: #ffb347;
+            --amber-dim: #7a4d1d;
+            --ice: #e0f7fa;
+            --text: #ffffff;
+            --panel: #162a44;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--navy);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text);
+        }
+
+        #toolbar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 15px 30px;
+            background: linear-gradient(to bottom, #1a3a5a, #0a192f);
+            border-bottom: 2px solid var(--ice);
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        #game-container {
+            position: relative;
+            margin-top: 80px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border: 8px solid var(--ice);
+            border-radius: 4px;
+            background: var(--navy);
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        button {
+            padding: 10px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        #primaryBtn {
+            background-color: var(--amber);
+            color: var(--navy);
+        }
+
+        #resetBtn {
+            background-color: transparent;
+            color: var(--ice);
+            border: 1px solid var(--ice);
+        }
+
+        #resetBtn:hover {
+            background-color: rgba(224, 247, 250, 0.1);
+        }
+
+        #status {
+            font-family: monospace;
+            font-size: 1.2rem;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .stats-panel {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            color: var(--ice);
+            font-size: 0.9rem;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <span id="status" data-testid="status">READY</span>
+        <button id="primaryBtn" data-testid="primary-action">Play</button>
+        <button id="resetBtn" data-testid="reset">Reset</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="stats-panel">
+            <span id="moveCountDisplay">Moves Remaining: 30</span>
+            <span id="litCountDisplay">Lamps Lit: 0</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * LAMPS OF EUROPA
+         * Logic: Lights Out (5x5)
+         */
+
+        const STATE = {
+            grid: [], // 5x5 boolean array
+            movesLeft: 30,
+            isGameActive: false,
+            gameState: 'ready', // ready, playing, won, lost
+            initialGrid: []
+        };
+
+        // Constants
+        const GRID_SIZE = 5;
+        const CELL_SIZE = 100;
+        const CANVAS_WIDTH = 500;
+        const CANVAS_HEIGHT = 500;
+
+        const dom = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: document.getElementById('gameCanvas').getContext('2d'),
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            moveCountDisplay: document.getElementById('moveCountDisplay'),
+            litCountDisplay: document.getElementById('litCountDisplay')
+        };
+
+        let animationFrameId = null;
+        let lastTime = 0;
+        let particles = [];
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * CANVAS_WIDTH;
+                this.y = Math.random() * CANVAS_HEIGHT;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > CANVAS_WIDTH || this.y < 0 || this.y > CANVAS_HEIGHT) {
+                    this.reset();
+                }
+            }
+            draw(ctx) {
+                ctx.fillStyle = `rgba(224, 247, 250, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = Array.from({ length: 40 }, () => new Particle());
+        }
+
+        function createSolvablePuzzle() {
+            // Start with empty grid
+            const grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+            
+            // A sequence of valid moves applied to an empty board guarantees solvability
+            // We use a specific pattern to ensure complexity without being impossible
+            const solutionPath = [
+                [0,0], [0,1], [1,1], [2,2], [3,3], [4,4], [4,3], [3,4], [2,2], [1,1]
+            ];
+
+            solutionPath.forEach(([r, c]) => {
+                toggleLogic(grid, r, c);
+            });
+
+            return grid;
+        }
+
+        function toggleLogic(grid, r, c) {
+            const coords = [[0,0], [0,-1], [0,1], [-1,0], [1,0]];
+            coords.forEach(([dr, dc]) => {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
+                    grid[nr][nc] = !grid[nr][nc];
+                }
+            });
+        }
+
+        function getLitCount(grid) {
+            return grid.flat().filter(v => v).length;
+        }
+
+        function initGame() {
+            STATE.grid = createSolvablePuzzle();
+            STATE.initialGrid = STATE.grid.map(row => [...row]);
+            STATE.movesLeft = 30;
+            STATE.isGameActive = false;
+            STATE.gameState = 'ready';
+            updateUI();
+        }
+
+        function updateUI() {
+            dom.status.textContent = STATE.gameState.toUpperCase();
+            dom.moveCountDisplay.textContent = `Moves Remaining: ${STATE.movesLeft}`;
+            dom.litCountDisplay.textContent = `Lamps Lit: ${getLitCount(STATE.grid)}`;
+            
+            if (STATE.gameState === 'playing') {
+                dom.primaryBtn.disabled = true;
+                dom.primaryBtn.style.opacity = "0.5";
+            } else {
+                dom.primaryBtn.disabled = false;
+                dom.primaryBtn.style.opacity = "1";
+            }
+        }
+
+        function startGame() {
+            STATE.isGameActive = true;
+            STATE.gameState = 'playing';
+            STATE.movesLeft = 30;
+            updateUI();
+            requestAnimationFrame(loop);
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animationFrameId);
+            initGame();
+            render();
+        }
+
+        function handleInteraction(clientX, clientY) {
+            if (!STATE.isGameActive) return;
+
+            const rect = dom.canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const col = Math.floor(x / CELL_SIZE);
+            const row = Math.floor(y / CELL_SIZE);
+
+            if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+                performMove(row, col);
+            }
+        }
+
+        function performMove(r, c) {
+            toggleLogic(STATE.grid, r, c);
+            STATE.movesLeft--;
+
+            const litCount = getLitCount(STATE.grid);
+
+            if (litCount === 0) {
+                STATE.gameState = 'won';
+                STATE.isGameActive = false;
+            } else if (STATE.movesLeft <= 0) {
+                STATE.gameState = 'lost';
+                STATE.isGameActive = false;
+            }
+
+            updateUI();
+        }
+
+        // Rendering logic
+        function drawCell(ctx, r, c, isOn, isHovered) {
+            const x = c * CELL_SIZE;
+            const y = r * CELL_SIZE;
+            const padding = 10;
+            const innerSize = CELL_SIZE - padding * 2;
+
+            // Metal Panel Base
+            ctx.fillStyle = '#1c334e';
+            ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+
+            // Lamp Glow
+            if (isOn) {
+                const gradient = ctx.createRadialGradient(
+                    x + CELL_SIZE/2, y + CELL_SIZE/2, 5,
+                    x + CELL_SIZE/2, y + CELL_SIZE/2, CELL_SIZE/2
+                );
+                gradient.addColorStop(0, 'rgba(255, 179, 71, 0.8)');
+                gradient.addColorStop(1, 'rgba(255, 179, 71, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+            }
+
+            // Inner Bulb
+            ctx.fillStyle = isOn ? '#ffb347' : '#2c1e0f';
+            ctx.beginPath();
+            ctx.roundRect(x + padding, y + padding, innerSize, innerSize, 8);
+            ctx.fill();
+
+            if (isHovered) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+            }
+        }
+
+        function render(time) {
+            // Clear
+            dom.ctx.fillStyle = '#0a192f';
+            dom.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw Particles
+            particles.forEach(p => {
+                p.update();
+                p.draw(dom.ctx);
+            });
+
+            // Draw Grid
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    drawCell(dom.ctx, r, c, STATE.grid[r][c], false);
+                }
+            }
+        }
+
+        function loop(timestamp) {
+            const delta = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Limit delta to prevent jumps during tab switches
+            const clampedDelta = Math.min(delta, 100);
+
+            render();
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        // Mouse tracking for hover effect
+        let mousePos = { x: -100, y: -100 };
+        dom.canvas.addEventListener('mousemove', (e) => {
+            const rect = dom.canvas.getBoundingClientRect();
+            mousePos.x = e.clientX - rect.left;
+            mousePos.y = e.clientY - rect.top;
+            
+            // Re-render immediate feedback for hover
+            render(); 
+            // Note: In a more complex engine we wouldn't call render here, but for simplicity...
+            // we redraw everything including the hover highlight.
+            
+            // To make hover work properly with RAF, let's actually just trigger a re-render via the loop
+            // But since we aren't using continuous movement, we do a quick manual pass.
+            drawHoverEffect();
+        });
+
+        function drawHoverEffect() {
+            // This is a hacky way to show hover without breaking the RAF loop structure
+            // Real apps would integrate this into the main loop
+            const col = Math.floor(mousePos.x / CELL_SIZE);
+            const row = Math.floor(mousePos.y / CELL_SIZE);
+            
+            if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+                 // Redraw entire scene with hover overlay
+                 render();
+                 drawCell(dom.ctx, row, col, false, true);
+            }
+        }
+
+        dom.canvas.addEventListener('mousedown', (e) => {
+            handleInteraction(e.clientX, e.clientY);
+        });
+
+        dom.primaryBtn.addEventListener('click', startGame);
+        dom.resetBtn.addEventListener('click', resetGame);
+
+        // Initialization
+        window.onload = () => {
+            dom.canvas.width = CANVAS_WIDTH;
+            dom.canvas.height = CANVAS_HEIGHT;
+            initParticles();
+            initGame();
+            render();
+        };
+
+    </script>
+</body>
+</html>

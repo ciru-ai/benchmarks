@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copper Coffee | Boutique Roasters</title>
+    <style>
+        :root {
+            --copper: #b87333;
+            --dark-copper: #8a5421;
+            --cream: #fdfaf5;
+            --charcoal: #2c2c2c;
+            --accent: #d4a373;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            min-height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+        }
+
+        @media (max-width: 768px) {
+            #app-container { grid-template-columns: 1fr; }
+        }
+
+        /* Header & Hero */
+        header {
+            grid-column: span 2;
+            background: linear-gradient(rgba(44,44,44,0.8), rgba(44,44,44,0.8)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%232c2c2c"/><circle cx="50" cy="50" r="20" fill="%23b87333" opacity="0.2"/></svg>');
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        h1 { font-size: 2.5rem; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
+        p.subtitle { font-style: italic; color: #ccc; }
+
+        /* Menu Section */
+        main { padding: 30px; overflow-y: auto; max-height: 800px; }
+        
+        .filters {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 15px;
+            border: 1px solid var(--copper);
+            background: transparent;
+            color: var(--copper);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active { background: var(--copper); color: white; }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        .product-icon { width: 60px; height: 60px; margin: 0 auto 10px; display: block; }
+
+        .product-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
+        .product-price { color: var(--copper); font-weight: 600; margin-bottom: 10px; }
+
+        .add-btn {
+            background: var(--charcoal);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .add-btn:hover { background: var(--copper); }
+
+        /* Sidebar / Basket */
+        aside {
+            background: #f9f9f9;
+            border-left: 1px solid #eee;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .basket-title { font-size: 1.4rem; margin-bottom: 20px; border-bottom: 2px solid var(--copper); padding-bottom: 10px; }
+
+        .basket-items { flex-grow: 1; list-style: none; overflow-y: auto; }
+
+        .basket-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .qty-controls { display: flex; align-items: center; gap: 8px; }
+        .qty-btn { 
+            width: 24px; height: 24px; border: 1px solid #ccc; background: white; 
+            border-radius: 4px; cursor: pointer; line-height: 1;
+        }
+
+        .totals {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+
+        .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+        button[data-testid="primary-action"] {
+            background: var(--copper);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        button[data-testid="primary-action"]:disabled { background: #ccc; cursor: not-allowed; }
+
+        button[data-testid="reset"] {
+            background: transparent;
+            color: #888;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        button[data-testid="reset"]:hover { color: #e63946; border-color: #e63946; }
+
+        #status {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Copper Coffee</h1>
+        <p class="subtitle">Artisanal Roasts • Small Batch • Delivered Fresh</p>
+    </header>
+
+    <main>
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterMenu('all')">All</button>
+            <button class="filter-btn" onclick="filterMenu('espresso')">Espresso</button>
+            <button class="filter-btn" onclick="filterMenu('pourover')">Pour Over</button>
+            <button class="filter-btn" onclick="filterMenu('coldbrew')">Cold Brew</button>
+        </div>
+
+        <div id="menu-grid" class="menu-grid">
+            <!-- Products injected by JS -->
+        </div>
+    </main>
+
+    <aside>
+        <h2 class="basket-title">Your Order</h2>
+        <ul id="basket-list" class="basket-items">
+            <!-- Items injected by JS -->
+        </ul>
+
+        <div class="totals">
+            <div class="total-row"><span>Subtotal</span> <span id="subtotal">$0.00</span></div>
+            <div class="total-row"><span>Tax (5%)</span> <span id="tax">$0.00</span></div>
+            <div class="total-row" style="font-size: 1.2rem; color: var(--copper);">
+                <span>Total</span> <span id="grand-total">$0.00</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button data-testid="primary-action" id="checkout-btn">Place Order</button>
+            <button data-testid="reset" id="reset-btn">Reset Shop</button>
+        </div>
+        <div id="status" data-testid="status">Ready to brew.</div>
+    </aside>
+</div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    const INITIAL_STATE = {
+        cart: [],
+        status: "Welcome! Select items to start your order.",
+        lastAction: ""
+    };
+
+    let state = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+    const products = [
+        { id: 1, name: "Midnight Velvet", price: 4.50, type: "espresso", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h-1V6c0-2.21-1.79-4-4-4H9c-2.21 0-4 1.79-4 4v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 0c-2.21 0-4 1.79-4 4v2h8v-2c0-2.21-1.79-4-4-4z"/></svg>' },
+        { id: 2, name: "Golden Sunrise", price: 5.25, type: "pourover", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' },
+        { id: 3, name: "Copper Cold Brew", price: 5.50, type: "coldbrew", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 12a6 6 0 11-12 0 6 6 0 0112 0z"/><path d="M12 18v4m-4-4h8"/></svg>' },
+        { id: 4, name: "Caramel Cloud", price: 5.75, type: "espresso", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h-1V6c0-2.21-1.79-4-4-4H9c-2.21 0-4 1.79-4 4v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>' },
+        { id: 5, name: "Ethiopian Yirgacheffe", price: 6.00, type: "pourover", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' },
+        { id: 6, name: "Nitro Stout Brew", price: 5.50, type: "coldbrew", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2m0 16v2M5.65 4.65l1.42 1.42m11.48 11.48l1.42 1.42M2 12h2m16 0h2M5.65 19.35l1.42-1.42m11.48-11.48l1.42-1.42"/></svg>' }
+    ];
+
+    let currentFilter = 'all';
+
+    // --- DOM ELEMENTS ---
+    const elements = {
+        menuGrid: document.getElementById('menu-grid'),
+        basketList: document.getElementById('basket-list'),
+        subtotalEl: document.getElementById('subtotal'),
+        taxEl: document.getElementById('tax'),
+        totalEl: document.getElementById('grand-total'),
+        statusEl: document.querySelector('[data-testid="status"]'),
+        checkoutBtn: document.getElementById('checkout-btn'),
+        resetBtn: document.getElementById('reset-btn')
+    };
+
+    // --- CORE LOGIC ---
+
+    function renderMenu() {
+        elements.menuGrid.innerHTML = '';
+        products.filter(p => currentFilter === 'all' || p.type === currentFilter).forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <div class="product-icon">${product.icon}</div>
+                <div class="product-name">${product.name}</div>
+                <div class="product-price">$${product.price.toFixed(2)}</div>
+                <button class="add-btn" onclick="addToCart(${product.id})">+ Add to Order</button>
+            `;
+            elements.menuGrid.appendChild(card);
+        });
+    }
+
+    function filterMenu(type) {
+        currentFilter = type;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.toLowerCase().includes(type));
+        });
+        renderMenu();
+    }
+
+    window.addToCart = function(productId) {
+        const product = products.find(p => p.id === productId);
+        const existingItem = state.cart.find(item => item.id === productId);
+
+        if (existingItem) {
+            existingItem.qty++;
+        } else {
+            state.cart.push({ ...product, qty: 1 });
+        }
+        updateUI(`Added ${product.name} to cart.`);
+    };
+
+    function changeQty(productId, delta) {
+        const item = state.cart.find(i => i.id === productId);
+        if (!item) return;
+
+        item.qty += delta;
+        if (item.qty <= 0) {
+            state.cart = state.cart.filter(i => i.id !== productId);
+        }
+        updateUI("");
+    }
+
+    function updateUI(msg) {
+        if (msg) state.status = msg;
+        else state.status = "Basket updated.";
+
+        // Render Cart
+        elements.basketList.innerHTML = '';
+        let subtotal = 0;
+
+        state.cart.forEach(item => {
+            subtotal += item.price * item.qty;
+            const li = document.createElement('li');
+            li.className = 'basket-item';
+            li.innerHTML = `
+                <div>
+                    <strong>${item.name}</strong><br/>
+                    $${(item.price * item.qty).toFixed(2)}
+                </div>
+                <div class="qty-controls">
+                    <button class="qty-btn" onclick="changeQty(${item.id}, -1)">-</button>
+                    <span>${item.qty}</span>
+                    <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+                </div>
+            `;
+            elements.basketList.appendChild(li);
+        });
+
+        const tax = subtotal * 0.05;
+        const total = subtotal + tax;
+
+        elements.subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+        elements.taxEl.textContent = `$${tax.toFixed(2)}`;
+        elements.totalEl.textContent = `$${total.toFixed(2)}`;
+        elements.statusEl.textContent = state.status;
+
+        // Checkout Button State
+        elements.checkoutBtn.disabled = false;
+        elements.checkoutBtn.textContent = state.cart.length ? 'Place Order' : 'Add featured coffee';
+    }
+
+    function handleCheckout() {
+        if (state.cart.length === 0) {
+            window.addToCart(products[0].id);
+            return;
+        }
+        state.status = "Order placed successfully! Thank you!";
+        state.cart = []; // Clear cart on success
+        updateUI();
+        alert(`Success! Your order has been sent to the barista.\nTotal: ${elements.totalEl.textContent}`);
+    }
+
+    function resetApp() {
+        state = JSON.parse(JSON.stringify(INITIAL_STATE));
+        updateUI("Shop reset. Ready for new orders.");
+    }
+
+    // --- INIT ---
+    function init() {
+        renderMenu();
+        updateUI();
+
+        elements.checkoutBtn.addEventListener('click', handleCheckout);
+        elements.resetBtn.addEventListener('click', resetApp);
+    }
+
+    // Run initialization once DOM is ready
+    document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>

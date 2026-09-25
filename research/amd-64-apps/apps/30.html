@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saffron | Modern Dining</title>
+    <style>
+        :root {
+            --gold: #c5a059;
+            --dark: #1a1a1a;
+            --light: #fdfbf7;
+            --accent: #e67e22;
+            --text: #333;
+            --gray: #eee;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--light); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+        header { background: var(--dark); color: white; padding: 2rem; text-align: center; border-bottom: 4px solid var(--gold); }
+        h1 { font-size: 2.5rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); }
+        p.subtitle { font-style: italic; opacity: 0.8; }
+
+        main { max-width: 960px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+
+        /* Menu Section */
+        .menu-container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .filters { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; border: 1px solid var(--gold); background: transparent; cursor: pointer; border-radius: 20px; font-size: 0.85rem; transition: 0.3s; }
+        .filter-btn.active { background: var(--gold); color: white; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .menu-item { padding: 10px; border-bottom: 1px solid #eee; position: relative; }
+        .menu-item h3 { font-size: 1.1rem; color: var(--dark); }
+        .menu-item .price { color: var(--accent); font-weight: bold; float: right; }
+        .menu-item .desc { font-size: 0.85rem; color: #666; display: block; margin-top: 4px; }
+        .dietary-icon { width: 14px; height: 14px; vertical-align: middle; margin-left: 5px; fill: #4caf50; }
+
+        /* Booking Sidebar */
+        .booking-panel { background: var(--dark); color: white; padding: 25px; border-radius: 8px; position: sticky; top: 20px; height: fit-content; }
+        .booking-panel h2 { color: var(--gold); margin-bottom: 20px; font-size: 1.4rem; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; color: #aaa; }
+        select, input { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 4px; outline: none; }
+        
+        .reservation-summary { margin: 20px 0; padding: 15px; background: #252525; border-left: 3px solid var(--gold); font-size: 0.9rem; }
+        #status { font-size: 0.85rem; color: var(--gold); min-height: 1.2em; margin-bottom: 15px; }
+
+        .actions { display: flex; gap: 10px; }
+        button.primary { background: var(--gold); color: white; border: none; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; border-radius: 4px; transition: transform 0.1s; }
+        button.primary:active { transform: scale(0.98); }
+        button.secondary { background: #444; color: #ccc; border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 4px; }
+
+        footer { text-align: center; padding: 40px; color: #888; font-size: 0.8rem; }
+        svg.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Saffron</h1>
+    <p class="subtitle">Exquisite Flavors • Timeless Atmosphere</p>
+</header>
+
+<main>
+    <section class="menu-container">
+        <div class="filters">
+            <button class="filter-btn active" onclick="app.filterMenu('all')" data-filter="all">All Dishes</button>
+            <button class="filter-btn" onclick="app.filterMenu('veg')" data-filter="veg">Vegetarian</button>
+            <button class="filter-btn" onclick="app.filterMenu('gf')" data-filter="gf">Gluten Free</button>
+        </div>
+        <div class="menu-grid" id="menuGrid">
+            <!-- Rendered by JS -->
+        </div>
+    </section>
+
+    <aside class="booking-panel">
+        <h2>Reserve a Table</h2>
+        <div id="status" data-testid="status">Ready to welcome you.</div>
+        
+        <div class="form-group">
+            <label>Guests</label>
+            <input type="number" id="guestCount" value="2" min="1" max="12">
+        </div>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="resDate">
+        </div>
+        <div class="form-group">
+            <label>Time Slot</label>
+            <select id="resTime">
+                <option value="18:00">18:00 PM</option>
+                <option value="19:00">19:00 PM</option>
+                <option value="20:00">20:00 PM</option>
+                <option value="21:00">21:00 PM</option>
+            </select>
+        </div>
+
+        <div class="reservation-summary" id="summaryBox">
+            No selection made yet.
+        </div>
+
+        <div class="actions">
+            <button class="primary" id="confirmBtn" data-testid="primary-action" onclick="app.confirmBooking()">Confirm Reservation</button>
+            <button class="secondary" id="resetBtn" data-testid="reset" onclick="app.reset()">Reset</button>
+        </div>
+    </aside>
+</main>
+
+<footer>
+    &copy; <span id="year"></span> Saffron Fine Dining Group. All rights reserved.
+</footer>
+
+<script>
+const app = (() => {
+    // State Management
+    let state = {
+        currentFilter: 'all',
+        isProcessing: false,
+        lastReservation: null
+    };
+
+    const menuData = [
+        { id: 1, name: "Truffle Risotto", price: "$32", cat: "veg", gf: true, desc: "Arborio rice, seasonal mushrooms, parmesan." },
+        { id: 2, name: "Spiced Lamb Chops", price: "$45", cat: "meat", gf: true, desc: "Slow-cooked lamb with saffron reduction." },
+        { id: 3, name: "Garden Mezze", price: "$18", cat: "veg", gf: false, desc: "Hummus, baba ganoush, toasted pita." },
+        { id: 4, name: "Honey Glazed Salmon", price: "$38", cat: "fish", gf: true, desc: "Wild salmon with ginger glaze." },
+        { id: 5, name: "Roasted Cauliflower", price: "$22", cat: "veg", gf: true, desc: "Tahini dressing and pomegranate seeds." },
+        { id: 6, name: "Ribeye Steak", price: "$52", cat: "meat", gf: true, desc: "Dry aged beef with garlic butter." }
+    ];
+
+    // DOM Elements
+    const els = {
+        menuGrid: document.getElementById('menuGrid'),
+        status: document.querySelector('[data-testid="status"]'),
+        confirmBtn: document.getElementById('confirmBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        summaryBox: document.getElementById('summaryBox'),
+        guestInput: document.getElementById('guestCount'),
+        dateInput: document.getElementById('resDate'),
+        timeSelect: document.getElementById('resTime')
+    };
+
+    function init() {
+        document.getElementById('year').textContent = new Date().getFullYear();
+        els.dateInput.valueAsDate = new Date();
+        renderMenu();
+        updateSummary();
+        attachListeners();
+    }
+
+    function attachListeners() {
+        [els.guestInput, els.dateInput, els.timeSelect].forEach(el => {
+            el.addEventListener('change', updateSummary);
+        });
+    }
+
+    function renderMenu() {
+        els.menuGrid.innerHTML = '';
+        menuData.filter(item => {
+            if (state.currentFilter === 'all') return true;
+            return item[state.currentFilter] || item.cat === state.currentFilter;
+        }).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+            div.innerHTML = `
+                <span class="price">$${item.price}</span>
+                <h3>${item.name}</h3>
+                <span class="desc">${item.desc} ${item.gf ? '<svg class="dietary-icon" viewBox="0 0 24 24"><path d="M12 2L4.5 20.47l9-5.53 9 5.53z"/></svg>' : ''}</span>
+            `;
+            els.menuGrid.appendChild(div);
+        });
+    }
+
+    function filterMenu(filterType) {
+        state.currentFilter = filterType;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-filter') === filterType);
+        });
+        renderMenu();
+    }
+
+    function updateSummary() {
+        const g = els.guestInput.value;
+        const d = els.dateInput.value;
+        const t = els.timeSelect.value;
+        els.summaryBox.innerHTML = `<strong>Details:</strong><br>${g} Guests<br>${d}<br>${t}`;
+    }
+
+    async function confirmBooking() {
+        if (state.isProcessing) return;
+        
+        state.isProcessing = true;
+        els.status.textContent = "Verifying availability...";
+        els.confirmBtn.disabled = true;
+        els.confirmBtn.innerText = "Processing...";
+
+        // Simulate API call delay
+        await new Promise(r => setTimeout(r, 1500));
+
+        state.lastReservation = {
+            guests: els.guestInput.value,
+            date: els.dateInput.value,
+            time: els.timeSelect.value
+        };
+
+        state.isProcessing = false;
+        els.status.textContent = "✔ Reservation Confirmed!";
+        els.confirmBtn.innerText = "Confirmed";
+        els.confirmBtn.style.background = "#27ae60";
+        
+        console.log("Order Processed:", state.lastReservation);
+    }
+
+    function reset() {
+        // Clear state
+        state.isProcessing = false;
+        state.lastReservation = null;
+
+        // Reset UI
+        els.status.textContent = "Ready to welcome you.";
+        els.confirmBtn.disabled = false;
+        els.confirmBtn.innerText = "Confirm Reservation";
+        els.confirmBtn.style.background = "";
+        
+        els.guestInput.value = 2;
+        els.dateInput.valueAsDate = new Date();
+        els.timeSelect.selectedIndex = 0;
+        
+        updateSummary();
+        renderMenu();
+    }
+
+    return { init, filterMenu, confirmBooking, reset };
+})();
+
+window.onload = app.init;
+</script>
+
+</body>
+</html>

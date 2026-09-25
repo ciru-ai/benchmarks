@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Atlas</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --accent: #f59e0b;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: var(--primary); color: white; }
+        [data-testid="primary-action"]:disabled { opacity: 0.5; cursor: not-allowed; }
+        [data-testid="reset"] { background: #ef4444; color: white; }
+        #status { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .tracker-table { width: 100%; border-collapse: collapse; }
+        .tracker-table th { text-align: left; padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        .tracker-table td { padding: 12px; border-top: 1px solid var(--border); }
+        .habit-name { font-weight: 600; }
+        .day-cell { text-align: center; }
+        .check-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+        }
+        .check-btn.completed { background: var(--success); border-color: var(--success); }
+        .check-btn.completed::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            position: absolute;
+            left: 4px;
+            top: -1px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .chart-container {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas { width: 100% !important; height: 150px !important; }
+        .stats-panel {
+            background: #eff6ff;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <div>
+            <h1>Habit Atlas</h1>
+            <div id="status" data-testid="status">Ready to track your journey</div>
+        </div>
+        <div class="controls">
+            <button id="primaryBtn" data-testid="primary-action">Complete Next Task</button>
+            <button id="resetBtn" data-testid="reset">Reset Week</button>
+        </div>
+    </header>
+
+    <main class="main-layout">
+        <section>
+            <table class="tracker-table">
+                <thead>
+                    <tr>
+                        <th>Habit</th>
+                        <th style="text-align:center">M</th>
+                        <th style="text-align:center">T</th>
+                        <th style="text-align:center">W</th>
+                        <th style="text-align:center">T</th>
+                        <th style="text-align:center">F</th>
+                        <th style="text-align:center">S</th>
+                        <th style="text-align:center">S</th>
+                    </tr>
+                </thead>
+                <tbody id="habitBody">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+        </section>
+
+        <aside class="sidebar">
+            <div class="chart-container">
+                <span style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; display: block;">WEEKLY PROGRESS</span>
+                <canvas id="progressChart"></canvas>
+            </div>
+            <div class="stats-panel">
+                <div class="stat-row"><span>Daily Completion:</span> <span id="dailyRate">0%</span></div>
+                <div class="stat-row"><span>Total Streak:</span> <span id="totalStreak">0 days</span></div>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script>
+/**
+ * APP STATE & LOGIC
+ */
+const INITIAL_DATA = [
+    { id: 0, name: "Morning Meditation", completed: [true, true, false, false, false, false, false] },
+    { id: 1, name: "Deep Work (2h)", completed: [false, true, true, true, false, false, false] },
+    { id: 2, name: "Exercise", completed: [true, false, true, false, true, false, false] },
+    { id: 3, name: "Reading", completed: [false, false, false, true, true, true, false] },
+    { id: 4, name: "Hydration Goal", completed: [true, true, true, true, true, false, false] }
+];
+
+let state = JSON.parse(JSON.stringify(INITIAL_DATA));
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// DOM Elements
+const habitBody = document.getElementById('habitBody');
+const statusEl = document.querySelector('[data-testid="status"]');
+const primaryBtn = document.getElementById('primaryBtn');
+const resetBtn = document.getElementById('resetBtn');
+const dailyRateEl = document.getElementById('dailyRate');
+const totalStreakEl = document.getElementById('totalStreak');
+const canvas = document.getElementById('progressChart');
+const ctx = canvas.getContext('2d');
+
+function init() {
+    render();
+    updateStatus("System initialized");
+}
+
+function render() {
+    habitBody.innerHTML = '';
+    state.forEach((habit) => {
+        const tr = document.createElement('tr');
+        
+        const nameTd = document.createElement('td');
+        nameTd.className = 'habit-name';
+        nameTd.textContent = habit.name;
+        tr.appendChild(nameTd);
+
+        for (let i = 0; i < 7; i++) {
+            const td = document.createElement('td');
+            td.className = 'day-cell';
+            
+            const btn = document.createElement('button');
+            btn.className = `check-btn ${habit.completed[i] ? 'completed' : ''}`;
+            btn.onclick = () => toggleHabit(habit.id, i);
+            
+            td.appendChild(btn);
+            tr.appendChild(td);
+        }
+        habitBody.appendChild(tr);
+    });
+    drawChart();
+    calculateStats();
+}
+
+function toggleHabit(habitId, dayIndex) {
+    const habit = state.find(h => h.id === habitId);
+    if (habit) {
+        habit.completed[dayIndex] = !habit.completed[dayIndex];
+        render();
+        updateStatus(`Updated ${habit.name}`);
+    }
+}
+
+function calculateStats() {
+    let totalCells = state.length * 7;
+    let completedCells = 0;
+    
+    state.forEach(h => {
+        h.completed.forEach(c => { if(c) completedCells++; });
+    });
+
+    const rate = Math.round((completedCells / totalCells) * 100);
+    dailyRateEl.textContent = `${rate}%`;
+
+    // Calculate simple streak (consecutive completed items across entire week array)
+    let streak = 0;
+    const flatArray = state.flatMap(h => h.completed);
+    for (let i = flatArray.length - 1; i >= 0; i--) {
+        if (flatArray[i]) streak++;
+        else break;
+    }
+    totalStreakEl.textContent = `${streak} cells`;
+}
+
+function drawChart() {
+    const w = canvas.width = canvas.offsetWidth * window.devicePixelRatio || 250;
+    const h = canvas.height = 150;
+    ctx.clearRect(0, 0, w, h);
+
+    const barWidth = w / 7;
+    const maxVal = 5; // Max habits per day
+
+    state.forEach((_, dayIdx) => {
+        const count = state.filter(h => h.completed[dayIdx]).length;
+        const barHeight = (count / maxVal) * (h - 20);
+        
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(dayIdx * barWidth + 10, h - barHeight - 10, barWidth - 20, barHeight);
+        
+        // Label
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(DAYS[dayIdx], dayIdx * barWidth + (barWidth/2), h - 2);
+    });
+}
+
+function updateStatus(msg) {
+    statusEl.textContent = msg;
+}
+
+function performPrimaryAction() {
+    // Find first incomplete cell in chronological order
+    for (let d = 0; d < 7; d++) {
+        for (let h = 0; h < state.length; h++) {
+            if (!state[h].completed[d]) {
+                state[h].completed[d] = true;
+                render();
+                updateStatus(`Completed: ${state[h].name} (${DAYS[d]})`);
+                return;
+            }
+        }
+    }
+    updateStatus("All tasks completed! Great job!");
+}
+
+function resetApp() {
+    state = JSON.parse(JSON.stringify(INITIAL_DATA));
+    render();
+    updateStatus("Data reset to default");
+}
+
+// Event Listeners
+primaryBtn.addEventListener('click', performPrimaryAction);
+resetBtn.addEventListener('click', resetApp);
+
+window.addEventListener('resize', drawChart);
+
+// Kickoff
+init();
+
+</script>
+</body>
+</html>

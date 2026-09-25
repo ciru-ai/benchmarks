@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Notes | Editorial Travel Journal</title>
+    <style>
+        :root {
+            --bg: #f4f1ea;
+            --text: #2c2c2c;
+            --accent: #a64d33;
+            --card-bg: #ffffff;
+            --border: #d1cdc2;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Georgia', serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            min-height: 600px;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        /* Typography Cover */
+        header {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px double var(--border);
+        }
+        h1 { font-size: 3.5rem; letter-spacing: -1px; text-transform: uppercase; color: var(--text); }
+        .subtitle { font-style: italic; color: var(--accent); margin-top: 5px; }
+
+        /* Controls Area */
+        .toolbar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid var(--border);
+        }
+        .filters { display: flex; gap: 10px; }
+        .filter-btn {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+        .filter-btn.active { background: var(--text); color: white; }
+
+        /* Grid Layout */
+        .journal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 0;
+            position: relative;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card-img { height: 180px; width: 100%; overflow: hidden; position: relative; }
+        .card-content { padding: 20px; }
+        .card-category { font-family: sans-serif; font-size: 0.7rem; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+        .card-title { font-size: 1.4rem; margin-bottom: 10px; line-height: 1.2; }
+        .card-excerpt { font-size: 0.9rem; line-height: 1.5; color: #555; }
+
+        /* Overlay / Modal */
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.95);
+            z-index: 10;
+            display: none;
+            overflow-y: auto;
+            padding: 60px 40px;
+        }
+        .article-full { max-width: 600px; margin: 0 auto; }
+        .article-full h2 { font-size: 2.5rem; margin-bottom: 20px; }
+        .article-full p { line-height: 1.8; margin-bottom: 20px; font-size: 1.1rem; }
+
+        /* Buttons */
+        button { cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-primary { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 10px 24px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+        .btn-reset {
+            background: transparent;
+            border: 1px solid var(--text);
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        [data-testid="status"] { font-family: sans-serif; font-size: 0.8rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Field Notes</h1>
+        <p class="subtitle">Chronicles of the Unseen World</p>
+    </header>
+
+    <div class="toolbar">
+        <div class="filters">
+            <button class="filter-btn active" onclick="ui.filter('all')">All</button>
+            <button class="filter-btn" onclick="ui.filter('Nature')">Nature</button>
+            <button class="filter-btn" onclick="ui.filter('Urban')">Urban</button>
+            <button class="filter-btn" onclick="ui.filter('Culture')">Culture</button>
+        </div>
+        <div>
+            <span data-testid="status">Viewing all entries</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-reset" data-testid="reset" onclick="app.reset()">Reset View</button>
+            <button class="btn-primary" data-testid="primary-action" onclick="ui.openFeatured()">Read Featured</button>
+        </div>
+    </div>
+
+    <main class="journal-grid" id="journal-grid">
+        <!-- Cards injected by JS -->
+    </main>
+
+    <div id="overlay">
+        <div class="article-full" id="article-content"></div>
+    </div>
+</div>
+
+<script>
+    /** STATE MANAGEMENT **/
+    const state = {
+        currentFilter: 'all',
+        isArticleOpen: false,
+        entries: [
+            {
+                id: 1,
+                category: 'Nature',
+                title: "The Whispering Pines",
+                excerpt: "A journey into the heart of the ancient northern forests where silence speaks.",
+                content: "Deep within the emerald canopy, time behaves differently. Every needle fall is a rhythmic beat in the forest's slow pulse. We walked for days without hearing anything but the wind's soft sighing through the towering pines...",
+                svg: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#e8f5e9"/><path d="M50 20 L20 80 H80 Z" fill="#2e7d32"/><path d="M50 40 L30 80 H70 Z" fill="#388e3c"/><circle cx="70" cy="30" r="8" fill="#fffde7"/></svg>`
+            },
+            {
+                id: 2,
+                category: 'Urban',
+                title: "Neon Veins",
+                excerpt: "Exploring the electric arteries of Tokyo after midnight.",
+                content: "Tokyo doesn't sleep; it merely shifts its frequency. Under the glow of Shinjuku's neon signs, the city becomes a circuit board of human movement. Rain on asphalt turns the streets into mirrors reflecting a kaleidoscope of light...",
+                svg: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#eceff1"/><rect x="10" y="10" width="80" height="80" fill="none" stroke="#cfd8dc" stroke-width="2"/><rect x="30" y="30" width="40" height="40" fill="#ffeb3b" opacity="0.5"/><circle cx="80" cy="20" r="5" fill="#f44336"/></svg>`
+            },
+            {
+                id: 3,
+                category: 'Culture',
+                title: "Dust & Ritual",
+                excerpt: "Ancient traditions etched into the red canyons of Petra.",
+                content: "Walking through the Siq feels like stepping back two millennia. The sandstone walls rise hundreds of feet high, glowing orange as the sun hits them. Here, the desert isn't empty—it is crowded with ghosts of traders past...",
+                svg: `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#ffebee"/><path d="M0 100 Q50 0 100 100 Z" fill="#ef5350" opacity="0.6"/><path d="M20 100 L40 60 L60 100 Z" fill="#c62828"/></svg>`
+            }
+        ]
+    };
+
+    /** CORE LOGIC **/
+    const app = {
+        init() {
+            this.render();
+        },
+        render() {
+            const grid = document.getElementById('journal-grid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            state.entries
+                .filter(e => state.currentFilter === 'all' || e.category === state.currentFilter)
+                .forEach(entry => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.onclick = () => ui.openArticle(entry.id);
+                    card.innerHTML = `
+                        <div class="card-img">${entry.svg}</div>
+                        <div class="card-content">
+                            <div class="card-category">${entry.category}</div>
+                            <h3 class="card-title">${entry.title}</h3>
+                            <p class="card-excerpt">${entry.excerpt}</p>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            ui.updateStatus();
+        },
+        reset() {
+            state.currentFilter = 'all';
+            state.isArticleOpen = false;
+            document.getElementById('overlay').style.display = 'none';
+            ui.refreshFilters();
+            this.render();
+        }
+    };
+
+    /** UI CONTROLLER **/
+    const ui = {
+        filter(cat) {
+            state.currentFilter = cat;
+            this.refreshFilters();
+            app.render();
+        },
+        refreshFilters() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === (state.currentFilter === 'all' ? 'All' : state.currentFilter));
+            });
+        },
+        updateStatus() {
+            const statusEl = document.querySelector('[data-testid="status"]');
+            if (statusEl) {
+                statusEl.textContent = state.isArticleOpen 
+                    ? `Reading: ${state.entries.find(e => e.id === state.currentActiveId)?.title}`
+                    : `Showing ${state.currentFilter} stories (${state.entries.length})`;
+            }
+        },
+        openArticle(id) {
+            const entry = state.entries.find(e => e.id === id);
+            if (!entry) return;
+            state.isArticleOpen = true;
+            state.currentActiveId = id;
+            
+            const container = document.getElementById('article-content');
+            container.innerHTML = `
+                <h2>${entry.title}</h2>
+                <div style="margin-bottom: 30px;"><small>${entry.category}</small></div>
+                <p>${entry.content}</p>
+                <p>${entry.content} (Continuation of the journey...)</p>
+            `;
+            document.getElementById('overlay').style.display = 'block';
+            this.updateStatus();
+        },
+        openFeatured() {
+            // Requirement: Primary action opens the first featured article
+            this.openArticle(state.entries[0].id);
+        }
+    };
+
+    // Initialize Application
+    window.onload = () => {
+        app.init();
+        // Ensure elements exist before running logic
+        if(!document.getElementById('journal-grid')) console.error("Critical DOM missing");
+    };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Envelope Pro</title>
+    <style>
+        :root {
+            --bg: #f4f7f9;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+        #app-container {
+            width: 960px;
+            max-width: 100%;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        header { border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: baseline; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--text-main); }
+        [data-testid="status"] { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .stat-val { display: block; font-size: 1.25rem; font-weight: bold; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .envelope-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .envelope-item { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; position: relative; transition: transform 0.1s; }
+        .envelope-item:hover { border-color: var(--primary); }
+        
+        .envelope-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600; }
+        .progress-track { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.4s ease-out, background-color 0.3s; }
+
+        .controls-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+        input[type="number"], input[type="text"] {
+            width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; outline: none;
+        }
+        input:focus { border-color: var(--primary); ring: 2px solid #bfdbfe; }
+
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 0.6rem 1rem; font-weight: 600; transition: opacity 0.2s; }
+        button:active { transform: scale(0.98); }
+        [data-testid="primary-action"] { background: var(--primary); color: white; flex-grow: 1; }
+        [data-testid="primary-action"]:hover { background: var(--primary-hover); }
+        [data-testid="reset"] { background: #e2e8f0; color: var(--text-main); }
+        [data-testid="reset"]:hover { background: #cbd5e1; }
+
+        @media (max-width: 768px) {
+            #app-container { padding: 1rem; }
+            .summary-grid { grid-template-columns: 1fr; }
+            .envelope-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <div>
+            <h1>Budget Envelopes</h1>
+            <p style="margin:0; font-size: 0.8rem; color: var(--text-muted);">Plan your monthly spending</p>
+        </div>
+        <div data-testid="status">Status: Ready</div>
+    </header>
+
+    <section class="summary-grid">
+        <div class="stat-card">
+            <span class="stat-label">Total Income</span>
+            <span id="total-income-display" class="stat-val">$0.00</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Allocated</span>
+            <span id="allocated-display" class="stat-val">$0.00</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Remaining</span>
+            <span id="remaining-display" class="stat-val">$0.00</span>
+        </div>
+    </section>
+
+    <main class="envelope-list" id="envelope-container">
+        <!-- Rendered by JS -->
+    </main>
+
+    <footer style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+        <button data-testid="reset" onclick="budgetApp.reset()">Reset Plan</button>
+        <button data-testid="primary-action" onclick="budgetApp.applyAll()">Apply All Allocations</button>
+    </footer>
+</div>
+
+<script>
+const budgetApp = (() => {
+    // --- STATE ---
+    let state = {
+        income: 5000,
+        envelopes: [
+            { id: 'env_1', name: 'Rent & Utilities', allocated: 1800, spent: 1750 },
+            { id: 'env_2', name: 'Groceries', allocated: 600, spent: 420 },
+            { id: 'env_3', name: 'Dining Out', allocated: 400, spent: 380 },
+            { id: 'env_4', name: 'Transport', allocated: 300, spent: 150 },
+            { id: 'env_5', name: 'Entertainment', allocated: 300, spent: 100 },
+            { id: 'env_6', name: 'Savings/Buffer', allocated: 1600, spent: 0 }
+        ]
+    };
+
+    // --- DOM ELEMENTS ---
+    const els = {
+        container: document.getElementById('envelope-container'),
+        status: document.querySelector('[data-testid="status"]'),
+        incomeDisp: document.getElementById('total-income-display'),
+        allocDisp: document.getElementById('allocated-display'),
+        remainDisp: document.getElementById('remaining-display')
+    };
+
+    // --- LOGIC ---
+    function render() {
+        els.container.innerHTML = '';
+        let totalAllocated = 0;
+
+        state.envelopes.forEach((env, index) => {
+            totalAllocated += env.allocated;
+            const pct = Math.min((env.spent / env.allocated || 0) * 100, 100);
+            const barColor = env.spent > env.allocated ? 'var(--danger)' : 
+                             env.spent > (env.allocated * 0.8) ? 'var(--warning)' : 'var(--success)';
+
+            const div = document.createElement('div');
+            div.className = 'envelope-item';
+            div.innerHTML = `
+                <div class="envelope-header">
+                    <span>${env.name}</span>
+                    <span>$${env.spent.toFixed(2)} / $${env.allocated.toFixed(2)}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar" style="width: ${pct}%; background-color: ${barColor}"></div>
+                </div>
+                <div class="controls-row">
+                    <input type="number" step="10" value="${env.allocated}" 
+                           onchange="budgetApp.updateAllocation('${env.id}', this.value)"
+                           placeholder="Set limit...">
+                </div>
+            `;
+            els.container.appendChild(div);
+        });
+
+        const remaining = state.income - totalAllocated;
+        
+        // Update Stats
+        els.incomeDisp.textContent = `$${state.income.toLocaleString()}`;
+        els.allocDisp.textContent = `$${totalAllocated.toLocaleString()}`;
+        els.remainDisp.textContent = `$${remaining.toLocaleString()}`;
+        els.remainDisp.style.color = remaining < 0 ? 'var(--danger)' : 'var(--text-main)';
+
+        // Update Status Text
+        if (remaining < 0) {
+            els.status.textContent = "Status: Over Budget!";
+            els.status.style.color = 'var(--danger)';
+        } else if (totalAllocated === state.income && totalAllocated !== 0) {
+            els.status.textContent = "Status: Fully Allocated";
+            els.status.style.color = 'var(--success)';
+        } else {
+            els.status.textContent = "Status: Balanced";
+            els.status.style.color = 'var(--primary)';
+        }
+    }
+
+    return {
+        init: () => render(),
+        updateAllocation: (id, val) => {
+            const numVal = parseFloat(val) || 0;
+            const env = state.envelopes.find(e => e.id === id);
+            if (env) {
+                env.allocated = numVal;
+                render();
+            }
+        },
+        applyAll: () => {
+            // In this app, applying just triggers the UI refresh logic 
+            // but we can simulate a "saving" process here.
+            render();
+            console.log("Allocations Applied:", state.envelopes);
+        },
+        reset: () => {
+            state = {
+                income: 5000,
+                envelopes: [
+                    { id: 'env_1', name: 'Rent & Utilities', allocated: 1800, spent: 1750 },
+                    { id: 'env_2', name: 'Groceries', allocated: 600, spent: 420 },
+                    { id: 'env_3', name: 'Dining Out', allocated: 400, spent: 380 },
+                    { id: 'env_4', name: 'Transport', allocated: 300, spent: 150 },
+                    { id: 'env_5', name: 'Entertainment', allocated: 300, spent: 100 },
+                    { id: 'env_6', name: 'Savings/Buffer', allocated: 1600, spent: 0 }
+                ]
+            };
+            render();
+        }
+    };
+})();
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', budgetApp.init);
+</script>
+
+</body>
+</html>

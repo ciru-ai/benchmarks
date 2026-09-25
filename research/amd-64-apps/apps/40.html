@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blink Decoy</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            color: #eee;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border: 4px solid #333;
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        #controls-hint {
+            margin-top: auto;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        #primary-btn { background: #00ffff; color: #000; }
+        #reset-btn { background: #ff4444; color: #fff; }
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #overlay.visible { visibility: visible; pointer-events: auto; }
+        h1 { margin: 0; font-size: 3rem; color: #ff4444; }
+        p { font-size: 1.2rem; }
+        [data-testid="status"] { color: #aaa; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="960" height="600"></canvas>
+        <div id="ui-layer">
+            <div class="stats-row">
+                <div>Time: <span id="time-val">40</span>s</div>
+                <div>Cells: <span id="cells-val">0</span>/8</div>
+                <div>Health: <span id="hp-val">3</span></div>
+            </div>
+            <div id="status" data-testid="status">Ready to blink.</div>
+            <div id="overlay">
+                <h1 id="result-msg">GAME OVER</h1>
+                <p id="sub-msg">Try again?</p>
+            </div>
+            <div class="btn-group">
+                <button id="start-btn" data-testid="primary-action">START GAME</button>
+                <button id="reset-btn" data-testid="reset">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const timeEl = document.getElementById('time-val');
+        const cellsEl = document.getElementById('cells-val');
+        const hpEl = document.getElementById('hp-val');
+        const overlay = document.getElementById('overlay');
+        const resultMsg = document.getElementById('result-msg');
+        const subMsg = document.getElementById('sub-msg');
+
+        // Game Constants
+        const WIDTH = 960;
+        const HEIGHT = 600;
+        const PLAYER_SIZE = 20;
+        const DECOY_SIZE = 20;
+        const CELL_SIZE = 12;
+        const SHOT_SPEED = 4;
+        const CANNON_RANGE = 400;
+
+        // State Variables
+        let gameState = 'IDLE'; // IDLE, PLAYING, WON, LOST
+        let timer = 0;
+        let lastFrameTime = 0;
+        let score = 0;
+        let health = 3;
+        let blinkCooldown = 0;
+        let particles = [];
+        let projectiles = [];
+        let cells = [];
+        let cannonLines = []; // {x, y, angle, life}
+
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        class Entity {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.r = PLAYER_SIZE / 2;
+                this.vx = 0; this.vy = 0; this.color = color;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        class Particle extends Entity {
+            constructor(x, y, color) {
+                super(x, y, color);
+                this.life = 1.0;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+            }
+            update(dt) {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= dt * 2;
+            }
+        }
+
+        let player, decoy, canons;
+
+        function initGame() {
+            player = new Entity(100, 100, '#00ffff');
+            decoy = new Entity(WIDTH - 100, HEIGHT - 100, 'rgba(255, 191, 0, 0.5)');
+            // Set decoy as "hollow" visually via stroke later
+            canons = [
+                { x: 0, y: 0 }, { x: WIDTH, y: 0 },
+                { x: 0, y: HEIGHT }, { x: WIDTH, y: HEIGHT }
+            ];
+            projectiles = [];
+            particles = [];
+            cells = [];
+            timer = 40;
+            score = 0;
+            health = 3;
+            blinkCooldown = 0;
+            gameState = 'PLAYING';
+            spawnCell();
+            spawnCell();
+            spawnCell();
+            updateUI();
+        }
+
+        function spawnCell() {
+            cells.push({
+                x: 50 + Math.random() * (WIDTH - 100),
+                y: 50 + Math.random() * (HEIGHT - 100),
+                r: CELL_SIZE
+            });
+        }
+
+        function updateUI() {
+            timeEl.innerText = Math.ceil(timer);
+            cellsEl.innerText = score;
+            hpEl.innerText = health;
+            if (gameState === 'PLAYING') {
+                statusEl.innerText = `Active. Cooldown: ${Math.max(0, blinkCooldown).toFixed(1)}s`;
+            } else if (gameState === 'IDLE') {
+                statusEl.innerText = "Press Start to begin.";
+            }
+        }
+
+        function triggerBlink() {
+            if (blinkCooldown > 0 || gameState !== 'PLAYING') return;
+            
+            // Swap positions
+            const tx = player.x; const ty = player.y;
+            player.x = decoy.x; player.y = decoy.y;
+            decoy.x = tx; decoy.y = ty;
+
+            // Afterimage effect
+            for(let i=0; i<8; i++) {
+                particles.push(new Particle(tx, ty, '#00ffff'));
+            }
+
+            blinkCooldown = 1.0;
+            updateUI();
+        }
+
+        function shootCannon(targetX, targetY) {
+            const dx = targetX - player.x;
+            const dy = targetY - player.y;
+            const angle = Math.atan2(dy, dx);
+            cannonLines.push({ x: player.x, y: player.y, angle: angle, life: 0.5 });
+            projectiles.push({
+                x: player.x, y: player.y, vx: Math.cos(angle) * SHOT_SPEED, vy: Math.sin(angle) * SHOT_SPEED, r: 5
+            });
+        }
+
+        document.getElementById('start-btn').onclick = () => {
+            if (gameState === 'IDLE' || gameState === 'WON' || gameState === 'LOST') {
+                initGame();
+                requestAnimationFrame(loop);
+            }
+        };
+
+        document.getElementById('reset-btn').onclick = () => {
+            location.reload(); // Simplest way to clear all memory & stop everything
+        };
+
+        function loop(now) {
+            if (gameState !== 'PLAYING') return;
+            const dt = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+
+            // Update Logic
+            timer -= dt;
+            if (timer <= 0) endGame(false);
+            if (health <= 0) endGame(false);
+            if (score >= 8) endGame(true);
+
+            if (blinkCooldown > 0) blinkCooldown -= dt;
+
+            // Movement
+            const speed = 3;
+            if (keys['KeyW'] || keys['ArrowUp']) player.y -= speed;
+            if (keys['KeyS'] || keys['ArrowDown']) player.y += speed;
+            if (keys['KeyA'] || keys['ArrowLeft']) player.x -= speed;
+            if (keys['KeyD'] || keys['ArrowRight']) player.x += speed;
+            
+            // Boundary constraints
+            player.x = Math.max(PLAYER_SIZE, Math.min(WIDTH - PLAYER_SIZE, player.x));
+            player.y = Math.max(PLAYER_SIZE, Math.min(HEIGHT - PLAYER_SIZE, player.y));
+
+            // Collision: Player vs Cells
+            cells.forEach((c, idx) => {
+                const dist = Math.hypot(player.x - c.x, player.y - c.y);
+                if (dist < player.r + c.r) {
+                    cells.splice(idx, 1);
+                    score++;
+                    spawnCell();
+                    updateUI();
+                }
+            });
+
+            // Projectiles logic
+            projectiles.forEach((p, idx) => {
+                p.x += p.vx; p.y += p.vy;
+                // Hit detection
+                const distToPlayer = Math.hypot(p.x - player.x, p.y - player.y);
+                const distToDecoy = Math.hypot(p.x - decoy.x, p.y - decoy.y);
+                
+                if (distToPlayer < player.r + p.r || distToDecoy < decoy.r + p.r) {
+                    // If hit player, reduce HP. If hit decoy, nothing happens? 
+                    // Requirement says "three hits lose", implies hitting player.
+                    if (distToPlayer < player.r + p.r) {
+                        health--;
+                        updateUI();
+                        if (health <= 0) endGame(false);
+                    }
+                    projectiles.splice(idx, 1);
+                }
+                // Out of bounds
+                else if (p.x < 0 || p.x > WIDTH || p.y < 0 || p.y > HEIGHT) {
+                    projectiles.splice(idx, 1);
+                }
+            });
+
+            // Cannon Lines
+            cannonLines.forEach((l, idx) => {
+                l.life -= dt;
+                if (l.life <= 0) cannonLines.splice(idx, 1);
+            });
+
+            // Particles
+            particles.forEach((p, idx) => {
+                p.update(dt);
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+
+            // Triggering shots (simulated edge cannon firing logic)
+            // Every 2 seconds roughly, pick a random side and shoot towards player
+            if (Math.random() < 0.01 && cannonLines.length < 2) {
+               const sides = ['T','B','L','R'];
+               const s = sides[Math.floor(Math.random()*4)];
+               let sx, sy;
+               if(s==='T'){sx=Math.random()*WIDTH; sy=0;}
+               else if(s==='B'){sx=Math.random()*WIDTH; sy=HEIGHT;}
+               else if(s==='L'){sx=0; sy=Math.random()*HEIGHT;}
+               else {sx=WIDTH; sy=Math.random()*HEIGHT;}
+               shootCannon(sx, sy);
+            }
+
+            render();
+            updateUI();
+            requestAnimationFrame(loop);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw Arena Grid
+            ctx.strokeStyle = '#221111';
+            ctx.lineWidth = 1;
+            for(let i=0; i<WIDTH; i+=40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, HEIGHT); ctx.stroke();
+            }
+            for(let j=0; j<HEIGHT; j+=40) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(WIDTH, j); ctx.stroke();
+            }
+
+            // Draw Cannons Targeting Lines
+            cannonLines.forEach(l => {
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = 'rgba(255, 0, 0, ' + l.life + ')';
+                ctx.beginPath();
+                ctx.moveTo(l.x, l.y);
+                ctx.lineTo(l.x + Math.cos(l.angle)*CANNON_RANGE, l.y + Math.sin(l.angle)*CANNON_RANGE);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            // Draw Cells
+            cells.forEach(c => {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+                ctx.fillStyle = '#ffd700';
+                ctx.fill();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffd700';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                p.draw();
+                ctx.globalAlpha = 1.0;
+            });
+
+            // Draw Projectiles
+            projectiles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#ff4444';
+                ctx.fill();
+            });
+
+            // Draw Decoy (Hollow)
+            ctx.beginPath();
+            ctx.arc(decoy.x, decoy.y, decoy.r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 191, 0, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.closePath();
+
+            // Draw Player
+            player.draw();
+        }
+
+        function endGame(win) {
+            gameState = win ? 'WON' : 'LOST';
+            overlay.classList.add('visible');
+            resultMsg.innerText = win ? "VICTORY!" : "DEFEATED";
+            resultMsg.style.color = win ? "#00ffff" : "#ff4444";
+            subMsg.innerText = win ? "You secured the energy." : "The decoys were outmaneuvered.";
+            statusEl.innerText = "Session ended.";
+        }
+
+        // Handle Spacebar for Blinking
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerBlink();
+            }
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Workshop</title>
+    <style>
+        :root {
+            --bg: #f4f7f9;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --accent: #ecfdf5;
+            --accent-text: #065f46;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+            position: relative;
+        }
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--text); }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 1rem 2rem;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+        }
+        button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-size: 0.9rem;
+        }
+        [data-testid="primary-action"] {
+            background-color: var(--primary);
+            color: white;
+        }
+        [data-testid="primary-action"]:hover { background-color: var(--primary-hover); }
+        [data-testid="reset"] {
+            background-color: transparent;
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+        [data-testid="reset"]:hover { background-color: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+        main {
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            padding: 2rem;
+            box-sizing: border-box;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text);
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        footer {
+            padding: 1rem 2rem;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .stat-card {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .stat-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        #status-bar {
+            position: absolute;
+            bottom: 70px;
+            left: 2rem;
+            font-size: 0.85rem;
+            color: var(--accent-text);
+            background: var(--accent);
+            padding: 4px 12px;
+            border-radius: 20px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #status-bar.visible { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Word Workshop</h1>
+        <div style="display: flex; gap: 10px;">
+            <button data-testid="reset" id="resetBtn">Reset</button>
+            <button data-testid="primary-action" id="cleanBtn">Clean Duplicates</button>
+        </div>
+    </header>
+
+    <main>
+        <textarea id="editor" spellcheck="false">Welcome to the workshop!   This is a sample text designed to demonstrate how the cleaning tool works.  It contains multiple spaces between words     and inconsistent spacing everywhere.
+
+Try clicking "Clean Duplicates" to see the magic happen instantly!</textarea>
+        <div id="status-bar" data-testid="status">Changes applied successfully</div>
+    </main>
+
+    <footer>
+        <div class="stat-card">
+            <span class="stat-label">Words</span>
+            <span id="wordCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Chars</span>
+            <span id="charCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Sentences</span>
+            <span id="sentCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Read Time</span>
+            <span id="readTime" class="stat-value">0 min</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    (function() {
+        const editor = document.getElementById('editor');
+        const cleanBtn = document.getElementById('cleanBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusMsg = document.getElementById('status-bar');
+        
+        const elWordCount = document.getElementById('wordCount');
+        const elCharCount = document.getElementById('charCount');
+        const elSentCount = document.getElementById('sentCount');
+        const elReadTime = document.getElementById('readTime');
+
+        const INITIAL_TEXT = `Welcome to the workshop!   This is a sample text designed to demonstrate how the cleaning tool works.  It contains multiple spaces between words     and inconsistent spacing everywhere.\n\nTry clicking "Clean Duplicates" to see the magic happen instantly!`;
+
+        let state = {
+            lastAction: 'Idle'
+        };
+
+        function updateStats() {
+            const text = editor.value;
+            
+            // Character count (including whitespace)
+            const charCount = text.length;
+            
+            // Word count logic: split by whitespace and filter empty strings
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+            
+            // Sentence count: simple regex looking for ., !, or ? followed by space or end of string
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            const sentCount = sentences.length;
+            
+            // Reading time: ~200 words per minute average
+            const readMinutes = Math.ceil(wordCount / 200);
+            const readDisplay = readMinutes <= 0 ? "0 min" : `${readMinutes}m ${wordCount % 200 === 0 ? '' : '+' + (wordCount % 200)}w`;
+            // Let's simplify display for clarity
+            const simplifiedRead = wordCount < 200 ? `${wordCount}w (~1m)` : `${Math.ceil(wordCount/200)}m`;
+
+            elCharCount.textContent = charCount;
+            elWordCount.textContent = wordCount;
+            elSentCount.textContent = sentCount;
+            elReadTime.textContent = wordCount === 0 ? "0m" : (Math.ceil(wordCount / 200)) + "m";
+        }
+
+        function showStatus(msg) {
+            statusMsg.textContent = msg;
+            statusMsg.classList.add('visible');
+            setTimeout(() => {
+                statusMsg.classList.remove('visible');
+            }, 2000);
+        }
+
+        function cleanText() {
+            const original = editor.value;
+            // Regex replaces 2+ whitespace characters with single space
+            // Also trims leading/trailing whitespace
+            const cleaned = original.replace(/[ \t]{2,}/g, ' ').trim();
+            
+            if (original === cleaned) {
+                showStatus("No duplicates found");
+            } else {
+                editor.value = cleaned;
+                updateStats();
+                showStatus("Duplicates removed!");
+            }
+        }
+
+        function resetApp() {
+            editor.value = INITIAL_TEXT;
+            updateStats();
+            showStatus("State restored");
+        }
+
+        function init() {
+            if (!editor || !cleanBtn || !resetBtn || !elWordCount) return;
+
+            editor.addEventListener('input', updateStats);
+            cleanBtn.addEventListener('click', cleanText);
+            resetBtn.addEventListener('click', resetApp);
+
+            // Initial load
+            updateStats();
+        }
+
+        init();
+    })();
+</script>
+
+</body>
+</html>

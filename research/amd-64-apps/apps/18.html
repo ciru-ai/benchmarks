@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fable Books | Independent Bookstore</title>
+    <style>
+        :root {
+            --bg: #fdfaf6;
+            --card: #ffffff;
+            --primary: #4a5d4e;
+            --accent: #c27b58;
+            --text: #2c2c2c;
+            --border: #e0dcd5;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            min-height: 600px;
+            background: var(--card);
+            box-shadow: 0 10px 30px var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: auto auto 1fr;
+        }
+
+        header {
+            grid-column: 1 / span 2;
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; color: var(--primary); letter-spacing: -0.5px; }
+
+        .controls {
+            grid-column: 1;
+            padding: 15px 30px;
+            background: #f9f7f2;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input[type="text"], select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        main {
+            grid-column: 1;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 25px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .book-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .book-item:hover { transform: translateY(-5px); }
+
+        /* CSS Book Cover */
+        .cover {
+            width: 120px;
+            height: 170px;
+            border-radius: 3px 8px 8px 3px;
+            position: relative;
+            box-shadow: 3px 5px 10px rgba(0,0,0,0.2), inset -5px 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .sidebar {
+            grid-column: 2;
+            grid-row: 2 / span 2;
+            border-left: 1px solid var(--border);
+            padding: 20px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cart-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            flex-grow: 1;
+            font-size: 0.9rem;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 4px;
+        }
+
+        .btn {
+            cursor: pointer;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-add { background: var(--accent); color: white; padding: 5px 10px; font-size: 0.75rem; margin-top: 5px; }
+
+        #status {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        footer {
+            grid-column: 1 / span 2;
+            padding: 10px 30px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #999;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            #app-container { grid-template-columns: 1fr; }
+            .sidebar { grid-column: 1; border-left: none; border-top: 1px solid var(--border); }
+            header { grid-column: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Fable Books</h1>
+        <div>
+            <button class="btn btn-secondary" data-testid="reset" id="resetBtn">Reset Shop</button>
+        </div>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search titles...">
+        <select id="categoryFilter">
+            <option value="all">All Genres</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="mystery">Mystery</option>
+            <option value="classic">Classics</option>
+        </select>
+        <button class="btn btn-primary" style="width: auto;" data-testid="primary-action" id="featuredAction">Add Featured Book</button>
+    </div>
+
+    <main id="bookGrid"></main>
+
+    <aside class="sidebar">
+        <h3>Your Basket</h3>
+        <ul id="cartList" class="cart-list"></ul>
+        <div id="totalDisplay" style="font-weight: bold; margin-bottom: 10px;">Total: $0.00</div>
+        <div id="status" data-testid="status">Ready to shop</div>
+    </aside>
+
+    <footer>
+        &copy; 2023 Fable Books Inc. • Handcrafted with Care
+    </footer>
+</div>
+
+<script>
+    const BOOKS_DATA = [
+        { id: 1, title: "The Midnight Sun", author: "Elias Thorne", price: 18.50, genre: "fantasy", color: "#2c3e50" },
+        { id: 2, title: "Shadow Protocol", author: "S. J. Miller", price: 14.99, genre: "mystery", color: "#34495e" },
+        { id: 3, title: "Echoes of Old", author: "Lydia Vance", price: 22.00, genre: "classic", color: "#5d4037" },
+        { id: 4, title: "Neon Dreams", author: "Kaelen Voss", price: 19.95, genre: "fantasy", color: "#1a237e" },
+        { id: 5, title: "Silent Witness", author: "Marcus Reed", price: 12.50, genre: "mystery", color: "#212121" },
+        { id: 6, title: "Veridian Skies", author: "Clara Moss", price: 25.00, genre: "fantasy", color: "#1b5e20" },
+        { id: 7, title: "The Last Waltz", author: "Julian Grey", price: 16.00, genre: "classic", color: "#4a148c" },
+        { id: 8, title: "Crimson Tide", author: "R. L. Stine", price: 13.25, genre: "mystery", color: "#b71c1c" }
+    ];
+
+    let state = {
+        basket: [],
+        filter: 'all',
+        searchQuery: '',
+        featuredBookId: null
+    };
+
+    // DOM Elements
+    const el = {
+        bookGrid: document.getElementById('bookGrid'),
+        cartList: document.getElementById('cartList'),
+        totalDisplay: document.getElementById('totalDisplay'),
+        status: document.querySelector('[data-testid="status"]'),
+        searchInput: document.getElementById('searchInput'),
+        categoryFilter: document.getElementById('categoryFilter'),
+        featuredAction: document.getElementById('featuredAction'),
+        resetBtn: document.getElementById('resetBtn')
+    };
+
+    function init() {
+        render();
+    }
+
+    function render() {
+        renderBooks();
+        renderCart();
+        updateStatus();
+    }
+
+    function renderBooks() {
+        el.bookGrid.innerHTML = '';
+        const filtered = BOOKS_DATA.filter(book => {
+            const matchesGenre = state.filter === 'all' || book.genre === state.filter;
+            const matchesSearch = book.title.toLowerCase().includes(state.searchQuery.toLowerCase());
+            return matchesGenre && matchesSearch;
+        });
+
+        filtered.forEach(book => {
+            const item = document.createElement('div');
+            item.className = 'book-item';
+            
+            const isFeatured = state.featuredBookId === book.id;
+            
+            item.innerHTML = `
+                <div class="cover" style="background-color: ${book.color}">
+                    <svg viewBox="0 0 100 100" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.2">
+                        <circle cx="50" cy="50" r="40" fill="white" />
+                    </svg>
+                    <span>${book.title}</span>
+                    <span style="font-size: 0.6rem; margin-top: 5px; opacity: 0.8">${book.author}</span>
+                </div>
+                <div style="font-size: 0.85rem; text-align:center; font-weight:bold">$${book.price.toFixed(2)}</div>
+                <button class="btn btn-add" onclick="addToBasket(${book.id})">+ Add</button>
+            `;
+            el.bookGrid.appendChild(item);
+        });
+    }
+
+    function renderCart() {
+        el.cartList.innerHTML = '';
+        let total = 0;
+        state.basket.forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.className = 'cart-item';
+            li.innerHTML = `<span>${item.title}</span> <span>$${item.price.toFixed(2)}</span>`;
+            el.cartList.appendChild(li);
+            total += item.price;
+        });
+        el.totalDisplay.textContent = `Total: $${total.toFixed(2)}`;
+    }
+
+    function updateStatus(msg) {
+        if (msg) {
+            el.status.textContent = msg;
+        } else {
+            const count = state.basket.length;
+            el.status.textContent = count > 0 ? `${count} items in basket` : 'Empty basket';
+        }
+    }
+
+    window.addToBasket = (id) => {
+        const book = BOOKS_DATA.find(b => b.id === id);
+        state.basket.push({...book});
+        render();
+        updateStatus(`Added "${book.title}"`);
+    };
+
+    document.getElementById('featuredAction').addEventListener('click', () => {
+        const firstAvailable = BOOKS_DATA.find(b => !state.basket.some(i => i.id === b.id));
+        if (firstAvailable) {
+            state.featuredBookId = firstAvailable.id;
+            state.basket.push({...firstAvailable});
+            render();
+            updateStatus(`Special offer! Added "${firstAvailable.title}"`);
+        } else {
+            updateStatus("No more books available!");
+        }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        state.basket = [];
+        state.filter = 'all';
+        state.searchQuery = '';
+        state.featuredBookId = null;
+        el.searchInput.value = '';
+        el.categoryFilter.value = 'all';
+        render();
+        updateStatus("Shop reset");
+    });
+
+    el.searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        render();
+    });
+
+    el.categoryFilter.addEventListener('change', (e) => {
+        state.filter = e.target.value;
+        render();
+    });
+
+    // Start App
+    init();
+
+</script>
+</body>
+</html>

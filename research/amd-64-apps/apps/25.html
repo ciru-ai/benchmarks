@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Shepherd</title>
+    <style>
+        :root {
+            --aqua: #00d4ff;
+            --deep-blue: #002b36;
+            --coral: #a64dff;
+            --bubble: rgba(255, 255, 255, 0.4);
+            --text: #ffffff;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #050a0f;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text);
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            max-width: 100%;
+            max-height: calc(100vw - 150px);
+            border: 4px solid var(--aqua);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+            background: linear-gradient(to bottom, #004e66, #002b36);
+            cursor: crosshair;
+            overflow: hidden;
+        }
+        canvas { display: block; }
+        .ui-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+        button {
+            padding: 10px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        #btn-primary { background: #00ffcc; color: #002b36; }
+        #btn-reset { background: #ff4b2b; color: white; }
+        #status { font-weight: bold; margin-bottom: 5px; }
+        .msg-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            visibility: hidden;
+        }
+        .visible { visibility: visible !important; }
+        h1 { margin: 0 0 10px 0; color: var(--aqua); }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div id="status" data-testid="status">Ready to Play</div>
+            <div>Rescued: <span id="count-rescued">0</span> / 12 | Lost: <span id="count-lost">0</span> / 5</div>
+        </div>
+
+        <div id="msg-win" class="msg-overlay">
+            <h1>VICTORY!</h1>
+            <p>You guided the bubbles home!</p>
+        </div>
+        <div id="msg-lose" class="msg-overlay">
+            <h1>GAME OVER</h1>
+            <p>Too many bubbles were lost.</p>
+        </div>
+
+        <div class="controls">
+            <button id="btn-primary" data-testid="primary-action">START GAME</button>
+            <button id="btn-reset" data-testid="reset">RESET</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.querySelector('[data-testid="status"]');
+        const btnPrimary = document.getElementById('btn-primary');
+        const btnReset = document.getElementById('btn-reset');
+        const countResText = document.getElementById('count-rescued');
+        const countLostText = document.getElementById('count-lost');
+        const msgWin = document.getElementById('msg-win');
+        const msgLose = document.getElementById('msg-lose');
+
+        let width, height;
+        let animationId;
+        let gameState = 'IDLE'; // IDLE, PLAYING, WIN, LOSE
+        
+        // Game Data
+        let bubbles = [];
+        let obstacles = [];
+        let particles = []; // Current trails
+        let score = { rescued: 0, lost: 0 };
+        let mouse = { x: 0, y: 0, active: false, vx: 0, vy: 0 };
+        let portal = { x: 0, y: 0, radius: 50, angle: 0 };
+
+        function init() {
+            resize();
+            setupLevel();
+            drawStatic();
+        }
+
+        function resize() {
+            const container = document.getElementById('game-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            portal.x = width - 80;
+            portal.y = height / 2;
+        }
+
+        function setupLevel() {
+            bubbles = [];
+            score = { rescued: 0, lost: 0 };
+            updateUI();
+            
+            // Obstacles (Coral)
+            obstacles = [
+                { x: width * 0.3, y: height * 0.3, r: 40 },
+                { x: width * 0.3, y: height * 0.7, r: 50 },
+                { x: width * 0.6, y: height * 0.5, r: 35 }
+            ];
+
+            // Initial Bubbles Stream
+            for (let i = 0; i < 18; i++) {
+                spawnBubble(i * 15 + 20, height / 2 + (Math.random() - 0.5) * 100);
+            }
+        }
+
+        function spawnBubble(x, y) {
+            bubbles.push({
+                x: x || Math.random() * width * 0.4,
+                y: y || Math.random() * height,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                r: 8 + Math.random() * 7,
+                life: 1.0
+            });
+        }
+
+        function updateUI() {
+            countResText.innerText = score.rescued;
+            countLostText.innerText = score.lost;
+            if (gameState === 'PLAYING') {
+                statusEl.innerText = "Shepherd the bubbles to the portal!";
+            } else if (gameState === 'WIN') {
+                statusEl.innerText = "Victory Achieved!";
+            } else if (gameState === 'LOSE') {
+                statusEl.innerText = "The ocean was too harsh...";
+            } else {
+                statusEl.innerText = "Press Start to begin.";
+            }
+        }
+
+        function drawStatic() {
+            ctx.clearRect(0, 0, width, height);
+            // Draw Coral
+            obstacles.forEach(o => {
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+                ctx.fillStyle = '#a64dff';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            });
+            // Draw Portal
+            ctx.save();
+            ctx.translate(portal.x, portal.y);
+            ctx.rotate(Date.now() / 1000);
+            ctx.beginPath();
+            ctx.arc(0, 0, portal.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.6)';
+            ctx.setLineDash([5, 10]);
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function loop() {
+            if (gameState !== 'PLAYING') return;
+
+            ctx.clearRect(0, 0, width, height);
+            
+            // Update Mouse Velocity for Current
+            mouse.vx *= 0.9;
+            mouse.vy *= 0.9;
+
+            // Draw Current Particles
+            if (mouse.active) {
+                particles.push({x: mouse.x, y: mouse.y, vx: mouse.vx, vy: mouse.vy, life: 1.0});
+            }
+            
+            // Process Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.life -= 0.1;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x - p.vx * 5, p.y - p.vy * 5);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${p.life * 0.4})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Draw Portal Animation
+            ctx.save();
+            ctx.translate(portal.x, portal.y);
+            ctx.rotate(Date.now() / 1000);
+            ctx.beginPath();
+            ctx.arc(0, 0, portal.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 15]);
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw Obstacles
+            obstacles.forEach(o => {
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+                ctx.fillStyle = '#a64dff';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Update & Draw Bubbles
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                let b = bubbles[i];
+
+                // Physics
+                b.vy -= 0.02; // Buoyancy
+                b.vx += (Math.random() - 0.5) * 0.05; // Random jitter
+                b.vx += mouse.vx * 0.05; // Drag influence
+                b.vy += mouse.vy * 0.05; // Drag influence
+                
+                b.x += b.vx;
+                b.y += b.vy;
+                b.vx *= 0.98; // Damping
+                b.vy *= 0.98;
+
+                // Wall Collision
+                if (b.x < b.r) { b.x = b.r; b.vx *= -0.5; }
+                if (b.x > width - b.r) { b.x = width - b.r; b.vx *= -0.5; }
+                if (b.y < b.r) { b.y = b.r; b.vy *= -0.5; }
+                if (b.y > height - b.r) { b.y = height - b.r; b.vy *= -0.5; }
+
+                // Coral Collision
+                obstacles.forEach(o => {
+                    let dx = b.x - o.x;
+                    let dy = b.y - o.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < b.r + o.r) {
+                        score.lost++;
+                        bubbles.splice(i, 1);
+                        checkGameOver();
+                        return;
+                    }
+                });
+
+                // Portal Win Condition
+                let pdx = b.x - portal.x;
+                let pdy = b.y - portal.y;
+                if (Math.sqrt(pdx*pdx + pdy*pdy) < portal.radius) {
+                    score.rescued++;
+                    bubbles.splice(i, 1);
+                    checkGameOver();
+                    return;
+                }
+
+                if (!bubbles[i]) continue;
+
+                // Drawing bubble
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                let grad = ctx.createRadialGradient(b.x - b.r/3, b.y - b.r/3, 2, b.x, b.y, b.r);
+                grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                grad.addColorStop(1, 'rgba(200, 240, 255, 0.3)');
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.stroke();
+            }
+
+            updateUI();
+            animationId = requestAnimationFrame(loop);
+        }
+
+        function checkGameOver() {
+            if (score.rescued >= 12) {
+                gameState = 'WIN';
+                msgWin.classList.add('visible');
+                cancelAnimationFrame(animationId);
+                updateUI();
+            } else if (score.lost >= 5) {
+                gameState = 'LOSE';
+                msgLose.classList.add('visible');
+                cancelAnimationFrame(animationId);
+                updateUI();
+            }
+        }
+
+        function startGame() {
+            cancelAnimationFrame(animationId);
+            msgWin.classList.remove('visible');
+            msgLose.classList.remove('visible');
+            setupLevel();
+            gameState = 'PLAYING';
+            updateUI();
+            loop();
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animationId);
+            gameState = 'IDLE';
+            msgWin.classList.remove('visible');
+            msgLose.classList.remove('visible');
+            particles = [];
+            setupLevel();
+            drawStatic();
+            updateUI();
+        }
+
+        // Input Handlers
+        canvas.addEventListener('mousedown', e => {
+            if (gameState !== 'PLAYING') return;
+            mouse.active = true;
+        });
+
+        window.addEventListener('mouseup', () => {
+            mouse.active = false;
+            mouse.vx = 0;
+            mouse.vy = 0;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const newX = e.clientX - rect.left;
+            const newY = e.clientY - rect.top;
+            
+            if (mouse.active) {
+                mouse.vx = newX - mouse.x;
+                mouse.vy = newY - mouse.y;
+            }
+            mouse.x = newX;
+            mouse.y = newY;
+        });
+
+        btnPrimary.addEventListener('click', startGame);
+        btnReset.addEventListener('click', resetGame);
+
+        // Init everything
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redline Motors | Premium Bicycles</title>
+    <style>
+        :root {
+            --bg: #f4f4f7;
+            --card: #ffffff;
+            --primary: #e63946;
+            --secondary: #1d3557;
+            --accent: #457b9d;
+            --text: #2b2d42;
+            --border: #dee2e6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        #app-container { width: 960px; height: 600px; background: white; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); border-radius: 8px; display: grid; grid-template-columns: 300px 1fr; grid-template-rows: 60px 1fr 60px; }
+        header { grid-column: span 2; background: var(--secondary); color: white; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+        h1 { font-size: 1.2rem; letter-spacing: 1px; text-transform: uppercase; }
+        aside { border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; background: #fafafa; }
+        main { padding: 20px; overflow-y: auto; position: relative; }
+        footer { grid-column: span 2; border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; background: white; }
+        
+        .bike-selector { display: flex; flex-direction: column; gap: 10px; }
+        .bike-option { 
+            padding: 12px; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.2s; 
+            display: flex; align-items: center; gap: 10px; background: white;
+        }
+        .bike-option:hover { border-color: var(--accent); }
+        .bike-option.selected { border-color: var(--primary); background: #fff5f5; }
+        .bike-icon-sm { width: 40px; height: 40px; fill: var(--accent); }
+
+        .comparison-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+        .comp-card { 
+            background: white; border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .bike-viz { width: 100%; height: 120px; margin-bottom: 10px; }
+        .stat-row { font-size: 0.8rem; margin: 4px 0; color: #666; }
+        .stat-val { font-weight: bold; color: var(--secondary); float: right; }
+
+        button { 
+            padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: opacity 0.2s;
+        }
+        [data-testid="primary-action"] { background: var(--primary); color: white; }
+        [data-testid="reset"] { background: transparent; color: #666; border: 1px solid var(--border); }
+        button:active { transform: scale(0.98); }
+        
+        #status-bar { font-size: 0.85rem; font-weight: 500; color: var(--accent); }
+        .empty-state { color: #aaa; text-align: center; margin-top: 100px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>Redline <span style="color:var(--primary)">Motors</span></h1>
+        <div id="status-bar" data-testid="status">Ready to compare</div>
+    </header>
+
+    <aside>
+        <section class="bike-selector">
+            <label style="font-size: 0.75rem; font-weight: bold; color: #888;">SELECT MODEL</label>
+            <div class="bike-option selected" onclick="selectBike('aero')" id="opt-aero">
+                <svg class="bike-icon-sm" viewBox="0 0 24 24"><path d="M15.5 5L13 8l-3-3l-3 3l-3-3v12h2v-7l3 3 3-3 3 3 3-3 3 3 3-3v-12z"/></svg>
+                <span>Aero Sprint</span>
+            </div>
+            <div class="bike-option" onclick="selectBike('mountain')" id="opt-mountain">
+                <svg class="bike-icon-sm" viewBox="0 0 24 24"><path d="M12 2L4.5 20.49l.71.71L12 18l6.79 6.79.71-.71L12 2z"/></svg>
+                <span>Summit X</span>
+            </div>
+            <div class="bike-option" onclick="selectBike('city')" id="opt-city">
+                <svg class="bike-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
+                <span>Urban Glide</span>
+            </div>
+        </section>
+
+        <div style="margin-top: auto;">
+            <p style="font-size: 0.7rem; color: #999; line-height: 1.4;">Select a bike above then click "Add to Comparison" to see technical specs side-by-side.</p>
+        </div>
+    </aside>
+
+    <main id="main-view">
+        <div id="empty-msg" class="empty-state">No bikes added to comparison yet.</div>
+        <div id="comparison-list" class="comparison-grid"></div>
+    </main>
+
+    <footer>
+        <div>
+            <button id="add-btn" data-testid="primary-action" onclick="addToComparison()">Add to Comparison</button>
+        </div>
+        <button id="reset-btn" data-testid="reset" onclick="resetApp()">Reset Session</button>
+    </footer>
+</div>
+
+<script>
+    const BIKE_DATA = {
+        aero: { id: 'aero', name: 'Aero Sprint', weight: '6.8kg', speed: '45km/h', frame: 'Carbon Fiber', color: '#e63946' },
+        mountain: { id: 'mountain', name: 'Summit X', weight: '12.5kg', speed: '22km/h', frame: 'Alloy Pro', color: '#1d3557' },
+        city: { id: 'city', name: 'Urban Glide', weight: '10.2kg', speed: '30km/h', frame: 'Steel Lite', color: '#457b9d' }
+    };
+
+    let currentState = {
+        selectedId: 'aero',
+        comparisonList: []
+    };
+
+    function selectBike(id) {
+        currentState.selectedId = id;
+        document.querySelectorAll('.bike-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById(`opt-${id}`).classList.add('selected');
+        updateStatus(`Selected: ${BIKE_DATA[id].name}`);
+    }
+
+    function addToComparison() {
+        const bike = BIKE_DATA[currentState.selectedId];
+        // Prevent duplicates in comparison
+        if (currentState.comparisonList.some(item => item.id === bike.id)) {
+            updateStatus("Model already in list");
+            return;
+        }
+        
+        currentState.comparisonList.push({...bike});
+        renderComparison();
+        updateStatus(`Added ${bike.name} to comparison`);
+    }
+
+    function renderComparison() {
+        const container = document.getElementById('comparison-list');
+        const emptyMsg = document.getElementById('empty-msg');
+        
+        container.innerHTML = '';
+        
+        if (currentState.comparisonList.length === 0) {
+            emptyMsg.style.display = 'block';
+            return;
+        }
+
+        emptyMsg.style.display = 'none';
+
+        currentState.comparisonList.forEach(bike => {
+            const card = document.createElement('div');
+            card.className = 'comp-card';
+            card.innerHTML = `
+                <div class="bike-viz">
+                    <svg viewBox="0 0 100 100" width="100%" height="100%">
+                        <circle cx="50" cy="50" r="30" fill="${bike.color}" opacity="0.2"/>
+                        <path d="M30 70 L50 30 L70 70 M50 30 L50 70 M30 70 L30 50 L70 50 L70 70" stroke="${bike.color}" stroke-width="4" fill="none"/>
+                        <circle cx="30" cy="70" r="8" fill="#333"/>
+                        <circle cx="70" cy="70" r="8" fill="#333"/>
+                    </svg>
+                </div>
+                <div style="font-weight:bold; font-size:0.9rem">${bike.name}</div>
+                <div class="stat-row">Weight <span class="stat-val">${bike.weight}</span></div>
+                <div class="stat-row">Top Speed <span class="stat-val">${bike.speed}</span></div>
+                <div class="stat-row">Frame <span class="stat-val">${bike.frame}</span></div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function updateStatus(msg) {
+        const statusEl = document.querySelector('[data-testid="status"]');
+        if (statusEl) statusEl.textContent = msg;
+    }
+
+    function resetApp() {
+        currentState.comparisonList = [];
+        currentState.selectedId = 'aero';
+        
+        // UI Resets
+        document.querySelectorAll('.bike-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById('opt-aero').classList.add('selected');
+        
+        renderComparison();
+        updateStatus("Session Reset");
+    }
+
+    // Initialize
+    window.onload = () => {
+        console.log("Redline Motors initialized.");
+        // Ensure elements exist before any logic runs
+        const essentialElements = [
+            'add-btn', 
+            'reset-btn', 
+            'comparison-list', 
+            'empty-msg', 
+            'status'
+        ];
+        
+        essentialElements.forEach(id => {
+            if (!document.getElementById(id) && !document.querySelector(`[data-testid="${id}"]`)) {
+                console.error(`Missing critical element: ${id}`);
+            }
+        });
+    };
+</script>
+
+</body>
+</html>

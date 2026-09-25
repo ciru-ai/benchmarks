@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinema Seat Picker</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --accent: #4ecca3;
+            --text: #e9ecef;
+            --seat-avail: #455a64;
+            --seat-select: #4ecca3;
+            --seat-book: #e94560;
+            --screen: #3d5afe;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            max-width: 100%;
+            height: 600px;
+            max-height: 100vh;
+            background: var(--panel);
+            border-radius: 12px;
+            boxthought: 0 10px 30px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* Theater Section */
+        .theater-view {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .screen-area {
+            width: 80%;
+            height: 10px;
+            background: var(--screen);
+            border-radius: 50% / 100% 100% 0 0;
+            filter: blur(8px);
+            opacity: 0.6;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .screen-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: #778ca3;
+            text-transform: uppercase;
+        }
+
+        .seats-grid {
+            display: grid;
+            gap: 12px;
+            perspective: 400px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .seat {
+            width: 32px;
+            height: 36px;
+            background-color: var(--seat-avail);
+            border-radius: 6px 6px 4px 4px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .seat:hover:not(.is-booked) {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
+        .seat.is-selected {
+            background-color: var(--seat-select);
+            box-shadow: 0 0 10px var(--seat-select);
+        }
+
+        .seat.is-booked {
+            background-color: var(--seat-book);
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        /* Sidebar Section */
+        .sidebar {
+            background: rgba(0,0,0,0.2);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h2 { margin: 0 0 20px 0; font-weight: 300; }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .legend {
+            margin: auto 0;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .dot { width: 14px; height: 14px; border-radius: 3px; }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        [data-testid="primary-action"] {
+            background-color: var(--accent);
+            color: #1a1a2e;
+        }
+
+        [data-testid="reset"] {
+            background-color: transparent;
+            border: 1px solid #e94560;
+            color: #e94560;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        #status {
+            font-size: 0.85rem;
+            color: #778ca3;
+            margin-top: 15px;
+            text-align: center;
+            min-height: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            #app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+                height: auto;
+            }
+            .sidebar { border-left: none; border-top: 1px solid rgba(255,255,255,0.1); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <section class="theater-view">
+        <div class="screen-area"><span class="screen-label">Screen</span></div>
+        <div id="seats-container" class="seats-grid">
+            <!-- Generated by JS -->
+        </div>
+    </section>
+
+    <aside class="sidebar">
+        <h2>Booking</h2>
+        
+        <div class="summary">
+            <div class="info-item"><span>Price per seat:</span> <span id="unit-price">$15</span></div>
+            <div class="info-item"><strong>Total:</strong> <strong id="total-price">$0</strong></div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background: var(--seat-avail)"></div> Available</div>
+            <div class="legend-item"><div class="dot" style="background: var(--seat-select)"></div> Selected</div>
+            <div class="legend-item"><div class="dot" style="background: var(--seat-book)"></div> Booked</div>
+        </div>
+
+        <div class="controls">
+            <button id="confirm-btn" data-testid="primary-action">Confirm Booking</button>
+            <button id="reset-btn" data-testid="reset">Reset Session</button>
+        </div>
+
+        <div id="status" data-testid="status">Ready to book</div>
+    </aside>
+</div>
+
+<script>
+    const CONFIG = {
+        rows: 6,
+        cols: 8,
+        pricePerSeat: 15,
+        initialBooked: [2, 5, 12, 13, 14] // Indices of booked seats
+    };
+
+    let state = {
+        selectedSeats: [],
+        bookedSeats: [...CONFIG.initialBooked],
+        total: 0
+    };
+
+    // DOM Elements
+    const container = document.getElementById('seats-container');
+    const totalPriceEl = document.getElementById('total-price');
+    const statusEl = document.getElementById('status');
+    const confirmBtn = document.getElementById('confirm-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    function init() {
+        renderGrid();
+        updateUI();
+    }
+
+    function renderGrid() {
+        container.innerHTML = '';
+        for (let r = 0; r < CONFIG.rows; r++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row';
+            for (let c = 0; c < CONFIG.cols; c++) {
+                const index = r * CONFIG.cols + c;
+                const seat = document.createElement('div');
+                seat.id = `seat-${index}`;
+                seat.className = 'seat';
+                
+                if (state.bookedSeats.includes(index)) {
+                    seat.classList.add('is-booked');
+                }
+
+                seat.addEventListener('click', () => toggleSeat(index));
+                rowDiv.appendChild(seat);
+            }
+            container.appendChild(rowDiv);
+        }
+    }
+
+    function toggleSeat(index) {
+        if (state.bookedSeats.includes(index)) return;
+
+        const idxInSelected = state.selectedSeats.indexOf(index);
+        if (idxInSelected > -1) {
+            state.selectedSeats.splice(idxInSelected, 1);
+        } else {
+            state.selectedSeats.push(index);
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        // Update Grid Visuals
+        for (let i = 0; i < CONFIG.rows * CONFIG.cols; i++) {
+            const el = document.getElementById(`seat-${i}`);
+            if (!el) continue;
+            
+            el.classList.remove('is-selected');
+            if (state.bookedSeats.includes(i)) {
+                el.classList.add('is-booked');
+            } else if (state.selectedSeats.includes(i)) {
+                el.classList.add('is-selected');
+            }
+        }
+
+        // Calculate Total
+        state.total = state.selectedSeats.length * CONFIG.pricePerSeat;
+        totalPriceEl.textContent = `$${state.total}`;
+
+        // Status text
+        if (state.selectedSeats.length === 0 && state.bookedSeats.length > 0) {
+            statusEl.textContent = "Select your preferred seats";
+        } else if (state.selectedSeats.length > 0) {
+            statusEl.textContent = `${state.selectedSeats.length} seat(s) selected`;
+        } else {
+            statusEl.textContent = "Ready to book";
+        }
+
+        // Button State
+        confirmBtn.disabled = state.selectedSeats.length === 0;
+    }
+
+    function handleConfirm() {
+        // Move selected to booked
+        state.bookedSeats = [...state.bookedSeats, ...state.selectedSeats];
+        state.selectedSeats = [];
+        
+        statusEl.textContent = "Booking Successful!";
+        statusEl.style.color = "var(--accent)";
+        
+        setTimeout(() => {
+            statusEl.style.color = "";
+        }, 2000);
+
+        updateUI();
+        renderGrid(); // Re-render to reflect new booked states correctly
+    }
+
+    function handleReset() {
+        state.selectedSeats = [];
+        state.bookedSeats = [...CONFIG.initialBooked];
+        statusEl.textContent = "Session Reset";
+        updateUI();
+        renderGrid();
+    }
+
+    // Event Listeners
+    confirmBtn.addEventListener('click', handleConfirm);
+    resetBtn.addEventListener('click', handleReset);
+
+    // Bootstrap App
+    window.onload = () => {
+        init();
+        // Final sanity check that elements exist
+        const criticalElements = ['confirm-btn', 'reset-btn', 'status', 'total-price'];
+        criticalElements.forEach(id => {
+            if(!document.getElementById(id)) console.error(`Missing element: ${id}`);
+        });
+    };
+</script>
+
+</body>
+</html>

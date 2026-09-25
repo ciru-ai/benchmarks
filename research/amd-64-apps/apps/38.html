@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloraCare Dashboard</title>
+    <style>
+        :root {
+            --bg: #f0f4f0;
+            --card: #ffffff;
+            --primary: #2d6a4f;
+            --secondary: #52b788;
+            --accent: #d8f3dc;
+            --danger: #e76f51;
+            --text: #1b4332;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+            position: relative;
+        }
+        header {
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.5rem; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: var(--secondary); color: white; }
+        [data-testid="reset"] { background: transparent; border: 1px solid white; color: white; }
+        
+        #dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 25px;
+            overflow-y: auto;
+        }
+        .plant-card {
+            background: white;
+            border: 2px solid #edf2ed;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .plant-card.selected { border-color: var(--secondary); box-shadow: 0 0 0 2px var(--accent); }
+        .plant-info { display: flex; align-items: center; gap: 12px; }
+        .plant-icon { width: 40px; height: 40px; fill: var(--secondary); }
+        .plant-name { font-weight: bold; font-size: 1.1rem; }
+        
+        .status-bar {
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .status-fill { height: 100%; transition: width 0.5s ease; }
+        
+        .details { font-size: 0.85rem; line-height: 1.4; }
+        .due-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .due-true { background: #ffebee; color: var(--danger); }
+        .due-false { background: #e8f5e9; color: var(--primary); }
+
+        footer {
+            padding: 15px 25px;
+            background: #f8faf9;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #status-msg { font-weight: 500; color: var(--primary); }
+
+        @media (max-width: 768px) {
+            #app-container { height: auto; min-height: 500px; }
+            #dashboard { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>🌿 FloraCare</h1>
+        <div class="controls">
+            <button id="btn-water" data-testid="primary-action">Water Selected</button>
+            <button id="btn-reset" data-testid="reset">Reset App</button>
+        </div>
+    </header>
+
+    <main id="dashboard"></main>
+
+    <footer>
+        <span id="status-text" data-testid="status">System Ready</span>
+        <small>Select a plant to water</small>
+    </footer>
+</div>
+
+<script>
+/**
+ * APP STATE & LOGIC
+ */
+const INITIAL_PLANTS = [
+    { id: 1, name: "Monstera", interval: 3, moisture: 40, lastWatered: -2 }, // hours ago
+    { id: 2, name: "Fiddle Leaf", interval: 4, moisture: 15, lastWatered: -1 },
+    { id: 3, name: "Snake Plant", interval: 12, moisture: 60, lastWatered: -5 },
+    { id: 4, name: "Peace Lily", interval: 2, moisture: 10, lastWatered: -1.5 },
+    { id: 5, name: "Aloe Vera", interval: 8, moisture: 50, lastWatered: -4 },
+    { id: 6, name: "Calathea", interval: 3, moisture: 30, lastWatered: -2.5 }
+];
+
+let state = {
+    plants: [],
+    selectedIndex: null,
+    timer: null
+};
+
+// DOM Elements
+const elements = {
+    dashboard: document.getElementById('dashboard'),
+    statusText: document.getElementById('status-text'),
+    btnWater: document.getElementById('btn-water'),
+    btnReset: document.getElementById('btn-reset')
+};
+
+function init() {
+    state.plants = JSON.parse(JSON.stringify(INITIAL_PLANTS));
+    state.selectedIndex = null;
+    render();
+    startSimulation();
+}
+
+function startSimulation() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(() => {
+        state.plants.forEach(p => {
+            // Slowly decrease moisture over time
+            p.lastWatered += 0.1; 
+            p.moisture = Math.max(0, p.moisture - 0.2);
+        });
+        updateUI();
+    }, 3000);
+}
+
+function render() {
+    elements.dashboard.innerHTML = '';
+    state.plants.forEach((plant, index) => {
+        const card = document.createElement('div');
+        card.className = `plant-card ${state.selectedIndex === index ? 'selected' : ''}`;
+        card.onclick = () => selectPlant(index);
+        
+        const isDue = plant.moisture < 20 || plant.lastWatered > plant.interval;
+        const moistureColor = plant.moisture > 50 ? '#52b788' : (plant.moisture > 20 ? '#f4d35e' : '#e76f51');
+
+        card.innerHTML = `
+            <div class="plant-info">
+                <svg class="plant-icon" viewBox="0 0 24 24"><path d="M17,11C17,11 17,7 13,7C9,7 9,11 9,11V13H17V11Z M12,2L14,5H10L12,2Z M12,22C12,22 12,18 12,15C12,15 12,18 12,21Z"/></svg>
+                <div>
+                    <div class="plant-name">${plant.name}</div>
+                    <div class="${isDue ? 'due-badge due-true' : 'due-badge due-false'}">
+                        ${isDue ? '⚠️ Needs Water' : '✓ Healthy'}
+                    </div>
+                </div>
+            </div>
+            <div class="details">
+                Moisture Level: ${Math.round(plant.moisture)}%<br/>
+                Next Watering: ~${Math.max(0, Math.ceil(plant.interval - plant.lastWatered))}h
+            </div>
+            <div class="status-bar">
+                <div class="status-fill" style="width: ${plant.moisture}%; background-color: ${moistureColor}"></div>
+            </div>
+        `;
+        elements.dashboard.appendChild(card);
+    });
+}
+
+function updateUI() {
+    render();
+    const selIdx = state.selectedIndex;
+    if (selIdx !== null) {
+        const p = state.plants[selIdx];
+        elements.statusText.textContent = `Selected: ${p.name} (${Math.round(p.moisture)}%)`;
+    } else {
+        elements.statusText.textContent = "No plant selected";
+    }
+}
+
+function selectPlant(idx) {
+    state.selectedIndex = idx;
+    updateUI();
+}
+
+function waterPlant() {
+    if (state.selectedIndex === null) {
+        alert("Please select a plant first!");
+        return;
+    }
+    const plant = state.plants[state.selectedIndex];
+    plant.moisture = 100;
+    plant.lastWatered = 0;
+    
+    elements.statusText.textContent = `Watered ${plant.name}!`;
+    setTimeout(updateUI, 1000);
+    updateUI();
+}
+
+function resetApp() {
+    clearInterval(state.timer);
+    init();
+    elements.statusText.textContent = "Application Reset";
+}
+
+// Event Listeners
+elements.btnWater.addEventListener('click', waterPlant);
+elements.btnReset.addEventListener('click', resetApp);
+
+// Entry Point
+window.onload = init;
+
+</script>
+</body>
+</html>

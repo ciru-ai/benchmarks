@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clockwork Climb</title>
+    <style>
+        body {
+            margin: 0;
+            background: #2c1e1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #f4ecd8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            border: 8px solid #5d4037;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background: radial-gradient(circle, #3e2723 0%, #1a0f0d 100%);
+        }
+        canvas { display: block; background: transparent; }
+        .ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .controls-hint {
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .stats {
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffb74d;
+        }
+        .menu-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        h1 { margin: 0 0 20px 0; color: #d4af37; font-size: 48px; text-shadow: 2px 2px #000; }
+        button {
+            padding: 12px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            margin: 10px;
+            transition: transform 0.1s;
+            font-weight: bold;
+        }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: #00897b; color: white; box-shadow: 0 4px #004d40; }
+        [data-testid="reset"] { background: #795548; color: white; }
+        .visible { display: flex !important; }
+        @media (max-width: 960px) {
+            #game-container { width: 100vw; height: calc(100vw * 0.625); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Decorative Gears Background Layer handled by Canvas -->
+
+    <div class="ui-layer">
+        <div class="controls-hint">A / D : MOVE | SPACE : JUMP</div>
+        <div class="stats" data-testid="status">READY TO CLIMB</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="menu-overlay visible">
+        <h1>CLOCKWORK CLIMB</h1>
+        <button data-testid="primary-action" id="btnStart">START ASCENT</button>
+        <button data-testid="reset" id="btnReset">RESET GAME</button>
+    </div>
+
+    <!-- Win/Loss Overlay -->
+    <div id="endScreen" class="menu-overlay">
+        <h1 id="endTitle">GAME OVER</h1>
+        <p id="endMsg" style="font-size: 24px;"></p>
+        <button data-testid="primary-action" id="btnRetry">TRY AGAIN</button>
+        <button data-testid="reset" id="btnResetEnd">RESTART ALL</button>
+    </div>
+</div>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.querySelector('[data-testid="status"]');
+const startScreen = document.getElementById('startScreen');
+const endScreen = document.getElementById('endScreen');
+const endTitle = document.getElementById('endTitle');
+const endMsg = document.getElementById('endMsg');
+
+// Game Constants & State
+let gameState = 'IDLE'; // IDLE, PLAYING, WON, LOST
+let score = 0;
+let frameCount = 0;
+let animationId = null;
+
+const CONFIG = {
+    gravity: 0.35,
+    jumpForce: -11,
+    moveSpeed: 5,
+    friction: 0.8,
+    playerSize: 24,
+    shelfHeight: 15,
+    shelfWidth: 120,
+};
+
+let player = { x: 470, y: 500, vx: 0, vy: 0, w: 24, h: 24 };
+let platforms = [];
+let gears = [
+    { x: 100, y: 150, r: 80, speed: 0.01 },
+    { x: 860, y: 450, r: 120, speed: -0.007 },
+    { x: 500, y: 50, r: 60, speed: 0.015 }
+];
+
+let keys = {};
+
+// Initialization
+function init() {
+    resize();
+    resetGameState();
+}
+
+function resize() {
+    canvas.width = 960;
+    canvas.height = 600;
+}
+
+function resetGameState() {
+    stopLoop();
+    gameState = 'IDLE';
+    score = 0;
+    frameCount = 0;
+    player = { x: 470, y: 540, vx: 0, vy: 0, w: 24, h: 24 };
+    platforms = [];
+    
+    // Generate Platforms
+    // Floor
+    platforms.push({ x: 0, y: 580, w: 960, h: 20, type: 'solid' });
+    
+    for(let i=1; i<=10; i++) {
+        const py = 580 - (i * 110);
+        platforms.push({
+            x: Math.random() * 700,
+            y: py,
+            w: CONFIG.shelfWidth,
+            h: CONFIG.shelfHeight,
+            amp: 100 + Math.random() * 100,
+            offset: Math.random() * Math.PI * 2,
+            speed: 0.02 + (Math.random() * 0.02),
+            isMoving: true
+        });
+    }
+
+    // Goal Bell Platform
+    platforms.push({ x: 430, y: -50, w: 100, h: 20, type: 'goal' });
+
+    updateStatus("READY TO CLIMB");
+    draw();
+}
+
+function stopLoop() {
+    if (animationId) cancelAnimationFrame(animationId);
+}
+
+function updateStatus(msg) {
+    statusEl.textContent = msg;
+}
+
+function handleInput() {
+    if (keys['KeyA'] || keys['KeyD']) {
+        const dir = (keys['KeyA'] || keys['KeyD']) ? (keys['KeyD'] ? 1 : -1) : 0;
+        player.vx += dir * 0.8;
+    }
+    player.vx *= CONFIG.friction;
+    player.vy += CONFIG.gravity;
+    
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Bounds
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.w > 960) player.x = 960 - player.w;
+}
+
+function updatePlatforms(camY) {
+    platforms.forEach(p => {
+        if (p.isMoving) {
+            p.currentX = p.x + Math.sin(frameCount * p.speed + p.offset) * p.amp;
+        } else {
+            p.currentX = p.x;
+        }
+    });
+}
+
+function resolveCollisions(camY) {
+    // One-way collision logic
+    platforms.forEach(p => {
+        const px = p.currentX !== undefined ? p.currentX : p.x;
+        
+        // Collision detection
+        if (player.x + player.vx < px + p.w &&
+            player.x + player.w > px &&
+            player.y + player.h > p.y &&
+            player.y + player.h < p.y + p.h + player.vy + 1 && // Only if descending
+            player.vy >= 0) {
+                player.y = p.y - player.h;
+                player.vy = 0;
+                
+                if(p.type === 'goal') endGame(true);
+                if(p.isMoving) player.x += (p.currentX - p.x) * (player.vx * 0.1); // Carry momentum roughly
+            }
+    });
+
+    // Fall off screen
+    if (player.y > camY + 700) endGame(false);
+}
+
+function endGame(won) {
+    stopLoop();
+    gameState = won ? 'WON' : 'LOST';
+    endScreen.classList.add('visible');
+    if (won) {
+        endTitle.textContent = "ASCENDED!";
+        endTitle.style.color = "#00897b";
+        endMsg.textContent = "You touched the Great Bell!";
+    } else {
+        endTitle.textContent = "FELL INTO THE DEPTHS";
+        endTitle.style.color = "#c62828";
+        endMsg.textContent = "The mechanism claimed you.";
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const camY = Math.min(player.y - 300, 0);
+    const offset = -camY;
+
+    // Draw Gears (Background)
+    gears.forEach(g => {
+        ctx.save();
+        ctx.translate(g.x, g.y + camY);
+        ctx.rotate(frameCount * g.speed);
+        ctx.fillStyle = '#3e2723';
+        ctx.beginPath();
+        ctx.arc(0, 0, g.r, 0, Math.PI * 2);
+        ctx.fill();
+        // Gear teeth effect using simple rects
+        ctx.strokeStyle = '#5d4037';
+        ctx.lineWidth = 10;
+        for(let i=0; i<8; i++){
+            ctx.rotate(Math.PI/4);
+            ctx.strokeRect(g.r-10, -10, 20, 20);
+        }
+        ctx.restore();
+    });
+
+    // Draw Rails (Brass Lines)
+    ctx.strokeStyle = 'rgba(184, 134, 11, 0.2)';
+    ctx.lineWidth = 2;
+    for(let i=0; i<960; i+=40){
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, 600);
+        ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.translate(0, offset);
+
+    // Draw Platforms
+    platforms.forEach(p => {
+        const px = p.currentX !== undefined ? p.currentX : p.x;
+        ctx.fillStyle = p.type === 'goal' ? '#ffd700' : '#00897b';
+        ctx.fillRect(px, p.y, p.w, p.h);
+        // Shine
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(px, p.y, p.w, 4);
+    });
+
+    // Draw Player
+    ctx.fillStyle = '#f4ecd8';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#f4ecd8';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.shadowBlur = 0;
+
+    // Draw Bell
+    if (platforms.some(p => p.type === 'goal')) {
+        const goalP = platforms.find(p => p.type === 'goal');
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(480, goalP.y - 40, 30, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#b8860b';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Update Score (highest Y reached)
+    const currentScore = Math.floor((580 - player.y) / 10);
+    if (currentScore > score) score = currentScore;
+    updateStatus(`ALTITUDE: ${score}m`);
+
+    if (gameState === 'PLAYING') {
+        handleInput();
+        updatePlatforms(camY);
+        resolveCollisions(camY);
+        frameCount++;
+        animationId = requestAnimationFrame(draw);
+    }
+}
+
+// Input Listeners
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if(e.code === 'Space' && gameState !== 'PLAYING') { /* Handled by buttons */ }
+    if(e.code === 'KeyR' && gameState !== 'IDLE') resetGameState();
+    if(e.code === 'Space' && gameState === 'PLAYING') {
+        if(player.vy === 0) player.vy = CONFIG.jumpForce;
+    }
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// Button Actions
+document.getElementById('btnStart').onclick = () => {
+    startScreen.classList.remove('visible');
+    gameState = 'PLAYING';
+    draw();
+};
+
+document.getElementById('btnReset').onclick = () => {
+    resetGameState();
+};
+
+document.getElementById('btnRetry').onclick = () => {
+    endScreen.classList.remove('visible');
+    resetGameState();
+    gameState = 'PLAYING';
+    draw();
+};
+
+document.getElementById('btnResetEnd').onclick = () => {
+    endScreen.classList.remove('visible');
+    resetGameState();
+};
+
+// Kickoff
+init();
+
+</script>
+</body>
+</html>

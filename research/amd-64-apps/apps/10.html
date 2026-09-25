@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidekeeper</title>
+    <style>
+        :root {
+            --sky: #ffdab9; /* Apricot */
+            --water: rgba(64, 224, 208, 0.7); /* Turquoise */
+            --rock: #a0522d; /* Terracotta */
+            --boat: #ffffff;
+            --ui-bg: #333;
+            --ui-text: #eee;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #222;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #toolbar {
+            width: 960px;
+            height: 50px;
+            background: var(--ui-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-radius: 8px 8px 0 0;
+            gap: 20px;
+            color: var(--ui-text);
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            background-color: var(--sky);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        #primaryBtn { background: #4caf50; color: white; }
+        #resetBtn { background: #f44336; color: white; }
+
+        #status {
+            margin-left: auto;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        #progressDisplay {
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+
+        .instructions {
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <button id="primaryBtn" data-testid="primary-action">PLAY</button>
+        <button id="resetBtn" data-testid="reset">RESET</button>
+        <div id="progressDisplay">DIST: 0 / 12</div>
+        <div id="status" data-testid="status">READY</div>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="instructions">
+        W / UP : Raise Water | S / DOWN : Lower Water | R : Restart Game
+    </div>
+
+    <script>
+        /**
+         * TIDEKEEPER - Core Logic
+         */
+
+        const CONFIG = {
+            width: 960,
+            height: 600,
+            winThreshold: 12,
+            seaLevelTargetSpeed: 0.05,
+            scrollSpeed: 3,
+            obstacleSpacing: 350,
+            playerSize: { w: 30, h: 20 },
+            collisionBuffer: 5
+        };
+
+        const state = {
+            running: false,
+            distance: 0,
+            seaHeight: 300, // Y coordinate (waterline)
+            targetSeaHeight: 300,
+            inputDir: 0, // -1 up, 1 down
+            obstacles: [],
+            nextObstacleIdx: 1,
+            lastFrameTime: 0,
+            frameId: null,
+            victory: false,
+            gameOver: false
+        };
+
+        const dom = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: document.getElementById('gameCanvas').getContext('2d'),
+            primaryBtn: document.getElementById('primaryBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            status: document.getElementById('status'),
+            progress: document.getElementById('progressDisplay')
+        };
+
+        // Set canvas internal resolution
+        dom.canvas.width = CONFIG.width;
+        dom.canvas.height = CONFIG.height;
+
+        class Obstacle {
+            constructor(index) {
+                this.id = index;
+                this.x = CONFIG.width + 100;
+                this.type = index % 2 === 0 ? 'rock' : 'roof'; // Alternating types
+                
+                // Randomize gap position
+                // Rocks are bottom obstacles (upward), Roofs are top obstacles (downward)
+                if (this.type === 'rock') {
+                    this.y = CONFIG.height * 0.7 + Math.random() * 100;
+                    this.h = 150 + Math.random() * 100;
+                    this.w = 80;
+                } else {
+                    this.y = CONFIG.height * 0.3 - Math.random() * 100;
+                    this.h = 150 + Math.random() * 100;
+                    this.w = 80;
+                }
+            }
+
+            update(speed) {
+                this.x -= speed;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = '#a0522d'; // Terracotta
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                // Add some texture/shading
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(this.x, this.y, this.w, 5);
+            }
+        }
+
+        function initData() {
+            state.distance = 0;
+            state.seaHeight = 300;
+            state.targetSeaHeight = 300;
+            state.inputDir = 0;
+            state.obstacles = [];
+            state.nextObstacleIdx = 1;
+            state.victory = false;
+            state.gameOver = false;
+            state.running = false;
+
+            // Pre-generate upcoming obstacles
+            for (let i = 1; i <= CONFIG.winThreshold + 2; i++) {
+                state.obstacles.push(new Obstacle(i));
+            }
+            
+            render();
+        }
+
+        function update(dt) {
+            if (!state.running || state.gameOver || state.victory) return;
+
+            // Smoothly interpolate sea level towards target based on input
+            // We use a simplified physics approach for "smoothness"
+            const lerpSpeed = 0.1;
+            if (state.inputDir < 0) state.targetSeaHeight -= 5;
+            if (state.inputDir > 0) state.targetSeaHeight += 5;
+
+            // Clamp target
+            state.targetSeaHeight = Math.max(50, Math.min(CONFIG.height - 50, state.targetSeaHeight));
+            
+            // Interpolate current sea height
+            state.seaHeight += (state.targetSeaHeight - state.seaHeight) * lerpSpeed;
+
+            // Move obstacles
+            state.obstacles.forEach(obs => obs.update(CONFIG.scrollSpeed));
+
+            // Check collision & Progress
+            checkCollisions();
+
+            // Advance distance based on movement
+            // Since everything moves left, we track how many obstacles passed
+            const leadObs = state.obstacles[0];
+            if (leadObs && leadObs.x < -100) {
+                state.obstacles.shift();
+                state.distance++;
+                dom.progress.textContent = `DIST: ${state.distance} / ${CONFIG.winThreshold}`;
+            }
+
+            if (state.distance >= CONFIG.winThreshold) {
+                state.victory = true;
+                state.running = false;
+                dom.status.textContent = "WON!";
+                dom.status.style.color = "#4caf50";
+            }
+        }
+
+        function checkCollisions() {
+            const boatY = state.seaHeight - 10; // Boat sits on waterline
+            const boatX = 150;
+            const bW = CONFIG.playerSize.w;
+            const bH = CONFIG.playerSize.h;
+
+            for (const obs of state.obstacles) {
+                if (obs.x < boatX + bW && obs.x + obs.w > boatX) {
+                    // Collision detection logic
+                    // If Rock (bottom): hits if boat is BELOW the top of the rock
+                    // If Roof (top): hits if boat is ABOVE the bottom of the roof
+                    if (obs.type === 'rock') {
+                        if (boatY + bH > obs.y) {
+                            endGame("LOST");
+                        }
+                    } else {
+                        if (boatY < obs.y + obs.h) {
+                            endGame("LOST");
+                        }
+                    }
+                }
+            }
+
+            // Also check if boat is too far from sea level? No, the boat follows the sea.
+            // The risk is strictly the terrain vs the sea level.
+        }
+
+        function endGame(result) {
+            state.gameOver = true;
+            state.running = false;
+            if (result === "LOST") {
+                dom.status.textContent = "CRASHED! LOST";
+                dom.status.style.color = "#f44336";
+            } else {
+                dom.status.textContent = "VICTORY!";
+                dom.status.style.color = "#4caf50";
+            }
+        }
+
+        function draw() {
+            const ctx = dom.ctx;
+            ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
+
+            // 1. Draw Sky (already cleared)
+
+            // 2. Draw Obstacles
+            state.obstacles.forEach(obs => obs.draw(ctx));
+
+            // 3. Draw Sea
+            ctx.fillStyle = 'rgba(64, 224, 208, 0.6)';
+            ctx.fillRect(0, state.seaHeight, CONFIG.width, CONFIG.height - state.seaHeight);
+            
+            // Wave effect (subtle line)
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, state.seaHeight);
+            for (let x = 0; x < CONFIG.width; x += 20) {
+                ctx.lineTo(x, state.seaHeight + Math.sin((Date.now() / 200) + (x/50)) * 5);
+            }
+            ctx.stroke();
+
+            // 4. Draw Preview Strip (The "Next" Opening hint)
+            // This is a visual cue showing where the water level should ideally be
+            const nextObs = state.obstacles.find(o => o.x > CONFIG.width);
+            if (nextObs) {
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.moveTo(nextObs.x, nextObs.y);
+                ctx.lineTo(nextObs.x, nextObs.y + (nextObs.type === 'rock' ? -nextObs.h : nextObs.h));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 5. Draw Boat
+            ctx.save();
+            ctx.translate(150, state.seaHeight - 10);
+            // Simple Paper Sailboat shape
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(30, 0);
+            ctx.lineTo(15, -20);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(12, 0, 3, 10); // Mast base
+            ctx.restore();
+        }
+
+        function render(time) {
+            const dt = time - state.lastFrameTime;
+            state.lastFrameTime = time;
+            
+            // Clamp dt to prevent huge jumps if tab was inactive
+            const clampedDt = Math.min(dt, 100);
+
+            update(clampedDt);
+            draw();
+
+            state.frameId = requestAnimationFrame(render);
+        }
+
+        // Input Handlers
+        const handleKey = (e, active) => {
+            if (e.key === 'w' || e.key === 'ArrowUp') state.inputDir = active ? -1 : 0;
+            if (e.key === 's' || e.key === 'ArrowDown') state.inputDir = active ? 1 : 0;
+            if (e.key === 'r' && !state.gameOver && !state.victory) initData();
+            if (e.key === 'r' && (state.gameOver || state.victory)) initData();
+        };
+
+        window.addEventListener('keydown', (e) => handleKey(e, true));
+        window.addEventListener('keyup', (e) => handleKey(e, false));
+
+        // Button Handlers
+        dom.primaryBtn.addEventListener('click', () => {
+            if (!state.running && !state.gameOver && !state.victory) {
+                state.running = true;
+                dom.status.textContent = "SAILING...";
+                dom.status.style.color = "white";
+                dom.primaryBtn.disabled = true;
+                dom.primaryBtn.style.opacity = "0.5";
+            }
+        });
+
+        dom.resetBtn.addEventListener('click', () => {
+            cancelAnimationFrame(state.frameId);
+            initData();
+            dom.primaryBtn.disabled = false;
+            dom.primaryBtn.style.opacity = "1";
+            dom.status.textContent = "READY";
+            dom.status.style.color = "white";
+            requestAnimationFrame(render);
+        });
+
+        // Start loop
+        initData();
+        requestAnimationFrame(render);
+
+    </script>
+</body>
+</html>

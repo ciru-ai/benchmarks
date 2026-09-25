@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raincatch Spectrum</title>
+    <style>
+        :root {
+            --bg: #1a1a1b;
+            --panel: #2d2d2e;
+            --text: #e0e0e0;
+            --cyan: #00f2ff;
+            --yellow: #faff00;
+            --pink: #ff00ea;
+            --danger: #ff4444;
+        }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            max-width: 100%;
+            max-height: calc(100vw - 40px);
+            background: linear-gradient(to bottom, #121214, #252527);
+            border: 4px solid #3d3d3f;
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            pointer-events: auto;
+        }
+        .stat-box {
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        #controls-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        .button-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        button[data-testid="primary-action"] {
+            background: #4CAF50;
+            color: white;
+            font-size: 1.5rem;
+            padding: 15px 40px;
+        }
+        button[data-testid="reset"] {
+            background: #555;
+            color: white;
+        }
+        .color-pad {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        #status-msg { font-size: 1.2rem; margin-bottom: 10px; text-align: center;}
+        .queue-view { display: flex; gap: 5px; align-items: center; }
+        .q-dot { width: 12px; height: 12px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div class="stats-row">
+            <div class="stat-box">SCORE: <span id="score-val">0</span> / 40</div>
+            <div class="stat-box">HEARTS: <span id="hearts-val">♥♥♥♥♥</span></div>
+            <div class="stat-box queue-view">
+                NEXT: <div id="next-dots" style="display:flex; gap:4px; margin-left:8px;"></div>
+            </div>
+        </div>
+        
+        <div id="status-area" style="pointer-events: none;">
+            <div id="status" data-testid="status" style="color: #aaa; font-size: 0.9rem; text-align:center;">READY TO START</div>
+        </div>
+
+        <div id="controls-hint" style="text-align:center; color:#888; margin-bottom: 10px; pointer-events:none;">
+            Press 1, 2, or 3 to change color
+        </div>
+    </div>
+
+    <div id="controls-overlay">
+        <div id="status-msg">RAINCATCH SPECTRUM</div>
+        <button id="start-btn" data-testid="primary-action">START GAME</button>
+        <div class="button-group">
+            <div id="pad-0" class="color-pad" style="background: var(--cyan);" onclick="setUmbrellaColor(0)"></div>
+            <div id="pad-1" class="color-pad" style="background: var(--yellow);" onclick="setUmbrellaColor(1)"></div>
+            <div id="pad-2" class="color-pad" style="background: var(--pink);" onclick="setUmbrellaColor(2)"></div>
+        </div>
+        <button id="reset-btn" data-testid="reset" style="margin-top:30px;">RESET</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const scoreEl = document.getElementById('score-val');
+const heartsEl = document.getElementById('hearts-val');
+const dotsEl = document.getElementById('next-dots');
+const overlay = document.getElementById('controls-overlay');
+const startBtn = document.getElementById('start-btn');
+const resetBtn = document.getElementById('reset-btn');
+const msgEl = document.getElementById('status-msg');
+
+// Constants & State
+const COLORS = ['#00f2ff', '#faff00', '#ff00ea'];
+const TARGET_SCORE = 40;
+const MAX_LIVES = 5;
+
+let gameState = 'IDLE'; // IDLE, PLAYING, WON, LOST
+let score = 0;
+let lives = MAX_LIVES;
+let currentUmbrellaIdx = 0;
+let rainDrops = [];
+let particles = [];
+let lastDropTime = 0;
+let dropInterval = 1500;
+let speedMultiplier = 1;
+let frameCount = 0;
+let animationId = null;
+let dropQueue = [];
+
+function resize() {
+    canvas.width = 960;
+    canvas.height = 600;
+}
+resize();
+
+class Drop {
+    constructor(colorIdx) {
+        this.idx = colorIdx;
+        this.x = canvas.width / 2;
+        this.y = -20;
+        this.speed = (3 + Math.random() * 2) * speedMultiplier;
+        this.radius = 6;
+    }
+    update() { this.y += this.speed; }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS[this.idx];
+        ctx.fill();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = COLORS[this.idx];
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.color = color;
+        this.vx = (Math.random() - 0.5) * 6;
+        this.vy = (Math.random() - 0.5) * 6;
+        this.life = 1.0;
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; }
+    draw() {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, 4, 4);
+        ctx.globalAlpha = 1;
+    }
+}
+
+function setUmbrellaColor(idx) {
+    currentUmbrellaIdx = idx;
+    document.getElementById('status').textContent = `Umbrella Color: ${['Cyan', 'Yellow', 'Pink'][idx]}`;
+}
+
+function createRipple(x, y, color) {
+    particles.push(new Particle(x, y, color));
+}
+
+function spawnNextDrop() {
+    if (dropQueue.length === 0) {
+        dropQueue.push(Math.floor(Math.random() * 3));
+    }
+    const nextIdx = dropQueue.shift();
+    rainDrops.push(new Drop(nextIdx));
+    
+    // Prepare next queue item
+    if (dropQueue.length < 3) {
+        dropQueue.push(Math.floor(Math.random() * 3));
+    }
+    renderQueue();
+}
+
+function renderQueue() {
+    dotsEl.innerHTML = '';
+    dropQueue.slice(0, 3).forEach(idx => {
+        const dot = document.createElement('div');
+        dot.className = 'q-dot';
+        dot.style.backgroundColor = COLORS[idx];
+        dotsEl.appendChild(dot);
+    });
+}
+
+function initGame() {
+    score = 0;
+    lives = MAX_LIVES;
+    currentUmbrellaIdx = 0;
+    rainDrops = [];
+    particles = [];
+    dropQueue = [Math.floor(Math.random()*3), Math.floor(Math.random()*3), Math.floor(Math.random()*3)];
+    speedMultiplier = 1;
+    lastDropTime = performance.now();
+    updateUI();
+    gameState = 'PLAYING';
+    overlay.style.display = 'none';
+    statusEl.textContent = "GAME ACTIVE";
+    requestAnimationFrame(loop);
+}
+
+function updateUI() {
+    scoreEl.textContent = score;
+    heartsEl.textContent = '♥'.repeat(lives);
+}
+
+function gameOver(win) {
+    gameState = win ? 'WON' : 'LOST';
+    overlay.style.display = 'flex';
+    msgEl.textContent = win ? "YOU CAPTURED THE SPECTRUM!" : "THE STORM OVERWHELMED YOU...";
+    msgEl.style.color = win ? "#4CAF50" : "#ff4444";
+    statusEl.textContent = win ? "VICTORY" : "DEFEAT";
+    document.getElementById('start-btn').textContent = win || lives <= 0 ? "RETRY" : "START GAME";
+}
+
+function loop(time) {
+    if (gameState !== 'PLAYING') return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw Skyline (Charcoal clouds)
+    ctx.fillStyle = '#1c1c1e';
+    ctx.beginPath();
+    ctx.ellipse(200, 100, 300, 80, 0, 0, Math.PI*2);
+    ctx.ellipse(700, 150, 400, 100, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Spawn Logic
+    if (time - lastDropTime > dropInterval) {
+        spawnNextDrop();
+        lastDropTime = time;
+        speedMultiplier += 0.01;
+        dropInterval = Math.max(600, 1500 - (score * 20));
+    }
+
+    // Update Drops
+    for (let i = rainDrops.length - 1; i >= 0; i--) {
+        const d = rainDrops[i];
+        d.update();
+        d.draw();
+
+        // Collision detection (Bottom area)
+        if (d.y > canvas.height - 60 && d.y < canvas.height - 20) {
+            if (d.idx === currentUmbrellaIdx) {
+                score++;
+                createRipple(d.x, d.y, COLORS[d.idx]);
+                if (score >= TARGET_SCORE) {
+                    gameOver(true);
+                }
+            } else {
+                lives--;
+                createRipple(d.x, d.y, '#ffffff');
+                if (lives <= 0) {
+                    gameOver(false);
+                }
+            }
+            rainDrops.splice(i, 1);
+            updateUI();
+        } else if (d.y > canvas.height) {
+            rainDrops.splice(i, 1);
+        }
+    }
+
+    // Umbrella
+    const uY = canvas.height - 40;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = COLORS[currentUmbrellaIdx];
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2 - 60, uY);
+    ctx.quadraticCurveTo(canvas.width/2, uY - 40, canvas.width/2 + 60, uY);
+    ctx.stroke();
+    // Handle
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, uY);
+    ctx.lineTo(canvas.width/2, uY + 20);
+    ctx.stroke();
+
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+
+    frameCount++;
+    animationId = requestAnimationFrame(loop);
+}
+
+// Event Listeners
+window.addEventListener('keydown', e => {
+    if (e.key === '1') setUmbrellaColor(0);
+    if (e.key === '2') setUmbrellaColor(1);
+    if (e.key === '3') setUmbrellaColor(2);
+});
+
+startBtn.addEventListener('click', () => {
+    initGame();
+});
+
+resetBtn.addEventListener('click', () => {
+    cancelAnimationFrame(animationId);
+    gameState = 'IDLE';
+    overlay.style.display = 'flex';
+    msgEl.textContent = "";
+    msgEl.style.color = "white";
+    startBtn.textContent = "START GAME";
+    statusEl.textContent = "RESET COMPLETE";
+    score = 0;
+    lives = MAX_LIVES;
+    updateUI();
+});
+
+// Initial Setup
+renderQueue();
+</script>
+</body>
+</html>

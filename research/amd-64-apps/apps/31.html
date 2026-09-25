@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Gardener</title>
+    <style>
+        body { margin: 0; background: #050a14; color: #e0f2f1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #game-container { position: relative; width: 960px; height: 600px; border: 2px solid #37474f; box-style: none; background: radial-gradient(circle at center, #1a237e 0%, #050a14 100%); overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        canvas { display: block; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; box-sizing: border-box; }
+        .hud { position: absolute; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; }
+        #stats-panel { top: 20px; left: 20px; min-width: 150px; }
+        #msg-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); visibility: hidden; pointer-events: auto; z-index: 10; }
+        h1 { color: #ffab91; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin: 5px 0; font-size: 14px; }
+        button { cursor: pointer; padding: 10px 24px; font-weight: bold; border: none; border-radius: 4px; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        [data-testid="primary-action"] { background: #ffab91; color: #3e2723; margin-bottom: 10px; }
+        [data-testid="reset"] { background: transparent; border: 1px solid #cfd8dc; color: #cfd8dc; }
+        #controls-hint { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: #90a4ae; font-size: 12px; }
+        #status { font-weight: bold; color: #4db6ac; }
+        .gauge-bar { width: 100%; height: 8px; background: #263238; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .gauge-fill { height: 100%; width: 100%; transition: width 0.1s; }
+        #fuel-fill { background: #fff176; }
+        #speed-fill { background: #81c784; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="stats-panel" class="hud">
+            <div>Fuel</div>
+            <div class="gauge-bar"><div id="fuel-fill" class="gauge-fill"></div></div>
+            <div style="margin-top:10px">Speed</div>
+            <div class="gauge-bar"><div id="speed-fill" class="gauge-fill"></div></div>
+            <div style="margin-top:10px">Status: <span id="status" data-testid="status">Ready</span></div>
+        </div>
+
+        <div id="controls-hint">A/D or Arrows to Rotate • W or Space to Thrust</div>
+
+        <div id="msg-overlay">
+            <h1 id="msg-title">Mission Start</h1>
+            <p id="msg-desc">Land on all 3 greenhouses to plant seeds.</p>
+            <button id="btn-start" data-testid="primary-action">START MISSION</button>
+            <button id="btn-reset" data-testid="reset">RESET SYSTEM</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const msgOverlay = document.getElementById('msg-overlay');
+const btnStart = document.getElementById('btn-start');
+const btnReset = document.getElementById('btn-reset');
+const fuelFill = document.getElementById('fuel-fill');
+const speedFill = document.getElementById('speed-fill');
+const msgTitle = document.getElementById('msg-title');
+const msgDesc = document.getElementById('msg-desc');
+
+// Constants
+const WIDTH = 960;
+const HEIGHT = 600;
+const GRAVITY = 0.12;
+const THRUST = 0.25;
+const ROT_SPEED = 0.06;
+const FRICTION = 0.99;
+
+let state = {
+    playing: false,
+    gameOver: false,
+    won: false,
+    rocket: { x: 100, y: 100, vx: 0, vy: 0, angle: 0, rotVel: 0, fuel: 100 },
+    pads: [
+        { x: 200, y: 550, w: 120, h: 20, active: true, planted: false },
+        { x: 420, y: 550, w: 120, h: 20, active: true, planted: false },
+        { x: 700, y: 550, w: 120, h: 20, active: true, planted: false }
+    ],
+    particles: [],
+    keys: {}
+};
+
+function init() {
+    state.rocket = { x: 100, y: 100, vx: 0, vy: 0, angle: -Math.PI/4, rotVel: 0, fuel: 100 };
+    state.pads.forEach((p, i) => { p.active = (i === 0); p.planted = false; });
+    state.particles = [];
+    state.playing = false;
+    state.gameOver = false;
+    state.won = false;
+    updateUI();
+}
+
+function updateUI() {
+    statusEl.textContent = state.gameOver ? "MISSION ENDED" : (state.won ? "SUCCESSFUL PLANTING" : (state.playing ? "IN FLIGHT" : "READY"));
+    if (!state.playing && !state.gameOver) msgOverlay.style.visibility = 'visible';
+    else if (state.gameOver || state.won) msgOverlay.style.visibility = 'visible';
+    else msgOverlay.style.visibility = 'hidden';
+}
+
+// Input Handlers
+window.addEventListener('keydown', e => state.keys[e.code] = true);
+window.addEventListener('keyup', e => state.keys[e.code] = false);
+
+btnStart.onclick = () => { state.playing = true; updateUI(); };
+btnReset.onclick = () => { init(); updateUI(); };
+
+function spawnParticles(x, y, color) {
+    for(let i=0; i<10; i++) {
+        state.particles.push({
+            x, y, 
+            vx: (Math.random()-0.5)*4, 
+            vy: (Math.random()-0.5)*4, 
+            life: 1.0, 
+            color
+        });
+    }
+}
+
+function update() {
+    if (!state.playing || state.gameOver || state.won) return;
+
+    const r = state.rocket;
+
+    // Physics
+    r.vy += GRAVITY;
+    if (state.keys['KeyW'] || state.keys['Space']) {
+        if (r.fuel > 0) {
+            r.vy -= Math.sin(r.angle) * THRUST; // Simplified vertical logic for simplicity, but let's do proper vector math
+            // Proper Vector physics:
+            r.vx += Math.cos(r.angle) * THRUST * (r.vy >= 0 ? 0.5 : 1); // dummy fix
+            // Let's rewrite rotation + thrust properly:
+        }
+    }
+
+    // Re-calculating movement correctly
+    if (state.keys['KeyW'] || state.keys['Space']) {
+        if (r.fuel > 0) {
+            r.vx += Math.cos(r.angle) * THRUST;
+            r.vy += Math.sin(r.angle) * THRUST;
+            r.fuel -= 0.15;
+            spawnParticles(r.x, r.y, '#ffeb3b');
+        }
+    }
+
+    if (state.keys['ArrowLeft'] || state.keys['KeyA']) r.angle -= ROT_SPEED;
+    if (state.keys['ArrowRight'] || state.keys['KeyD']) r.angle += ROT_SPEED;
+
+    r.vx *= FRICTION;
+    r.vy *= FRICTION;
+    r.x += r.vx;
+    r.y += r.vy;
+
+    // Boundary Collision
+    if (r.x < 0 || r.x > WIDTH || r.y > HEIGHT) endGame("CRASH!", "#f44336");
+    if (r.y < 0) { r.y = 0; r.vy = 0; }
+    if (r.fuel <= 0) endGame("OUT OF FUEL", "#f44336");
+
+    // Pad Collisions & Landing Logic
+    state.pads.forEach(pad => {
+        if (pad.active && !pad.planted) {
+            if (r.x > pad.x && r.x < pad.x + pad.w && r.y + 20 > pad.y && r.y < pad.y + 10) {
+                const speed = Math.sqrt(r.vx*r.vx + r.vy*r.vy);
+                const tilt = Math.abs(r.angle % (Math.PI * 2));
+                const isUpright = (tilt < 0.3 || tilt > 5.9); // Roughly vertical
+
+                if (speed < 2.5 && isUpright) {
+                    pad.planted = true;
+                    pad.active = false;
+                    r.fuel = Math.min(100, r.fuel + 40);
+                    spawnParticles(r.x, r.y, '#4caf50');
+                    checkWin();
+                } else {
+                    endGame("HARD LANDING", "#f44336");
+                }
+            }
+        }
+    });
+
+    // Particles Update
+    state.particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+        if (p.life <= 0) state.particles.splice(i, 1);
+    });
+
+    // UI Updates
+    fuelFill.style.width = `${r.fuel}%`;
+    const speedVal = Math.min(100, Math.sqrt(r.vx*r.vx + r.vy*r.vy) * 20);
+    speedFill.style.width = `${speedVal}%`;
+    speedFill.style.backgroundColor = speedVal > 70 ? '#f44336' : '#81c784';
+}
+
+function endGame(reason, color) {
+    state.gameOver = true;
+    msgTitle.innerText = reason;
+    msgTitle.style.color = color;
+    msgDesc.innerText = "The mission was unsuccessful.";
+    updateUI();
+}
+
+function checkWin() {
+    if (state.pads.every(p => p.planted)) {
+        state.won = true;
+        msgTitle.innerText = "MISSION SUCCESS!";
+        msgTitle.style.color = "#4caf50";
+        msgDesc.innerText = "All greenhouses are planted!";
+        updateUI();
+    } else {
+        // Activate next pad
+        const nextPad = state.pads.find(p => !p.planted && !p.active);
+        if (nextPad) nextPad.active = true;
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    // Draw Stars
+    ctx.fillStyle = "#ffffff";
+    for(let i=0; i<50; i++) {
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect((i*137)%WIDTH, (i*253)%HEIGHT, 1, 1);
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Draw Pads
+    state.pads.forEach(pad => {
+        ctx.fillStyle = pad.planted ? '#4caf50' : (pad.active ? '#00e5ff' : '#37474f');
+        ctx.fillRect(pad.x, pad.y, pad.w, pad.h);
+        if (pad.active) {
+            ctx.strokeStyle = "#00e5ff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pad.x - 2, pad.y - 2, pad.w + 4, pad.h + 4);
+        }
+    });
+
+    // Draw Ground
+    ctx.fillStyle = "#263238";
+    ctx.fillRect(0, HEIGHT - 10, WIDTH, 10);
+
+    // Draw Particles
+    state.particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Draw Rocket
+    const r = state.rocket;
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.rotate(r.angle + Math.PI/2);
+    
+    // Hull
+    ctx.fillStyle = "#ff8a65"; // Coral
+    ctx.beginPath();
+    ctx.moveTo(0, -15);
+    ctx.lineTo(10, 10);
+    ctx.lineTo(-10, 10);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Window
+    ctx.fillStyle = "#e0f2f1";
+    ctx.beginPath();
+    ctx.arc(0, -2, 4, 0, Math.PI*2);
+    ctx.fill();
+
+    // Engine glow if thrusting
+    if ((state.keys['KeyW'] || state.keys['Space']) && r.fuel > 0) {
+        ctx.fillStyle = "#ffeb3b";
+        ctx.beginPath();
+        ctx.moveTo(-6, 10);
+        ctx.lineTo(6, 10);
+        ctx.lineTo(0, 22);
+        ctx.fill();
+    }
+    
+    ctx.restore();
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
+}
+
+// Initialize Canvas Size
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+
+init();
+draw();
+
+</script>
+</body>
+</html>

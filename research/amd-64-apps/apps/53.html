@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Board Pro</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 960px;
+            max-width: 95vw;
+            height: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        aside {
+            padding: 24px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #fafafa;
+        }
+
+        h1 { font-size: 1.5rem; margin: 0; color: var(--primary); }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+
+        input[type="number"], input[type="text"] {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        #btn-add { background: var(--primary); color: white; width: 100%; }
+        #btn-add:hover { background: var(--primary-hover); }
+        #btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 100%; }
+        #btn-reset:hover { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+
+        /* Main Content */
+        main {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-val { font-size: 1.5rem; font-weight: bold; display: block; }
+        .stat-lbl { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Capacity Gauge */
+        .gauge-container {
+            position: relative;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #gauge-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease, background-color 0.4s;
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-rows: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 8px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-item.completed { opacity: 0.6; }
+        .task-item.completed .task-name { text-decoration: line-through; color: var(--text-muted); }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .task-name { flex-grow: 1; font-size: 0.9rem; }
+        .task-pts {
+            font-size: 0.8rem;
+            background: #edf2ff;
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        [data-testid="status"] {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--primary);
+            margin-top: auto;
+            padding: 10px;
+            background: #eff6ff;
+            border-radius: 6px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside>
+        <h1>Sprint Planner</h1>
+        
+        <div class="control-group">
+            <label for="capacity-input">Team Capacity</label>
+            <input type="number" id="capacity-input" value="20" min="1" max="100">
+        </div>
+
+        <hr style="width:100%; border:0; border-top:1px solid var(--border);">
+
+        <div class="control-group">
+            <label>New Task Name</label>
+            <input type="text" id="new-task-name" placeholder="e.g. API Integration">
+        </div>
+        <div class="control-group">
+            <label>Points</label>
+            <input type="number" id="new-task-points" value="5" min="1" max="100">
+        </div>
+
+        <button id="btn-add" data-testid="primary-action">Add Task</button>
+        <button id="btn-reset" data-testid="reset">Reset Board</button>
+
+        <div data-testid="status">Ready</div>
+    </aside>
+
+    <main>
+        <div class="stats-bar">
+            <div class="stat-card">
+                <span class="stat-val" id="total-points">0</span>
+                <span class="stat-lbl">Total Points</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="remaining-points">0</span>
+                <span class="stat-lbl">Remaining</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="completion-pct">0%</span>
+                <span class="stat-lbl">Completion</span>
+            </div>
+        </div>
+
+        <div>
+            <label>Capacity Utilization</label>
+            <div class="gauge-container">
+                <div id="gauge-fill"></div>
+            </div>
+        </div>
+
+        <div class="task-list" id="task-list-container">
+            <!-- Tasks injected here -->
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- Application State ---
+    let state = {
+        capacity: 20,
+        tasks: [
+            { id: 1, name: "Setup Database Schema", points: 8, completed: true },
+            { id: 2, name: "User Authentication Flow", points: 5, completed: false },
+            { id: 3, name: "Dashboard UI Components", points: 3, completed: false },
+            { id: 4, name: "Payment Gateway Integration", points: 5, completed: false }
+        ]
+    };
+
+    const INITIAL_STATE = JSON.parse(JSON.stringify(state));
+
+    // --- DOM Elements ---
+    const el = {
+        capacityInput: document.getElementById('capacity-input'),
+        newTaskName: document.getElementById('new-task-name'),
+        newTaskPoints: document.getElementById('new-task-points'),
+        btnAdd: document.getElementById('btn-add'),
+        btnReset: document.getElementById('btn-reset'),
+        taskList: document.getElementById('task-list-container'),
+        status: document.querySelector('[data-testid="status"]'),
+        totalPtsEl: document.getElementById('total-points'),
+        remainPtsEl: document.getElementById('remaining-points'),
+        compPctEl: document.getElementById('completion-pct'),
+        gaugeFill: document.getElementById('gauge-fill')
+    };
+
+    // --- Logic ---
+
+    function render() {
+        // Clear list
+        el.taskList.innerHTML = '';
+
+        let total = 0;
+        let remaining = 0;
+        let completedCount = 0;
+
+        state.tasks.forEach(task => {
+            total += task.points;
+            if (!task.completed) remaining += task.points;
+            else completedCount++;
+
+            const div = document.createElement('div');
+            div.className = `task-item ${task.completed ? 'completed' : ''}`;
+            div.innerHTML = `
+                <input type="checkbox" class="checkbox" ${task.completed ? 'checked' : ''}>
+                <span class="task-name">${task.name}</span>
+                <span class="task-pts">${task.points} pts</span>
+            `;
+            
+            // Event listener for checkbox
+            div.querySelector('.checkbox').addEventListener('change', (e) => {
+                toggleTask(task.id);
+                e.stopPropagation();
+            });
+
+            el.taskList.appendChild(div);
+        });
+
+        // Update Stats
+        el.totalPtsEl.textContent = total;
+        el.remainPtsEl.textContent = remaining;
+        
+        const pct = state.tasks.length > 0 ? Math.round((completedCount / state.tasks.length) * 100) : 0;
+        el.compPctEl.textContent = `${pct}%`;
+
+        // Update Gauge
+        const utilization = (total / state.capacity) * 100;
+        el.gaugeFill.style.width = `${Math.min(utilization, 100)}%`;
+        
+        if (utilization > 100) {
+            el.gaugeFill.style.backgroundColor = '#dc2626'; // Red if over capacity
+        } else if (utilization > 80) {
+            el.gaugeFill.style.backgroundColor = '#f59e0b'; // Orange warning
+        } else {
+            el.gaugeFill.style.backgroundColor = '#16a34a'; // Green safe
+        }
+
+        updateStatusText(utilization);
+    }
+
+    function updateStatusText(utilization) {
+        let msg = "";
+        if (utilization > 100) msg = "⚠️ Over Capacity!";
+        else if (utilization > 80) msg = "🟡 High Load";
+        else if (state.tasks.length === 0) msg = "No tasks added";
+        else msg = "✅ Within Capacity";
+        el.status.textContent = msg;
+    }
+
+    function addTask() {
+        const name = el.newTaskName.value.trim();
+        const pts = parseInt(el.newTaskPoints.value);
+
+        if (!name || isNaN(pts)) return;
+
+        state.tasks.push({
+            id: Date.now(),
+            name: name,
+            points: pts,
+            completed: false
+        });
+
+        el.newTaskName.value = '';
+        el.newTaskPoints.value = 5;
+        render();
+    }
+
+    function toggleTask(id) {
+        const task = state.tasks.find(t => t.id === id);
+        if (task) {
+            task.completed = !task.completed;
+            render();
+        }
+    }
+
+    function resetBoard() {
+        state = JSON.parse(JSON.stringify(INITIAL_STATE));
+        el.capacityInput.value = state.capacity;
+        render();
+    }
+
+    function handleCapacityChange(e) {
+        state.capacity = parseInt(e.target.value) || 1;
+        render();
+    }
+
+    // --- Initialization & Events ---
+
+    function init() {
+        el.btnAdd.addEventListener('click', addTask);
+        el.btnReset.addEventListener('click', resetBoard);
+        el.capacityInput.addEventListener('input', handleCapacityChange);
+        
+        // Handle Enter key on inputs
+        el.newTaskName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+        el.newTaskPoints.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        render();
+    }
+
+    window.onload = init;
+
+</script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Foundry</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #334155;
+            --error: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 960px;
+            height: 600px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        /* Sidebar / Controls */
+        #sidebar {
+            padding: 2rem;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: -0.025em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            letter-spacing: 0.05em;
+        }
+
+        select, input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            cursor: pointer;
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        #primaryBtn {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        #primaryBtn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        #resetBtn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        #resetBtn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border-color: var(--error);
+        }
+
+        /* Main Display Area */
+        #main-view {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #result-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        #result-value {
+            font-size: 4rem;
+            font-weight: 800;
+            margin: 0;
+            word-break: break-all;
+        }
+
+        #result-unit {
+            font-size: 1.5rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+
+        #details-panel {
+            height: 120px;
+            background: rgba(0,0,0,0.2);
+            border-top: 1px solid var(--border);
+            padding: 1rem 2rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            overflow-y: auto;
+        }
+
+        #status {
+            font-size: 0.7rem;
+            color: var(--accent);
+            margin-top: auto;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            #app-container {
+                grid-template-columns: 1fr;
+                height: auto;
+                max-width: 400px;
+            }
+            #sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside id="sidebar">
+        <h1>Unit Foundry</h1>
+        
+        <div class="control-group">
+            <label for="categorySelect">Category</label>
+            <select id="categorySelect"></select>
+        </div>
+
+        <div class="control-group">
+            <label for="inputVal">Input Value</label>
+            <input type="number" id="inputVal" step="any">
+        </div>
+
+        <div class="control-group">
+            <label for="fromUnit">From</label>
+            <select id="fromUnit"></select>
+        </div>
+
+        <div class="control-group">
+            <label for="toUnit">To</label>
+            <select id="toUnit"></select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <button id="primaryBtn" data-testid="primary-action">Convert</button>
+            <button id="resetBtn" data-testid="reset">Reset</button>
+        </div>
+
+        <div id="status" data-testid="status">Ready</div>
+    </aside>
+
+    <main id="main-view">
+        <section id="result-panel">
+            <p id="result-label">Resulting Magnitude</p>
+            <div id="result-value">0.00</div>
+            <div id="result-unit">Units</div>
+        </section>
+        <footer id="details-panel">
+            <div>System Log: Initializing foundry...</div>
+        </footer>
+    </main>
+</div>
+
+<script>
+    /**
+     * CORE DATA & LOGIC
+     */
+    const CONFIG = {
+        length: {
+            units: {
+                m: { name: "Meters", factor: 1 },
+                km: { name: "Kilometers", factor: 1000 },
+                cm: { name: "Centimeters", factor: 0.01 },
+                mm: { name: "Millimeters", factor: 0.001 },
+                mi: { name: "Miles", factor: 1609.34 },
+                ft: { name: "Feet", factor: 0.3048 },
+                in: { name: "Inches", factor: 0.0254 }
+            },
+            type: 'linear'
+        },
+        weight: {
+            units: {
+                kg: { name: "Kilograms", factor: 1 },
+                g: { name: "Grams", factor: 0.001 },
+                mg: { name: "Milligrams", factor: 0.000001 },
+                lb: { name: "Pounds", factor: 0.453592 },
+                oz: { name: "Ounces", factor: 0.0283495 }
+            },
+            type: 'linear'
+        },
+        temperature: {
+            units: {
+                C: { name: "Celsius", offset: 0 },
+                F: { name: "Fahrenheit", offset: 32, scale: 1.8 }, // F = C * 1.8 + 32 -> C = (F - 32) / 1.8
+                K: { name: "Kelvin", offset: 273.15, scale: 1 }
+            },
+            type: 'complex'
+        }
+    };
+
+    // State Object
+    let state = {
+        currentCategory: 'length',
+        inputValue: 10,
+        fromUnit: 'm',
+        toUnit: 'km',
+        lastResult: 0
+    };
+
+    // DOM References
+    const dom = {
+        categorySelect: document.getElementById('categorySelect'),
+        inputVal: document.getElementById('inputVal'),
+        fromUnit: document.getElementById('fromUnit'),
+        toUnit: document.getElementById('toUnit'),
+        primaryBtn: document.getElementById('primaryBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        status: document.getElementById('status'),
+        resultValue: document.getElementById('result-value'),
+        resultUnit: document.getElementById('result-unit'),
+        logPanel: document.getElementById('details-panel')
+    };
+
+    /**
+     * INITIALIZATION
+     */
+    function init() {
+        populateCategories();
+        setupEventListeners();
+        seedInitialState();
+        render();
+    }
+
+    function populateCategories() {
+        Object.keys(CONFIG).forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+            dom.categorySelect.appendChild(opt);
+        });
+    }
+
+    function seedInitialState() {
+        state.currentCategory = 'length';
+        state.inputValue = 1;
+        state.fromUnit = 'm';
+        state.toUnit = 'km';
+        updateUnitDropdowns();
+    }
+
+    /**
+     * CORE CALCULATIONS
+     */
+    function convert(val, fromKey, toKey, categoryKey) {
+        const catData = CONFIG[categoryKey];
+        const unitFrom = catData.units[fromKey];
+        const unitTo = catData.units[toKey];
+
+        if (catData.type === 'linear') {
+            // Convert to base then to target
+            const baseValue = val * unitFrom.factor;
+            return baseValue / unitTo.factor;
+        } else if (catData.type === 'complex') {
+            // Temperature logic: Handle non-multiplicative offsets
+            // Step 1: To Celsius equivalent
+            let celsius;
+            if (fromKey === 'C') celsius = val;
+            else if (fromKey === 'F') celsius = (val - 32) / 1.8;
+            else if (fromKey === 'K') celsius = val - 273.15;
+
+            // Step 2: From Celsius to Target
+            let result;
+            if (toKey === 'C') result = celsius;
+            else if (toKey === 'F') result = (celsius * 1.8) + 32;
+            else if (toKey === 'K') result = celsius + 273.15;
+            return result;
+        }
+        return 0;
+    }
+
+    /**
+     * HANDLERS
+     */
+    function handleConversion() {
+        const val = parseFloat(dom.inputVal.value);
+        if (isNaN(val)) {
+            updateStatus("Error: Invalid numeric input");
+            return;
+        }
+
+        try {
+            const result = convert(val, state.fromUnit, state.toUnit, state.currentCategory);
+            state.lastResult = result;
+            
+            renderResults(val, result);
+            updateStatus(`Success: ${state.fromUnit} → ${state.toUnit}`);
+            logAction(`Converted ${val} ${state.fromUnit} to ${result.toFixed(4)} ${state.toUnit}`);
+        } catch (err) {
+            updateStatus("Calculation Error");
+            console.error(err);
+        }
+    }
+
+    function handleCategoryChange() {
+        state.currentCategory = dom.categorySelect.value;
+        state.fromUnit = Object.keys(CONFIG[state.currentCategory].units)[0];
+        state.toUnit = Object.keys(CONFIG[state.currentCategory].units)[1] || state.fromUnit;
+        updateUnitDropdowns();
+        handleConversion();
+    }
+
+    function swapUnits() {
+        const temp = state.fromUnit;
+        state.fromUnit = state.toUnit;
+        state.toUnit = temp;
+        updateUnitDropdowns();
+        handleConversion();
+    }
+
+    function resetApp() {
+        state.inputValue = 1;
+        state.fromUnit = Object.keys(CONFIG[state.currentCategory].units)[0];
+        state.toUnit = Object.keys(CONFIG[state.currentCategory].units)[1] || state.fromUnit;
+        
+        dom.inputVal.value = state.inputValue;
+        updateUnitDropdowns();
+        handleConversion();
+        updateStatus("Foundry Reset");
+        logAction("System reset to baseline parameters.");
+    }
+
+    /**
+     * RENDERING
+     */
+    function updateUnitDropdowns() {
+        const units = CONFIG[state.currentCategory].units;
+        const keys = Object.keys(units);
+
+        dom.fromUnit.innerHTML = '';
+        dom.toUnit.innerHTML = '';
+
+        keys.forEach(k => {
+            const optFrom = document.createElement('option');
+            optFrom.value = k;
+            optFrom.textContent = units[k].name;
+            optFrom.selected = (k === state.fromUnit);
+            dom.fromUnit.appendChild(optFrom);
+
+            const optTo = document.createElement('option');
+            optTo.value = k;
+            optTo.textContent = units[k].name;
+            optTo.selected = (k === state.toUnit);
+            dom.toUnit.appendChild(optTo);
+        });
+    }
+
+    function renderResults(input, output) {
+        // Formatting long decimals vs integers
+        const formattedOutput = Number.isInteger(output) ? output : parseFloat(output.toFixed(6));
+        dom.resultValue.textContent = formattedOutput;
+        dom.resultUnit.textContent = CONFIG[state.currentCategory].units[state.toUnit].name;
+    }
+
+    function updateStatus(msg) {
+        dom.status.textContent = msg;
+    }
+
+    function logAction(msg) {
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        dom.logPanel.prepend(entry);
+    }
+
+    function setupEventListeners() {
+        dom.categorySelect.addEventListener('change', handleCategoryChange);
+        dom.inputVal.addEventListener('input', () => {
+            state.inputValue = dom.inputVal.value;
+            handleConversion();
+        });
+        dom.fromUnit.addEventListener('change', (e) => {
+            state.fromUnit = e.target.value;
+            handleConversion();
+        });
+        dom.toUnit.addEventListener('change', (e) => {
+            state.toUnit = e.target.value;
+            handleConversion();
+        });
+        dom.primaryBtn.addEventListener('click', handleConversion);
+        dom.resetBtn.addEventListener('click', resetApp);
+    }
+
+    function render() {
+        dom.inputVal.value = state.inputValue;
+        updateUnitDropdowns();
+        handleConversion();
+    }
+
+    // Start App
+    init();
+
+</script>
+</body>
+</html>

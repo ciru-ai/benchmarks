@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palette Lab</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --text: #2d3436;
+            --border: #dfe6e9;
+            --accent: #0984e3;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #app-container { width: 960px; height: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; display: grid; grid-template-columns: 350px 1fr; position: relative; }
+        @media (max-width: 960px) { #app-container { width: 100vw; height: 100vh; grid-template-columns: 1fr; overflow-y: auto; } }
+
+        /* Sidebar */
+        .sidebar { padding: 24px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
+        .control-group { display: flex; flex-direction: column; gap: 12px; }
+        .color-row { display: flex; align-items: center; gap: 12px; background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid var(--border); }
+        .swatch { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; }
+        .hex-input { flex-grow: 1; border: none; background: transparent; font-family: monospace; font-size: 14px; outline: none; }
+        .lock-btn { background: none; border: none; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; }
+        .lock-btn.locked { opacity: 1; fill: #d63031; }
+
+        /* Main Content */
+        .main-view { display: flex; flex-direction: column; padding: 24px; gap: 20px; }
+        .preview-area { flex-grow: 1; border-radius: 8px; display: flex; flex-direction: column; padding: 20px; position: relative; transition: background 0.3s ease; }
+        .ui-mockup { background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 200px; }
+        .ui-mockup h3 { margin: 0 0 10px 0; font-size: 16px; }
+        .ui-mockup p { margin: 0; font-size: 12px; line-height: 1.4; }
+        .contrast-badge { position: absolute; top: 20px; right: 20px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+        /* Actions */
+        .actions { display: flex; gap: 10px; margin-top: auto; }
+        button { padding: 12px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: transform 0.1s, filter 0.2s; }
+        button:active { transform: scale(0.98); }
+        [data-testid="primary-action"] { background: var(--accent); color: white; flex-grow: 2; }
+        [data-testid="reset"] { background: #eee; color: #636e72; flex-grow: 1; }
+        #status { font-size: 12px; color: #636e72; text-align: center; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <aside class="sidebar">
+        <h1>Palette Lab</h1>
+        <p style="font-size: 13px; color: #636e72;">Design accessible palettes.</p>
+        
+        <div class="control-group" id="color-controls">
+            <!-- Color rows injected by JS -->
+        </div>
+
+        <div class="actions">
+            <button data-testid="primary-action" id="gen-btn">Generate New</button>
+            <button data-testid="reset" id="reset-btn">Reset</button>
+        </div>
+        <div id="status" data-testid="status">Ready</div>
+    </aside>
+
+    <main class="main-view">
+        <div id="preview-surface" class="preview-area">
+            <div id="contrast-info" class="contrast-badge">WCAG: --</div>
+            <div class="ui-mockup" id="ui-mockup">
+                <h3 id="mockup-title">Sample Heading</h3>
+                <p id="mockup-text">This is how your typography looks on this background. Test accessibility here.</p>
+            </div>
+            <div style="margin-top:auto; display:flex; gap:10px;">
+                <div id="chip-1" style="padding:4px 12px; border-radius:12px; font-size:10px; font-weight:bold;">CHIP ONE</div>
+                <div id="chip-2" style="padding:4px 12px; border-radius:12px; font-size:10px; font-weight:bold;">CHIP TWO</div>
+            </div>
+        </div>
+        
+        <canvas id="mini-graph" width="400" height="60"></canvas>
+    </main>
+</div>
+
+<script>
+/**
+ * APP LOGIC
+ */
+const INITIAL_STATE = [
+    { hex: '#2D3436', locked: false },
+    { hex: '#0984E3', locked: false },
+    { hex: '#00B894', locked: false },
+    { hex: '#6C5CE7', locked: false },
+    { hex: '#FAB1A0', locked: false }
+];
+
+let state = JSON.parse(JSON.stringify(INITIAL_STATE));
+
+// DOM Elements
+const el = {
+    controls: document.getElementById('color-controls'),
+    genBtn: document.getElementById('gen-btn'),
+    resetBtn: document.getElementById('reset-btn'),
+    status: document.querySelector('[data-testid="status"]'),
+    preview: document.getElementById('preview-surface'),
+    mockupTitle: document.getElementById('mockup-title'),
+    mockupText: document.getElementById('mockup-text'),
+    chip1: document.getElementById('chip-1'),
+    chip2: document.getElementById('chip-2'),
+    contrastInfo: document.getElementById('contrast-info'),
+    canvas: document.getElementById('mini-graph')
+};
+
+function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return { r, g, b };
+}
+
+function getLuminance(r, g, b) {
+    const a = [r, g, b].map(v => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+}
+
+function getContrastRatio(hex1, hex2) {
+    const rgb1 = hexToRgb(hex1);
+    const rgb2 = hexToRgb(hex2);
+    const l1 = getLuminance(rgb1.r, rgb1.g, rgb2.b); // simplified error fix below
+    const l2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
+    const realL1 = getLuminance(rgb1.r, rgb1.g, rgb1.b);
+    const realL2 = getLuminance(rgb2.r, rgb2.g, rgb2.b);
+    return (Math.max(realL1, realL2) + 0.05) / (Math.min(realL1, realL2) + 0.05);
+}
+
+function generateRandomHex() {
+    return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase();
+}
+
+function render() {
+    el.controls.innerHTML = '';
+    state.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'color-row';
+        
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.backgroundColor = item.hex;
+        swatch.id = `swatch-${idx}`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'hex-input';
+        input.value = item.hex;
+        input.onchange = (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                state[idx].hex = e.target.value.toUpperCase();
+                render();
+            }
+        };
+
+        const lockBtn = document.createElement('button');
+        lockBtn.className = `lock-btn ${item.locked ? 'locked' : ''}`;
+        lockBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18"><path d="M18 8H6c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-3 12H9v-3h6v3zM12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>`;
+        lockBtn.onclick = () => {
+            state[idx].locked = !state[idx].locked;
+            render();
+        };
+
+        row.appendChild(swatch);
+        row.appendChild(input);
+        row.appendChild(lockBtn);
+        el.controls.appendChild(row);
+    });
+
+    updateUI();
+}
+
+function updateUI() {
+    const bg = state[0].hex;
+    const c1 = state[1].hex;
+    const c2 = state[2].hex;
+    const t1 = state[3].hex;
+    const t2 = state[4].hex;
+
+    el.preview.style.backgroundColor = bg;
+    el.mockupTitle.style.color = c1;
+    el.mockupText.style.color = t1;
+    el.chip1.style.backgroundColor = c2;
+    el.chip1.style.color = t2;
+    el.chip2.style.backgroundColor = t2;
+    el.chip2.style.color = c2;
+
+    // Contrast calculation for title vs BG
+    const ratio = getContrastRatio(bg, c1);
+    const pass = ratio >= 4.5 ? "PASS" : "FAIL";
+    el.contrastInfo.innerText = `Ratio: ${ratio.toFixed(2)} (${pass})`;
+    el.contrastInfo.style.background = ratio >= 4.5 ? '#00b894' : '#d63031';
+    el.contrastInfo.style.color = 'white';
+
+    drawGraph();
+}
+
+function drawGraph() {
+    const ctx = el.canvas.getContext('2d');
+    ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+    
+    const step = el.canvas.width / (state.length - 1);
+    ctx.beginPath();
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.moveTo(0, el.canvas.height);
+    ctx.lineTo(el.canvas.width, el.canvas.height);
+    ctx.stroke();
+
+    state.forEach((s, i) => {
+        const rgb = hexToRgb(s.hex);
+        const lum = getLuminance(rgb.r, rgb.g, rgb.b);
+        const x = i * step;
+        const y = el.canvas.height - (lum * el.canvas.height);
+        
+        ctx.fillStyle = s.hex;
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.stroke();
+    });
+}
+
+function generateNew() {
+    state = state.map(item => {
+        if (item.locked) return item;
+        return { ...item, hex: generateRandomHex() };
+    });
+    el.status.innerText = "Palette Regenerated";
+    setTimeout(() => el.status.innerText = "Active", 2000);
+    render();
+}
+
+function resetApp() {
+    state = JSON.parse(JSON.stringify(INITIAL_STATE));
+    el.status.innerText = "State Reset";
+    render();
+    setTimeout(() => el.status.innerText = "Ready", 2000);
+}
+
+// Event Listeners
+el.genBtn.addEventListener('click', generateNew);
+el.resetBtn.addEventListener('click', resetApp);
+
+// Init
+render();
+</script>
+</body>
+</html>

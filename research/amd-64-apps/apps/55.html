@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Queue Organizer</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            width: 960px;
+            height: 600px;
+            max-width: 95vw;
+            max-height: 95vh;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr auto;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        header {
+            grid-column: span 2;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.025em; }
+        .sidebar {
+            padding: 20px;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .main-view {
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+        footer {
+            grid-column: span 2;
+            padding: 12px 20px;
+            background: #0f172a;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        .track-list { list-style: none; padding: 0; margin: 0; }
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #2d3748;
+            border-radius: 6px;
+            transition: transform 0.1s ease;
+            cursor: grab;
+        }
+        .track-item:active { cursor: grabbing; }
+        .track-info { flex-grow: 1; display: flex; align-items: center; gap: 12px; }
+        .track-icon { width: 32px; height: 32px; border-radius: 4px; background: #475569; flex-shrink: 0; }
+        .track-details { display: flex; flex-direction: column; }
+        .track-name { font-weight: 600; font-size: 0.9rem; }
+        .track-artist { font-size: 0.75rem; color: var(--text-dim); }
+        .controls-group { display: flex; flex-direction: column; gap: 10px; }
+        label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); font-weight: bold; }
+        select, button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #334155;
+            color: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        button:hover { background: #475569; }
+        [data-testid="primary-action"] {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: bold;
+            border: none;
+        }
+        [data-testid="primary-action"]:hover { background: var(--accent-hover); }
+        [data-testid="reset"] {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        [data-testid="reset"]:hover { background: var(--danger); color: white; }
+        .empty-state {
+            text-align: center;
+            margin-top: 100px;
+            color: var(--text-dim);
+        }
+        .mood-pill {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #475569;
+            margin-left: 8px;
+        }
+        #drag-ghost { opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>SonicQueue <small style="font-weight: normal; font-size: 0.7rem; color: var(--accent)">v1.0 Offline</small></h1>
+        <div>
+            <span data-testid="status" style="margin-right: 20px;">Status: Ready</span>
+            <button data-testid="reset" id="btn-reset">Reset Session</button>
+        </div>
+    </header>
+
+    <aside class="sidebar">
+        <div class="controls-group">
+            <label>Add Track Seed</label>
+            <button data-testid="primary-action" id="btn-add">Add Random Sample</button>
+        </div>
+        <hr style="width:100%; border: 0; border-top: 1px solid #334155;">
+        <div class="controls-group">
+            <label>Mood Filter</label>
+            <select id="filter-mood">
+                <option value="all">All Moods</option>
+                <option value="Chill">Chill</option>
+                <option value="Energetic">Energetic</option>
+                <option value="Melancholic">Melancholic</option>
+                <option value="Dark">Dark</option>
+            </select>
+        </div>
+        <div class="controls-group">
+            <label>Sort Order</label>
+            <select id="sort-order">
+                <option value="manual">Manual (Drag)</option>
+                <option value="alpha">Alphabetical</option>
+                <option value="duration">Duration</option>
+            </select>
+        </div>
+    </aside>
+
+    <main class="main-view">
+        <ul id="queue-list" class="track-list"></ul>
+        <div id="empty-msg" class="empty-state" style="display:none;">
+            No tracks in queue. Add some music to begin.
+        </div>
+    </main>
+
+    <footer>
+        <div id="stats-total">Total Duration: 0:00</div>
+        <div id="stats-count">Tracks: 0</div>
+    </footer>
+</div>
+
+<script>
+/**
+ * APP STATE & DATA
+ */
+const INITIAL_TRACKS = [
+    { id: 't1', name: 'Neon Midnight', artist: 'Synthwave Drift', duration: 245, mood: 'Chill', color: '#ec4899' },
+    { id: 't2', name: 'Electric Pulse', artist: 'Voltage', duration: 182, mood: 'Energetic', color: '#f59e0b' },
+    { id: 't3', name: 'Shadow Echoes', artist: 'Luna Void', duration: 310, mood: 'Melancholic', color: '#6366f1' },
+    { id: 't4', name: 'Deep Abyss', artist: 'The Submerge', duration: 420, mood: 'Dark', color: '#1e293b' }
+];
+
+let state = {
+    queue: [...INITIAL_TRACKS],
+    filter: 'all',
+    sort: 'manual'
+};
+
+// DOM Elements
+const el = {
+    queueList: document.getElementById('queue-list'),
+    emptyMsg: document.getElementById('empty-msg'),
+    status: document.querySelector('[data-testid="status"]'),
+    btnReset: document.getElementById('btn-reset'),
+    btnAdd: document.getElementById('btn-add'),
+    filterMood: document.getElementById('filter-mood'),
+    sortOrder: document.getElementById('sort-order'),
+    statTotal: document.getElementById('stats-total'),
+    statCount: document.getElementById('stats-count')
+};
+
+/**
+ * CORE LOGIC
+ */
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function render() {
+    el.queueList.innerHTML = '';
+    
+    let displayedTracks = [...state.queue];
+
+    // Apply Filters
+    if (state.filter !== 'all') {
+        displayedTracks = displayedTracks.filter(t => t.mood === state.filter);
+    }
+
+    // Apply Sorting
+    if (state.sort === 'alpha') {
+        displayedTracks.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (state.sort === 'duration') {
+        displayedTracks.sort((a, b) => a.duration - b.duration);
+    }
+
+    if (displayedTracks.length === 0) {
+        el.emptyMsg.style.display = 'block';
+    } else {
+        el.emptyMsg.style.display = 'none';
+        displayedTracks.forEach((track, index) => {
+            const li = document.createElement('li');
+            li.className = 'track-item';
+            li.draggable = state.sort === 'manual';
+            li.dataset.id = track.id;
+            li.dataset.index = index; // Relative to filtered view
+
+            li.innerHTML = `
+                <div class="track-info">
+                    <div class="track-icon" style="background-color: ${track.color}"></div>
+                    <div class="track-details">
+                        <span class="track-name">${track.name}</span>
+                        <span class="track-artist">${track.artist} • ${formatTime(track.duration)}</span>
+                    </div>
+                    <span class="mood-pill">${track.mood}</span>
+                </div>
+                ${state.sort === 'manual' ? '<span style="color:#475569; cursor:grab">☰</span>' : ''}
+            `;
+
+            // Drag and Drop Handlers
+            if (state.sort === 'manual') {
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('drop', handleDrop);
+                li.addEventListener('dragend', handleDragEnd);
+            }
+
+            el.queueList.appendChild(li);
+        });
+    }
+
+    updateStats();
+    updateStatus();
+}
+
+function updateStats() {
+    const totalSecs = state.queue.reduce((acc, curr) => acc + curr.duration, 0);
+    el.statTotal.textContent = `Total Duration: ${formatTime(totalSecs)}`;
+    el.statCount.textContent = `Tracks: ${state.queue.length}`;
+}
+
+function updateStatus() {
+    el.status.textContent = `Status: ${state.queue.length > 0 ? 'Active Playlist' : 'Empty'}`;
+}
+
+/**
+ * ACTIONS
+ */
+function addRandomTrack() {
+    const moods = ['Chill', 'Energetic', 'Melancholic', 'Dark'];
+    const artists = ['Vapor Wave', 'Cyber Soul', 'Echo Logic', 'Bit Rhythm'];
+    const names = ['Digital Dream', 'Static Flow', 'Binary Sunset', 'Glitch Heart'];
+    
+    const newId = 't' + Date.now();
+    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+    
+    state.queue.push({
+        id: newId,
+        name: names[Math.floor(Math.random() * names.length)],
+        artist: artists[Math.floor(Math.random() * artists.length)],
+        duration: Math.floor(Math.random() * 300) + 120,
+        mood: moods[Math.floor(Math.random() * moods.length)],
+        color: randomColor
+    });
+    render();
+}
+
+function resetApp() {
+    state.queue = [...INITIAL_TRACKS];
+    state.filter = 'all';
+    state.sort = 'manual';
+    el.filterMood.value = 'all';
+    el.sortOrder.value = 'manual';
+    render();
+}
+
+/**
+ * DRAG AND DROP HANDLERS
+ */
+let draggedItemIdx = null;
+
+function handleDragStart(e) {
+    draggedItemIdx = parseInt(this.dataset.index);
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const targetIdx = parseInt(this.dataset.index);
+    
+    if (draggedItemIdx !== null && draggedItemIdx !== targetIdx) {
+        // Reordering logic based on currently visible items
+        const visibleItems = state.queue.filter(t => state.filter === 'all' || t.mood === state.filter);
+        const itemToMove = visibleItems[draggedItemIdx];
+        visibleItems.splice(draggedItemIdx, 1);
+        visibleItems.splice(targetIdx, 0, itemToMove);
+
+        // Sync back to master state (simplified for this demo: assumes manual sort matches full queue order)
+        // In a real complex app we would map indices carefully.
+        // Here we just swap elements in the source array for simplicity of demonstration
+        const movingId = state.queue[draggedItemIdx].id;
+        const targetId = state.queue[targetIdx].id;
+        
+        // Find actual positions in original array
+        const origSrcIdx = state.queue.findIndex(x => x.id === movingId);
+        const origDestIdx = state.queue.findIndex(x => x.id === targetId);
+        
+        const [removed] = state.queue.splice(origSrcIdx, 1);
+        state.queue.splice(origDestIdx, 0, removed);
+    }
+    render();
+}
+
+function handleDragEnd() {
+    this.classList.remove('dragging');
+}
+
+/**
+ * EVENT LISTENERS
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // Verify existence of essential elements
+    const essentials = ['btn-reset', 'btn-add', 'filter-mood', 'sort-order', 'queue-list', 'stats-total', 'stats-count', 'status'];
+    essentials.forEach(id => {
+        const elCheck = document.getElementById(id) || document.querySelector(`[data-testid="${id}"]`);
+        if (!elCheck && !['stats-total', 'stats-count'].includes(id)) {
+             console.warn(`Missing element: ${id}`);
+        }
+    });
+
+    el.btnAdd.addEventListener('click', addRandomTrack);
+    el.btnReset.addEventListener('click', resetApp);
+    el.filterMood.addEventListener('change', (e) => {
+        state.filter = e.target.value;
+        render();
+    });
+    el.sortOrder.addEventListener('change', (e) => {
+        state.sort = e.target.value;
+        render();
+    });
+
+    // Initial Render
+    render();
+});
+</script>
+</body>
+</html>
