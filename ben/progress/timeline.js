@@ -50,9 +50,12 @@
       '05-whole-claim': 'Claim checks',
       '06-generation-reduction': 'Compact output',
       '07-specialists-and-whole-roles': 'Specialists',
-      '08-current-frontier': 'Current frontier'
+      '08-current-frontier': 'Current frontier',
+      '09-source-proposals': 'Source proposals',
+      '10-mlx-runtime': 'MLX runtime',
+      '11-specialized-audit': 'Specialized audit'
     };
-    return labels[phase.id] || phase.short_label || phase.label;
+    return phase.short_label || labels[phase.id] || phase.label;
   }
 
   function link(text, url, className) {
@@ -68,8 +71,8 @@
     const shell = make('div', 'rt-shell');
     const heading = make('div', 'rt-heading');
     const titleGroup = make('div', 'rt-title-group');
-    titleGroup.append(make('p', 'rt-kicker', 'Ciru · The research journey'));
-    const title = make('h2', '', 'Every candidate. Every lesson.');
+    titleGroup.append(make('p', 'rt-kicker', 'CIRU INFERENCE LAB · REPORT HISTORY'));
+    const title = make('h2', '', 'Research progress');
     title.id = 'rt-title';
     titleGroup.append(title);
     const reading = make('div', 'rt-reading');
