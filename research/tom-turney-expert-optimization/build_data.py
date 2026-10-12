@@ -58,7 +58,7 @@ assert len(models)==5 and all(len(m['tools']['tasks'])==15 for m in models);asse
 result=dict(title='Tom Turney Expert Optimization saves ROCmFPX',asOf='2026-10-12',models=models,halogenLatest=halogenLatest,sources=source,strictControlledRanking=False,inferencePerformed=False,oldPage='https://llm.ciru.ai/research/strix-showdown-20261001/',tomProfile='https://x.com/no_stp_on_snek?s=20',runtimeSource='https://github.com/ROCmFPX/ROCmFPX/tree/c4aa38b1987ee9cd390f56fb393ba93ac472769b',method='Replay sums measured case durations, excluding gaps. Every displayed outcome is preserved. Different host policies, dates, workload history and protocols prevent a strict controlled ranking. No new model inference was performed to build this page.')
 (R/'data/comparison.json').write_text(json.dumps(result,indent=2)+'\n');(R/'data/source-manifest.json').write_text(json.dumps(source,indent=2)+'\n')
 with (R/'data/measurements.csv').open('w') as f:
- w=csv.writer(f);w.writerow(['stack','date','he09_decode_tps_n_minus_1','cold_256k_pp_tps','KL','top1_percent','hard_points_first_pass','hermes_first_pass','package_gib'])
+ w=csv.writer(f,lineterminator="\n");w.writerow(['stack','date','he09_decode_tps_n_minus_1','cold_256k_pp_tps','KL','top1_percent','hard_points_first_pass','hermes_first_pass','package_gib'])
  for m in models:
   q=m['metrics'];w.writerow([m['name'],m['date'],q.get('decode'),next((t['pp'] for t in q.get('cold',[]) if t['depth']==256000),None),q.get('kl'),q.get('top1'),m['tools']['points'],m['hermes']['score'] if m['hermes'] else None,q.get('package')])
 print(json.dumps(dict(models=len(models),toolsCases=75,hermesCases=80,latestHalogenPasses=5,inferencePerformed=False)))
