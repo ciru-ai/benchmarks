@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enhanced Pagoda · Pixel Tests · Ciru Inference Lab</title>
+  <meta name="description" content="Voxel pagoda gardens generated with the enhanced pagoda prompt, with interactive scenes, source downloads and model links.">
+  <meta name="theme-color" content="#080808">
+  <link rel="icon" type="image/png" href="/ccglogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080808;
+      --panel: rgba(17, 18, 21, .94);
+      --line: rgba(255, 255, 255, .14);
+      --text: #f7f7f4;
+      --muted: #a9afb9;
+      --red: #ed1c24;
+      --cyan: #39d0ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(237, 28, 36, .17), transparent 31%),
+        linear-gradient(300deg, rgba(57, 208, 255, .10), transparent 35%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 20px),
+        var(--bg);
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      text-decoration: none;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .78rem;
+      letter-spacing: .04em;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+    }
+
+    .brand span { color: var(--muted); }
+
+    header {
+      padding: 68px 0 32px;
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--cyan);
+      font: 700 .72rem/1.3 "IBM Plex Mono", monospace;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 8vw, 5.5rem);
+      line-height: .92;
+      letter-spacing: -.065em;
+    }
+
+    .intro {
+      margin: 20px 0 0;
+      max-width: 640px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.65;
+    }
+
+    .collection-link {
+      display: inline-flex;
+      margin-top: 18px;
+      padding: 10px 13px;
+      border: 1px solid rgba(57, 208, 255, .55);
+      border-radius: 6px;
+      color: var(--cyan);
+      font: 700 .72rem/1 "IBM Plex Mono", monospace;
+      letter-spacing: .04em;
+      text-decoration: none;
+    }
+
+    .collection-link:hover,
+    .collection-link:focus-visible { background: rgba(57, 208, 255, .12); outline: none; }
+
+    .prompt {
+      position: relative;
+      margin: 0 0 22px;
+      padding: 19px 22px 20px 25px;
+      overflow: hidden;
+      border: 1px solid rgba(57, 208, 255, .25);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      background:
+        linear-gradient(100deg, rgba(57, 208, 255, .08), transparent 48%),
+        var(--panel);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .25);
+    }
+
+    .prompt::after {
+      content: "PROMPT";
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      color: rgba(255, 255, 255, .06);
+      font: 700 clamp(2rem, 7vw, 4.8rem)/1 "IBM Plex Mono", monospace;
+      letter-spacing: -.08em;
+      pointer-events: none;
+    }
+
+    .prompt-label {
+      position: relative;
+      z-index: 1;
+      display: block;
+      margin-bottom: 10px;
+      color: var(--cyan);
+      font: 700 .68rem/1.3 "IBM Plex Mono", monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    blockquote {
+      position: relative;
+      z-index: 1;
+      max-width: 920px;
+      margin: 0;
+      color: #e4e7eb;
+      font: 500 clamp(.9rem, 1.6vw, 1.05rem)/1.65 "IBM Plex Mono", monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .34);
+    }
+
+    .thumb {
+      display: block;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+      background: #111;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      transition: transform .35s ease;
+    }
+
+    .card:hover .thumb img { transform: scale(1.015); }
+
+    .body { padding: 20px; }
+
+    .tag {
+      color: var(--cyan);
+      font: 500 .68rem/1.3 "IBM Plex Mono", monospace;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 8px 0 9px;
+      font-size: 1.35rem;
+      letter-spacing: -.025em;
+    }
+
+    .model {
+      min-height: 46px;
+      margin: 0;
+      color: var(--muted);
+      font: 400 .83rem/1.55 "IBM Plex Mono", monospace;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 19px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 6px;
+      color: var(--text);
+      font: 700 .72rem/1 "IBM Plex Mono", monospace;
+      text-decoration: none;
+      letter-spacing: .03em;
+    }
+
+    .button.primary {
+      border-color: var(--red);
+      background: var(--red);
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      border-color: var(--cyan);
+      outline: none;
+    }
+
+    footer {
+      margin-top: 28px;
+      color: #777e89;
+      font: 400 .7rem/1.5 "IBM Plex Mono", monospace;
+    }
+
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 22px, 1120px); padding-top: 14px; }
+      header { padding: 50px 4px 25px; }
+      .grid { grid-template-columns: 1fr; }
+      .model { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <a class="brand" href="/" aria-label="Ciru Inference Lab home">
+      <img src="/ccglogo.png" alt="">
+      <strong>Ciru Inference Lab</strong>
+      <span>/ pixel tests / enhanced pagoda</span>
+    </a>
+
+    <header>
+      <p class="eyebrow">Pixel Tests collection</p>
+      <h1>Enhanced Pagoda</h1>
+      <p class="intro">Interactive voxel gardens generated with the enhanced pagoda prompt. Open a scene to explore it, download its source, or follow its model.</p>
+      <a class="collection-link" href="/pixeltest/">Back to Pixel Tests ↗</a>
+    </header>
+
+    <section class="prompt" aria-labelledby="prompt-label">
+      <span class="prompt-label" id="prompt-label">Enhanced Pagoda generation prompt</span>
+      <blockquote>design and create a very creative, elaborate, and detailed voxel art scene of a pagoda in a beautiful garden with trees, including some cherry blossoms. Make the scene impressive and varied and use colorful voxels. Use whatever libraries to get this done. Prefer Vite and typescript. Create it modular with a file for each module. Make it amazing. verify using the browser plugin along the way. Make sure each step renders correctly. Do not wait till the end.</blockquote>
+    </section>
+
+    <section class="grid" aria-label="Published enhanced pagoda tests">
+      <article class="card" id="glm-53-flash-zai-api">
+        <a class="thumb" href="/pixeltest/glm-53-flash-zai-api/" aria-label="Open GLM 5.3 Flash official Z.ai API voxel pagoda garden">
+          <img src="/pixeltest/assets/glm-53-flash-zai-api.png" alt="A tiered voxel pagoda surrounded by pink cherry blossoms, a pond, a stone path and a red torii gate">
+        </a>
+        <div class="body">
+          <span class="tag">GLM 5.3 Flash · Official Z.ai API</span>
+          <h2>GLM 5.3 Flash</h2>
+          <p class="model">Enhanced Pagoda prompt. Sakura Garden — Voxel Diorama. A tiered pagoda, cherry blossoms, pond and torii gate, with falling petals and orbit, zoom and pan controls.</p>
+          <div class="actions">
+            <a class="button primary" href="/pixeltest/glm-53-flash-zai-api/">Open test</a>
+            <a class="button" href="/pixeltest/glm-53-flash-zai-api/index.html" download="voxel-pagoda-garden.html">Download HTML</a>
+            <a class="button" href="https://docs.z.ai/guides/vlm/glm-5.3-flash" target="_blank" rel="noopener noreferrer">Model on Z.ai ↗</a>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <footer>llm.ciru.ai · Crown Citadel Group</footer>
+  </main>
+</body>
+</html>
