@@ -81,7 +81,7 @@ function renderSpeed(data) {
         axisLabel: { color: palette.text, fontFamily: font() },
         splitLine: { lineStyle: { color: palette.grid, type: "dotted" } } },
       series: selected.map((row, index) => ({
-        name: index === 0 ? "Ultra · saved matched" : index === 1 ? "Official Vulkan" : "Official ROCm",
+        name: index === 0 ? "Ciru Ultra · saved matched" : index === 1 ? "Official Vulkan" : "Official ROCm",
         type: "bar", barMaxWidth: 42, emphasis: { focus: "series" },
         itemStyle: { color: [palette.ultra, palette.vulkan, palette.rocm][index] },
         data: values(row),
