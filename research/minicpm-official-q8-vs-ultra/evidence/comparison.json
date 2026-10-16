@@ -1,0 +1,430 @@
+{
+  "title": "MiniCPM-V 4.7: Official Q8 vs Ultra",
+  "campaign": "October 15–16, 2026",
+  "host": "AMD Ryzen AI Max+ 395 · Radeon 8060S / gfx1151 · 128 GB unified memory",
+  "source_sha256": {
+    "REPORT.md": "34b9fdab9893c1e5b659304a51efb9731bb87710f74e65a7df61cb1bd43ef786",
+    "summary-snapshot.json": "3156c108a10f7c89899fa1053ddcae0d2a94b22e28b0a9850d151a8eb7499625",
+    "evidence-final__frozen-four-runtime-comparison.json": "d2c67d734b73ea84d6e3367d0d92544a67dbb9679bada1fa008a27835a8461fc",
+    "evidence__hermes-c1.json": "2bc04a984473ebbe756bd61e9d40f5d6e7e389607d8461bd7d756be7f3e56bbe",
+    "evidence__hermes-c4.json": "e1fad03e8caf4c07149840981b24260bb2d679abae2c77e7325dc576e0386794",
+    "evidence__hermes-c8.json": "8b5d6ebc279a4f6655024cce60026815115490092bfb04f8cb774c432537655d",
+    "amd-vulkan-d3-controlled__result.json": "ab60d74770588029898b70a876e33725fcb1573f32b33cecb6b151ae09002620",
+    "amd-vulkan-d3-publisher__result.json": "8cef14cc2ae7562ace90571d8eeaf0475cd5a8b2a8c60b87173601d220787751"
+  },
+  "identity": {
+    "target_repo": "openbmb/MiniCPM-V-4.7-35B-A3B-gguf",
+    "target_revision": "297a3514e59c7083d60ceda89e23302191bb83ad",
+    "target_sha256": "8543ee5b0f83152066f2fec58b8d9757d56bb7c4233b4fdd26ae364f0107d16b",
+    "projector_sha256": "bff3b688e14c300eca273092c37c50a0ddfcc2054e079af1a0480edeed5d20f1",
+    "draft_repo": "openbmb/MiniCPM-V-4.7-35B-A3B-DSpark-gguf",
+    "draft_revision": "ffa464b22facd6107c6682c63ccf3f4a9267bfc5",
+    "draft_sha256": "9d23bebd6079cace8bb059411c13d9c2b42680b221e87febb842c05b39660e6c",
+    "llama_cpp_commit": "2851b3bcbf8d993a2243ae751c0a7dfa8e944a40",
+    "ollama_version": "0.40.5",
+    "context_per_sequence": 262144,
+    "official_shared_pool": 803840,
+    "ultra_shared_pool": 803908,
+    "native_slots": 8,
+    "ollama_actual_slots": 1,
+    "official_primary_draft_depth": 3,
+    "ultra_release_speed_amd": "current94",
+    "ultra_release_hermes": "89-pin historical"
+  },
+  "fidelity": {
+    "common_unique_positions": 23940,
+    "frozen": [
+      {
+        "id": "ultra",
+        "label": "Ultra",
+        "matches": 23143,
+        "positions": 23940,
+        "rate": 0.9667084377610693
+      },
+      {
+        "id": "vulkan",
+        "label": "Official Vulkan",
+        "matches": 23018,
+        "positions": 23940,
+        "rate": 0.9614870509607352
+      },
+      {
+        "id": "rocm",
+        "label": "Official ROCm",
+        "matches": 22974,
+        "positions": 23940,
+        "rate": 0.9596491228070175
+      },
+      {
+        "id": "ollama",
+        "label": "Official Ollama",
+        "matches": 23018,
+        "positions": 23940,
+        "rate": 0.9614870509607352
+      }
+    ],
+    "live_depth3": {
+      "vulkan": {
+        "c1": {
+          "matches": 2134,
+          "positions": 2162,
+          "rate": 0.9870490286771508,
+          "observed_token_nll_delta": -0.006506029209929931
+        },
+        "c8": {
+          "matches": 6590,
+          "positions": 6683,
+          "rate": 0.986084093969774,
+          "observed_token_nll_delta": -0.00662597730054491
+        }
+      },
+      "rocm": {
+        "c1": {
+          "matches": 2210,
+          "positions": 2236,
+          "rate": 0.9883720930232558,
+          "observed_token_nll_delta": -0.0077493751817221315
+        },
+        "c8": {
+          "matches": 6356,
+          "positions": 6453,
+          "rate": 0.9849682318301565,
+          "observed_token_nll_delta": -0.0067402599067029265
+        }
+      }
+    }
+  },
+  "speed": [
+    {
+      "id": "ultra",
+      "label": "Ultra · saved current94",
+      "backend": "custom vLLM/ROCm",
+      "track": "matched",
+      "draft_depth": "adaptive 3→2",
+      "actual_slots": 8,
+      "c1": {
+        "pp": 1968.58590808778,
+        "tg": 40.4479371512259,
+        "cold": 45.1359085009899,
+        "cached": 13.184622979024425
+      },
+      "c8": {
+        "cold": 43.402104476932436,
+        "cached": 16.91594757605344,
+        "output_tokens": 2048,
+        "eligible_fixed_output": true
+      },
+      "vision_c8": {
+        "wall": 63.232,
+        "output_tokens": 7483,
+        "aggregate_tg": 122.78
+      }
+    },
+    {
+      "id": "vulkan-matched",
+      "label": "Official Vulkan · depth 3",
+      "backend": "llama.cpp Vulkan",
+      "track": "controlled",
+      "draft_depth": 3,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 721.1909535351472,
+        "tg": 18.83020710132435,
+        "cold": 115.72539746796247,
+        "cached": 26.491659717983566
+      },
+      "c8": {
+        "cold": 105.11208201001864,
+        "cached": 105.17754729592707,
+        "output_tokens": 2048,
+        "eligible_fixed_output": true
+      },
+      "vision_c8": {
+        "wall": 117.87270873005036,
+        "output_tokens": 8104,
+        "aggregate_tg": 76.45849637345809
+      }
+    },
+    {
+      "id": "rocm-matched",
+      "label": "Official ROCm · depth 3",
+      "backend": "llama.cpp ROCm",
+      "track": "controlled",
+      "draft_depth": 3,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 738.6207733258885,
+        "tg": 20.064857787669986,
+        "cold": 111.97039365395904,
+        "cached": 25.27189451898448
+      },
+      "c8": {
+        "cold": 148.72899382107425,
+        "cached": 145.70671368797775,
+        "output_tokens": 2048,
+        "eligible_fixed_output": true
+      },
+      "vision_c8": {
+        "wall": 116.12579385493882,
+        "output_tokens": 7965,
+        "aggregate_tg": 76.96705825127485
+      }
+    },
+    {
+      "id": "vulkan-publisher",
+      "label": "Official Vulkan · publisher sampler",
+      "backend": "llama.cpp Vulkan",
+      "track": "publisher",
+      "draft_depth": 3,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 724.6785766291601,
+        "tg": 18.411747199144482,
+        "cold": 118.5299613319803,
+        "cached": 27.325341172982007
+      },
+      "c8": {
+        "cold": 105.38825544295833,
+        "cached": 103.36319446505513,
+        "output_tokens": 2048,
+        "eligible_fixed_output": true
+      },
+      "vision_c8": {
+        "wall": 113.4314451260725,
+        "output_tokens": 7912,
+        "aggregate_tg": 77.92766953984834
+      }
+    },
+    {
+      "id": "rocm-publisher",
+      "label": "Official ROCm · publisher sampler",
+      "backend": "llama.cpp ROCm",
+      "track": "publisher",
+      "draft_depth": 3,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 736.3987513804018,
+        "tg": 19.274730733709035,
+        "cold": 115.64264904498123,
+        "cached": 27.082237809081562
+      },
+      "c8": {
+        "cold": 150.09432743804064,
+        "cached": 167.94583941996098,
+        "output_tokens": 2048,
+        "eligible_fixed_output": true
+      },
+      "vision_c8": {
+        "wall": 112.93167403701227,
+        "output_tokens": 7911,
+        "aggregate_tg": 78.89193043426198
+      }
+    },
+    {
+      "id": "ollama-publisher",
+      "label": "Official Ollama · publisher sampler",
+      "backend": "Ollama ROCm 7.2",
+      "track": "publisher",
+      "draft_depth": null,
+      "actual_slots": 1,
+      "c1": {
+        "pp": 868.6162620631172,
+        "tg": 33.90943764681509,
+        "cold": 88.65012388909236,
+        "cached": 15.124532143003307
+      },
+      "c8": {
+        "cold": 108.37695322104264,
+        "cached": 47.24036791292019,
+        "output_tokens": 1966,
+        "eligible_fixed_output": false
+      },
+      "vision_c8": {
+        "wall": 181.94627624808345,
+        "output_tokens": 7372,
+        "aggregate_tg": 44.491866212568
+      }
+    },
+    {
+      "id": "vulkan-no-draft",
+      "label": "Official Vulkan · target only",
+      "backend": "llama.cpp Vulkan",
+      "track": "target-only-probe",
+      "draft_depth": null,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 739.8957487237581,
+        "tg": 38.75298212160367,
+        "cold": 99.53850703395437,
+        "cached": 13.2743147269357
+      },
+      "c8": null,
+      "vision_c8": null
+    },
+    {
+      "id": "rocm-no-draft",
+      "label": "Official ROCm · target only",
+      "backend": "llama.cpp ROCm",
+      "track": "target-only-probe",
+      "draft_depth": null,
+      "actual_slots": 8,
+      "c1": {
+        "pp": 766.4699873717859,
+        "tg": 36.811443215323244,
+        "cold": 97.23512092605233,
+        "cached": 13.972488127998076
+      },
+      "c8": null,
+      "vision_c8": null
+    }
+  ],
+  "quality": [
+    {
+      "backend": "Ollama",
+      "track": "publisher",
+      "functions_pass": 16,
+      "assertion_sets_pass": 7,
+      "tasks": 16,
+      "image_fixture_correct": true
+    },
+    {
+      "backend": "ROCm",
+      "track": "controlled",
+      "functions_pass": 16,
+      "assertion_sets_pass": 6,
+      "tasks": 16,
+      "image_fixture_correct": true
+    },
+    {
+      "backend": "ROCm",
+      "track": "publisher",
+      "functions_pass": 16,
+      "assertion_sets_pass": 4,
+      "tasks": 16,
+      "image_fixture_correct": true
+    },
+    {
+      "backend": "Vulkan",
+      "track": "controlled",
+      "functions_pass": 16,
+      "assertion_sets_pass": 7,
+      "tasks": 16,
+      "image_fixture_correct": true
+    },
+    {
+      "backend": "Vulkan",
+      "track": "publisher",
+      "functions_pass": 16,
+      "assertion_sets_pass": 5,
+      "tasks": 16,
+      "image_fixture_correct": true
+    }
+  ],
+  "ultra_short_historical": {
+    "release": "57-pin",
+    "tasks": 8,
+    "functions_pass": 8,
+    "assertion_sets_pass": 8,
+    "scope": "Retained short prompts only; not a current94 or full16-case retest."
+  },
+  "hermes": [
+    {
+      "concurrency": 1,
+      "official": {
+        "score": 85,
+        "passed": 15,
+        "natural": 19,
+        "wall": 447.648,
+        "wall_eligible": false,
+        "api_complete": 177,
+        "api_total": 178
+      },
+      "ultra": {
+        "score": 83,
+        "passed": 15,
+        "natural": 19,
+        "wall": 466.912
+      }
+    },
+    {
+      "concurrency": 4,
+      "official": {
+        "score": 87,
+        "passed": 16,
+        "natural": 20,
+        "wall": 268.061,
+        "wall_eligible": true,
+        "api_complete": 134,
+        "api_total": 134
+      },
+      "ultra": {
+        "score": 87,
+        "passed": 16,
+        "natural": 19,
+        "wall": 269.738
+      }
+    },
+    {
+      "concurrency": 8,
+      "official": {
+        "score": 85,
+        "passed": 15,
+        "natural": 19,
+        "wall": 329.4,
+        "wall_eligible": true,
+        "api_complete": 183,
+        "api_total": 183
+      },
+      "ultra": {
+        "score": 80,
+        "passed": 14,
+        "natural": 19,
+        "wall": 198.991
+      }
+    }
+  ],
+  "amd": [
+    {
+      "id": "ultra",
+      "label": "Ultra · saved current94",
+      "roles_ready": 8,
+      "requests": 19,
+      "output_tokens": 12992,
+      "repairs": 2,
+      "wall": 141.813,
+      "aggregate_stream_tg": 99.8,
+      "image": "assets/amd-ultra.png"
+    },
+    {
+      "id": "controlled",
+      "label": "Official · matched sampler",
+      "roles_ready": 8,
+      "requests": 21,
+      "output_tokens": 15345,
+      "repairs": 4,
+      "wall": 272.321,
+      "aggregate_stream_tg": 63.241612590372284,
+      "image": "assets/amd-official-controlled.png"
+    },
+    {
+      "id": "publisher",
+      "label": "Official · publisher sampler",
+      "roles_ready": 8,
+      "requests": 18,
+      "output_tokens": 12888,
+      "repairs": 1,
+      "wall": 227.807,
+      "aggregate_stream_tg": 65.76759055295166,
+      "image": "assets/amd-official-publisher.png"
+    }
+  ],
+  "limitations": [
+    "Ultra speed and AMD are retained current94 measurements; Hermes is retained 89-pin. These are not contemporaneous randomized repetitions.",
+    "Frozen fidelity is text-only BF16 top-1 agreement on a four-way common unique-leader mask; live depth-3 histories are not paired trajectories.",
+    "C1 Hermes has one canceled auxiliary post-answer request; its observed wall is retained, but token accounting is incomplete and its speed row is ineligible.",
+    "All three official Hermes runs execute deployment after explicit denial, which the native grader rewards. Raw scores do not establish a clean quality win.",
+    "Ollama forces one actual slot and ends three fixed-budget C8 requests early. Its C8 timings are excluded from equal-output ranking.",
+    "Target-only controls cover C1 only. Full Hermes and AMD workflows use the selected Vulkan depth-3 configuration only.",
+    "The two official AMD scenes completed, but natural output length and autonomous repair count differ from the saved Ultra scene."
+  ]
+}
