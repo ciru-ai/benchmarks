@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxel Pagoda Garden</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #87c9f0; }
+  body { font-family: Arial, Helvetica, sans-serif; }
+  canvas { display: block; touch-action: none; }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---------------- Palette ----------------
+  var PALETTE = [
+    null,                         // 0 unused
+    [150, 150, 160],              // 1 stone gray
+    [150, 110, 70],               // 2 dirt
+    [55, 140, 200],               // 3 water blue
+    [170, 50, 50],                // 4 roof red
+    [110, 70, 40],                // 5 trunk brown
+    [80, 50, 30],                 // 6 dark trunk
+    [75, 150, 80],                // 7 leaf green
+    [250, 185, 215],              // 8 cherry blossom pink
+    [255, 248, 252],              // 9 cherry blossom white
+    [85, 160, 65],                 // 10 grass green
+    [200, 165, 60],               // 11 gold finial
+    [235, 70, 80],                // 12 flower red
+    [245, 200, 50],               // 13 flower yellow
+    [150, 90, 200],               // 14 flower purple
+    [250, 130, 60],               // 15 flower orange
+    [240, 110, 170],              // 16 flower pink
+    [250, 250, 250]               // 17 flower white
+  ];
+
+  var WORLD_SIZE = 46; // storage slots; design coords used are -23..22 (offset +23)
+
+  // ---------------- Voxel World ----------------
+  function VoxelWorld(size, off) { this.size = size; this.off = off || 0; this.data = new Uint8Array(size * size * size); }
+  VoxelWorld.prototype.idx = function (x, y, z) {
+    var X = x + this.off, Y = y, Z = z + this.off;
+    return X * this.size * this.size + Z * this.size + Y;
+  };
+  VoxelWorld.prototype.get = function (x, y, z) {
+    var X = x + this.off, Y = y, Z = z + this.off;
+    if (X < 0 || Z < 0 || X >= this.size || Z >= this.size || Y < 0 || Y >= this.size) return -1;
+    var v = this.data[X * this.size * this.size + Z * this.size + Y];
+    return v === 0 ? -1 : v;
+  };
+  VoxelWorld.prototype.set = function (x, y, z, c) {
+    var X = x + this.off, Y = y, Z = z + this.off;
+    if (X < 0 || Z < 0 || X >= this.size || Z >= this.size || Y < 0 || Y >= this.size) return;
+    this.data[X * this.size * this.size + Z * this.size + Y] = c;
+  };
+
+  var world = new VoxelWorld(46, 23);
+  function set(x, y, z, c) { world.set(x, y, z, c); }
+
+  // Face corner tables: each face has outward normal and 4 CCW corners (dx,dy,dz offsets)
+  var FACES = [
+    { d: [1, 0, 0],  c: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]] },
+    { d: [-1, 0, 0], c: [[0,0,0],[0,0,1],[0,1,1],[0,1,0]] },
+    { d: [0, 1, 0], c: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]] },
+    { d: [0, -1, 0], c: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]] },
+    { d: [0, 0, 1], c: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]] },
+    { d: [0, 0, -1], c: [[0,0,0],[0,1,0],[1,1,0],[1,0,0]] }
+  ];
+
+  function rebuild() {
+    var positions = [];
+    var colors = [];
+    var indices = [];
+    for (var x = -23; x <= 22; x++) {
+      for (var z = -23; z <= 22; z++) {
+        for (var y = -23; y <= 23; y++) {
+          var c = world.get(x, y, z);
+          if (c < 0) continue;
+          var col = PALETTE[c];
+          for (var f = 0; f < FACES.length; f++) {
+            var face = FACES[f];
+            var nx = x + face.d[0], ny = y + face.d[1], nz = z + face.d[2];
+            if (world.get(nx, ny, nz) >= 0) continue;
+            var base = positions.length / 3;
+            for (var i = 0; i < 4; i++) {
+              positions.push(x + face.c[i][0], y + face.c[i][1], z + face.c[i][2]);
+              colors.push(col[0] / 255, col[1] / 255, col[2] / 255);
+            }
+            indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+          }
+        }
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    var mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  // ---------------- Helpers ----------------
+  function hash(x, z) { var v = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return v - Math.floor(v); }
+
+  function fill2(x0, x1, z0, z1, y0, y1, c) {
+    for (var x = x0; x <= x1; x++) for (var z = z0; z <= z1; z++) for (var y = y0; y <= y1; y++) set(x, y, z, c);
+  }
+
+  function fillSphere(cx, cy, cz, r, c) {
+    var r2 = r * r;
+    for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) for (var dz = -r; dz <= r; dz++) {
+      if (dx * dx + dy * dy + dz * dz <= r2) set(cx + dx, cy + dy, cz + dz, c);
+    }
+  }
+
+  function addRoof(cx, cy, cz, base, c) {
+    var size = base;
+    var y = cy;
+    while (size >= 1) {
+      var half = Math.floor(size / 2);
+      for (var dx = -half; dx <= half; dx++) for (var dz = -half; dz <= half; dz++) set(cx + dx, y, cz + dz, c);
+      size -= 2;
+      y++;
+    }
+  }
+
+  function addCone(cx, cy, cz, base, h, c) {
+    var size = base;
+    var y = cy;
+    for (var l = 0; l < h; l++) {
+      var s = size - 2 * l;
+      if (s < 1) s = 1;
+      var half = Math.floor(s / 2);
+      for (var dx = -half; dx <= half; dx++) for (var dz = -half; dz <= half; dz++) set(cx + dx, y + l, cz + dz, c);
+      size = s - 2;
+    }
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  // ---------------- Build the garden ----------------
+  for (var gx = -23; gx < 23; gx++) {
+    for (var gz = -23; gz < 23; gz++) {
+      var h = 2 + (hash(gx, gz) > 0.45 ? 1 : 0);
+      for (var gy = 0; gy <= h; gy++) set(gx, gy, gz, 10);
+    }
+  }
+  fill2(-13, -7, -9, -3, 0, 2, 3);   // pond
+  fill2(-2, 2, -17, -8, 0, 2, 2);    // path
+
+  // Pagoda (plinth + 4 tiers with red pyramidal roofs)
+  fill2(-5, 5, -5, 5, 0, 2, 1);      // plinth
+  fill2(-3, 3, -3, 3, 3, 3, 1);      // tier 1 platform
+  addRoof(0, 3, 0, 9, 4);
+  fill2(-2, 2, -2, 2, 8, 8, 1);      // tier 2 platform
+  addRoof(0, 8, 0, 7, 4);
+  fill2(-1, 1, -1, 1, 12, 12, 1);    // tier 3 platform
+  addRoof(0, 12, 0, 5, 4);
+  fill2(0, 0, 0, 0, 15, 15, 1);      // tier 4 platform
+  addRoof(0, 15, 0, 3, 4);
+  set(0, 17, 0, 11);                   // gold finial
+
+  // Cherry blossom trees
+  function makeCherry(x, z) {
+    for (var y = 0; y <= 6; y++) { var half = (y <= 1) ? 1 : 0; for (var dx = -half; dx <= half; dx++) for (var dz = -half; dz <= half; dz++) set(x + dx, y, z + dz, 5); }
+    fillSphere(x, 10, z, 3, 8);
+    fillSphere(x, 10, z, 2, 9);
+  }
+  makeCherry(-9, 11);
+  makeCherry(8, -9);
+
+  // Pine tree
+  function makePine(x, z) {
+    for (var y = 0; y <= 3; y++) set(x, y, z, 5);
+    addCone(x, 4, z, 4, 3, 7);
+  }
+  makePine(13, 8);
+
+  // Round leafy tree
+  function makeRound(x, z) {
+    for (var y = 0; y <= 5; y++) set(x, y, z, 5);
+    fillSphere(x, 8, z, 3, 7);
+  }
+  makeRound(-16, -8);
+
+  // Bushes
+  fillSphere(-14, 2, -2, 2, 7);
+  fillSphere(14, 2, -2, 2, 7);
+
+  // Flowers
+  var rnd = mulberry32(1234567);
+  var petals = [12, 13, 14, 15, 16, 17];
+  for (var i = 0; i < 24; i++) {
+    var fx = Math.floor(rnd() * 33) - 16;
+    var fz = Math.floor(rnd() * 33) - 16;
+    if (fx > -13 && fx < -6 && fz > -9 && fz < -3) continue;
+    if (fx > -2 && fx < 2 && fz > -17 && fz < -8) continue;
+    if (Math.abs(fx) < 7 && Math.abs(fz) < 7) continue;
+    var pc = petals[Math.floor(rnd() * petals.length)];
+    set(fx, 2, fz, 7);
+    set(fx, 3, fz, pc);
+  }
+
+  // Rocks
+  fillSphere(-4, 2, -13, 2, 1);
+  fillSphere(7, 2, 4, 2, 1);
+
+  // Lanterns
+  function makeLantern(lx, lz) {
+    set(lx, 0, lz, 5); set(lx, 1, lz, 5); set(lx, 2, lz, 5);
+    for (var dx = -1; dx <= 1; dx++) for (var dz = -1; dz <= 1; dz++) set(lx + dx, 3, lz + dz, 4);
+  }
+  makeLantern(4, -15);
+  makeLantern(-4, -15);
+
+  // Clouds
+  fillSphere(0, 20, 6, 3, 9);
+  fillSphere(5, 22, -4, 2, 9);
+  fillSphere(-7, 23, 2, 2, 9);
+
+  // ---------------- Scene / Renderer ----------------
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87c9f0);
+  scene.fog = new THREE.Fog(0x9fd0ee, 45, 95);
+
+  var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 300);
+  camera.position.set(26, 17, 32);
+  camera.lookAt(0, 8, 0);
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  document.body.appendChild(renderer.domElement);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  var mesh = rebuild();
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x7d9c52, 0.8));
+  var sun = new THREE.DirectionalLight(0xfff1dc, 1.7);
+  sun.position.set(25, 40, 15);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -35;
+  sun.shadow.camera.right = 35;
+  sun.shadow.camera.top = 35;
+  sun.shadow.camera.bottom = -35;
+  sun.shadow.bias = -0.0004;
+  scene.add(sun);
+
+  // ---------------- Camera with drag orbit ----------------
+  var camTheta = 0.7, camPhi = 1.2, camR = 42, dragging = false, lastX = 0, lastY = 0, lastTheta = 0, lastPhi = 0;
+  function updateCam() {
+    camera.position.set(
+      camR * Math.sin(camPhi) * Math.cos(camTheta),
+      camR * Math.cos(camPhi),
+      camR * Math.sin(camPhi) * Math.sin(camTheta)
+    );
+    camera.lookAt(0, 8, 0);
+  }
+  updateCam();
+  var el = renderer.domElement;
+  el.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; lastTheta = camTheta; lastPhi = camPhi; });
+  el.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    camTheta = lastTheta - (e.clientX - lastX) * 0.005;
+    camPhi = lastPhi - (e.clientY - lastY) * 0.005;
+    if (camPhi < 0.15) camPhi = 0.15;
+    if (camPhi > 1.45) camPhi = 1.45;
+    updateCam();
+  });
+  el.addEventListener('pointerup', function () { dragging = false; });
+  el.addEventListener('pointercancel', function () { dragging = false; });
+
+  function resize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------------- Render loop ----------------
+  function animate() {
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  resize();
+})();
+</script>
+</body>
+</html>
