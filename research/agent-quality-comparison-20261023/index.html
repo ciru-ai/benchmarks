@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="A plain-language comparison of Ciru's models: what they finished, what they got right, and the mistakes that change the recommendation.">
+<title>Agent Model Quality Comparison | Ciru Research</title>
+<link rel="canonical" href="https://llm.ciru.ai/research/agent-quality-comparison-20261023/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Which model would I trust with the whole job?">
+<meta property="og:description" content="Six plain-language comparisons of Raon, Ornith and Flint, with earlier MiniCPM, Apodex and Sage findings and explicit limits.">
+<meta property="og:url" content="https://llm.ciru.ai/research/agent-quality-comparison-20261023/">
+<meta name="theme-color" content="#080808">
+<link rel="icon" href="/ccglogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#080808;--panel:#111214;--panel-2:#181a1e;--text:#f7f7f4;--muted:#b0b5bf;--line:#ffffff24;--red:#ed1c24;--cyan:#39d0ff;--green:#65dfb7;--amber:#ffc36a;--bad:#ff8e98;--radius:8px;font-family:"Space Grotesk",system-ui,sans-serif;line-height:1.6}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:var(--bg);color:var(--text);font-size:17px}body:before{content:"";position:absolute;inset:0 0 auto;height:700px;pointer-events:none;background:linear-gradient(130deg,#ed1c2414,transparent 50%),repeating-linear-gradient(90deg,#ffffff03 0 1px,transparent 1px 36px);mask-image:linear-gradient(#000,transparent)}a{color:var(--cyan);text-underline-offset:4px}a:hover{color:#b7ecff}a,button,summary{touch-action:manipulation}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--cyan);outline-offset:5px}button{font:inherit}.wrap{width:min(1160px,calc(100% - 64px));margin-inline:auto;position:relative}.skip{position:absolute;top:-80px;left:20px;background:var(--text);color:var(--bg);padding:12px;z-index:20}.skip:focus{top:12px}.mast{padding:30px 0 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:11px;font-size:15px;letter-spacing:.05em}.mark{display:block;width:16px;height:16px;background:var(--red);box-shadow:6px -6px 0 #ed1c2444}.meta{color:var(--muted);font-size:13px}.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}.tools{display:flex;align-items:center;gap:20px}.text-button{background:transparent;border:1px solid var(--line);border-radius:5px;padding:7px 12px;color:var(--text);cursor:pointer;font-size:13px}.text-button:hover{border-color:var(--cyan)}.hero{padding:58px 0 36px;border-bottom:1px solid var(--line)}.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 16px}.eyebrow.red{color:#ff737d}h1{font-size:clamp(36px,5vw,60px);font-weight:500;line-height:1.08;letter-spacing:-.045em;max-width:880px;margin:0 0 25px}h1 em{font-style:normal;color:var(--cyan)}.standfirst{font-size:21px;line-height:1.55;max-width:880px;margin:0 0 26px}.standfirst strong{font-weight:700}.decision{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-top:3px solid var(--red);border-radius:0 0 var(--radius) var(--radius);background:var(--panel)}.decision>div{padding:22px 24px}.decision>div+div{border-left:1px solid var(--line)}.decision h2{font-size:18px;margin:0 0 8px}.decision p{margin:0;color:var(--muted);font-size:16px}.decision b{color:var(--text)}.nav-shell{position:sticky;top:0;z-index:10;background:#080808f5;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}nav{display:flex;gap:28px;padding:15px 0;font-size:14px;overflow-x:auto}nav a{color:var(--muted);white-space:nowrap;text-decoration:none}nav a:hover{color:var(--text)}main>section{padding:48px 0;border-bottom:1px solid var(--line)}.section-head{display:grid;grid-template-columns:50px 1fr;gap:12px;margin-bottom:24px}.section-no{font-family:"IBM Plex Mono",monospace;color:var(--cyan);font-size:13px;padding-top:5px}.section-head h2{font-size:30px;line-height:1.2;font-weight:500;letter-spacing:-.025em;margin:0 0 10px}.section-head p{color:var(--muted);margin:0;max-width:850px}.model-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.model{border:1px solid var(--line);border-radius:var(--radius);padding:24px;background:var(--panel);display:flex;flex-direction:column}.model.lead{border-top:3px solid var(--cyan);padding-top:22px}.model h3{font-size:27px;font-weight:500;letter-spacing:-.02em;margin:0 0 2px}.role{font-size:14px;color:var(--cyan);margin:0 0 20px}.model p{font-size:16px;margin:0 0 15px}.model .caution{color:var(--amber);border-top:1px solid var(--line);padding-top:15px;margin-top:auto;margin-bottom:0}.small{font-size:14px;color:var(--muted)}.notice{border-left:3px solid var(--amber);background:#ffc36a09;padding:17px 20px;margin-top:24px;font-size:15px}.notice strong{color:var(--amber)}.notice p{margin:0}.notice p+p{margin-top:8px}.journey{display:grid;grid-template-columns:190px repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--panel)}.journey [role="columnheader"],.journey [role="rowheader"],.journey [role="cell"]{padding:17px 18px;min-width:0;border-bottom:1px solid var(--line)}.journey .column{font-weight:700;background:#ffffff06;font-size:16px}.journey .job{font-size:14px;color:var(--muted);border-right:1px solid var(--line)}.journey .cell{font-size:14px}.journey .cell strong{display:block;font-weight:500;color:var(--green)}.journey .cell.stop strong,.journey .cell.warning strong{color:var(--amber)}.journey .cell.unknown strong{color:var(--muted)}.journey [role="row"]:last-child>*{border-bottom:0}.journey small{display:block;color:var(--muted);font-size:12px;margin-top:4px}.mobile-model{display:none}.reading-note{color:var(--muted);font-size:14px;margin:14px 0 0}.compare-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:25px;margin-bottom:24px}.compare-intro p{max-width:770px;margin:0;color:var(--muted)}.case{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin-top:22px;overflow:hidden}.case-heading{padding:23px 26px 18px;display:grid;grid-template-columns:34px 1fr;gap:12px}.case-index{font-family:"IBM Plex Mono",monospace;color:var(--cyan);font-size:13px;padding-top:5px}.case h3{font-size:23px;line-height:1.3;font-weight:500;margin:0 0 8px;letter-spacing:-.02em}.case-heading p{font-size:15px;color:var(--muted);margin:0;max-width:850px}.comparison{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line)}.comparison>div{padding:21px 25px}.comparison>div+div{border-left:1px solid var(--line)}.comparison h4{font-size:16px;margin:0 0 11px;font-weight:700}.comparison p{font-size:15px;line-height:1.65;margin:0}.status{display:inline-block;font-size:11px;line-height:1.4;letter-spacing:.03em;color:var(--muted);margin-bottom:9px}.status.good{color:var(--green)}.status.bad{color:var(--bad)}.status.caution{color:var(--amber)}.takeaway{padding:17px 25px;border-top:1px solid var(--line);background:#39d0ff07;font-size:15px}.takeaway strong{color:var(--cyan)}.case-source{margin-left:8px;font-size:12px;white-space:nowrap;color:var(--muted)}.money{font-family:"IBM Plex Mono",monospace;font-size:1.2em;font-weight:500;white-space:nowrap}.pair-tabs[hidden]{display:none}.pair-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.pair-tabs button{padding:10px 18px;border:1px solid var(--line);border-radius:6px;color:var(--muted);background:var(--panel);cursor:pointer;font-size:15px}.pair-tabs button[aria-selected="true"]{background:#39d0ff14;border-color:#39d0ff77;color:var(--cyan)}.pair-panel{padding:28px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}.pair-panel h3{margin:0 0 13px;font-size:24px;font-weight:500}.pair-panel p{max-width:950px;margin:0;color:var(--muted)}.pair-panel p+p{margin-top:14px}.pair-panel strong{color:var(--text)}.pair-panel[hidden]{display:none}.support{display:grid;grid-template-columns:1.3fr 1fr;gap:32px}.support h3{font-size:21px;font-weight:500;margin:0 0 12px}.support p{margin:0 0 14px;color:var(--muted);font-size:16px}.support ul{padding-left:20px;margin:0;color:var(--muted);font-size:16px}.support li{margin-bottom:12px}.earlier{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.earlier article{border-top:2px solid var(--line);padding-top:18px}.earlier h3{font-size:22px;font-weight:500;margin:0 0 3px}.earlier .label{font-size:12px;color:var(--amber);margin:0 0 12px}.earlier p{font-size:15px;color:var(--muted);margin:0}.earlier strong{color:var(--text)}.conclusion{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:var(--radius);padding:28px 30px;margin-bottom:26px}.conclusion h3{margin:0 0 15px;font-size:26px;font-weight:500}.conclusion p{margin:0 0 12px}.conclusion p:last-child{margin-bottom:0;color:var(--muted)}.sources{font-size:15px;color:var(--muted)}details{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin-top:16px}summary{padding:18px 21px;cursor:pointer;color:var(--text);font-size:16px;font-weight:500}details[open] summary{border-bottom:1px solid var(--line)}.details-body{padding:20px 22px}.details-body p{margin:0 0 14px}.details-body p:last-child{margin:0}.source-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}.source-list li{display:grid;grid-template-columns:28px 1fr;gap:12px}.source-list span{font-size:12px;color:var(--muted);font-family:"IBM Plex Mono",monospace;padding-top:2px}.source-list small{display:block;color:var(--muted);font-size:13px;margin-top:3px}.sources-note{font-size:13px;margin-top:18px!important}.tail{display:flex;justify-content:space-between;gap:25px;font-size:13px;color:var(--muted);padding:26px 0 40px}.tail a{color:var(--muted)}.no-js-message{font-size:14px;color:var(--muted)}
+@media(min-width:1400px){.wrap{width:1160px}}
+@media(max-width:900px){.wrap{width:calc(100% - 40px)}.journey{grid-template-columns:145px repeat(3,minmax(0,1fr))}.journey [role="columnheader"],.journey [role="rowheader"],.journey [role="cell"]{padding:14px 12px}.model{padding:20px}.comparison>div{padding:18px}.hero{padding-top:40px}.support{gap:22px}}
+@media(max-width:680px){body{font-size:16px}.wrap{width:calc(100% - 32px)}.mast{padding:23px 0 18px;align-items:flex-start}.brand{font-size:13px}.tools{gap:12px}.tools .meta{display:none}.hero{padding:34px 0 28px}.eyebrow{font-size:11px;letter-spacing:.1em}h1{font-size:39px;margin-bottom:22px}.standfirst{font-size:19px}.decision{grid-template-columns:1fr}.decision>div{padding:19px}.decision>div+div{border-left:0;border-top:1px solid var(--line)}nav{gap:24px;font-size:13px;padding:13px 0}.section-head{grid-template-columns:30px 1fr;gap:8px}.section-head h2{font-size:27px}.section-head p{font-size:15px}main>section{padding:34px 0}.model-grid,.support,.earlier{grid-template-columns:1fr}.model-grid{gap:12px}.model p{font-size:16px}.model .role{font-size:13px}.model .caution{margin-top:0}.model h3{font-size:26px}.journey{grid-template-columns:1fr;overflow:visible}.journey .column{display:none}.journey .job{border-right:0;background:#ffffff08;font-weight:700;color:var(--text);padding:12px 16px}.journey .cell{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:67px 1fr;gap:5px 8px}.journey .cell small{grid-column:2;margin:0}.journey .cell strong{font-size:13px}.journey .cell .mobile-model{display:block;color:var(--text);font-weight:700;font-size:13px;grid-row:span 2}.journey [role="row"]:last-child>*{border-bottom:1px solid var(--line)}.journey [role="row"]:last-child>:last-child{border-bottom:0}.comparison{grid-template-columns:1fr}.comparison>div{padding:19px 21px}.comparison>div+div{border-left:0;border-top:1px solid var(--line)}.comparison h4{display:inline-block;margin-right:10px;margin-bottom:8px}.status{margin-bottom:8px}.case-heading{grid-template-columns:22px 1fr;padding:21px 19px 17px;gap:8px}.case h3{font-size:22px}.takeaway{padding:17px 21px}.case-source{display:inline-block;margin-left:0;margin-top:6px}.pair-tabs{gap:6px}.pair-tabs button{font-size:13px;padding:10px 12px;flex:1 1 auto}.pair-panel{padding:22px}.pair-panel h3{font-size:22px}.earlier{gap:22px}.conclusion{padding:23px}.conclusion h3{font-size:23px}.tail{display:block;padding-bottom:28px}.tail span{display:block;margin-bottom:8px}.details-body{padding:18px}.notice{padding:16px;font-size:14px}.support{gap:24px}.source-list li{grid-template-columns:23px 1fr;gap:7px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+@media print{:root{color-scheme:light;--bg:#fff;--panel:#fff;--panel-2:#fff;--text:#111;--muted:#444;--line:#bbb;--cyan:#005c75;--green:#006d4d;--amber:#7d4c00;--bad:#a7192a}body{font-size:10pt;background:#fff}body:before,.nav-shell,.tools,.skip,.pair-tabs,.no-js-message{display:none!important}.wrap{width:100%;max-width:none}.mast{padding:0 0 12px}.hero{padding-top:24px}h1{font-size:32pt;max-width:100%}.standfirst{font-size:13pt}.section-head h2{font-size:21pt}main>section{padding:24px 0}.model-grid,.comparison,.earlier{grid-template-columns:repeat(3,minmax(0,1fr))}.decision{grid-template-columns:1fr 1fr}.journey{grid-template-columns:130px repeat(3,minmax(0,1fr))}.journey .column{display:block}.journey .cell{display:block}.mobile-model{display:none!important}.pair-panel,.pair-panel[hidden]{display:block!important;margin-bottom:14px}.model,.case,.pair-panel,.conclusion,.notice,details{break-inside:avoid;box-shadow:none}.case,.model{background:#fff}.comparison p,.model p,.decision p,.takeaway{font-size:10pt}.role{color:#005c75}.notice strong,.model .caution{color:#7d4c00}.source-list a{color:#005c75}.tail{padding:16px 0}a{color:#005c75}details>.details-body{display:block!important}details summary{list-style:none}.source-list{gap:6px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the report</a>
+<div class="wrap">
+  <div class="mast">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><strong>CIRU</strong><span>MODEL QUALITY REVIEW</span></div>
+    <div class="tools"><span class="meta">23 October 2026 · Plain-language edition</span><button type="button" class="text-button" id="print">Print / save PDF</button></div>
+  </div>
+  <header class="hero" id="top">
+    <p class="eyebrow red">The latest comparison · Raon / Ornith / Flint</p>
+    <h1>Which model would I trust<br>with <em>the whole job?</em></h1>
+    <p class="standfirst"><strong>Raon is my provisional choice for longer jobs.</strong> It kept working through all four requests and left a usable handover. But it also left mistakes that could quietly produce the wrong bill or give false reassurance about recovery.</p>
+    <div class="decision">
+      <div><h2>Why the recommendation changed</h2><p>Earlier short tasks favored <b>Ornith</b>. The new test asked the models to keep improving the same application without losing earlier work. <b>Raon carried that job furthest.</b></p></div>
+      <div><h2>How firmly I’d hold that view</h2><p><b>Enough to prefer Raon for this kind of work; not enough to call it best overall.</b> This was one application. The review did not settle why Ornith and Flint began repeating themselves.</p></div>
+    </div>
+  </header>
+</div>
+<div class="nav-shell"><nav class="wrap" aria-label="Report sections"><a href="/research/">← Research</a><a href="#verdict">The differences</a><a href="#journey">The whole job</a><a href="#examples">Side by side</a><a href="#head-to-head">Head to head</a><a href="#other-models">The other models</a><a href="#conclusions">Conclusions & evidence</a></nav></div>
+<main class="wrap" id="main">
+  <section id="verdict" aria-labelledby="verdict-title">
+    <div class="section-head"><span class="section-no">01</span><div><h2 id="verdict-title">What stood out about each model</h2><p>The useful question is what you would have to watch for when each model is doing real work.</p></div></div>
+    <div class="model-grid">
+      <article class="model lead"><h3>Raon</h3><p class="role">Best evidence of carrying a long job through</p><p>Kept investigating, repaired its own mistakes, and reached the final handover. It preserved the supplied correction files.</p><p class="caution"><strong>Watch for quiet wrong answers.</strong> Finishing confidently did not mean every credit, recovery step, or backup check was right.</p></article>
+      <article class="model"><h3>Ornith</h3><p class="role">Strongest earlier record on short repairs</p><p>Made a clean first repair and explained it accurately. Earlier separate tasks also gave it the most consistent short-repair record.</p><p class="caution"><strong>Watch for stalled progress.</strong> It repeated a settled question during the second request. The cause remains unresolved.</p></article>
+      <article class="model"><h3>Flint</h3><p class="role">Useful speed and real repair ability</p><p>Completed three requests and made a strong repair for failed reports and overlapping updates.</p><p class="caution"><strong>Watch what changed around the answer.</strong> It altered supplied records, then brought back an older version that lost working fixes.</p></article>
+    </div>
+    <aside class="notice" id="loop-note"><p><strong>The loop finding needs care.</strong> Both repetitions were stopped. They were not simply slow answers cut off by a deadline. The completed review cleared an earlier suspicion about Ornith’s setup: its earlier reasoning was retained. Their feedback and working environments were also intact, and their settings followed their publishers’ recommendations. It did find that the automatic safeguard missed both loops because they kept rephrasing the same question. A separate monitor stopped them. That explains a monitoring failure; it does not establish what started the repetition. The report judges the observed attempts without assuming every failure came from the model itself.</p><p class="small" id="loop-asof">Review complete · Checked for publication: 23 October 2026, 10:35 a.m. Eastern. Cause remains unresolved.</p></aside>
+  </section>
+
+  <section id="journey" aria-labelledby="journey-title">
+    <div class="section-head"><span class="section-no">02</span><div><h2 id="journey-title">The same application, four successive requests</h2><p>Each model kept its earlier work. The next request arrived only after it finished the previous one. This tests whether useful changes survive as the job grows.</p></div></div>
+    <div class="journey" role="table" aria-label="Progress through the four requests">
+      <div role="row" style="display:contents">
+      <div class="column" role="columnheader">The request</div><div class="column" role="columnheader">Raon</div><div class="column" role="columnheader">Ornith</div><div class="column" role="columnheader">Flint</div>
+      </div><div role="row" style="display:contents">
+      <div class="job" role="rowheader">1 · Finish an interrupted order import</div>
+      <div class="cell" role="cell"><span class="mobile-model">Raon</span><strong>Finished</strong><small>Initial checks passed</small></div>
+      <div class="cell" role="cell"><span class="mobile-model">Ornith</span><strong>Finished</strong><small>Clean first repair</small></div>
+      <div class="cell" role="cell"><span class="mobile-model">Flint</span><strong>Finished</strong><small>Initial checks passed</small></div>
+      </div><div role="row" style="display:contents">
+      <div class="job" role="rowheader">2 · Apply corrections; preserve the original records</div>
+      <div class="cell" role="cell"><span class="mobile-model">Raon</span><strong>Finished</strong><small>Found and repaired a lost credit</small></div>
+      <div class="cell stop" role="cell"><span class="mobile-model">Ornith</span><strong>Stopped in a loop</strong><small>No finished second change</small></div>
+      <div class="cell warning" role="cell"><span class="mobile-model">Flint</span><strong>Finished, with a serious flaw</strong><small>Changed supplied correction files</small></div>
+      </div><div role="row" style="display:contents">
+      <div class="job" role="rowheader">3 · Recover failed reports and overlapping updates</div>
+      <div class="cell" role="cell"><span class="mobile-model">Raon</span><strong>Finished</strong><small>Substantive repair</small></div>
+      <div class="cell unknown" role="cell"><span class="mobile-model">Ornith</span><strong>Not reached</strong><small>No result to judge</small></div>
+      <div class="cell" role="cell"><span class="mobile-model">Flint</span><strong>Finished</strong><small>Strong repair and meaningful checks</small></div>
+      </div><div role="row" style="display:contents">
+      <div class="job" role="rowheader">4 · Upgrade an older installation and leave a handover</div>
+      <div class="cell warning" role="cell"><span class="mobile-model">Raon</span><strong>Finished, with hidden defects</strong><small>Real handover; important checks incomplete</small></div>
+      <div class="cell unknown" role="cell"><span class="mobile-model">Ornith</span><strong>Not reached</strong><small>No result to judge</small></div>
+      <div class="cell stop" role="cell"><span class="mobile-model">Flint</span><strong>Stopped in a loop</strong><small>Earlier fixes had been lost</small></div>
+      </div>
+    </div>
+    <p class="reading-note"><strong>“Finished” describes progress, not correctness.</strong> These are three runs through one continuing job, not twelve independent tests. Unfinished or unreached work is not counted as a wrong answer.</p>
+  </section>
+
+  <section id="examples" aria-labelledby="examples-title">
+    <div class="section-head"><span class="section-no">03</span><div><h2 id="examples-title">The differences that actually matter</h2><p>These are plain-language accounts of saved work and checks, rather than invented sample answers. Each comparison explains what makes one result more convincing.</p></div></div>
+
+    <article class="case" id="case-credits">
+      <div class="case-heading"><span class="case-index">A</span><div><h3>Two genuine credits happen to look identical</h3><p>A customer receives two separate $2 credits for the same reason. Both must count. After both, Bob should owe $19.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status bad">Wrong amount in a saved check</span><p>Counted the second credit as an accidental repeat. Bob was left owing <strong class="money">$21</strong>, with only one credit recorded.</p></div>
+        <div><h4>Ornith</h4><span class="status good">Correct rule in its finished first repair</span><p>Kept separately requested credits separate. Review of that saved version found the right behavior. It did not make Raon’s “looks the same, so ignore it” change.</p></div>
+        <div><h4>Flint</h4><span class="status good">Correct amount in a saved check</span><p>Recorded both credits. Bob owed <strong class="money">$19</strong>, and both entries remained visible in the history.</p></div>
+      </div>
+      <div class="takeaway"><strong>Why Ornith and Flint look better here:</strong> they respected the difference between two real instructions and one instruction sent twice. Raon’s longer overall completion does not excuse this wrong bill. <a class="case-source" href="#evidence-credits">Evidence A ↗</a></div>
+    </article>
+
+    <article class="case" id="case-records">
+      <div class="case-heading"><span class="case-index">B</span><div><h3>A correct-looking total can hide the wrong method</h3><p>The job was to process new and old correction files correctly while keeping those original files intact.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status good">Original supplied files preserved</span><p>Changed the application to handle the corrections, then used the supplied files. Its work could be checked against the original evidence.</p></div>
+        <div><h4>Ornith</h4><span class="status">No finished second change</span><p>Investigated the correction rules, but never delivered a completed change. That leaves no finished result to compare on this request.</p></div>
+        <div><h4>Flint</h4><span class="status bad">Supplied evidence changed</span><p>Rewrote both correction files. Among the changes, an old <strong class="money">$14</strong> entry became <strong class="money">$12</strong>, and the files’ ordering information was changed too.</p></div>
+      </div>
+      <div class="takeaway"><strong>Why Raon looks better here:</strong> matching the expected total means much less if the model also changes the records it was supposed to handle. Flint did make a working correction mechanism, but that does not justify changing the supplied evidence. This describes its actions, not its intent. <a class="case-source" href="#evidence-main">Evidence B ↗</a></div>
+    </article>
+
+    <article class="case" id="case-recovery">
+      <div class="case-heading"><span class="case-index">C</span><div><h3>The individual repairs work—but do they work together?</h3><p>A newer correction has been accepted but not fully applied when work is interrupted. Recovery must finish applying it, even when the order already exists.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status bad">A later combined check failed</span><p>Saw that the order already existed and skipped its newer correction. It could report successful recovery while leaving the old amount in place.</p></div>
+        <div><h4>Ornith</h4><span class="status">Later combination not reached</span><p>Its initial missing-order repair worked. That does not tell us whether it would have handled newer corrections and the later upgrade together.</p></div>
+        <div><h4>Flint</h4><span class="status good">Strong earlier recovery work</span><p>Its finished third change correctly recovered saved report contents and handled overlapping updates. It did not complete the later upgrade, so it has no equivalent final combined result.</p></div>
+      </div>
+      <div class="takeaway"><strong>What this changes:</strong> Raon proved more of the full journey, and that exposed a serious hidden error. Flint deserves credit for its completed recovery repair; it has not been shown to beat Raon on the unfinished final combination. <a class="case-source" href="#evidence-main">Evidence C ↗</a></div>
+    </article>
+
+    <article class="case" id="case-progress">
+      <div class="case-heading"><span class="case-index">D</span><div><h3>When the job gets harder, does progress survive?</h3><p>New requirements should build on earlier repairs. A model must keep moving without quietly undoing work that already worked.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status good">Continued through all four requests</span><p>Kept investigating failures in the actual application, even when its own checks looked reassuring. It preserved old reports and an operator’s note and produced the final handover.</p></div>
+        <div><h4>Ornith</h4><span class="status caution">Repeated a settled decision</span><p>During the second request, it kept reopening a policy question after useful checks had already established a workable approach. No finished second repair followed.</p></div>
+        <div><h4>Flint</h4><span class="status bad">Lost earlier working repairs</span><p>During the upgrade, it brought back an older version and lost fixes for corrections, credits, and report history. Its own checks caught the breakage, but it then repeated its investigation without finishing.</p></div>
+      </div>
+      <div class="takeaway"><strong>Why Raon leads for longer jobs:</strong> it demonstrated continued useful action and a real handover. That is stronger evidence of handling an extended assignment. The completed review did not isolate what started the other models’ repetition. <a class="case-source" href="#evidence-main">Evidence D ↗</a></div>
+    </article>
+
+    <article class="case" id="case-honesty">
+      <div class="case-heading"><span class="case-index">E</span><div><h3>What happens after it makes a mistake?</h3><p>Finding, fixing, and admitting a mistake is valuable. It does not make the original mistake disappear.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status good">A substantial recovery from its own error</span><p>Temporarily lost a credit and produced a <strong class="money">$46</strong> report. It noticed the missing credit, fixed the cause, restored the original entry, and produced <strong class="money">$44</strong>. It later disclosed the restoration.</p></div>
+        <div><h4>Ornith</h4><span class="status good">Accurate first explanation</span><p>Its explanation of the first repair matched the saved work. There was no equivalent completed later recovery to assess.</p></div>
+        <div><h4>Flint</h4><span class="status caution">Mixed evidence</span><p>Its checks honestly exposed the later lost fixes, and it did not claim the upgrade was finished. Earlier, however, its completion claims did not account for the changed correction files.</p></div>
+      </div>
+      <div class="takeaway"><strong>Why Raon earns credit without a free pass:</strong> it caught and explained a real mistake. But the incorrect $46 report still exists in the history. “It eventually repaired it” is different from “the records were preserved throughout.” <a class="case-source" href="#evidence-main">Evidence E ↗</a></div>
+    </article>
+
+    <article class="case" id="case-backup">
+      <div class="case-heading"><span class="case-index">F</span><div><h3>“The backup is safe” needs a check that proves it</h3><p>A good backup check must compare the backup with the actual records, not just recognize familiar example contents.</p></div></div>
+      <div class="comparison">
+        <div><h4>Raon</h4><span class="status bad">Its reassurance went too far</span><p>Its check looked for the sample’s expected contents instead of comparing the real records with the backup. The saved backup checks passed their examples, but review of the finished work found this wider weakness.</p></div>
+        <div><h4>Ornith</h4><span class="status">No backup result</span><p>Never reached this request. There is no basis for saying it would have done better or worse.</p></div>
+        <div><h4>Flint</h4><span class="status">No completed backup handover</span><p>Started the upgrade but did not finish it. Its unfinished work cannot support a claim of a safer final backup.</p></div>
+      </div>
+      <div class="takeaway"><strong>Why this limits the recommendation:</strong> Raon left the only completed handover, but its general promise of a verified backup was stronger than its check justified. This weakness was found by reading the saved work; the wider example was not newly run. <a class="case-source" href="#evidence-main">Evidence F ↗</a></div>
+    </article>
+  </section>
+
+  <section id="head-to-head" aria-labelledby="pair-title">
+    <div class="section-head"><span class="section-no">04</span><div><h2 id="pair-title">Why I would choose one over another</h2><p>Choose a pair to see the practical judgment, including the evidence against it.</p></div></div>
+    <div class="pair-tabs" id="pair-tabs" aria-label="Choose a comparison" hidden>
+      <button id="tab-raon-ornith" type="button" data-pair="raon-ornith">Raon / Ornith</button><button id="tab-raon-flint" type="button" data-pair="raon-flint">Raon / Flint</button><button id="tab-ornith-flint" type="button" data-pair="ornith-flint">Ornith / Flint</button>
+    </div>
+    <div class="pair-panel" id="pair-raon-ornith"><h3>Raon for the long assignment; Ornith for the focused repair</h3><p><strong>Raon demonstrated more useful follow-through.</strong> It connected successive changes, worked through real failures, and left a handover. Ornith’s clean first repair and stronger earlier short-task record still matter: Raon also introduced the repeated-credit mistake that Ornith avoided.</p><p>I would lean toward Raon when the model must carry a job forward over several requests. I would keep Ornith for focused repairs and a second opinion. <strong>Further evidence about what started the repetition could change how much weight to put on its stalled attempt.</strong></p></div>
+    <div class="pair-panel" id="pair-raon-flint"><h3>Raon for preserving the job; Flint when speed can be checked</h3><p><strong>Raon preserved the supplied correction files and reached the handover.</strong> Flint made a genuinely good recovery repair and correctly kept repeated credits, where Raon failed. Its faster progress is useful.</p><p>But changing the supplied records and later losing working repairs are serious reasons to prefer Raon for work left running on its own. <strong>Flint’s successful total is less convincing when the input evidence changed.</strong> Raon’s quiet errors still need independent checks.</p></div>
+    <div class="pair-panel" id="pair-ornith-flint"><h3>Ornith has the stronger earlier repair record; Flint got further here</h3><p><strong>The latest run alone does not establish that Ornith is more capable.</strong> Flint completed more of it and delivered a strong recovery repair. Ornith’s first repair was cleaner, and the earlier panel favored its consistency on short repairs.</p><p>I would place Ornith ahead as a cautious general repair choice, but this is the least secure pairwise judgment. <strong>Flint deserves credit for the work it completed; Ornith’s loop and Flint’s changed records are different problems.</strong></p></div>
+    <noscript><p class="no-js-message">All three comparisons are shown above. No interactive controls are required to read the report.</p></noscript>
+  </section>
+
+  <section id="other-models" aria-labelledby="other-title">
+    <div class="section-head"><span class="section-no">05</span><div><h2 id="other-title">Where MiniCPM, Apodex, and Sage fit</h2><p>These three were in the earlier comparison of six separate short problems. They were not included in this latest continuing-job test, so they have not lost a head-to-head long-job contest.</p></div></div>
+    <div class="earlier">
+      <article><h3>MiniCPM</h3><p class="label">Earlier evidence only · Not retested in this round</p><p><strong>A useful fast choice when the result is easy to check.</strong> It handled two demanding repairs well and gave a strong answer about what the evidence could prove. A different repair became impractically slow on a harder input, and two reasoning answers drew conclusions the evidence did not justify. Those are specific weaknesses, not a reason to dismiss it.</p></article>
+      <article><h3>Apodex</h3><p class="label">Earlier evidence only · Not retested in this round</p><p><strong>A useful additional analytical opinion.</strong> It gave the most complete answer on one evidence-and-cause problem. Other answers assumed facts that were not established or confused what caused a problem with what could fix it. Its repairs passed the original checks, although one efficiency explanation was wrong. The tested installation was an experimental version.</p></article>
+      <article><h3>Sage</h3><p class="label">Earlier evidence only · Not retested in this round</p><p><strong>Some useful reasoning, but too little finished repair work to recommend as the main model.</strong> It completed a demanding rules-and-records task, but on two different repair problems it kept reopening settled arguments and delivered no repair. Its faster text generation does not make up for those missing results.</p></article>
+    </div>
+    <p class="reading-note">The earlier work used six different problems per model, one attempt at each. It supports these narrower descriptions, not a universal ranking. <a href="sources/earlier-readout.md">Read the earlier findings ↗</a></p>
+  </section>
+
+  <section id="conclusions" aria-labelledby="conclusions-title">
+    <div class="section-head"><span class="section-no">06</span><div><h2 id="conclusions-title">What I would use today</h2><p>A practical choice based on the work actually observed, with the remaining uncertainty kept visible.</p></div></div>
+    <div class="conclusion"><h3>Raon for longer Halo jobs, provisionally.</h3><p>It gave the best evidence of carrying the whole assignment forward. Keep Ornith for focused repairs and a second opinion. Use Flint or MiniCPM for faster work whose result you can check. Apodex remains useful for another analytical view. Sage has not shown enough reliable repair completion to take the main role.</p><p><strong>Raon’s finished answer still needs checking against the original records.</strong> The repeated-credit error, skipped corrections, and weak backup check are real reasons to withhold blanket trust.</p><p>This is a recommendation about the tested installations. It has not changed your default model.</p></div>
+    <div class="support">
+      <div><h3>What could change my mind?</h3><ul><li><strong>A demonstrated setup cause for the loops.</strong> That would weaken the case against Ornith or Flint as models, even though these particular attempts still stopped.</li><li><strong>The same pattern in another kind of application.</strong> One extended job is useful evidence, but not proof that the order will hold everywhere.</li><li><strong>Whether Raon’s hidden mistakes repeat.</strong> Completing more work is less valuable if a wrong bill or skipped correction is easy to miss.</li></ul></div>
+      <div><h3>What this report does not assume</h3><p>More thinking does not automatically mean a better answer. Finishing is not the same as being right. A missing result is not a proven wrong answer.</p><p>All three handled the first problem well enough to pass its saved checks. The more revealing differences appeared when the requirements interacted and earlier work had to survive.</p><p>There is no blended score here. It would hide the difference between an unfinished job, a wrong amount, and changed evidence.</p></div>
+    </div>
+    <div class="sources" id="evidence">
+      <details><summary>How this was checked · sources and limits</summary><div class="details-body">
+        <p>The comparison uses saved application changes, recorded actions, independent checks, and two reviews conducted without model names. Both reviews found the central Raon and Flint problems described here. The plain-language explanations above are paraphrases of those findings.</p>
+        <ul class="source-list">
+          <li id="evidence-main"><span>1</span><div><a href="sources/latest-readout.md">Completed continuing-job comparison</a><small>Source for the recommendation, progress, self-corrections, changed records, recovery findings, and unfinished work.</small></div></li>
+          <li><span>2</span><div><a href="sources/parent-reconciliation.json">Reconciled findings and qualifications</a><small>Distinguishes observed failures from deductions made by reading the work, and avoids treating unreached requests as incorrect answers.</small></div></li>
+          <li><span>3</span><div><a href="sources/blind-code-review.json">Review of the saved application changes</a> · <a href="sources/blind-operations-review.json">Review of the recorded actions and handovers</a><small>Anonymous labels were joined to model names only after both reviews. Amber = Ornith; Cobalt = Raon; Juniper = Flint.</small></div></li>
+          <li id="evidence-credits"><span>A</span><div><a href="sources/raon-credit-check.json">Raon’s saved credit check</a> · <a href="sources/flint-credit-check.json">Flint’s saved credit check</a><small>The $21 versus $19 example. Ornith’s separate-credit behavior is supported by review of its first completed version, rather than an equivalent newly run example.</small></div></li>
+          <li><span>4</span><div><a href="sources/earlier-readout.md">Earlier six-model comparison</a><small>Source for the focused-repair comparison and the MiniCPM, Apodex, and Sage context. Its original recommendation is explicitly updated by the newer work.</small></div></li>
+          <li><span>5</span><div><a href="sources/loop-status.json">Completed loop-investigation review</a><small>The review found a monitoring failure, but did not isolate the cause of the repetition. <a href="sources/loop-findings.md">Read the full findings</a>.</small></div></li>
+        </ul>
+        <p class="sources-note">Amounts in the original saved checks are in cents; this report expresses them in dollars. No new model attempts were run to make this report. The supporting records are selected publication copies with local machine paths removed; <a href="evidence-manifest.json">their file checks and publication notes</a> are retained alongside it.</p>
+      </div></details>
+      <details><summary>Read this comparison fairly</summary><div class="details-body"><p><strong>Scope:</strong> three models, one application, four dependent requests. A second planned application was withdrawn before the models saw it. The earlier comparison had six distinct short problems for each of six models. Neither is a broad, repeated survey of everything a model can do.</p><p><strong>Unfinished work:</strong> Ornith did not complete request two; Flint did not complete request four. Requests beyond those points have no completed result to grade. Both repetitions were stopped. The completed review found a monitoring failure but did not isolate why the repetition began.</p><p><strong>Specific limits:</strong> Flint’s changed correction files are one continuing problem, not multiple separate penalties. Its early manual reset affected tables that were already empty; no erasure of populated records was demonstrated. Raon restored its temporarily lost credit, and the preserved old reports were not lost. Its broader backup weakness was established by reading the saved work, not by running a new failure example.</p><p><strong>Recommendation:</strong> the observed follow-through favors Raon for a longer assignment. The earlier focused-repair evidence still favors Ornith. There is not enough matched long-job evidence to rank MiniCPM or Apodex against Raon.</p></div></details>
+    </div>
+  </section>
+</main>
+<footer class="wrap tail"><span>Ciru Research · Quality comparison · 23 October 2026</span><span id="snapshot-time">Evidence checked for publication at 10:35 a.m. Eastern · <a href="#top">Back to top ↑</a></span></footer>
+<script>
+(() => {
+ const printButton=document.getElementById('print');
+ printButton.addEventListener('click',()=>window.print());
+ const list=document.getElementById('pair-tabs');
+ const buttons=Array.from(list.querySelectorAll('button'));
+ const select=(button,focus=false)=>{
+  buttons.forEach(b=>{
+   const active=b===button;
+   b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;
+   document.getElementById('pair-'+b.dataset.pair).hidden=!active;
+  });
+  if(focus)button.focus();
+ };
+ list.setAttribute('role','tablist');list.hidden=false;
+ buttons.forEach((b,i)=>{
+  const panel=document.getElementById('pair-'+b.dataset.pair);
+  b.setAttribute('role','tab');b.setAttribute('aria-controls',panel.id);
+  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);panel.tabIndex=0;
+  b.addEventListener('click',()=>select(b));
+  b.addEventListener('keydown',e=>{
+   let target;
+   if(e.key==='ArrowRight')target=buttons[(i+1)%buttons.length];
+   if(e.key==='ArrowLeft')target=buttons[(i+buttons.length-1)%buttons.length];
+   if(e.key==='Home')target=buttons[0];if(e.key==='End')target=buttons[buttons.length-1];
+   if(target){e.preventDefault();select(target,true);}
+  });
+ });select(buttons[0]);
+ const beforePrint=()=>{document.querySelectorAll('details').forEach(d=>{d.dataset.wasOpen=String(d.open);d.open=true;});};
+ const afterPrint=()=>{document.querySelectorAll('details').forEach(d=>{d.open=d.dataset.wasOpen==='true';delete d.dataset.wasOpen;});};
+ window.addEventListener('beforeprint',beforePrint);window.addEventListener('afterprint',afterPrint);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+{
+  "diagnostics": {
+    "additive-manual-adjustments": {
+      "audit_rows": [
+        [
+          1,
+          "101",
+          -200,
+          "packing credit"
+        ]
+      ],
+      "commands": [
+        {
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "{\"adjustment_id\": 1}\n"
+        },
+        {
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "{\"adjustment_id\": 1, \"duplicate\": true}\n"
+        }
+      ],
+      "passed": false,
+      "report_body": "order_id,customer,total_cents\n100,Alice,1200\n101,Bob,2100\n",
+      "report_command": {
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\"digest\": \"6a769cedc1001c3ef1a9e8f6520b39a37970e649082d1ec2a432de33528f3ae0\", \"edition\": \"2026-10-20-6a769cedc1001c3e\", \"path\": \"reports/2026-10-20/2026-10-20-6a769cedc1001c3e.csv\"}\n"
+      },
+      "requirement": "Two explicit identical manual adjustment commands add two distinct audit rows."
+    },
+    "existing-backup-invalid": {
+      "after": {
+        "backup": {
+          "ctime_ns": 1792750809411926327,
+          "inode": 10102094,
+          "mtime_ns": 1792750809411926327,
+          "sha256": "26ef718226d7ab62a200d3adcb103e6a40a0adb87e948a9611e00fec34835de1",
+          "size": 37
+        },
+        "ledger": {
+          "ctime_ns": 1792750809408517056,
+          "inode": 10102091,
+          "mtime_ns": 1792750809408517056,
+          "sha256": "31d694b40724a52b43de8ee4bbf3fa6775c947454a001f2e7234ee7a7768eb80",
+          "size": 28672
+        }
+      },
+      "before": {
+        "backup": {
+          "ctime_ns": 1792750809411926327,
+          "inode": 10102094,
+          "mtime_ns": 1792750809411926327,
+          "sha256": "26ef718226d7ab62a200d3adcb103e6a40a0adb87e948a9611e00fec34835de1",
+          "size": 37
+        },
+        "ledger": {
+          "ctime_ns": 1792750809408517056,
+          "inode": 10102091,
+          "mtime_ns": 1792750809408517056,
+          "sha256": "31d694b40724a52b43de8ee4bbf3fa6775c947454a001f2e7234ee7a7768eb80",
+          "size": 28672
+        }
+      },
+      "command": {
+        "exit_code": 2,
+        "stderr": "",
+        "stdout": "{\"error\": \"file is not a database\"}\n"
+      },
+      "passed": true,
+      "requirement": "An invalid or mismatched existing backup blocks migration without altering either file.",
+      "schema_after": 1
+    },
+    "existing-backup-matching": {
+      "after": {
+        "backup": {
+          "ctime_ns": 1792750809695505823,
+          "inode": 10102102,
+          "mtime_ns": 1792750809695505823,
+          "sha256": "2a2c21494fea2b67a5133fce55fd2d0ebb9132c37ff453a34d06425f78072b83",
+          "size": 28672
+        },
+        "ledger": {
+          "ctime_ns": 1792750809741504023,
+          "inode": 10102099,
+          "mtime_ns": 1792750809741504023,
+          "sha256": "8ed31e9667c59a3aefdc8e4dca8fb3b851ff9009172dc9d0f0ca718a74ba6471",
+          "size": 69632
+        }
+      },
+      "before": {
+        "backup": {
+          "ctime_ns": 1792750809695505823,
+          "inode": 10102102,
+          "mtime_ns": 1792750809695505823,
+          "sha256": "2a2c21494fea2b67a5133fce55fd2d0ebb9132c37ff453a34d06425f78072b83",
+          "size": 28672
+        },
+        "ledger": {
+          "ctime_ns": 1792750809687506136,
+          "inode": 10102099,
+          "mtime_ns": 1792750809687506136,
+          "sha256": "31d694b40724a52b43de8ee4bbf3fa6775c947454a001f2e7234ee7a7768eb80",
+          "size": 28672
+        }
+      },
+      "command": {
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\"migrated\": true, \"schema\": 2}\n"
+      },
+      "passed": true,
+      "requirement": "A matching existing backup permits migration without replacing the backup.",
+      "schema_after": 2
+    },
+    "existing-backup-mismatched": {
+      "after": {
+        "backup": {
+          "ctime_ns": 1792750809590939390,
+          "inode": 10102101,
+          "mtime_ns": 1792750809590939390,
+          "sha256": "95df889016cd00470203ef89aed32d4d1bd840e3ea4c7a6e1085fe1fa77c4c71",
+          "size": 28672
+        },
+        "ledger": {
+          "ctime_ns": 1792750809513512947,
+          "inode": 10102094,
+          "mtime_ns": 1792750809513512947,
+          "sha256": "31d694b40724a52b43de8ee4bbf3fa6775c947454a001f2e7234ee7a7768eb80",
+          "size": 28672
+        }
+      },
+      "before": {
+        "backup": {
+          "ctime_ns": 1792750809590939390,
+          "inode": 10102101,
+          "mtime_ns": 1792750809590939390,
+          "sha256": "95df889016cd00470203ef89aed32d4d1bd840e3ea4c7a6e1085fe1fa77c4c71",
+          "size": 28672
+        },
+        "ledger": {
+          "ctime_ns": 1792750809513512947,
+          "inode": 10102094,
+          "mtime_ns": 1792750809513512947,
+          "sha256": "31d694b40724a52b43de8ee4bbf3fa6775c947454a001f2e7234ee7a7768eb80",
+          "size": 28672
+        }
+      },
+      "command": {
+        "exit_code": 2,
+        "stderr": "",
+        "stdout": "{\"error\": \"backup orders mismatch: [('L1', '2026-10-18', 'Lea', 1001), ('L2', '2026-10-18', 'Max', 2000)] != [('L1', '2026-10-18', 'Lea', 1000), ('L2', '2026-10-18', 'Max', 2000)]\"}\n"
+      },
+      "passed": true,
+      "requirement": "An invalid or mismatched existing backup blocks migration without altering either file.",
+      "schema_after": 1
+    }
+  },
+  "infrastructure": {
+    "complete": true,
+    "issue": null
+  },
+  "migration_diagnostics": "included",
+  "scope": "Unscored public-contract saved-source diagnostics; no quality aggregate."
+}
