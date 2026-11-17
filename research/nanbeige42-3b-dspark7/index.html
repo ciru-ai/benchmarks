@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Nanbeige4.2-3B DSpark7 FAST54, HumanEval and HermesAgent-20 results on AMD Strix Halo.">
+<title>Nanbeige4.2-3B · Ciru Inference Lab</title>
+<link rel="icon" href="ccglogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#080808;--panel:rgba(15,16,19,.96);--line:rgba(255,255,255,.15);--text:#f7f7f4;--muted:#a8adb7;--amd:#ed1c24;--cyan:#39d0ff;--green:#20d1a2;--orange:#ff9f43;--red:#ff6871;--radius:8px;--mono:"IBM Plex Mono",monospace;--sans:"Space Grotesk",system-ui,sans-serif}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;min-height:100vh;color:var(--text);font:16px/1.5 var(--sans);background:linear-gradient(120deg,#ed1c2430,transparent 32%),linear-gradient(300deg,#39d0ff18,transparent 36%),repeating-linear-gradient(135deg,#ffffff08 0 1px,transparent 1px 20px),linear-gradient(180deg,#090809,#111115 48%,var(--bg))}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(#ed1c2418 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(#0008,transparent 84%)}
+.wrap{position:relative;width:min(1160px,calc(100% - 32px));margin:auto}
+a{color:var(--cyan);text-underline-offset:.22em}a:hover{color:var(--text)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.brandbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 1px}
+.brand-lockup{display:flex;gap:12px;align-items:center;color:var(--text);text-decoration:none}
+.logo-plate{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--line);border-radius:6px;background:#131316}
+.logo-plate img{width:32px;height:32px;object-fit:contain}
+.brand-title,.brand-subtitle{display:block}.brand-title{font-weight:700}.brand-subtitle,time,.kicker,.metadata,.label{font:500 .72rem/1.5 var(--mono);color:var(--muted)}
+.hero{padding:clamp(18px,4vw,38px);border:1px solid var(--line);border-top:3px solid var(--amd);border-radius:10px;background:linear-gradient(110deg,#ed1c2432,transparent 50%),repeating-linear-gradient(90deg,transparent 0 28px,#ffffff06 28px 29px),linear-gradient(#1d1d21,#0c0c0e);box-shadow:0 24px 70px #0007}
+.kicker,.label{letter-spacing:.09em;text-transform:uppercase}
+.kicker{color:var(--cyan);margin:0 0 7px}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(2rem,5.2vw,3.7rem);letter-spacing:-.055em;line-height:1.06}
+h2{font-size:clamp(1.45rem,3vw,1.95rem);letter-spacing:-.035em;line-height:1.18}
+h3{font-size:1.08rem}
+.lead{margin-top:12px;max-width:66ch;color:#e0e1e6;font-size:1.05rem}
+.metadata{margin-top:13px;display:flex;flex-wrap:wrap;gap:8px 16px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+nav a,.filters button{font:500 .78rem/1.3 var(--mono);border:1px solid var(--line);border-radius:6px;padding:9px 11px;text-decoration:none;background:#0e0f12}
+main{display:grid;gap:14px;margin:14px 0 24px}
+section{min-width:0;padding:clamp(14px,3vw,26px);border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:0 16px 50px #0005}
+section>.intro{color:var(--muted);margin:7px 0 16px;max-width:82ch}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
+.stat{min-width:0;border:1px solid var(--line);border-radius:var(--radius);padding:12px;background:linear-gradient(#ffffff09,#ffffff02),#17181d}
+.stat strong{display:block;color:var(--cyan);font:700 clamp(1.15rem,3.4vw,1.85rem)/1.2 var(--mono);margin:5px 0}
+.stat small{color:var(--muted)}
+.comparison{margin:12px 0 16px;padding:13px;border:1px solid var(--line);border-radius:var(--radius);background:#0b0c0f}
+.comparison h3{margin-bottom:9px}
+.bar-row{display:grid;grid-template-columns:minmax(68px,110px) minmax(0,1fr) 66px;align-items:center;gap:9px;font:500 .78rem var(--mono);margin:7px 0}
+.track{height:9px;border-radius:2px;background:#23242b;overflow:hidden;background-image:repeating-linear-gradient(90deg,transparent 0 24.7%,#b1b5c43a 24.7% 25%)}
+.track span{display:block;height:100%;width:var(--pct);background:var(--cyan)}
+.track .q5{background:#ff5863}.bar-row b{text-align:right}
+.table-scroll{overflow-x:auto;margin:12px 0}
+table{width:100%;border-collapse:collapse;background:#090a0c;text-align:left}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line)}
+thead th{background:#1b1c21;font-size:.85rem}tbody th{font-weight:500}
+.num{text-align:right;white-space:nowrap;font:500 .85rem var(--mono)}
+.highlight th,.highlight td{background:#39d0ff0e;font-weight:700}
+.callout{border:1px solid #ff9f4340;border-left:4px solid var(--orange);background:#ff9f4310;border-radius:6px;padding:11px 13px;color:#f1ddc7;margin-top:13px}
+.callout p+p{margin-top:6px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:15px 0 7px}
+.filters button{color:var(--muted);cursor:pointer}
+.filters button[aria-pressed=true]{color:var(--cyan);border-color:#39d0ff8a;background:#39d0ff14}
+.filters output{font:.76rem var(--mono);color:var(--muted);margin-left:auto}
+.audit td:last-child{font-size:.86rem}.audit tbody th{font-family:var(--mono);font-size:.82rem;white-space:nowrap}
+.pass{color:var(--green)}.warn{color:var(--orange)}.fail{color:var(--red)}
+footer{padding:0 1px 24px;color:var(--muted);font-size:.85rem}
+[hidden]{display:none!important}
+@media(max-width:560px){.wrap{width:calc(100% - 20px)}.brandbar{flex-wrap:wrap}.stats{grid-template-columns:1fr 1fr}.stats>.stat:last-child:nth-child(3){grid-column:1/-1}.audit td:last-child{min-width:115px}th,td{padding:7px 6px}.split{grid-template-columns:1fr}.stat small{line-height:1.3;display:block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <a class="brand-lockup" href="https://llm.ciru.ai/">
+      <span class="logo-plate"><img src="ccglogo.png" alt="" width="32" height="32"></span>
+      <span><span class="brand-title">Ciru Inference Lab</span><span class="brand-subtitle">llm.ciru.ai / research</span></span>
+    </a>
+    <time datetime="2026-11-17">2026-11-17</time>
+  </div>
+  <header class="hero">
+    <p class="kicker">Crown Citadel Research Report</p>
+    <h1>Nanbeige4.2-3B benchmarks</h1>
+    <p class="lead">With DSpark7 enabled on both profiles, Q8 passed three more FAST54 cases and finished 16 seconds sooner than Q5_K_S.</p>
+    <div class="metadata"><span>AMD Strix Halo</span><span>Ciru · ROCm / llama.cpp</span><span>256K context · 1 slot · F16 KV</span></div>
+    <nav aria-label="Report sections"><a href="#fast54">FAST54</a><a href="#humaneval">HumanEval</a><a href="#hermes-rerun">HermesAgent-20</a><a href="benchmark-data.json" download>Download data</a></nav>
+  </header>
+  <main>
+    <section id="fast54" aria-labelledby="fast-title">
+      <h2 id="fast-title">FAST54 · Q5_K_S vs Q8</h2>
+      <p class="intro">Same draft, runtime and benchmark settings for both quantizations. Both attempted all 54 cases.</p>
+      <div class="comparison">
+        <h3>Passes on 53 matched cases</h3>
+        <div class="bar-row"><span>Q5_K_S</span><span class="track" aria-hidden="true"><span class="q5" style="--pct:52.830%"></span></span><b>28 / 53</b></div>
+<div class="bar-row"><span>Q8</span><span class="track" aria-hidden="true"><span class="q8" style="--pct:58.491%"></span></span><b>31 / 53</b></div>
+      </div>
+      <div class="table-scroll">
+        <table aria-label="FAST54 benchmark results, both with DSpark7">
+          <thead><tr><th scope="col">Component</th><th scope="col" class="num">Q5_K_S</th><th scope="col" class="num">Q8</th></tr></thead>
+          <tbody><tr><th scope="row">ARC</th><td class="num">5/18</td><td class="num">7/18</td></tr>
+<tr><th scope="row">IFEval</th><td class="num">19/26</td><td class="num">18/26</td></tr>
+<tr><th scope="row">HumanEval+</th><td class="num">3/5</td><td class="num">3/5</td></tr>
+<tr><th scope="row">Tool-Eval</th><td class="num">1/4</td><td class="num">3/4</td></tr>
+<tr class="highlight"><th scope="row">Matched total</th><td class="num">28/53</td><td class="num">31/53</td></tr>
+<tr><th scope="row">Wall time</th><td class="num">7m 29s</td><td class="num">7m 13s</td></tr></tbody>
+        </table>
+      </div>
+      <aside class="callout"><p><strong>IFEval 1879.</strong> Q8 hit the 2,048-token cap with 1,647 words. Q5_K_S stopped naturally at 860 words. Both had already exceeded the requirement of fewer than 600 words. Counting both as failures preserves the three-pass gap.</p></aside>
+    </section>
+    <section id="humaneval" aria-labelledby="he-title">
+      <h2 id="he-title">HumanEval · Q8 + DSpark7</h2>
+      <p class="intro">HumanEval/0–9, one instruction-chat completion per task, graded with the EvalPlus base and extended tests.</p>
+      <div class="stats"><div class="stat"><span class="label">Base and extended</span><strong>10/10</strong><small>Passed both test sets</small></div><div class="stat"><span class="label">Decode</span><strong>83.7 tok/s</strong><small>Across the ten samples</small></div><div class="stat"><span class="label">Generation wall</span><strong>68.43 s</strong><small>Sum of request times</small></div></div>
+      <p>All ten responses stopped naturally. Decode throughput and generation wall time were measured on those first responses.</p>
+    </section>
+    <section id="hermes-rerun" aria-labelledby="hermes-title">
+      <h2 id="hermes-title">HermesAgent-20 · Q8 + DSpark7</h2>
+      <p class="intro">20 scenarios on Ciru with Chromium, seed 15035, temperature 0.6, top-p 0.95, top-k 20, min-p 0, thinking off and a 40-turn budget.</p>
+      <div class="stats">
+        <div class="stat"><span class="label">Mean verifier score</span><strong>85/100</strong></div>
+        <div class="stat"><span class="label">Scenarios passed</span><strong>14/20</strong></div>
+        <div class="stat"><span class="label">Wall time</span><strong>13m 20s</strong></div>
+      </div>
+      <div class="table-scroll">
+        <table class="audit" aria-label="HermesAgent-20 verified scenario results">
+          <thead><tr><th scope="col">Case</th><th scope="col" class="num">Score / 100</th><th scope="col" class="num">Time</th><th scope="col">Outcome</th></tr></thead>
+          <tbody>
+<tr><th scope="row">HA-01</th><td class="num">100</td><td class="num">5.9 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-02</th><td class="num">100</td><td class="num">7.4 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-03</th><td class="num">100</td><td class="num">4.7 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-04</th><td class="num">100</td><td class="num">22.5 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-05</th><td class="num">90</td><td class="num">31.5 s</td><td class="warn">Partial</td></tr>
+<tr><th scope="row">HA-06</th><td class="num">100</td><td class="num">35.1 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-07</th><td class="num">100</td><td class="num">339.0 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-08</th><td class="num">100</td><td class="num">22.5 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-09</th><td class="num">100</td><td class="num">38.9 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-10</th><td class="num">50</td><td class="num">60.5 s</td><td class="fail">Fail</td></tr>
+<tr><th scope="row">HA-11</th><td class="num">100</td><td class="num">11.0 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-12</th><td class="num">20</td><td class="num">63.9 s</td><td class="warn">Turn limit</td></tr>
+<tr><th scope="row">HA-13</th><td class="num">100</td><td class="num">17.5 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-14</th><td class="num">70</td><td class="num">5.6 s</td><td class="fail">Fail</td></tr>
+<tr><th scope="row">HA-15</th><td class="num">100</td><td class="num">19.0 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-16</th><td class="num">100</td><td class="num">9.1 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-17</th><td class="num">50</td><td class="num">42.0 s</td><td class="warn">Partial</td></tr>
+<tr><th scope="row">HA-18</th><td class="num">100</td><td class="num">7.0 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-19</th><td class="num">100</td><td class="num">26.0 s</td><td class="pass">Pass</td></tr>
+<tr><th scope="row">HA-20</th><td class="num">20</td><td class="num">5.4 s</td><td class="fail">Fail</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <footer><a href="https://llm.ciru.ai/">Ciru Inference Lab</a> · <a href="benchmark-data.json" download>Benchmark data (JSON)</a></footer>
+</div>
+</body>
+</html>
