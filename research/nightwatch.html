@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07131f">
+<title>Night Watch at Sorrow Rock</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='6' fill='%2307131f'/%3E%3Cpath d='M16 39l4-21h8l4 21zM16 16h16l-8-8z' fill='%23e9e2cf'/%3E%3Cpath d='M21 13h6v7h-6z' fill='%23f6e7a8'/%3E%3C/svg%3E">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="nightwatch-assets/fonts/instrument-serif.woff2">
+<link rel="stylesheet" href="nightwatch-assets/watch.css">
+<script defer src="nightwatch-assets/simulation.js"></script>
+<script defer src="nightwatch-assets/seascape.js"></script>
+<script defer src="nightwatch-assets/renderer.js"></script>
+<script defer src="nightwatch-assets/audio.js"></script>
+<script defer src="nightwatch-assets/watch.js"></script>
+</head>
+<body>
+<svg class="symbol-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<symbol id="i-station" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+<path d="m24 2 19 10.8v22L24 46 5 34.8v-22z" stroke-width=".9"/><path d="M24 5.1 40.5 14v19.2L24 42.6 7.5 33.2V14z" stroke-width=".45"/>
+<path d="m18.9 34 2.2-13.2h5.8L29.5 34m-12 .5h13m-10.6-14h8.4m-8.7-1.7h8.9m-8.4-6 4-3.2 4.1 3.2zm1 1h6.2v4.7h-6.2z" stroke-width="1.1"/>
+<path d="m20.8 24.5 6.7-2.1m-7.4 6 8.3-2.5m-9.2 6.2 9.7-2.9m-14.5 7.1c3.1-1.3 4.7 1.2 8.1 0s5.2 1.1 10-.4m-20-21.5 5.7 1.6m-5.3 1.4 5.3-.3m11.2-1.2 5.7-1.6m-5.7 2.8 5.3.3"/></g></symbol>
+<symbol id="i-lantern" viewBox="0 0 24 28"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"><path d="M8 8.3V6a4 4 0 0 1 8 0v2.3M6 10l2-2h8l2 2m-12 1h12m-11 1 1.2 10h7.6l1.2-10M7.7 22h8.6l1.7 2H6zM10.5 12l-.2 7.4m3.2-7.4.3 7.4"/><path d="M14 18.6c.1 1.4-.8 2.1-2 2.1s-2.1-.8-1.8-2.1c.3-.9 1.1-1.1 1.4-3 .4 1.2 2.2 1.9 2.4 3z" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="i-anchor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 6.5v14M8.5 9h7M3 13.5c.5 4 4.6 5.8 9 7.5 3.7-1.6 8.6-3.7 9-7.5M2.5 17l.5-3.5 3 1.3m12 0 3-1.3.5 3.5"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.7 15.7A8.9 8.9 0 0 1 8.3 4.4a8.5 8.5 0 1 0 11.4 11.3z" fill="none" stroke="currentColor" stroke-width="1.45"/></symbol>
+<symbol id="i-muted" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"><path d="m11.1 5-5.3 4H2.9v6h2.9l5.3 4zM16 9l5 6m0-6-5 6"/></g></symbol>
+<symbol id="i-sound" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m11.1 5-5.3 4H2.9v6h2.9l5.3 4zM15 8.7q3 3.3 0 6.6m3-9.5q5.5 6.2 0 12.4"/></g></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 6.5v11m7-11v11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 10 7-10 7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+<symbol id="i-mouse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><rect x="6.4" y="2.8" width="11.2" height="18.3" rx="5.6"/><path d="M12 6v4"/></g></symbol>
+<symbol id="i-drag" viewBox="0 0 24 24"><path d="M10 13V5a1.5 1.5 0 0 1 3 0v7-3a1.3 1.3 0 0 1 2.6 0v3-2a1.3 1.3 0 0 1 2.6 0v3-1a1.3 1.3 0 0 1 2.6 0l-.2 4c-.3 3.1-2.4 5-5 5h-2.2c-1.8 0-3.1-.6-4.7-2.8L5 13.6c-.8-1.5.6-2.7 1.8-1.7L10 15z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 20 20"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 20 20"><path d="M3 10h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-star" viewBox="0 0 40 40"><g stroke="currentColor" stroke-width=".8" fill="none"><path d="m20 2 2.2 14.7L31 9l-7.7 8.8L38 20l-14.7 2.2L31 31l-8.8-7.7L20 38l-2.2-14.7L9 31l7.7-8.8L2 20l14.7-2.2L9 9l8.8 7.7z"/><path d="m20 2 0 18-3.3-2.2zm18 18H20l2.2-3.3zM20 38V20l3.3 2.2zM2 20h18l-2.2 3.3z" fill="currentColor" stroke="none"/><circle cx="20" cy="20" r="8.6" stroke-width=".55"/></g></symbol>
+</defs></svg>
+<header class="masthead">
+  <div class="brand"><svg class="station-mark" aria-hidden="true"><use href="#i-station"/></svg><div><b>Sorrow Rock</b><span>Light Station</span></div></div>
+  <div class="watch-time"><svg aria-hidden="true"><use href="#i-moon"/></svg><time id="clock">21:00</time><i></i><span id="phase">First watch</span></div>
+  <div class="switches"><button id="sound" type="button" title="Toggle sound" aria-pressed="false"><svg aria-hidden="true"><use href="#i-muted"/></svg><span>Sound off</span></button>
+  <button id="pause" type="button" title="Pause the watch (P)" aria-label="Pause the watch" disabled><svg aria-hidden="true"><use href="#i-pause"/></svg></button></div>
+</header>
+<main class="desk" data-mode="title">
+  <section class="field" aria-label="Sorrow Rock reef">
+    <canvas id="sea" aria-label="Reef and harbour. Aim with the pointer, drag to aim on touch, or use A and D or the arrow keys to turn the lens.">Your browser needs Canvas 2D to play Night Watch at Sorrow Rock.</canvas>
+    <div class="field-border" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="frontispiece" id="opening">
+      <div class="title-ornament" aria-hidden="true"><b></b><svg><use href="#i-star"/></svg><b></b></div>
+      <h1 aria-label="Night Watch at Sorrow Rock"><span id="title-one" aria-hidden="true">Night Watch</span><span id="title-two" aria-hidden="true">at Sorrow Rock</span></h1>
+      <p>Keep the reef lit. Bring the ships home.</p>
+      <button class="brass" id="start" type="button"><svg aria-hidden="true"><use href="#i-lantern"/></svg>Light the lamp<svg class="arrow" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+    </div>
+    <div class="interlude" id="interlude" hidden>
+      <div class="title-ornament" aria-hidden="true"><b></b><svg><use href="#i-star"/></svg><b></b></div>
+      <h2 id="interlude-title">Watch paused</h2>
+      <p id="interlude-description"></p><button class="brass" id="continue" type="button"></button>
+    </div>
+    <div class="coast-label" aria-hidden="true"><i></i>Sorrow Rock Harbour</div>
+    <footer class="controls">
+      <span class="pointer-guide"><svg aria-hidden="true"><use href="#i-mouse"/></svg>Move to aim</span><span class="touch-guide"><svg aria-hidden="true"><use href="#i-drag"/></svg>Drag to aim the light</span>
+      <i></i><span class="keys"><kbd>A</kbd><kbd>D</kbd><em>or</em><kbd>←</kbd><kbd>→</kbd>Turn lens</span><i></i><span class="keys"><kbd>P</kbd>Pause</span>
+    </footer>
+  </section>
+  <aside id="ledger" class="ledger" aria-label="Keeper’s log">
+    <div class="paper">
+      <div class="paperhead"><div class="folio"><span>Watch <abbr title="number">Nº</abbr> <b id="folio">001</b></span><svg aria-hidden="true"><use href="#i-anchor"/></svg></div>
+      <div class="paper-title"><h2>Keeper’s Log</h2><button type="button" id="log-toggle" aria-label="Expand keeper’s log" aria-expanded="false" aria-controls="log-body"><svg aria-hidden="true"><use href="#i-chevron"/></svg></button></div></div>
+      <div class="paper-summary"><div class="counters"><div><strong id="home">00</strong><span>Ships home</span></div><div><strong id="lost">00</strong><span>Ships lost</span></div></div>
+      <div class="chances" aria-label="3 lanterns remaining"><span>Lanterns</span><div id="lamps" aria-hidden="true"><svg><use href="#i-lantern"/></svg><svg><use href="#i-lantern"/></svg><svg><use href="#i-lantern"/></svg></div></div></div>
+      <div id="log-body" class="log-body">
+        <div class="leaves" tabindex="0" aria-label="Standing orders and watch entries">
+          <section class="orders"><h3>Standing orders</h3><p>Hold the light on a reef until its outline appears.</p><p>Let each ship sight the marked rocks. She’ll remember the way.</p><p>Three wrecks end the watch.</p></section>
+          <section class="records"><h3>Watch entries</h3><ol id="entries" aria-live="polite" aria-relevant="additions"></ol></section>
+          <section id="verdict" hidden><h3>Keeper’s remarks</h3><p id="rating"></p><div class="signature">E. Wren, Keeper</div><div class="board-stamp">Lights Board<span>Watch recorded</span></div><button type="button" id="ledger-replay">Keep another watch</button></section>
+        </div>
+        <div class="folio-foot"><span></span><svg aria-hidden="true"><use href="#i-star"/></svg><span></span></div>
+      </div>
+      <button type="button" class="mobile-last" id="mobile-last" aria-label="Read watch entries"></button>
+    </div>
+  </aside>
+</main>
+</body>
+</html>
