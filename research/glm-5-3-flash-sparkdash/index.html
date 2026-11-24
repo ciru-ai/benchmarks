@@ -27,14 +27,9 @@
 <section id="prefill" class="chart-card" aria-labelledby="prefill-title"><div class="card-intro"><div class="section-kicker"><span class="section-signal" aria-hidden="true"></span>Input tokens</div><h2 id="prefill-title">Prompt processing</h2><p>How quickly each system reads a fresh prompt, from 4K to 256K tokens.</p></div>
 <div data-chart="prefill"></div>
 <details class="data-details"><summary>Prompt processing data<span class="plus" aria-hidden="true"></span></summary> <div class="table-scroll" role="region" tabindex="0" aria-label="Scrollable data table"><table><thead><tr><th rowspan="2" scope="col">Prompt</th><th colspan="2" scope="colgroup">Tokens per second</th><th colspan="2" scope="colgroup">First token (s)</th></tr><tr><th scope="col" class="cu-text">Ciru RCS</th><th scope="col" class="sp-text">2× Spark</th><th scope="col" class="cu-text">Ciru RCS</th><th scope="col" class="sp-text">2× Spark</th></tr></thead><tbody><tr><th scope="row">4K</th><td>2,419.69</td><td>1,601</td><td>1.89</td><td>2.8</td></tr><tr><th scope="row">8K</th><td>2,800.29</td><td>1,688</td><td>3.12</td><td>5.1</td></tr><tr><th scope="row">16K</th><td>2,996.03</td><td>1,767</td><td>5.67</td><td>9.5</td></tr><tr><th scope="row">32K</th><td>3,066.24</td><td>1,801</td><td>10.88</td><td>18.4</td></tr><tr><th scope="row">64K</th><td>2,974.94</td><td>1,812</td><td>22.23</td><td>36.4</td></tr><tr><th scope="row">128K</th><td>2,293.46</td><td>1,778</td><td>57.35</td><td>74.0</td></tr><tr><th scope="row">256K</th><td>2,029.62</td><td>1,708</td><td>129.36</td><td>153.7</td></tr></tbody></table></div></details></section>
-<section id="generation" class="chart-card" aria-labelledby="decode-title"><div class="card-intro"><div class="section-kicker"><span class="section-signal" aria-hidden="true"></span>Output tokens</div><h2 id="decode-title">Text generation</h2><p>One to four simultaneous requests, each generating 400 tokens of prose with thinking enabled.</p></div>
+<section id="generation" class="chart-card" aria-labelledby="decode-title"><div class="card-intro"><div class="section-kicker"><span class="section-signal" aria-hidden="true"></span>Output tokens</div><h2 id="decode-title">Text generation</h2><p>One to four simultaneous requests, each generating 400 tokens. Ciru used thinking on, max effort, temperature 0.7, and top-k 20.</p></div>
 <div data-chart="decode"></div>
 <details class="data-details"><summary>Text generation data<span class="plus" aria-hidden="true"></span></summary> <div class="table-scroll" role="region" tabindex="0" aria-label="Scrollable data table"><table><thead><tr><th rowspan="2" scope="col">Streams</th><th colspan="2" scope="colgroup">Total tokens/s</th><th colspan="2" scope="colgroup">Tokens/s per stream</th><th colspan="2" scope="colgroup">First token (ms)</th></tr><tr><th scope="col" class="cu-text">Ciru RCS</th><th scope="col" class="sp-text">2× Spark</th><th scope="col" class="cu-text">Ciru RCS</th><th scope="col" class="sp-text">2× Spark</th><th scope="col" class="cu-text">Ciru RCS</th><th scope="col" class="sp-text">2× Spark</th></tr></thead><tbody><tr><th scope="row">1</th><td>69.04</td><td>47.8</td><td>69.04</td><td>47.8</td><td>158</td><td>200</td></tr><tr><th scope="row">2</th><td>75.24</td><td>66.5</td><td>38.07</td><td>33.6</td><td>3,379</td><td>324</td></tr><tr><th scope="row">3</th><td>90.98</td><td>77.0</td><td>30.86</td><td>27.3</td><td>3,470</td><td>437</td></tr><tr><th scope="row">4</th><td>102.78</td><td>87.3</td><td>26.27</td><td>22.6</td><td>3,589</td><td>557</td></tr></tbody></table></div></details></section></div>
-<section id="greedy" class="other-section" aria-labelledby="greedy-title"><h2 id="greedy-title">Single-stream workloads</h2><p class="intro">Supplemental results from November 22. SparkDash counting and prose at temperature zero, with thinking off and 400 output tokens per request.</p><div class="greedy-grid"><article class="workload"><div class="work-title"><h3>Counting</h3><span class="unit">tokens/s</span></div><div class="work-row cu"><span class="work-name">Ciru RCS</span><b>109.48</b><span class="work-track" aria-hidden="true"><i style="width:91.23%"></i></span></div><div class="work-row sp"><span class="work-name">2× GB10</span><b>94.30</b><span class="work-track" aria-hidden="true"><i style="width:78.58%"></i></span></div>
-    <dl class="work-facts"><div><dt>First token · Ciru / Spark</dt><dd>156.1 / 177 ms</dd></div><div><dt>Ciru prompt / output</dt><dd>34 / 400 tokens</dd></div></dl>
-    <a class="source-link" href="https://niklaslenz.com/v2/glm53-flash-2sparks-mia-tensorfold-1104/">Source · Niklas Lenz · recipe 1104 <span aria-hidden="true">↗</span></a></article><article class="workload"><div class="work-title"><h3>Hash-map explanation</h3><span class="unit">tokens/s</span></div><div class="work-row cu"><span class="work-name">Ciru RCS</span><b>75.87</b><span class="work-track" aria-hidden="true"><i style="width:63.23%"></i></span></div><div class="work-row sp"><span class="work-name">2× DGX Spark</span><b>60.40</b><span class="work-track" aria-hidden="true"><i style="width:50.33%"></i></span></div>
-    <dl class="work-facts"><div><dt>First token · Ciru / Spark</dt><dd>169.6 / 170 ms</dd></div><div><dt>Ciru prompt / output</dt><dd>40 / 400 tokens</dd></div></dl>
-    <a class="source-link" href="https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold#performance">Source · Mia’s AI Lab · earlier TensorFold recipe <span aria-hidden="true">↗</span></a></article></div></section>
 <section id="method" class="method" aria-labelledby="method-title"><div class="method-head"><h2 id="method-title">Systems &amp; methodology</h2><a class="file" href="sparkdash-results.json" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg> Results JSON</a></div>
 <div class="systems"><div><span class="system-label cu-text">Ciru RCS</span><h3>Mac Studio</h3><p>Apple M5 Ultra · 80 GPU cores · 512 GiB unified memory</p><p>Gen 3 · oQ4e weights · multi-token prediction · HTTP timing</p></div>
 <div><span class="system-label sp-text">Mia’s AI Lab · TensorFold</span><h3>2× NVIDIA DGX Spark</h3><p>Two GB10 systems · 128 GB unified memory per system</p><p>EXL3 4-bit weights · DFlash2 · HTTP timing</p></div></div>
@@ -231,46 +226,17 @@
       "sparkFirstTokenMs": 557
     }
   ],
-  "greedy": [
-    {
-      "workload": "Counting",
-      "ciruTokensPerSecond": 109.48,
-      "sparkTokensPerSecond": 94.3,
-      "ciruFirstTokenMs": 156.1,
-      "sparkFirstTokenMs": 177,
-      "ciruTokenStreamTokensPerSecond": 109.48,
-      "promptTokens": 34,
-      "outputTokens": 400,
-      "source": "independent-counting",
-      "sparkAttribution": "Independent 1104 measurement"
-    },
-    {
-      "workload": "Hash-map explanation",
-      "ciruTokensPerSecond": 75.87,
-      "sparkTokensPerSecond": 60.4,
-      "ciruFirstTokenMs": 169.6,
-      "sparkFirstTokenMs": 170,
-      "ciruTokenStreamTokensPerSecond": 75.87,
-      "promptTokens": 40,
-      "outputTokens": 400,
-      "source": "earlier-recipe",
-      "sparkAttribution": "Mia’s earlier TensorFold recipe"
-    }
-  ],
   "protocol": {
     "prefill": "Cold prompts with resident weights and zero cached input tokens. The lower median calibrated rate selects the representative sample. First-token latency is measured before calibration.",
     "decode": "Simultaneously submitted hash-map explanations with thinking enabled and temperature 0.7. Each stream delivers 400 tokens. Aggregate speed counts 399 tokens per stream from the first streamed text on any stream to the last streamed text on any stream. First-token latency is the median across streams, timed from request submission.",
     "sampling": "Ciru used thinking on, max effort, temperature 0.7, seeded top-k 20 and top-p 1. The four-stream result uses the median of three throughput trials, with latency and mean per-stream speed taken from that trial.",
-    "greedy": "One stream, thinking disabled, temperature zero and 400 output tokens. Counting and prose references are attributed separately.",
     "sparkdashVersion": "2.91.0",
-    "sessionNote": "Ciru measured prompt processing and sampled generation over HTTP. The two-Spark figures come from Mia’s published recipe 1104 results. Supplemental greedy workloads are from the earlier measurements shown separately.",
+    "sessionNote": "Ciru measured prompt processing and sampled generation over HTTP. The two-Spark figures come from Mia’s published recipe 1104 results.",
     "ciruPrefillOverheadMs": 188.54
   },
   "sources": {
     "mia1104": "https://github.com/MiaAI-Lab/GLM-5.3-Flash-DGX-Sparks-1104/tree/6c55c20da31a02d6d381a268fa42f8a9ebe0c5d2#performance",
-    "sparkDash": "https://github.com/MiaAI-Lab/sparkDash",
-    "independent-counting": "https://niklaslenz.com/v2/glm53-flash-2sparks-mia-tensorfold-1104/",
-    "earlier-recipe": "https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold#performance"
+    "sparkDash": "https://github.com/MiaAI-Lab/sparkDash"
   },
   "prefillSamples": [
     {
@@ -850,7 +816,6 @@
       "representative": false
     }
   ],
-  "greedyMeasuredDate": "2026-11-22",
   "prefillCalibrationSamplesMs": [
     190.75,
     188.54,

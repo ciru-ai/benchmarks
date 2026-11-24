@@ -185,46 +185,17 @@
       "sparkFirstTokenMs": 557
     }
   ],
-  "greedy": [
-    {
-      "workload": "Counting",
-      "ciruTokensPerSecond": 109.48,
-      "sparkTokensPerSecond": 94.3,
-      "ciruFirstTokenMs": 156.1,
-      "sparkFirstTokenMs": 177,
-      "ciruTokenStreamTokensPerSecond": 109.48,
-      "promptTokens": 34,
-      "outputTokens": 400,
-      "source": "independent-counting",
-      "sparkAttribution": "Independent 1104 measurement"
-    },
-    {
-      "workload": "Hash-map explanation",
-      "ciruTokensPerSecond": 75.87,
-      "sparkTokensPerSecond": 60.4,
-      "ciruFirstTokenMs": 169.6,
-      "sparkFirstTokenMs": 170,
-      "ciruTokenStreamTokensPerSecond": 75.87,
-      "promptTokens": 40,
-      "outputTokens": 400,
-      "source": "earlier-recipe",
-      "sparkAttribution": "Mia’s earlier TensorFold recipe"
-    }
-  ],
   "protocol": {
     "prefill": "Cold prompts with resident weights and zero cached input tokens. The lower median calibrated rate selects the representative sample. First-token latency is measured before calibration.",
     "decode": "Simultaneously submitted hash-map explanations with thinking enabled and temperature 0.7. Each stream delivers 400 tokens. Aggregate speed counts 399 tokens per stream from the first streamed text on any stream to the last streamed text on any stream. First-token latency is the median across streams, timed from request submission.",
     "sampling": "Ciru used thinking on, max effort, temperature 0.7, seeded top-k 20 and top-p 1. The four-stream result uses the median of three throughput trials, with latency and mean per-stream speed taken from that trial.",
-    "greedy": "One stream, thinking disabled, temperature zero and 400 output tokens. Counting and prose references are attributed separately.",
     "sparkdashVersion": "2.91.0",
-    "sessionNote": "Ciru measured prompt processing and sampled generation over HTTP. The two-Spark figures come from Mia’s published recipe 1104 results. Supplemental greedy workloads are from the earlier measurements shown separately.",
+    "sessionNote": "Ciru measured prompt processing and sampled generation over HTTP. The two-Spark figures come from Mia’s published recipe 1104 results.",
     "ciruPrefillOverheadMs": 188.54
   },
   "sources": {
     "mia1104": "https://github.com/MiaAI-Lab/GLM-5.3-Flash-DGX-Sparks-1104/tree/6c55c20da31a02d6d381a268fa42f8a9ebe0c5d2#performance",
-    "sparkDash": "https://github.com/MiaAI-Lab/sparkDash",
-    "independent-counting": "https://niklaslenz.com/v2/glm53-flash-2sparks-mia-tensorfold-1104/",
-    "earlier-recipe": "https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks-TensorFold#performance"
+    "sparkDash": "https://github.com/MiaAI-Lab/sparkDash"
   },
   "prefillSamples": [
     {
@@ -804,7 +775,6 @@
       "representative": false
     }
   ],
-  "greedyMeasuredDate": "2026-11-22",
   "prefillCalibrationSamplesMs": [
     190.75,
     188.54,
