@@ -26,8 +26,7 @@
       detail: row => row.streams + (row.streams === 1 ? " stream" : " streams"),
       modes: [
         { label: "Total throughput", field: "TotalTokensPerSecond", unit: "tok/s", step: 30 },
-        { label: "Per stream", field: "PerStreamTokensPerSecond", unit: "tok/s", step: 20 },
-        { label: "First token", field: "FirstTokenMs", unit: "ms", step: 1000, lower: true }
+        { label: "Per stream", field: "PerStreamTokensPerSecond", unit: "tok/s", step: 20 }
       ]
     }
   };
