@@ -1,0 +1,493 @@
+{
+  "model": "LingSante-3.1-air-VL",
+  "date": "2026-11-23",
+  "hardware": {
+    "chip": "Apple M5 Ultra",
+    "unified_memory_gib": 512,
+    "os": "macOS 27.2"
+  },
+  "sources": {
+    "model_card": "https://huggingface.co/inclusionAI/LingSante-3.1-air-VL/blob/1f398c937d6069994a156689636832c47d8c09be/README.md",
+    "checkpoint": "https://huggingface.co/inclusionAI/LingSante-3.1-air-VL/tree/1f398c937d6069994a156689636832c47d8c09be",
+    "generation_config": "https://huggingface.co/inclusionAI/LingSante-3.1-air-VL/blob/1f398c937d6069994a156689636832c47d8c09be/generation_config.json",
+    "gguf_release": "https://huggingface.co/mradermacher/LingSante-3.1-air-VL-GGUF/tree/fb099ea4aa08df3a48516769fcbfd21f5a90cc0d",
+    "llama_cpp_release": "https://github.com/ggml-org/llama.cpp/releases/tag/b12655",
+    "humaneval": "https://github.com/openai/human-eval"
+  },
+  "weights": {
+    "llama_cpp": {
+      "format": "Q8_0 GGUF",
+      "file_bytes": 132356854976,
+      "file_gib": 123.26692694425583,
+      "scope": "Text model only. No vision projector loaded.",
+      "file_size_basis": "Verified byte lengths of three published file parts assembled as a single GGUF.",
+      "source_revision": "fb099ea4aa08df3a48516769fcbfd21f5a90cc0d",
+      "assembled_sha256": "0279b909d11c815b55ec38ce9be69e6802a463bda7b58739921268d59b72682d",
+      "parts": [
+        {
+          "file": "LingSante-3.1-air-VL.Q8_0.gguf.part1of3",
+          "bytes": 45097156608,
+          "sha256": "ac3f4c55bb021f4cd56f5485aa677cab6aed0e906fdc5ba7fdd38fe531f6473f"
+        },
+        {
+          "file": "LingSante-3.1-air-VL.Q8_0.gguf.part2of3",
+          "bytes": 45097156608,
+          "sha256": "651ea88cdd215b749aff465ce44bd497f5c5f0515997e9eec0a769d7417c0825"
+        },
+        {
+          "file": "LingSante-3.1-air-VL.Q8_0.gguf.part3of3",
+          "bytes": 42162541760,
+          "sha256": "d22722cb18d5246e7faf4ceb44e5dc51d0f54ba33fbd56076c15ed5c76b3b7f4"
+        }
+      ]
+    },
+    "ciru_rcs": {
+      "format": "W8+BF16",
+      "file_bytes": 126989171158,
+      "file_gib": 118.26788183115423,
+      "scope": "Int8 routed expert weights, BF16 dense weights and vision encoder. Includes scale tensors and file headers.",
+      "file_size_basis": "Sum of the byte lengths of all weight shards in the Ciru RCS conversion.",
+      "source_revision": "1f398c937d6069994a156689636832c47d8c09be",
+      "weight_shards": 43,
+      "text_tensor_bytes": 126119865216,
+      "vision_tensor_bytes": 869180608,
+      "effective_bits_per_parameter": 8.137171777913503
+    }
+  },
+  "runtimes": {
+    "llama_cpp": {
+      "build": "b12655",
+      "commit": "969d73331",
+      "backend": "Metal",
+      "gpu_layers": "all",
+      "kv_cache": "F16",
+      "flash_attention": true,
+      "batch_tokens": 4096,
+      "microbatch_tokens": 2048
+    },
+    "ciru_rcs": {
+      "backend": "Metal 4.1",
+      "paired_build": "bffa584a627e8f311c97a99dc0eedb65571fb1ed",
+      "extended_build": "8f95304385851eec6c08425d8bf306c7058b8fb3",
+      "prefill_chunk_tokens": 4096
+    }
+  },
+  "methodology": {
+    "active_requests": 1,
+    "speculative_decoding": false,
+    "cached_prompt_tokens": 0,
+    "paired_workload": "One request per engine at each matched length. Identical tokenized inventory records followed by the same counting exercise. Each engine prefills and generates 512 tokens in that request. The 32K pair supplies the plain decode baseline.",
+    "paired_sampler": {
+      "temperature": 0,
+      "max_output_tokens": 512
+    },
+    "sampled_workload_settings": {
+      "enable_thinking": false,
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "top_k": 20,
+      "min_p": 0.0,
+      "seed": 15035,
+      "max_output_tokens": 1024
+    },
+    "prefill_rate": "Uncached input tokens divided by runtime-reported prompt duration through the first output token.",
+    "decode_rate": "Generated tokens after the first divided by runtime-reported generation seconds after the first token.",
+    "humaneval_aggregation": "Sum of generated tokens after the first token of each case divided by the sum of native generation durations. HumanEval measures generation speed here.",
+    "units": {
+      "K": "1,024 tokens",
+      "GiB": "1,073,741,824 bytes",
+      "GB": "1,000,000,000 bytes",
+      "decode_speedup": "Ciru RCS decode tokens per second divided by llama.cpp decode tokens per second."
+    }
+  },
+  "paired": [
+    {
+      "prompt_tokens": 2048,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 3065.48737207802,
+        "decode_tokens_per_second": 52.26580979377405,
+        "time_to_first_token_seconds": 0.668083,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 4193.518168258579,
+        "decode_tokens_per_second": 103.58260419312401,
+        "time_to_first_token_seconds": 0.4883727499982342,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 1.9818425200304248
+    },
+    {
+      "prompt_tokens": 4096,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 3055.678855314054,
+        "decode_tokens_per_second": 54.05261890227487,
+        "time_to_first_token_seconds": 1.340455,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 4958.0767076321545,
+        "decode_tokens_per_second": 102.68760781334957,
+        "time_to_first_token_seconds": 0.8261267909983872,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 1.8997711840568716
+    },
+    {
+      "prompt_tokens": 8192,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 2964.6539566296315,
+        "decode_tokens_per_second": 48.80568850834248,
+        "time_to_first_token_seconds": 2.763223,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 4483.950561851274,
+        "decode_tokens_per_second": 100.73392267997222,
+        "time_to_first_token_seconds": 1.826960375008639,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 2.0639791335543505
+    },
+    {
+      "prompt_tokens": 16384,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 2662.5294322120235,
+        "decode_tokens_per_second": 47.12665727207667,
+        "time_to_first_token_seconds": 6.153547,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 3369.877591463249,
+        "decode_tokens_per_second": 97.42202526878161,
+        "time_to_first_token_seconds": 4.861897666996811,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 2.0672381812767737
+    },
+    {
+      "prompt_tokens": 32768,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 2157.2559819777484,
+        "decode_tokens_per_second": 45.6005426375336,
+        "time_to_first_token_seconds": 15.189667,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 2424.610701275609,
+        "decode_tokens_per_second": 91.27898311462303,
+        "time_to_first_token_seconds": 13.514746917004231,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 2.001708265626903
+    },
+    {
+      "prompt_tokens": 65536,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 1579.9076707704426,
+        "decode_tokens_per_second": 39.33038291321917,
+        "time_to_first_token_seconds": 41.480905,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 1562.0987263326404,
+        "decode_tokens_per_second": 81.05302899956035,
+        "time_to_first_token_seconds": 41.95381437501055,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 2.0608248126747317
+    },
+    {
+      "prompt_tokens": 130560,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 998.9563905036831,
+        "decode_tokens_per_second": 34.321554547461574,
+        "time_to_first_token_seconds": 130.696396,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 937.4542314750119,
+        "decode_tokens_per_second": 66.56927345728643,
+        "time_to_first_token_seconds": 139.27079916698858,
+        "finish_reason": "length"
+      },
+      "decode_speedup": 1.9395762906144325
+    }
+  ],
+  "extended": [
+    {
+      "prompt_tokens": 131072,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 999.8480531816764,
+        "decode_tokens_per_second": 34.29072454690444,
+        "time_to_first_token_seconds": 131.091919,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": null,
+      "decode_speedup": null,
+      "note": "The original RCS profile had 131,072 positions for input and output combined and rejected this request. The extended RCS build was tested at 262,144 input tokens only. An exact 131,072-token RCS timing is unavailable."
+    },
+    {
+      "prompt_tokens": 262144,
+      "llama_cpp": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 532.9385931597841,
+        "decode_tokens_per_second": 21.569506171854595,
+        "time_to_first_token_seconds": 491.884062,
+        "finish_reason": "limit"
+      },
+      "ciru_rcs": {
+        "generated_tokens": 512,
+        "prefill_tokens_per_second": 521.2609502640761,
+        "decode_tokens_per_second": 48.63382185217948,
+        "time_to_first_token_seconds": 502.9035838330019,
+        "finish_reason": "length"
+      },
+      "decode_speedup": null,
+      "note": "Separate cold requests with 2× YaRN, a 263,168-token slot and 512 generated tokens each. llama.cpp used the original raw inventory and counting prompt at /completion. The follow-up RCS build used /v1/chat/completions with the same task and a shorter inventory prefix to make the rendered chat exactly 262,144 tokens. The differing rendered prompts preclude a matched speedup."
+    }
+  ],
+  "humaneval": {
+    "aggregate": {
+      "llama_cpp": {
+        "cases_completed": 10,
+        "generated_tokens": 2481,
+        "decode_tokens_per_second": 54.72263419834663,
+        "total_client_wall_seconds": 47.093438335024985
+      },
+      "ciru_rcs": {
+        "cases_completed": 10,
+        "generated_tokens": 1700,
+        "decode_tokens_per_second": 100.29208783978235,
+        "total_client_wall_seconds": 18.976562249998096
+      },
+      "decode_speedup": 1.832735015574461
+    },
+    "cases": [
+      {
+        "task": "HumanEval/0",
+        "prompt_tokens": 186,
+        "llama_cpp": {
+          "generated_tokens": 198,
+          "prefill_tokens_per_second": 956.0966582879702,
+          "decode_tokens_per_second": 55.03022332493727,
+          "time_to_first_token_seconds": 0.194541,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 201,
+          "prefill_tokens_per_second": 819.5666406245358,
+          "decode_tokens_per_second": 100.4067645207261,
+          "time_to_first_token_seconds": 0.22694920800859109,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.82457490546338
+      },
+      {
+        "task": "HumanEval/1",
+        "prompt_tokens": 179,
+        "llama_cpp": {
+          "generated_tokens": 1024,
+          "prefill_tokens_per_second": 898.2832251880624,
+          "decode_tokens_per_second": 52.19988852797999,
+          "time_to_first_token_seconds": 0.199269,
+          "finish_reason": "limit"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 234,
+          "prefill_tokens_per_second": 833.9860982828416,
+          "decode_tokens_per_second": 100.60002913238375,
+          "time_to_first_token_seconds": 0.2146318750019418,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.9272077387379958
+      },
+      {
+        "task": "HumanEval/2",
+        "prompt_tokens": 145,
+        "llama_cpp": {
+          "generated_tokens": 97,
+          "prefill_tokens_per_second": 774.307928913192,
+          "decode_tokens_per_second": 55.56246870993787,
+          "time_to_first_token_seconds": 0.187264,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 96,
+          "prefill_tokens_per_second": 751.5585146627683,
+          "decode_tokens_per_second": 99.86828771134428,
+          "time_to_first_token_seconds": 0.19293241600098554,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.7974055154515103
+      },
+      {
+        "task": "HumanEval/3",
+        "prompt_tokens": 179,
+        "llama_cpp": {
+          "generated_tokens": 159,
+          "prefill_tokens_per_second": 913.3212237483928,
+          "decode_tokens_per_second": 62.92170986162402,
+          "time_to_first_token_seconds": 0.195988,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 158,
+          "prefill_tokens_per_second": 817.1827510257774,
+          "decode_tokens_per_second": 100.15111444417558,
+          "time_to_first_token_seconds": 0.21904525000718422,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.5916782087522034
+      },
+      {
+        "task": "HumanEval/4",
+        "prompt_tokens": 182,
+        "llama_cpp": {
+          "generated_tokens": 187,
+          "prefill_tokens_per_second": 945.7001818654197,
+          "decode_tokens_per_second": 53.59387254916086,
+          "time_to_first_token_seconds": 0.19244999999999998,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 188,
+          "prefill_tokens_per_second": 825.8139457370273,
+          "decode_tokens_per_second": 100.4048701282764,
+          "time_to_first_token_seconds": 0.22038862499175593,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.873439357011877
+      },
+      {
+        "task": "HumanEval/5",
+        "prompt_tokens": 158,
+        "llama_cpp": {
+          "generated_tokens": 162,
+          "prefill_tokens_per_second": 855.4597825616148,
+          "decode_tokens_per_second": 59.67420847351521,
+          "time_to_first_token_seconds": 0.184696,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 164,
+          "prefill_tokens_per_second": 781.4916734938989,
+          "decode_tokens_per_second": 99.92908406906538,
+          "time_to_first_token_seconds": 0.20217745800619014,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.6745774535646538
+      },
+      {
+        "task": "HumanEval/6",
+        "prompt_tokens": 179,
+        "llama_cpp": {
+          "generated_tokens": 215,
+          "prefill_tokens_per_second": 881.3262236402219,
+          "decode_tokens_per_second": 52.18771384159614,
+          "time_to_first_token_seconds": 0.203103,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 218,
+          "prefill_tokens_per_second": 822.7218304056541,
+          "decode_tokens_per_second": 100.4537081997815,
+          "time_to_first_token_seconds": 0.21757049999723677,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.9248535872769927
+      },
+      {
+        "task": "HumanEval/7",
+        "prompt_tokens": 157,
+        "llama_cpp": {
+          "generated_tokens": 117,
+          "prefill_tokens_per_second": 822.2435202497106,
+          "decode_tokens_per_second": 63.64314193024163,
+          "time_to_first_token_seconds": 0.190941,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 116,
+          "prefill_tokens_per_second": 778.1087152275747,
+          "decode_tokens_per_second": 100.27376918766262,
+          "time_to_first_token_seconds": 0.20177129098738078,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.5755628359387304
+      },
+      {
+        "task": "HumanEval/8",
+        "prompt_tokens": 177,
+        "llama_cpp": {
+          "generated_tokens": 160,
+          "prefill_tokens_per_second": 937.3808414184637,
+          "decode_tokens_per_second": 59.96691636538634,
+          "time_to_first_token_seconds": 0.18882400000000002,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 159,
+          "prefill_tokens_per_second": 830.3931707369543,
+          "decode_tokens_per_second": 100.3815345196857,
+          "time_to_first_token_seconds": 0.21315204199345317,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.6739485803813516
+      },
+      {
+        "task": "HumanEval/9",
+        "prompt_tokens": 161,
+        "llama_cpp": {
+          "generated_tokens": 162,
+          "prefill_tokens_per_second": 880.7102572658596,
+          "decode_tokens_per_second": 53.75055336361615,
+          "time_to_first_token_seconds": 0.182807,
+          "finish_reason": "eos"
+        },
+        "ciru_rcs": {
+          "generated_tokens": 166,
+          "prefill_tokens_per_second": 786.0341437687915,
+          "decode_tokens_per_second": 100.0469058089114,
+          "time_to_first_token_seconds": 0.20482570798776578,
+          "finish_reason": "stop"
+        },
+        "decode_speedup": 1.8613186199610987
+      }
+    ]
+  },
+  "prose": {
+    "prompt": "Tell me a story about your favorite movie",
+    "prompt_tokens": 29,
+    "llama_cpp": {
+      "generated_tokens": 657,
+      "prefill_tokens_per_second": 202.98315239835094,
+      "decode_tokens_per_second": 50.11565945523209,
+      "time_to_first_token_seconds": 0.142869,
+      "finish_reason": "eos"
+    },
+    "ciru_rcs": {
+      "generated_tokens": 770,
+      "prefill_tokens_per_second": 570.028312264568,
+      "decode_tokens_per_second": 98.63381846556831,
+      "time_to_first_token_seconds": 0.050874666005256586,
+      "finish_reason": "stop"
+    },
+    "decode_speedup": 1.9681237269495993
+  }
+}

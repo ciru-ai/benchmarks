@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080808">
+  <meta name="color-scheme" content="dark">
+  <title>LingSante 3.1 Air VL on Apple M5 Ultra | Ciru Inference Lab</title>
+  <meta name="description" content="One 124B model, one Mac Studio. Ciru RCS generates 91.3 tokens/s after 32K input tokens versus 45.6 on llama.cpp. Explore the context sweep, coding, prose and quant sizes.">
+  <link rel="canonical" href="https://llm.ciru.ai/research/lingsante-31-air-vl/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="LingSante 3.1 Air VL at 2× the decode speed">
+  <meta property="og:description" content="91.3 vs 45.6 tokens/s after 32K input tokens. Ciru RCS and llama.cpp on the same Apple M5 Ultra, with speculation off.">
+  <meta property="og:url" content="https://llm.ciru.ai/research/lingsante-31-air-vl/">
+  <meta property="og:image" content="https://llm.ciru.ai/research/lingsante-31-air-vl/preview.png">
+  <meta property="og:image:alt" content="LingSante 3.1 Air VL on Apple M5 Ultra. At 32K, Ciru RCS generated 91.3 tokens per second and llama.cpp generated 45.6.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="page.css">
+  <link rel="stylesheet" href="chart.css">
+  <script src="chart.js" defer></script>
+</head>
+<body id="top">
+  <a class="skip" href="#results">Skip to benchmark results</a>
+  <header class="mast">
+    <div class="wrap mast-inner">
+      <a href="/research/" class="brand" aria-label="Ciru Inference Lab research index"><b>Ciru</b><span>Inference Lab</span></a>
+      <nav aria-label="Report navigation"><a href="#results">Benchmarks</a><a href="#model">Model &amp; weights</a><a class="data-link" href="results.json" download>Results JSON <span aria-hidden="true">↓</span></a></nav>
+    </div>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><i aria-hidden="true"></i> Apple silicon benchmark</div>
+          <h1 id="title">LingSante<br><span>3.1 Air VL</span></h1>
+          <p>A 124B vision-language model on one Mac Studio. After reading 32,768 tokens, LingSante generated text <strong>twice as fast on Ciru RCS</strong> as it did on llama.cpp.</p>
+          <a class="jump" href="#results">Explore the measurements <span aria-hidden="true">↓</span></a>
+        </div>
+        <figure class="headline-figure" aria-label="32K single-stream decode comparison">
+          <figcaption>Decode speed <span>/</span> 32K input</figcaption>
+          <div class="big-ratio">2.00<span>×</span></div>
+          <div class="meter"><div><span><i class="swatch rcs"></i>Ciru RCS</span><strong>91.3 <small>tok/s</small></strong></div><div class="track"><i style="width:91.3%"></i></div></div>
+          <div class="meter llama"><div><span><i class="swatch cpp"></i>llama.cpp</span><strong>45.6 <small>tok/s</small></strong></div><div class="track"><i style="width:45.6%"></i></div></div>
+        </figure>
+      </div>
+      <div class="wrap runline"><span>Apple M5 Ultra</span><span>512 GiB unified memory</span><span>Single stream</span><span>Plain decode</span><time datetime="2026-11-23">23 Nov 2026</time></div>
+    </section>
+    <div class="wrap body-content">
+      <section id="results" class="major" aria-labelledby="sweep-heading">
+        <div class="eyebrow"><i aria-hidden="true"></i> Context sweep</div>
+        <h2 id="sweep-heading">Speed as the prompt grows</h2>
+        <p class="intro">Ciru RCS generated tokens 1.90–2.07× as fast across all seven matched prompts. It led on prefill through 32K. llama.cpp read the two longest matched prompts faster.</p>
+        <div id="context-chart" hidden></div>
+        <details class="disclosure sweep-table">
+          <summary>All seven matched measurements</summary>
+          <div class="table-scroll" role="region" tabindex="0" aria-label="Matched prefill and decode rates">
+            <table id="matched">
+              <caption>Tokens per second · 512 generated tokens per request</caption>
+              <thead><tr><th rowspan="2" scope="col">Input tokens</th><th colspan="2" scope="colgroup">Prefill · tok/s</th><th colspan="2" scope="colgroup">Decode · tok/s</th><th rowspan="2" scope="col">Decode gain</th></tr><tr><th scope="col">Ciru RCS</th><th scope="col">llama.cpp</th><th scope="col">Ciru RCS</th><th scope="col">llama.cpp</th></tr></thead>
+              <tbody>
+                <tr data-prompt="2048" data-rcs-decode="103.58260419312401" data-llama-decode="52.26580979377405" data-rcs-prefill="4193.518168258579" data-llama-prefill="3065.48737207802"><th scope="row">2,048</th><td>4,193.5</td><td>3,065.5</td><td>103.6</td><td>52.3</td><td>1.98×</td></tr>
+                <tr data-prompt="4096" data-rcs-decode="102.68760781334957" data-llama-decode="54.05261890227487" data-rcs-prefill="4958.0767076321545" data-llama-prefill="3055.678855314054"><th scope="row">4,096</th><td>4,958.1</td><td>3,055.7</td><td>102.7</td><td>54.1</td><td>1.90×</td></tr>
+                <tr data-prompt="8192" data-rcs-decode="100.73392267997222" data-llama-decode="48.80568850834248" data-rcs-prefill="4483.950561851274" data-llama-prefill="2964.6539566296315"><th scope="row">8,192</th><td>4,484.0</td><td>2,964.7</td><td>100.7</td><td>48.8</td><td>2.06×</td></tr>
+                <tr data-prompt="16384" data-rcs-decode="97.42202526878161" data-llama-decode="47.12665727207667" data-rcs-prefill="3369.877591463249" data-llama-prefill="2662.5294322120235"><th scope="row">16,384</th><td>3,369.9</td><td>2,662.5</td><td>97.4</td><td>47.1</td><td>2.07×</td></tr>
+                <tr data-prompt="32768" data-rcs-decode="91.27898311462303" data-llama-decode="45.6005426375336" data-rcs-prefill="2424.610701275609" data-llama-prefill="2157.2559819777484"><th scope="row">32,768</th><td>2,424.6</td><td>2,157.3</td><td>91.3</td><td>45.6</td><td>2.00×</td></tr>
+                <tr data-prompt="65536" data-rcs-decode="81.05302899956035" data-llama-decode="39.33038291321917" data-rcs-prefill="1562.0987263326404" data-llama-prefill="1579.9076707704426"><th scope="row">65,536</th><td>1,562.1</td><td>1,579.9</td><td>81.1</td><td>39.3</td><td>2.06×</td></tr>
+                <tr data-prompt="130560" data-rcs-decode="66.56927345728643" data-llama-decode="34.321554547461574" data-rcs-prefill="937.4542314750119" data-llama-prefill="998.9563905036831"><th scope="row">130,560</th><td>937.5</td><td>999.0</td><td>66.6</td><td>34.3</td><td>1.94×</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <div class="extension">
+          <div><h3>At 256K input</h3><p>Each engine read 262,144 uncached tokens and generated another 512 using 2× YaRN. Ciru’s follow-up used a chat-formatted prompt. llama.cpp used a raw completion, so these are separate observations.</p></div>
+          <div class="table-scroll" role="region" tabindex="0" aria-label="Extended context results">
+            <table><caption>262,144 input tokens</caption><thead><tr><th scope="col">Runtime</th><th scope="col">Prefill · tok/s</th><th scope="col">Decode · tok/s</th></tr></thead><tbody>
+              <tr><th scope="row">Ciru RCS</th><td>521.3</td><td>48.6</td></tr>
+              <tr><th scope="row">llama.cpp</th><td>532.9</td><td>21.6</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <p class="fine">The last matched input was 130,560 tokens, leaving 512 positions in the original 128K slot. At exactly 131,072 input tokens, llama.cpp measured 999.8 prefill and 34.3 decode tok/s. The extended Ciru run measured the 256K endpoint only.</p>
+      </section>
+      <section class="major" aria-labelledby="work-heading">
+        <div class="eyebrow"><i aria-hidden="true"></i> Sampled generation</div>
+        <h2 id="work-heading">Coding and storytelling</h2>
+        <p class="intro">With thinking off and the publisher’s sampling settings, Ciru RCS sustained about 100 tokens per second on both workloads.</p>
+        <div class="work-grid">
+          <article class="work-card"><div class="work-head"><h3>HumanEval 0–9</h3><span>1.83×</span></div><p>Ten Python prompts, measured for generation speed.</p>
+            <dl class="work-rates"><div><dt><i class="swatch rcs"></i>Ciru RCS</dt><dd>100.3 <small>tok/s</small></dd></div><div><dt><i class="swatch cpp"></i>llama.cpp</dt><dd>54.7 <small>tok/s</small></dd></div></dl>
+            <p class="sample-count">Across ten answers, Ciru generated 1,700 tokens and llama.cpp generated 2,481.</p>
+          </article>
+          <article class="work-card"><div class="work-head"><h3>Movie-story prompt</h3><span>1.97×</span></div><p>“Tell me a story about your favorite movie”</p>
+            <dl class="work-rates"><div><dt><i class="swatch rcs"></i>Ciru RCS</dt><dd>98.6 <small>tok/s</small></dd></div><div><dt><i class="swatch cpp"></i>llama.cpp</dt><dd>50.1 <small>tok/s</small></dd></div></dl>
+            <p class="sample-count">Ciru’s story ran to 770 tokens and llama.cpp’s to 657. Both reached a natural stop.</p>
+          </article>
+        </div>
+        <details class="disclosure">
+          <summary>HumanEval results by prompt</summary>
+          <div class="table-scroll" role="region" tabindex="0" aria-label="HumanEval workload timing by prompt">
+            <table><caption>Native decode throughput and generated token counts</caption>
+              <thead><tr><th scope="col">Task</th><th scope="col">RCS tok/s</th><th scope="col">llama.cpp tok/s</th><th scope="col">RCS tokens</th><th scope="col">llama.cpp tokens</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">HumanEval/0</th><td>100.4</td><td>55.0</td><td>201</td><td>198</td></tr>
+                <tr><th scope="row">HumanEval/1</th><td>100.6</td><td>52.2</td><td>234</td><td>1,024</td></tr>
+                <tr><th scope="row">HumanEval/2</th><td>99.9</td><td>55.6</td><td>96</td><td>97</td></tr>
+                <tr><th scope="row">HumanEval/3</th><td>100.2</td><td>62.9</td><td>158</td><td>159</td></tr>
+                <tr><th scope="row">HumanEval/4</th><td>100.4</td><td>53.6</td><td>188</td><td>187</td></tr>
+                <tr><th scope="row">HumanEval/5</th><td>99.9</td><td>59.7</td><td>164</td><td>162</td></tr>
+                <tr><th scope="row">HumanEval/6</th><td>100.5</td><td>52.2</td><td>218</td><td>215</td></tr>
+                <tr><th scope="row">HumanEval/7</th><td>100.3</td><td>63.6</td><td>116</td><td>117</td></tr>
+                <tr><th scope="row">HumanEval/8</th><td>100.4</td><td>60.0</td><td>159</td><td>160</td></tr>
+                <tr><th scope="row">HumanEval/9</th><td>100.0</td><td>53.8</td><td>166</td><td>162</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+      <section id="model" class="major" aria-labelledby="model-heading">
+        <div class="eyebrow"><i aria-hidden="true"></i> Model &amp; weights</div>
+        <h2 id="model-heading">Inside LingSante Air</h2>
+        <p class="intro">Ant Group’s healthcare team built LingSante on Ling-3.0-flash-VL and released it under the MIT license. It accepts text and images for tasks that include interpreting medical reports, documents and charts.</p>
+        <dl class="model-stats">
+          <div><dt>Total parameters</dt><dd>124<span>B</span></dd></div>
+          <div><dt>Active per token</dt><dd>5.5<span>B</span></dd></div>
+          <div><dt>Routed experts per token in each MoE layer</dt><dd>8<span> / 512</span></dd></div>
+          <div><dt>Context with 2× YaRN</dt><dd>256<span>K</span></dd></div>
+        </dl>
+        <div class="quant-grid">
+          <article class="quant"><div class="quant-label"><i class="swatch rcs"></i>Ciru RCS · Metal 4.1</div><h3>W8 + BF16</h3><div class="weight-num">118.27 <span>GiB on disk</span></div><p>126.99 GB across 43 weight shards. Routed experts use int8 and dense weights use BF16. The pack includes 0.81 GiB of vision tensors.</p></article>
+          <article class="quant"><div class="quant-label"><i class="swatch cpp"></i>llama.cpp · Metal b12655</div><h3>Q8_0 GGUF</h3><div class="weight-num">123.27 <span>GiB on disk</span></div><p>132.36 GB for mradermacher’s text weights. All layers ran on the GPU. The separate vision projector is excluded from this size.</p></article>
+        </div>
+        <div class="source-links"><a href="https://huggingface.co/inclusionAI/LingSante-3.1-air-VL">Publisher model card ↗</a><a href="https://huggingface.co/inclusionAI/LingSante-3.1-air-VL/blob/1f398c937d6069994a156689636832c47d8c09be/config.json">Model configuration ↗</a><a href="https://huggingface.co/mradermacher/LingSante-3.1-air-VL-GGUF/tree/fb099ea4aa08df3a48516769fcbfd21f5a90cc0d">GGUF weights ↗</a></div>
+      </section>
+      <section id="method" class="major method" aria-labelledby="method-heading">
+        <div><div class="eyebrow"><i aria-hidden="true"></i> Method</div><h2 id="method-heading">How we timed it</h2><a class="download" href="results.json" download>Download results JSON <span aria-hidden="true">↓</span></a></div>
+        <div class="method-copy">
+          <p><strong>One machine, one request at a time.</strong> Both engines served the same model on the same M5 Ultra Mac Studio. llama.cpp ran first, followed by Ciru RCS. Every reported request used plain decode with zero draft tokens.</p>
+          <p><strong>Prefill and decode in one request.</strong> For each matched length, both engines read identical uncached input tokens and generated 512 tokens greedily. Rates use each engine’s native timings. Prefill measures input processing. Decode measures generation after the first token.</p>
+          <p><strong>Sampled workloads.</strong> HumanEval and prose used temperature 1.0, top-p 0.95, top-k 20, min-p 0, seed 15035 and a 1,024-token output cap. HumanEval pools generated tokens and decode time across all ten cases. Output lengths can differ. The ten cases measure throughput only.</p>
+          <div class="source-links"><a href="https://github.com/ggml-org/llama.cpp/releases/tag/b12655">llama.cpp build ↗</a><a href="https://huggingface.co/inclusionAI/LingSante-3.1-air-VL/blob/1f398c937d6069994a156689636832c47d8c09be/generation_config.json">Publisher sampling settings ↗</a></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="wrap foot"><a class="brand" href="/research/"><b>Ciru</b><span>Inference Lab</span></a><a href="#top">Back to top ↑</a></footer>
+</body>
+</html>
