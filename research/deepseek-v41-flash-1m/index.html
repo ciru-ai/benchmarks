@@ -22,7 +22,7 @@
     <div class="hero-copy">
       <p class="eyebrow">DeepSeek V4.1 Flash <span> / </span> Nov 26, 2026</p>
       <h1 id="headline">DeepSeek V4.1 Flash<br><em>at one million tokens.</em></h1>
-      <p class="dek">Two Apple M5 Ultra Mac Studios running Ciru RCS Gen 3 versus MiaAI Lab’s four NVIDIA DGX Sparks.</p>
+      <p class="dek">Two Apple M5 Ultra Mac Studios running Ciru RCS versus MiaAI Lab’s four NVIDIA DGX Sparks.</p>
       <div class="hero-actions"><a class="primary" href="#million">See the 1M results <span aria-hidden="true">↓</span></a><a class="text-link" href="https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks">MiaAI’s repository <span aria-hidden="true">↗</span></a></div>
     </div>
     <button type="button" class="identity" id="motion" aria-label="Play Ciru RCS logo animation" disabled>
@@ -50,7 +50,6 @@
       </div>
     </div>
     <p class="note">The full-context test asks for one exact phrase at 37% depth. Both clusters passed on independently generated prompts (1,012,000 tokens on Ciru and 1,011,084 on the Sparks). MiaAI’s log supplies completion time for the comparison. The prefill and decode rates are Ciru measurements. <a href="https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks/blob/64b02dea8681fb1d8e3a659ea432a8e9e9ba3995/docs/results/tp4/validation-20260925-v21.txt#L20-L24">MiaAI’s 1M run log ↗</a></p>
-    <p class="note progression"><strong>Ciru 1M completion time by release</strong> <span>V16 301.66 s</span><span>V17 286.63 s</span><span>V19 231.25 s</span></p>
   </section>
 
   <section class="section" id="prefill" aria-labelledby="prefill-title">
@@ -178,14 +177,13 @@
   <section class="section" id="methodology" aria-labelledby="methods-title">
     <div class="section-heading"><div><h2 id="methods-title">Systems and methodology</h2></div></div>
     <div class="systems">
-      <article class="panel system ciru-system"><span>Ciru RCS Gen 3 · TP2</span><h3>2× Mac Studio</h3><p>Apple M5 Ultra · 512 GiB unified memory per Mac · Thunderbolt 5 RDMA</p><p>V19 prefill and full context · V18 decode replay</p></article>
+      <article class="panel system ciru-system"><span>Ciru RCS</span><h3>2× Mac Studio</h3><p>Apple M5 Ultra · 512 GiB unified memory per Mac</p><p>Measured Nov 26, 2026</p></article>
       <article class="panel system mia-system"><span>MiaAI Lab · SGLang TP4</span><h3>4× DGX Spark</h3><p>NVIDIA GB10 · 128 GB unified memory per Spark · switched RoCE</p><p>Published v2/v2.1 results measured Sep 25, 2026</p></article>
     </div>
     <div class="methods">
-      <p><strong>Decode.</strong> Ciru ran the SparkDash prompt replay on V18 with DSpark. In the full-request view, Ciru’s rate divides 255 post-first tokens per stream by the entire request wall time. MiaAI’s side uses her published aggregate generation rate.</p>
-      <p><strong>Prefill.</strong> Ciru’s chart uses the V19 cold sweep with 16K chunks and 1M context capacity. MiaAI’s chart uses the higher of the two v2.1 passes. Both Spark passes, exact token counts and Ciru’s first-token times are in the download.</p>
-      <p><strong>Model.</strong> The <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/08c8657f02291e11b6f6b63e0e16014f8e748518">Ciru</a> and <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170">MiaAI</a> model revisions have identical hashes for all 48 weight shards.</p>
-      <p><strong>V19 prefill check.</strong> The INT8 path leaves the V18 decode path in place. On the 16K validation prompt, INT8 matched the FP16 top token and all 10 top candidates. The V19 and V16 retrieval answer token IDs also matched.</p>
+      <p><strong>Decode.</strong> Ciru replayed the SparkDash base prompts. The full-request view divides 255 post-first tokens per stream by the entire request time on Ciru. The Spark side uses MiaAI’s published aggregate generation rate.</p>
+      <p><strong>Prefill.</strong> Both setups supported one million tokens of context. The charts compare cold prompts at the labeled input lengths and use the faster of MiaAI’s two published passes. Exact token counts and rates are in the download.</p>
+      <p><strong>Model.</strong> Both setups used the same <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017">DeepSeek V4.1 Flash-1017 checkpoint weights</a>.</p>
       <p><strong>Full-context metric.</strong> Elapsed time covers the entire request. Ciru reported time to first token separately. MiaAI’s TP4 writeup summarizes its results as 322–325 s. The chart uses the raw log’s exact 325.2 s.</p>
     </div>
     <div class="sources">

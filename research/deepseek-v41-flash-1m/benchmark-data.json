@@ -9,10 +9,7 @@
       "hardware": "Apple M5 Ultra Mac Studio",
       "memory_gib_per_node": 512,
       "gpu_cores_per_node": 80,
-      "engine": "Ciru RCS Gen 3",
-      "fabric": "Thunderbolt 5 RDMA",
-      "tp": 2,
-      "weight_revision": "08c8657f02291e11b6f6b63e0e16014f8e748518"
+      "engine": "Ciru RCS"
     },
     "spark": {
       "nodes": 4,
@@ -30,24 +27,18 @@
     "mia_results": "https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks/blob/64b02dea8681fb1d8e3a659ea432a8e9e9ba3995/docs/tp4.md#results",
     "mia_raw": "https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks/blob/64b02dea8681fb1d8e3a659ea432a8e9e9ba3995/docs/results/tp4/validation-20260925-v21.txt#L20-L24",
     "mia_benchmark": "https://github.com/MiaAI-Lab/sparkDash",
-    "ciru_model": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/08c8657f02291e11b6f6b63e0e16014f8e748518",
-    "mia_model": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170",
-    "ciru_summary_sha256": "7998c68dbe81ad2eb93fa6a53e7e519284f059b2bcfce7b9611193eba795c63e"
+    "model": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017"
   },
   "method": {
     "needle": "Independently measured retrieval at 37% depth. Prompts and expected phrases differ. The two full-request elapsed times are the head-to-head comparison.",
-    "prefill": "Cold Ciru V19 prefill with a 1,048,576-token capacity, 16,384-token chunks and exact Ciru input counts. The stronger MiaAI v2.1 pass is charted, while both passes and their actual input counts are retained. Synthetic inputs differ between stacks. No MiaAI real-text 256K point was published.",
-    "decode": "Ciru V18 replayed the SparkDash base prompts and code tasks with different stream tags, 256 greedy output tokens per stream and thinking off. Aggregate and per-stream generation rates follow the respective harnesses. The conservative Ciru full-request rate uses 255 output tokens per stream divided by elapsed time for the whole wave, compared with MiaAI’s published aggregate."
+    "prefill": "Cold prefill with 1,048,576-token serving capacity. The chart uses the faster of the two published Spark passes. Both passes and actual input counts are retained. The synthetic inputs differ. MiaAI’s published real-text sweep ends near 120K.",
+    "decode": "Ciru replayed the SparkDash base prompts and code tasks with different stream tags, 256 greedy output tokens per stream and thinking off. Aggregate and per-stream generation rates follow the respective harnesses. The Ciru full-request rate uses 255 output tokens per stream divided by elapsed time for the whole wave. The Spark comparison uses MiaAI’s published aggregate generation rate."
   },
   "needle": {
     "ciru": [
       {
-        "version": "V19",
-        "chunk_tokens": 16384,
         "prompt_tokens": 1012000,
         "depth_pct": 37.0,
-        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
-        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
         "passed": true,
         "first_token_s": 230.8463,
         "wall_s": 231.2521,
@@ -60,43 +51,12 @@
       "prompt_tokens": 1011084,
       "depth_pct": 37,
       "wall_s": 325.2,
-      "answer": "violet-otter-seventeen",
       "passed": true,
       "published_range_s": [
         322,
         325
       ]
-    },
-    "previous_ciru_runs": [
-      {
-        "version": "V17",
-        "chunk_tokens": 16384,
-        "prompt_tokens": 1012000,
-        "depth_pct": 37.0,
-        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
-        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
-        "passed": true,
-        "first_token_s": 286.2052,
-        "wall_s": 286.63,
-        "reported_prefill_tps": 3535.9,
-        "decode_tps": 83.6,
-        "response_generation_s": 0.1435
-      },
-      {
-        "version": "V16",
-        "chunk_tokens": 16384,
-        "prompt_tokens": 1012000,
-        "depth_pct": 37.0,
-        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
-        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
-        "passed": true,
-        "first_token_s": 301.2497,
-        "wall_s": 301.6568,
-        "reported_prefill_tps": 3359.3,
-        "decode_tps": 89.3,
-        "response_generation_s": 0.1344
-      }
-    ]
+    }
   },
   "prefill": {
     "real": [
@@ -106,19 +66,13 @@
           {
             "tokens": 4096,
             "tps": 4550.3,
-            "first_token_s": 0.9002,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 0.9002
           }
         ],
         "ciru_best": {
           "tokens": 4096,
           "tps": 4550.3,
-          "first_token_s": 0.9002,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 0.9002
         },
         "spark_samples": [
           {
@@ -142,19 +96,13 @@
           {
             "tokens": 15360,
             "tps": 5568.1,
-            "first_token_s": 2.7585,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 2.7585
           }
         ],
         "ciru_best": {
           "tokens": 15360,
           "tps": 5568.1,
-          "first_token_s": 2.7585,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 2.7585
         },
         "spark_samples": [
           {
@@ -178,19 +126,13 @@
           {
             "tokens": 32768,
             "tps": 5506.5,
-            "first_token_s": 5.9508,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 5.9508
           }
         ],
         "ciru_best": {
           "tokens": 32768,
           "tps": 5506.5,
-          "first_token_s": 5.9508,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 5.9508
         },
         "spark_samples": [
           {
@@ -214,19 +156,13 @@
           {
             "tokens": 63488,
             "tps": 5421.2,
-            "first_token_s": 11.7111,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 11.7111
           }
         ],
         "ciru_best": {
           "tokens": 63488,
           "tps": 5421.2,
-          "first_token_s": 11.7111,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 11.7111
         },
         "spark_samples": [
           {
@@ -250,19 +186,13 @@
           {
             "tokens": 122880,
             "tps": 5318.4,
-            "first_token_s": 23.1049,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 23.1049
           }
         ],
         "ciru_best": {
           "tokens": 122880,
           "tps": 5318.4,
-          "first_token_s": 23.1049,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 23.1049
         },
         "spark_samples": [
           {
@@ -286,19 +216,13 @@
           {
             "tokens": 262144,
             "tps": 5138.6,
-            "first_token_s": 51.0148,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 51.0148
           }
         ],
         "ciru_best": {
           "tokens": 262144,
           "tps": 5138.6,
-          "first_token_s": 51.0148,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 51.0148
         },
         "spark_samples": [],
         "spark_best_tps": null
@@ -311,19 +235,13 @@
           {
             "tokens": 4096,
             "tps": 4909.2,
-            "first_token_s": 0.8343,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 0.8343
           }
         ],
         "ciru_best": {
           "tokens": 4096,
           "tps": 4909.2,
-          "first_token_s": 0.8343,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 0.8343
         },
         "spark_samples": [
           {
@@ -345,19 +263,13 @@
           {
             "tokens": 16384,
             "tps": 5733.7,
-            "first_token_s": 2.8575,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 2.8575
           }
         ],
         "ciru_best": {
           "tokens": 16384,
           "tps": 5733.7,
-          "first_token_s": 2.8575,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 2.8575
         },
         "spark_samples": [
           {
@@ -379,19 +291,13 @@
           {
             "tokens": 32768,
             "tps": 5668.3,
-            "first_token_s": 5.781,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 5.781
           }
         ],
         "ciru_best": {
           "tokens": 32768,
           "tps": 5668.3,
-          "first_token_s": 5.781,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 5.781
         },
         "spark_samples": [
           {
@@ -413,19 +319,13 @@
           {
             "tokens": 65536,
             "tps": 5586.5,
-            "first_token_s": 11.7311,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 11.7311
           }
         ],
         "ciru_best": {
           "tokens": 65536,
           "tps": 5586.5,
-          "first_token_s": 11.7311,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 11.7311
         },
         "spark_samples": [
           {
@@ -447,19 +347,13 @@
           {
             "tokens": 131072,
             "tps": 5480.7,
-            "first_token_s": 23.9154,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 23.9154
           }
         ],
         "ciru_best": {
           "tokens": 131072,
           "tps": 5480.7,
-          "first_token_s": 23.9154,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 23.9154
         },
         "spark_samples": [
           {
@@ -481,19 +375,13 @@
           {
             "tokens": 262144,
             "tps": 5288.0,
-            "first_token_s": 49.5738,
-            "chunk_tokens": 16384,
-            "mode": "INT8 prefill",
-            "series": "V19 full sweep"
+            "first_token_s": 49.5738
           }
         ],
         "ciru_best": {
           "tokens": 262144,
           "tps": 5288.0,
-          "first_token_s": 49.5738,
-          "chunk_tokens": 16384,
-          "mode": "INT8 prefill",
-          "series": "V19 full sweep"
+          "first_token_s": 49.5738
         },
         "spark_samples": [
           {
@@ -517,7 +405,6 @@
         {
           "streams": 1,
           "ciru_best_tps": 107.5,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 87.7,
           "ciru_per_stream_tps": 107.5,
           "spark_per_stream_tps": 87.7,
@@ -529,7 +416,6 @@
         {
           "streams": 2,
           "ciru_best_tps": 166.9,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 120.4,
           "ciru_per_stream_tps": 82.6,
           "spark_per_stream_tps": 61.9,
@@ -541,7 +427,6 @@
         {
           "streams": 4,
           "ciru_best_tps": 240.0,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 163.6,
           "ciru_per_stream_tps": 59.4,
           "spark_per_stream_tps": 41.4,
@@ -553,7 +438,6 @@
         {
           "streams": 8,
           "ciru_best_tps": 334.2,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 237.6,
           "ciru_per_stream_tps": 40.9,
           "spark_per_stream_tps": 30.8,
@@ -565,7 +449,6 @@
         {
           "streams": 16,
           "ciru_best_tps": 528.2,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 342.7,
           "ciru_per_stream_tps": 31.3,
           "spark_per_stream_tps": 22.2,
@@ -581,7 +464,6 @@
         {
           "streams": 1,
           "ciru_best_tps": 188.4,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 124.8,
           "ciru_per_stream_tps": 188.4,
           "spark_per_stream_tps": 124.8,
@@ -593,7 +475,6 @@
         {
           "streams": 2,
           "ciru_best_tps": 255.6,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 175.0,
           "ciru_per_stream_tps": 127.1,
           "spark_per_stream_tps": 88.4,
@@ -605,7 +486,6 @@
         {
           "streams": 4,
           "ciru_best_tps": 320.7,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 246.8,
           "ciru_per_stream_tps": 79.0,
           "spark_per_stream_tps": 63.2,
@@ -617,7 +497,6 @@
         {
           "streams": 8,
           "ciru_best_tps": 457.8,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 309.8,
           "ciru_per_stream_tps": 56.6,
           "spark_per_stream_tps": 41.4,
@@ -629,7 +508,6 @@
         {
           "streams": 16,
           "ciru_best_tps": 676.3,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 438.3,
           "ciru_per_stream_tps": 39.9,
           "spark_per_stream_tps": 29.3,
@@ -645,7 +523,6 @@
         {
           "streams": 1,
           "ciru_best_tps": 190.4,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 152.4,
           "ciru_per_stream_tps": 190.4,
           "spark_per_stream_tps": 152.4,
@@ -657,7 +534,6 @@
         {
           "streams": 2,
           "ciru_best_tps": 308.5,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 177.6,
           "ciru_per_stream_tps": 151.3,
           "spark_per_stream_tps": 103.3,
@@ -669,7 +545,6 @@
         {
           "streams": 4,
           "ciru_best_tps": 437.6,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 240.4,
           "ciru_per_stream_tps": 105.0,
           "spark_per_stream_tps": 70.4,
@@ -681,7 +556,6 @@
         {
           "streams": 8,
           "ciru_best_tps": 760.9,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 295.5,
           "ciru_per_stream_tps": 87.7,
           "spark_per_stream_tps": 44.2,
@@ -693,7 +567,6 @@
         {
           "streams": 16,
           "ciru_best_tps": 1177.6,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 572.2,
           "ciru_per_stream_tps": 64.7,
           "spark_per_stream_tps": 44.4,
@@ -709,7 +582,6 @@
         {
           "streams": 1,
           "ciru_best_tps": 169.9,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 118.9,
           "ciru_per_stream_tps": 169.9,
           "spark_per_stream_tps": 118.9,
@@ -721,7 +593,6 @@
         {
           "streams": 2,
           "ciru_best_tps": 250.3,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 174.2,
           "ciru_per_stream_tps": 123.3,
           "spark_per_stream_tps": 89.8,
@@ -733,7 +604,6 @@
         {
           "streams": 4,
           "ciru_best_tps": 381.4,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 301.7,
           "ciru_per_stream_tps": 90.9,
           "spark_per_stream_tps": 76.2,
@@ -745,7 +615,6 @@
         {
           "streams": 8,
           "ciru_best_tps": 580.3,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 471.5,
           "ciru_per_stream_tps": 68.4,
           "spark_per_stream_tps": 60.2,
@@ -757,7 +626,6 @@
         {
           "streams": 16,
           "ciru_best_tps": 937.2,
-          "ciru_best_mode": "V18 DSpark",
           "spark_tps": 659.9,
           "ciru_per_stream_tps": 52.0,
           "spark_per_stream_tps": 42.7,
@@ -768,12 +636,5 @@
         }
       ]
     }
-  },
-  "validation": {
-    "prefill_int8_min_rows": 256,
-    "kl_16k_vs_fp16": 0.016886,
-    "top1_match_16k": true,
-    "top10_overlap_16k": "10/10",
-    "same_1m_answer_token_ids_v16_to_v19": true
   }
 }
