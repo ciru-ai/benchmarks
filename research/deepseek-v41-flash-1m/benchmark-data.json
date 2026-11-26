@@ -1,0 +1,779 @@
+{
+  "title": "DeepSeek V4.1 Flash head-to-head: 2× M5 Ultra vs 4× DGX Spark",
+  "measured_date": "2026-11-26",
+  "spark_measurement_date": "2026-09-25",
+  "systems": {
+    "ciru": {
+      "nodes": 2,
+      "model": "DeepSeek-V4.1-Flash-1017",
+      "hardware": "Apple M5 Ultra Mac Studio",
+      "memory_gib_per_node": 512,
+      "gpu_cores_per_node": 80,
+      "engine": "Ciru RCS Gen 3",
+      "fabric": "Thunderbolt 5 RDMA",
+      "tp": 2,
+      "weight_revision": "08c8657f02291e11b6f6b63e0e16014f8e748518"
+    },
+    "spark": {
+      "nodes": 4,
+      "model": "DeepSeek-V4.1-Flash",
+      "hardware": "NVIDIA DGX Spark",
+      "memory_gb_per_node": 128,
+      "engine": "SGLang / b12x",
+      "fabric": "Switched RoCE",
+      "tp": 4,
+      "weight_revision": "1bae0e1088993b9b82de08f59de5be5a34e42170"
+    }
+  },
+  "sources": {
+    "mia_repository": "https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks",
+    "mia_results": "https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks/blob/64b02dea8681fb1d8e3a659ea432a8e9e9ba3995/docs/tp4.md#results",
+    "mia_raw": "https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks/blob/64b02dea8681fb1d8e3a659ea432a8e9e9ba3995/docs/results/tp4/validation-20260925-v21.txt#L20-L24",
+    "mia_benchmark": "https://github.com/MiaAI-Lab/sparkDash",
+    "ciru_model": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/08c8657f02291e11b6f6b63e0e16014f8e748518",
+    "mia_model": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170",
+    "ciru_summary_sha256": "7998c68dbe81ad2eb93fa6a53e7e519284f059b2bcfce7b9611193eba795c63e"
+  },
+  "method": {
+    "needle": "Independently measured retrieval at 37% depth. Prompts and expected phrases differ. The two full-request elapsed times are the head-to-head comparison.",
+    "prefill": "Cold Ciru V19 prefill with a 1,048,576-token capacity, 16,384-token chunks and exact Ciru input counts. The stronger MiaAI v2.1 pass is charted, while both passes and their actual input counts are retained. Synthetic inputs differ between stacks. No MiaAI real-text 256K point was published.",
+    "decode": "Ciru V18 replayed the SparkDash base prompts and code tasks with different stream tags, 256 greedy output tokens per stream and thinking off. Aggregate and per-stream generation rates follow the respective harnesses. The conservative Ciru full-request rate uses 255 output tokens per stream divided by elapsed time for the whole wave, compared with MiaAI’s published aggregate."
+  },
+  "needle": {
+    "ciru": [
+      {
+        "version": "V19",
+        "chunk_tokens": 16384,
+        "prompt_tokens": 1012000,
+        "depth_pct": 37.0,
+        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "passed": true,
+        "first_token_s": 230.8463,
+        "wall_s": 231.2521,
+        "reported_prefill_tps": 4383.9,
+        "decode_tps": 92.2,
+        "response_generation_s": 0.1302
+      }
+    ],
+    "spark": {
+      "prompt_tokens": 1011084,
+      "depth_pct": 37,
+      "wall_s": 325.2,
+      "answer": "violet-otter-seventeen",
+      "passed": true,
+      "published_range_s": [
+        322,
+        325
+      ]
+    },
+    "previous_ciru_runs": [
+      {
+        "version": "V17",
+        "chunk_tokens": 16384,
+        "prompt_tokens": 1012000,
+        "depth_pct": 37.0,
+        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "passed": true,
+        "first_token_s": 286.2052,
+        "wall_s": 286.63,
+        "reported_prefill_tps": 3535.9,
+        "decode_tps": 83.6,
+        "response_generation_s": 0.1435
+      },
+      {
+        "version": "V16",
+        "chunk_tokens": 16384,
+        "prompt_tokens": 1012000,
+        "depth_pct": 37.0,
+        "expected_answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "answer": "OMEGA-SAPPHIRE-7394-KESTREL",
+        "passed": true,
+        "first_token_s": 301.2497,
+        "wall_s": 301.6568,
+        "reported_prefill_tps": 3359.3,
+        "decode_tps": 89.3,
+        "response_generation_s": 0.1344
+      }
+    ]
+  },
+  "prefill": {
+    "real": [
+      {
+        "nominal_tokens": 4096,
+        "ciru_samples": [
+          {
+            "tokens": 4096,
+            "tps": 4550.3,
+            "first_token_s": 0.9002,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 4096,
+          "tps": 4550.3,
+          "first_token_s": 0.9002,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 3732,
+            "seconds": 0.8,
+            "tps": 4685,
+            "run": 1
+          },
+          {
+            "tokens": 3818,
+            "seconds": 0.91,
+            "tps": 4202,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4685
+      },
+      {
+        "nominal_tokens": 15360,
+        "ciru_samples": [
+          {
+            "tokens": 15360,
+            "tps": 5568.1,
+            "first_token_s": 2.7585,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 15360,
+          "tps": 5568.1,
+          "first_token_s": 2.7585,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 16326,
+            "seconds": 3.32,
+            "tps": 4922,
+            "run": 1
+          },
+          {
+            "tokens": 13220,
+            "seconds": 2.74,
+            "tps": 4824,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4922
+      },
+      {
+        "nominal_tokens": 32768,
+        "ciru_samples": [
+          {
+            "tokens": 32768,
+            "tps": 5506.5,
+            "first_token_s": 5.9508,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 32768,
+          "tps": 5506.5,
+          "first_token_s": 5.9508,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 30115,
+            "seconds": 6.24,
+            "tps": 4830,
+            "run": 1
+          },
+          {
+            "tokens": 33825,
+            "seconds": 7.01,
+            "tps": 4827,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4830
+      },
+      {
+        "nominal_tokens": 63488,
+        "ciru_samples": [
+          {
+            "tokens": 63488,
+            "tps": 5421.2,
+            "first_token_s": 11.7111,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 63488,
+          "tps": 5421.2,
+          "first_token_s": 11.7111,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 60204,
+            "seconds": 12.11,
+            "tps": 4970,
+            "run": 1
+          },
+          {
+            "tokens": 63445,
+            "seconds": 12.84,
+            "tps": 4942,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4970
+      },
+      {
+        "nominal_tokens": 122880,
+        "ciru_samples": [
+          {
+            "tokens": 122880,
+            "tps": 5318.4,
+            "first_token_s": 23.1049,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 122880,
+          "tps": 5318.4,
+          "first_token_s": 23.1049,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 123870,
+            "seconds": 25.69,
+            "tps": 4822,
+            "run": 1
+          },
+          {
+            "tokens": 117063,
+            "seconds": 24.03,
+            "tps": 4871,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4871
+      },
+      {
+        "nominal_tokens": 262144,
+        "ciru_samples": [
+          {
+            "tokens": 262144,
+            "tps": 5138.6,
+            "first_token_s": 51.0148,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 262144,
+          "tps": 5138.6,
+          "first_token_s": 51.0148,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [],
+        "spark_best_tps": null
+      }
+    ],
+    "synthetic": [
+      {
+        "nominal_tokens": 4096,
+        "ciru_samples": [
+          {
+            "tokens": 4096,
+            "tps": 4909.2,
+            "first_token_s": 0.8343,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 4096,
+          "tps": 4909.2,
+          "first_token_s": 0.8343,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 4116,
+            "tps": 4118.68,
+            "run": 1
+          },
+          {
+            "tokens": 4116,
+            "tps": 4840.07,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 4840.07
+      },
+      {
+        "nominal_tokens": 16384,
+        "ciru_samples": [
+          {
+            "tokens": 16384,
+            "tps": 5733.7,
+            "first_token_s": 2.8575,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 16384,
+          "tps": 5733.7,
+          "first_token_s": 2.8575,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 16403,
+            "tps": 5891.14,
+            "run": 1
+          },
+          {
+            "tokens": 16404,
+            "tps": 5846.44,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 5891.14
+      },
+      {
+        "nominal_tokens": 32768,
+        "ciru_samples": [
+          {
+            "tokens": 32768,
+            "tps": 5668.3,
+            "first_token_s": 5.781,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 32768,
+          "tps": 5668.3,
+          "first_token_s": 5.781,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 32787,
+            "tps": 5893.08,
+            "run": 1
+          },
+          {
+            "tokens": 32786,
+            "tps": 5868.22,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 5893.08
+      },
+      {
+        "nominal_tokens": 65536,
+        "ciru_samples": [
+          {
+            "tokens": 65536,
+            "tps": 5586.5,
+            "first_token_s": 11.7311,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 65536,
+          "tps": 5586.5,
+          "first_token_s": 11.7311,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 65553,
+            "tps": 5936.05,
+            "run": 1
+          },
+          {
+            "tokens": 65554,
+            "tps": 5902.85,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 5936.05
+      },
+      {
+        "nominal_tokens": 131072,
+        "ciru_samples": [
+          {
+            "tokens": 131072,
+            "tps": 5480.7,
+            "first_token_s": 23.9154,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 131072,
+          "tps": 5480.7,
+          "first_token_s": 23.9154,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 131093,
+            "tps": 5793.14,
+            "run": 1
+          },
+          {
+            "tokens": 131091,
+            "tps": 5760.64,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 5793.14
+      },
+      {
+        "nominal_tokens": 262144,
+        "ciru_samples": [
+          {
+            "tokens": 262144,
+            "tps": 5288.0,
+            "first_token_s": 49.5738,
+            "chunk_tokens": 16384,
+            "mode": "INT8 prefill",
+            "series": "V19 full sweep"
+          }
+        ],
+        "ciru_best": {
+          "tokens": 262144,
+          "tps": 5288.0,
+          "first_token_s": 49.5738,
+          "chunk_tokens": 16384,
+          "mode": "INT8 prefill",
+          "series": "V19 full sweep"
+        },
+        "spark_samples": [
+          {
+            "tokens": 262160,
+            "tps": 5354.53,
+            "run": 1
+          },
+          {
+            "tokens": 262167,
+            "tps": 5359.89,
+            "run": 2
+          }
+        ],
+        "spark_best_tps": 5359.89
+      }
+    ]
+  },
+  "decode": {
+    "prose": {
+      "points": [
+        {
+          "streams": 1,
+          "ciru_best_tps": 107.5,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 87.7,
+          "ciru_per_stream_tps": 107.5,
+          "spark_per_stream_tps": 87.7,
+          "ciru_full_wall_tps": 104.6,
+          "ciru_wall_s": 2.439,
+          "ciru_generation_s": 2.372,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 2,
+          "ciru_best_tps": 166.9,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 120.4,
+          "ciru_per_stream_tps": 82.6,
+          "spark_per_stream_tps": 61.9,
+          "ciru_full_wall_tps": 158.9,
+          "ciru_wall_s": 3.21,
+          "ciru_generation_s": 3.056,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 4,
+          "ciru_best_tps": 240.0,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 163.6,
+          "ciru_per_stream_tps": 59.4,
+          "spark_per_stream_tps": 41.4,
+          "ciru_full_wall_tps": 223.4,
+          "ciru_wall_s": 4.565,
+          "ciru_generation_s": 4.25,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 8,
+          "ciru_best_tps": 334.2,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 237.6,
+          "ciru_per_stream_tps": 40.9,
+          "spark_per_stream_tps": 30.8,
+          "ciru_full_wall_tps": 303.3,
+          "ciru_wall_s": 6.725,
+          "ciru_generation_s": 6.104,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 16,
+          "ciru_best_tps": 528.2,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 342.7,
+          "ciru_per_stream_tps": 31.3,
+          "spark_per_stream_tps": 22.2,
+          "ciru_full_wall_tps": 455.8,
+          "ciru_wall_s": 8.952,
+          "ciru_generation_s": 7.724,
+          "output_tokens_per_stream": 256
+        }
+      ]
+    },
+    "code": {
+      "points": [
+        {
+          "streams": 1,
+          "ciru_best_tps": 188.4,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 124.8,
+          "ciru_per_stream_tps": 188.4,
+          "spark_per_stream_tps": 124.8,
+          "ciru_full_wall_tps": 177.0,
+          "ciru_wall_s": 1.441,
+          "ciru_generation_s": 1.354,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 2,
+          "ciru_best_tps": 255.6,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 175.0,
+          "ciru_per_stream_tps": 127.1,
+          "spark_per_stream_tps": 88.4,
+          "ciru_full_wall_tps": 235.0,
+          "ciru_wall_s": 2.17,
+          "ciru_generation_s": 1.995,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 4,
+          "ciru_best_tps": 320.7,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 246.8,
+          "ciru_per_stream_tps": 79.0,
+          "spark_per_stream_tps": 63.2,
+          "ciru_full_wall_tps": 288.5,
+          "ciru_wall_s": 3.536,
+          "ciru_generation_s": 3.18,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 8,
+          "ciru_best_tps": 457.8,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 309.8,
+          "ciru_per_stream_tps": 56.6,
+          "spark_per_stream_tps": 41.4,
+          "ciru_full_wall_tps": 393.7,
+          "ciru_wall_s": 5.182,
+          "ciru_generation_s": 4.456,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 16,
+          "ciru_best_tps": 676.3,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 438.3,
+          "ciru_per_stream_tps": 39.9,
+          "spark_per_stream_tps": 29.3,
+          "ciru_full_wall_tps": 545.7,
+          "ciru_wall_s": 7.476,
+          "ciru_generation_s": 6.032,
+          "output_tokens_per_stream": 256
+        }
+      ]
+    },
+    "structured": {
+      "points": [
+        {
+          "streams": 1,
+          "ciru_best_tps": 190.4,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 152.4,
+          "ciru_per_stream_tps": 190.4,
+          "spark_per_stream_tps": 152.4,
+          "ciru_full_wall_tps": 182.3,
+          "ciru_wall_s": 1.399,
+          "ciru_generation_s": 1.339,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 2,
+          "ciru_best_tps": 308.5,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 177.6,
+          "ciru_per_stream_tps": 151.3,
+          "spark_per_stream_tps": 103.3,
+          "ciru_full_wall_tps": 285.6,
+          "ciru_wall_s": 1.786,
+          "ciru_generation_s": 1.653,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 4,
+          "ciru_best_tps": 437.6,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 240.4,
+          "ciru_per_stream_tps": 105.0,
+          "spark_per_stream_tps": 70.4,
+          "ciru_full_wall_tps": 392.9,
+          "ciru_wall_s": 2.596,
+          "ciru_generation_s": 2.331,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 8,
+          "ciru_best_tps": 760.9,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 295.5,
+          "ciru_per_stream_tps": 87.7,
+          "spark_per_stream_tps": 44.2,
+          "ciru_full_wall_tps": 633.9,
+          "ciru_wall_s": 3.218,
+          "ciru_generation_s": 2.681,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 16,
+          "ciru_best_tps": 1177.6,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 572.2,
+          "ciru_per_stream_tps": 64.7,
+          "spark_per_stream_tps": 44.4,
+          "ciru_full_wall_tps": 899.5,
+          "ciru_wall_s": 4.536,
+          "ciru_generation_s": 3.465,
+          "output_tokens_per_stream": 256
+        }
+      ]
+    },
+    "json": {
+      "points": [
+        {
+          "streams": 1,
+          "ciru_best_tps": 169.9,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 118.9,
+          "ciru_per_stream_tps": 169.9,
+          "spark_per_stream_tps": 118.9,
+          "ciru_full_wall_tps": 160.7,
+          "ciru_wall_s": 1.587,
+          "ciru_generation_s": 1.501,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 2,
+          "ciru_best_tps": 250.3,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 174.2,
+          "ciru_per_stream_tps": 123.3,
+          "spark_per_stream_tps": 89.8,
+          "ciru_full_wall_tps": 230.1,
+          "ciru_wall_s": 2.216,
+          "ciru_generation_s": 2.038,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 4,
+          "ciru_best_tps": 381.4,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 301.7,
+          "ciru_per_stream_tps": 90.9,
+          "spark_per_stream_tps": 76.2,
+          "ciru_full_wall_tps": 336.4,
+          "ciru_wall_s": 3.032,
+          "ciru_generation_s": 2.675,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 8,
+          "ciru_best_tps": 580.3,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 471.5,
+          "ciru_per_stream_tps": 68.4,
+          "spark_per_stream_tps": 60.2,
+          "ciru_full_wall_tps": 482.8,
+          "ciru_wall_s": 4.225,
+          "ciru_generation_s": 3.516,
+          "output_tokens_per_stream": 256
+        },
+        {
+          "streams": 16,
+          "ciru_best_tps": 937.2,
+          "ciru_best_mode": "V18 DSpark",
+          "spark_tps": 659.9,
+          "ciru_per_stream_tps": 52.0,
+          "spark_per_stream_tps": 42.7,
+          "ciru_full_wall_tps": 707.7,
+          "ciru_wall_s": 5.765,
+          "ciru_generation_s": 4.353,
+          "output_tokens_per_stream": 256
+        }
+      ]
+    }
+  },
+  "validation": {
+    "prefill_int8_min_rows": 256,
+    "kl_16k_vs_fp16": 0.016886,
+    "top1_match_16k": true,
+    "top10_overlap_16k": "10/10",
+    "same_1m_answer_token_ids_v16_to_v19": true
+  }
+}
